@@ -30,10 +30,10 @@
         </VBox>
     </top>
     <center>
-        <GridPane hgap="10" vgap="5">
+        <GridPane hgap="10" prefWidth="Infinity" vgap="5">
             <columnConstraints>
-                <ColumnConstraints hgrow="ALWAYS" />
-                <ColumnConstraints hgrow="ALWAYS" />
+                <ColumnConstraints percentWidth="50.0" />
+                <ColumnConstraints percentWidth="50.0" />
             </columnConstraints>
             <rowConstraints>
                 <RowConstraints vgrow="NEVER" />
@@ -42,12 +42,18 @@
             </rowConstraints>
 
             <!-- ComboBoxes -->
-            <ComboBox fx:id="leftPathComboBox" GridPane.columnIndex="0" GridPane.rowIndex="0">
+            <ComboBox fx:id="leftPathComboBox" editable="true" maxWidth="Infinity" GridPane.columnIndex="0" GridPane.hgrow="ALWAYS" GridPane.rowIndex="0">
                 <GridPane.margin>
                     <Insets left="5.0" />
                 </GridPane.margin>
             </ComboBox>
-            <ComboBox fx:id="rightPathComboBox" GridPane.columnIndex="1" GridPane.rowIndex="0" />
+
+            <ComboBox fx:id="rightPathComboBox" editable="true" maxWidth="Infinity" GridPane.columnIndex="1" GridPane.hgrow="ALWAYS" GridPane.rowIndex="0">
+            <GridPane.margin>
+               <Insets right="5.0" />
+            </GridPane.margin></ComboBox>
+
+
 
             <!-- File Lists -->
             <ListView fx:id="leftFileList" GridPane.columnIndex="0" GridPane.rowIndex="1" />
