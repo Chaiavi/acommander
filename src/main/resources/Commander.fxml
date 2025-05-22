@@ -44,13 +44,13 @@
             <!-- ComboBoxes -->
             <ComboBox fx:id="leftPathComboBox" editable="true" maxWidth="Infinity" GridPane.columnIndex="0" GridPane.hgrow="ALWAYS" GridPane.rowIndex="0">
                 <GridPane.margin>
-                    <Insets left="5.0" />
+                    <Insets left="5.0" right="5.0" />
                 </GridPane.margin>
             </ComboBox>
 
             <ComboBox fx:id="rightPathComboBox" editable="true" maxWidth="Infinity" GridPane.columnIndex="1" GridPane.hgrow="ALWAYS" GridPane.rowIndex="0">
             <GridPane.margin>
-               <Insets right="5.0" />
+               <Insets left="5.0" right="5.0" />
             </GridPane.margin></ComboBox>
 
 

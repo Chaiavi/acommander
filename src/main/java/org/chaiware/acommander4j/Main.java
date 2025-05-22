@@ -13,7 +13,9 @@ public class Main extends Application {
         FXMLLoader loader = new FXMLLoader(getClass().getResource("/Commander.fxml"));
         Parent root = loader.load();
         Scene scene = new Scene(root, 800, 600);
-        stage.setTitle("ACommander4J");
+        stage.setFullScreen(true);
+        stage.setFullScreenExitHint(""); // disables the hint text
+        stage.setTitle("A Commander for Java");
         stage.setScene(scene);
         stage.show();
     }
