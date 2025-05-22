@@ -6,6 +6,11 @@ import javafx.scene.control.*;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.BorderPane;
 
+import java.io.FileInputStream;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.Properties;
+
 public class Commander {
 
     @FXML private BorderPane rootPane;
@@ -34,8 +39,16 @@ public class Commander {
         leftFileList.getItems().addAll("C:/file1.txt", "C:/file2.txt");
         rightFileList.getItems().addAll("C:/file3.txt", "C:/file4.txt");
 
-        leftPathComboBox.getItems().add("C:/");
-        rightPathComboBox.getItems().add("C:/");
+        String currentPath = System.getProperty("user.dir");
+        Path configFile = Paths.get(currentPath, "config", "acommander4j.properties");
+        Properties properties = new Properties();
+        try (FileInputStream input = new FileInputStream(configFile.toFile())) {
+            properties.load(input);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+        leftPathComboBox.getItems().add(properties.getProperty("left_folder"));
+        rightPathComboBox.getItems().add(properties.getProperty("right_folder"));
 
         leftPathComboBox.getSelectionModel().selectFirst();
         rightPathComboBox.getSelectionModel().selectFirst();
