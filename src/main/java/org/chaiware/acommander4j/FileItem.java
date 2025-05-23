@@ -40,13 +40,15 @@ public class FileItem {
         if (bytes < 1024) return bytes + " B";
         int exp = (int) (Math.log(bytes) / Math.log(1024));
         String unit = "KMGTPE".charAt(exp - 1) + "B";
-        return String.format("%.1f %s", bytes / Math.pow(1024, exp), unit);
+        double value = bytes / Math.pow(1024, exp);
+        return (Double.parseDouble(String.format("%.1f", value)) % 1 == 0)
+                ? String.format("%.0f %s", value, unit)
+                : String.format("%.1f %s", value, unit);
     }
 
     public String getDate() {
         try {
-            BasicFileAttributes attr = null;
-            attr = Files.readAttributes(file.toPath(), BasicFileAttributes.class);
+            BasicFileAttributes attr = Files.readAttributes(file.toPath(), BasicFileAttributes.class);
             Instant instant = attr.creationTime().toInstant();
             LocalDateTime ldt = instant.atZone(ZoneId.systemDefault()).toLocalDateTime();
 
