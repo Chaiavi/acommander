@@ -77,7 +77,6 @@ public class Commander {
             }
         });
 
-
         // Mouse Double Click
         leftFileList.setOnMouseClicked(event -> {
             if (event.getClickCount() == 2) {
@@ -128,21 +127,18 @@ public class Commander {
         if (fileListView == null || fileListView.getItems().isEmpty() || fileListView.getSelectionModel().getSelectedItem() == null)
             return;
 
-        FileItem selectedItem = fileListView.getSelectionModel().getSelectedItem();
         String currentPath = ((ComboBox<String>) fileListView.getProperties().get("PathCombox")).getItems().get(0);
-        Path target = Paths.get(currentPath, selectedItem.getFullPath()).normalize();
-        File f = target.toFile();
-
+        FileItem selectedItem = fileListView.getSelectionModel().getSelectedItem();
         if ("..".equals(selectedItem.getPresentableFilename())) {
             File parent = new File(currentPath).getParentFile();
             if (parent != null) loadFolder(parent.getAbsolutePath(), fileListView);
-        } else if (f.isDirectory()) {
-            loadFolder(f.getAbsolutePath(), fileListView);
+        } else if (selectedItem.isDirectory()) {
+            loadFolder(selectedItem.getFullPath(), fileListView);
         } else {
             try {
-                Desktop.getDesktop().open(f);
+                Desktop.getDesktop().open(selectedItem.getFile());
             } catch (Exception ex) {
-                logger.error("Failed opening: {}", f.getName(), ex);
+                logger.error("Failed opening: {}", selectedItem.getName(), ex);
             }
         }
     }
