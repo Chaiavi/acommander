@@ -40,6 +40,8 @@ public class Commander {
     Properties properties = new Properties();
     IActions actions = new BasicActionsImpl();
     private static final Logger logger = LoggerFactory.getLogger(Commander.class);
+    private ListView<FileItem> lastFocusedListView;
+
 
     @FXML
     public void initialize() {
@@ -73,7 +75,7 @@ public class Commander {
                     case F7 -> makeDirectory();
                     case F8 -> deleteFile();
                     case F10 -> exitApp();
-                    case ENTER -> enterSelectedItem(getFocusedFileList());
+                    case ENTER -> enterSelectedItem(lastFocusedListView);
                     case TAB -> adjustTabBehavior(event);
                 }
             } catch (Exception e) {
@@ -195,6 +197,15 @@ public class Commander {
             }
         });
 
+        // Configure focus setting (so we will know where focus was last been)
+        leftFileList.focusedProperty().addListener((obs, wasFocused, isNowFocused) -> {
+            if (isNowFocused) lastFocusedListView = leftFileList;
+        });
+        rightFileList.focusedProperty().addListener((obs, wasFocused, isNowFocused) -> {
+            if (isNowFocused) lastFocusedListView = rightFileList;
+        });
+        Platform.runLater(() -> leftFileList.requestFocus());
+
         leftPathComboBox.getEditor().setOnKeyPressed(event -> {
             if (event.getCode() == ENTER) {
                 String path = leftPathComboBox.getValue();
@@ -213,7 +224,7 @@ public class Commander {
      * Adjusts the TAB key behavior so it would go between file lists
      */
     private void adjustTabBehavior(KeyEvent event) {
-        if (leftFileList.equals(getFocusedFileList()))
+        if (leftFileList.equals(lastFocusedListView))
             rightFileList.requestFocus();
         else
             leftFileList.requestFocus();
@@ -264,14 +275,6 @@ public class Commander {
         folderNameCombox.getSelectionModel().selectFirst();
     }
 
-    /**
-     * Returns the focused file list or NULL
-     */
-    private ListView<FileItem> getFocusedFileList() {
-        return leftFileList.isFocused() ? leftFileList :
-                rightFileList.isFocused() ? rightFileList : null;
-    }
-
     @FXML
     private void viewFile() {
         System.out.println("F3 View");
@@ -279,13 +282,10 @@ public class Commander {
 
     @FXML
     private void editFile() throws IOException {
-            ListView<FileItem> focusedList = getFocusedFileList();
-            if (focusedList == null) return;
+        FileItem selectedItem = lastFocusedListView.getSelectionModel().getSelectedItem();
+        if (selectedItem == null) return;
 
-            FileItem selectedItem = focusedList.getSelectionModel().getSelectedItem();
-            if (selectedItem == null) return;
-
-            actions.edit(selectedItem);
+        actions.edit(selectedItem);
     }
 
     @FXML

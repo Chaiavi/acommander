@@ -32,6 +32,7 @@ public class FileItem {
     }
 
     public String getSize() {
+        if (isDirectory()) return "";
         return humanReadableSize(file.length());
     }
 
