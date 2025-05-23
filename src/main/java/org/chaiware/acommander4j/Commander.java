@@ -7,10 +7,13 @@ import javafx.fxml.FXML;
 import javafx.scene.control.*;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.BorderPane;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.awt.*;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Properties;
@@ -26,12 +29,13 @@ public class Commander {
     @FXML
     private ComboBox<String> rightPathComboBox;
     @FXML
-    private ListView<String> leftFileList;
+    private ListView<FileItem> leftFileList;
     @FXML
-    private ListView<String> rightFileList;
+    private ListView<FileItem> rightFileList;
 
     Properties properties = new Properties();
-
+    IActions actions = new BasicActionsImpl();
+    private static final Logger logger = LoggerFactory.getLogger(Commander.class);
 
     @FXML
     public void initialize() {
@@ -56,19 +60,23 @@ public class Commander {
                 }
             }
 
-
-            switch (event.getCode()) {
-                case F3 -> viewFile();
-                case F4 -> editFile();
-                case F5 -> copyFile();
-                case F6 -> moveFile();
-                case F7 -> makeDirectory();
-                case F8 -> deleteFile();
-                case F10 -> exitApp();
-                case ENTER -> enterSelectedItem(getFocusedFileList());
-                case TAB -> adjustTabBehavior(event);
+            try {
+                switch (event.getCode()) {
+                    case F3 -> viewFile();
+                    case F4 -> editFile();
+                    case F5 -> copyFile();
+                    case F6 -> moveFile();
+                    case F7 -> makeDirectory();
+                    case F8 -> deleteFile();
+                    case F10 -> exitApp();
+                    case ENTER -> enterSelectedItem(getFocusedFileList());
+                    case TAB -> adjustTabBehavior(event);
+                }
+            } catch (Exception e) {
+                throw new RuntimeException(e);
             }
         });
+
 
         // Mouse Double Click
         leftFileList.setOnMouseClicked(event -> {
@@ -116,16 +124,16 @@ public class Commander {
     /**
      * Runs the action of clicking on an item with the ENTER key (run associated program / goto folder)
      */
-    private void enterSelectedItem(ListView<String> fileListView) {
+    private void enterSelectedItem(ListView<FileItem> fileListView) {
         if (fileListView == null || fileListView.getItems().isEmpty() || fileListView.getSelectionModel().getSelectedItem() == null)
             return;
 
-        String selectedItem = fileListView.getSelectionModel().getSelectedItem();
+        FileItem selectedItem = fileListView.getSelectionModel().getSelectedItem();
         String currentPath = ((ComboBox<String>) fileListView.getProperties().get("PathCombox")).getItems().get(0);
-        Path target = Paths.get(currentPath, selectedItem).normalize();
+        Path target = Paths.get(currentPath, selectedItem.getFullPath()).normalize();
         File f = target.toFile();
 
-        if ("..".equals(selectedItem)) {
+        if ("..".equals(selectedItem.getPresentableFilename())) {
             File parent = new File(currentPath).getParentFile();
             if (parent != null) loadFolder(parent.getAbsolutePath(), fileListView);
         } else if (f.isDirectory()) {
@@ -134,7 +142,7 @@ public class Commander {
             try {
                 Desktop.getDesktop().open(f);
             } catch (Exception ex) {
-                ex.printStackTrace();
+                logger.error("Failed opening: {}", f.getName(), ex);
             }
         }
     }
@@ -142,16 +150,16 @@ public class Commander {
     /**
      * Loads the files in the path into the ListView
      */
-    private void loadFolder(String path, ListView<String> fileListView) {
+    private void loadFolder(String path, ListView<FileItem> fileListView) {
         File folder = new File(path);
         File[] files = folder.listFiles();
-        ObservableList<String> items = FXCollections.observableArrayList();
+        ObservableList<FileItem> items = FXCollections.observableArrayList();
 
         if (folder.getParentFile() != null)
-            items.add("..");
+            items.add(new FileItem(folder, ".."));
         if (files != null)
             for (File f : files)
-                items.add(f.getName());
+                items.add(new FileItem(f));
 
         fileListView.setItems(items);
         ComboBox<String> folderNameCombox = (ComboBox<String>) fileListView.getProperties().get("PathCombox");
@@ -163,7 +171,7 @@ public class Commander {
     /**
      * Returns the focused file list or NULL
      */
-    private ListView<String> getFocusedFileList() {
+    private ListView<FileItem> getFocusedFileList() {
         return leftFileList.isFocused() ? leftFileList :
                 rightFileList.isFocused() ? rightFileList : null;
     }
@@ -174,8 +182,14 @@ public class Commander {
     }
 
     @FXML
-    private void editFile() {
-        System.out.println("F4 Edit");
+    private void editFile() throws IOException {
+            ListView<FileItem> focusedList = getFocusedFileList();
+            if (focusedList == null) return;
+
+            FileItem selectedItem = focusedList.getSelectionModel().getSelectedItem();
+            if (selectedItem == null) return;
+
+            actions.edit(selectedItem);
     }
 
     @FXML
