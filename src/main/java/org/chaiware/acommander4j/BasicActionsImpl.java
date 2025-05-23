@@ -8,12 +8,19 @@ import java.util.List;
 public class BasicActionsImpl implements IActions {
     @Override
     public void edit(FileItem fileItem) throws IOException {
-        runExecutable(Collections.singletonList(fileItem.getFile().toString()));
+        runExecutable("C:\\Users\\User\\IdeaProjects\\acommander4j\\apps\\TedNPad.exe", fileItem.getFile().toString());
     }
 
-    private void runExecutable(List<String> args) throws IOException {
-        ProcessBuilder pb = new ProcessBuilder("C:\\Users\\User\\IdeaProjects\\acommander4j\\apps\\TedNPad.exe", args.get(0));
-        pb.directory(new File(args.get(0)).getParentFile());
+    @Override
+    public void view(FileItem fileItem) throws IOException {
+        runExecutable("C:\\Users\\User\\Desktop\\tmp\\ql\\QuickLook.exe", fileItem.getFile().toString()); // QuickLook Best but 236mb
+        runExecutable("C:\\Users\\User\\Desktop\\tmp\\uv\\Viewer.exe", fileItem.getFile().toString()); // UniversalViewer least features but 10mb
+        runExecutable("C:\\Users\\User\\Desktop\\tmp\\fvl\\fv.exe", fileItem.getFile().toString()); // FileViewerLite 98mb quite good
+    }
+
+    private void runExecutable(String executable, String filename) throws IOException {
+        ProcessBuilder pb = new ProcessBuilder(executable, filename);
+        pb.directory(new File(filename).getParentFile());
         pb.start();
     }
 }

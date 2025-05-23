@@ -276,16 +276,17 @@ public class Commander {
     }
 
     @FXML
-    private void viewFile() {
-        System.out.println("F3 View");
+    private void viewFile() throws IOException {
+        FileItem selectedItem = lastFocusedListView.getSelectionModel().getSelectedItem();
+        if (selectedItem != null)
+            actions.view(selectedItem);
     }
 
     @FXML
     private void editFile() throws IOException {
         FileItem selectedItem = lastFocusedListView.getSelectionModel().getSelectedItem();
-        if (selectedItem == null) return;
-
-        actions.edit(selectedItem);
+        if (selectedItem != null)
+            actions.edit(selectedItem);
     }
 
     @FXML
