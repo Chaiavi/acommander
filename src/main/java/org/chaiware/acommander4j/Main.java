@@ -13,8 +13,7 @@ public class Main extends Application {
         FXMLLoader loader = new FXMLLoader(getClass().getResource("/Commander.fxml"));
         Parent root = loader.load();
         Scene scene = new Scene(root, 800, 600);
-        stage.setFullScreen(true);
-        stage.setFullScreenExitHint(""); // disables the hint text
+        stage.setMaximized(true);
         stage.setTitle("A Commander for Java");
         stage.setScene(scene);
         stage.show();
