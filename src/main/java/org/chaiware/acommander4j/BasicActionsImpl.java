@@ -18,8 +18,19 @@ public class BasicActionsImpl implements IActions {
         runExecutable("C:\\Users\\User\\Desktop\\tmp\\fvl\\fv.exe", fileItem.getFile().toString()); // FileViewerLite 98mb quite good
     }
 
+    @Override
+    public void copy(FileItem sourceFile, String targetFolder) throws IOException {
+        runExecutable("C:\\Users\\User\\Desktop\\tmp\\fc2\\FastCopy.exe", sourceFile.getFile().toString(), "/to=" + targetFolder); // QuickLook Best but 236mb
+    }
+
     private void runExecutable(String executable, String filename) throws IOException {
         ProcessBuilder pb = new ProcessBuilder(executable, filename);
+        pb.directory(new File(filename).getParentFile());
+        pb.start();
+    }
+
+    private void runExecutable(String executable, String filename, String folderName) throws IOException {
+        ProcessBuilder pb = new ProcessBuilder(executable, filename, folderName);
         pb.directory(new File(filename).getParentFile());
         pb.start();
     }

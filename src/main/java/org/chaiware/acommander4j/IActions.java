@@ -5,4 +5,5 @@ import java.io.IOException;
 public interface IActions {
     void edit(FileItem fileItem) throws IOException;
     void view(FileItem fileItem) throws IOException;
+    void copy(FileItem sourceFile, String targetFolder) throws IOException;
 }

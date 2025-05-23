@@ -290,8 +290,19 @@ public class Commander {
     }
 
     @FXML
-    private void copyFile() {
-        System.out.println("F5 Copy");
+    private void copyFile() throws IOException {
+        FileItem selectedItem = lastFocusedListView.getSelectionModel().getSelectedItem();
+        if (selectedItem != null) {
+            String targetFolder = ((ComboBox<String>) rightFileList.getProperties().get("PathCombox")).getSelectionModel().getSelectedItem();
+            if (lastFocusedListView == rightFileList)
+                targetFolder = ((ComboBox<String>) leftFileList.getProperties().get("PathCombox")).getSelectionModel().getSelectedItem();
+
+            actions.copy(selectedItem, targetFolder);
+        }
+
+        //todo this is an ugly hack to see the results
+        loadFolder(((ComboBox<String>) rightFileList.getProperties().get("PathCombox")).getSelectionModel().getSelectedItem(), rightFileList);
+        loadFolder(((ComboBox<String>) leftFileList.getProperties().get("PathCombox")).getSelectionModel().getSelectedItem(), leftFileList);
     }
 
     @FXML
