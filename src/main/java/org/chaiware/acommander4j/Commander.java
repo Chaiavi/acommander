@@ -4,9 +4,13 @@ import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
+import javafx.geometry.Pos;
 import javafx.scene.control.*;
+import javafx.scene.control.Label;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.BorderPane;
+import javafx.scene.layout.HBox;
+import javafx.scene.layout.Priority;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -94,6 +98,102 @@ public class Commander {
         rightFileList.getProperties().put("PathCombox", rightPathComboBox);
         loadFolder(new File(properties.getProperty("left_folder")).getPath(), leftFileList);
         loadFolder(new File(properties.getProperty("right_folder")).getPath(), rightFileList);
+
+        leftFileList.setCellFactory(lv -> new ListCell<FileItem>() {
+            final Label nameLabel = new Label();
+            final Label sizeLabel = new Label();
+            final Label dateLabel = new Label();
+            final HBox hbox = new HBox(nameLabel, sizeLabel, dateLabel);
+
+            {
+                HBox.setHgrow(nameLabel, Priority.ALWAYS);
+                nameLabel.setMaxWidth(Double.MAX_VALUE);
+                nameLabel.setEllipsisString("...");
+                nameLabel.setTextOverrun(OverrunStyle.ELLIPSIS);
+                HBox.setHgrow(nameLabel, Priority.ALWAYS);
+
+                sizeLabel.setMinWidth(100);
+                sizeLabel.setMaxWidth(100);
+                sizeLabel.setAlignment(Pos.CENTER_RIGHT);
+
+                dateLabel.setMinWidth(120);
+                dateLabel.setMaxWidth(120);
+                dateLabel.setAlignment(Pos.CENTER_RIGHT);
+
+                hbox.setSpacing(10);
+                hbox.setStyle("-fx-font-family: 'JetBrains Mono'; -fx-font-size: 14px; -fx-hbar-policy: never;");
+            }
+
+            @Override
+            protected void updateItem(FileItem item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty || item == null) {
+                    setGraphic(null);
+                } else {
+                    nameLabel.setText(item.getPresentableFilename());
+                    sizeLabel.setText(String.format("%s", item.getSize()));
+                    dateLabel.setText(item.getDate());
+
+                    // Constrain width to ListView cell
+                    hbox.setMaxWidth(rightFileList.getWidth() - 20); // leave margin for scrollbar
+                    hbox.setPrefWidth(rightFileList.getWidth() - 20);
+                    rightFileList.widthProperty().addListener((obs, oldVal, newVal) -> {
+                        hbox.setMaxWidth(newVal.doubleValue() - 20);
+                        hbox.setPrefWidth(newVal.doubleValue() - 20);
+                    });
+
+                    setGraphic(hbox);
+                }
+            }
+        });
+
+        rightFileList.setCellFactory(lv -> new ListCell<FileItem>() {
+            final Label nameLabel = new Label();
+            final Label sizeLabel = new Label();
+            final Label dateLabel = new Label();
+            final HBox hbox = new HBox(nameLabel, sizeLabel, dateLabel);
+
+            {
+                HBox.setHgrow(nameLabel, Priority.ALWAYS);
+                nameLabel.setMaxWidth(Double.MAX_VALUE);
+                nameLabel.setEllipsisString("...");
+                nameLabel.setTextOverrun(OverrunStyle.ELLIPSIS);
+                HBox.setHgrow(nameLabel, Priority.ALWAYS);
+
+                sizeLabel.setMinWidth(100);
+                sizeLabel.setMaxWidth(100);
+                sizeLabel.setAlignment(Pos.CENTER_RIGHT);
+
+                dateLabel.setMinWidth(120);
+                dateLabel.setMaxWidth(120);
+                dateLabel.setAlignment(Pos.CENTER_RIGHT);
+
+                hbox.setSpacing(10);
+                hbox.setStyle("-fx-font-family: 'JetBrains Mono'; -fx-font-size: 14px; -fx-hbar-policy: never;");
+            }
+
+            @Override
+            protected void updateItem(FileItem item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty || item == null) {
+                    setGraphic(null);
+                } else {
+                    nameLabel.setText(item.getPresentableFilename());
+                    sizeLabel.setText(String.format("%s", item.getSize()));
+                    dateLabel.setText(item.getDate());
+
+                    // Constrain width to ListView cell
+                    hbox.setMaxWidth(rightFileList.getWidth() - 20); // leave margin for scrollbar
+                    hbox.setPrefWidth(rightFileList.getWidth() - 20);
+                    rightFileList.widthProperty().addListener((obs, oldVal, newVal) -> {
+                        hbox.setMaxWidth(newVal.doubleValue() - 20);
+                        hbox.setPrefWidth(newVal.doubleValue() - 20);
+                    });
+
+                    setGraphic(hbox);
+                }
+            }
+        });
 
         leftPathComboBox.getEditor().setOnKeyPressed(event -> {
             if (event.getCode() == ENTER) {
