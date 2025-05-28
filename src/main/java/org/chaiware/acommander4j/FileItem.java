@@ -8,6 +8,7 @@ import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
+import java.util.Objects;
 
 public class FileItem {
     private final File file;
@@ -73,5 +74,20 @@ public class FileItem {
     @Override
     public String toString() {
         return presentableFilename; // Display name in ListView
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (o == null || getClass() != o.getClass()) return false;
+
+        FileItem fileItem = (FileItem) o;
+        return file.equals(fileItem.file) && Objects.equals(presentableFilename, fileItem.presentableFilename);
+    }
+
+    @Override
+    public int hashCode() {
+        int result = file.hashCode();
+        result = 31 * result + Objects.hashCode(presentableFilename);
+        return result;
     }
 }
