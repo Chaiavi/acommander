@@ -22,6 +22,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Properties;
 
+import static java.awt.Desktop.*;
 import static javafx.scene.input.KeyCode.ENTER;
 
 public class Commander {
@@ -41,6 +42,8 @@ public class Commander {
     IActions actions = new BasicActionsImpl();
     private static final Logger logger = LoggerFactory.getLogger(Commander.class);
     private ListView<FileItem> lastFocusedListView;
+    ObservableList<FileItem> leftFiles = FXCollections.observableArrayList();
+    ObservableList<FileItem> rightFiles = FXCollections.observableArrayList();
 
 
     @FXML
@@ -52,6 +55,12 @@ public class Commander {
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
+
+        // Enables refresh using the bindings of the file list view
+        leftFileList.setItems(leftFiles);
+        leftFileList.getProperties().put("FILE_LIST", leftFiles);
+        rightFileList.setItems(rightFiles);
+        rightFileList.getProperties().put("FILE_LIST", rightFiles);
 
         // Configuring Keyboard Bindings
         Platform.runLater(() -> rootPane.requestFocus());
@@ -247,7 +256,7 @@ public class Commander {
             loadFolder(selectedItem.getFullPath(), fileListView);
         } else {
             try {
-                Desktop.getDesktop().open(selectedItem.getFile());
+                getDesktop().open(selectedItem.getFile());
             } catch (Exception ex) {
                 logger.error("Failed opening: {}", selectedItem.getName(), ex);
             }
@@ -260,7 +269,8 @@ public class Commander {
     private void loadFolder(String path, ListView<FileItem> fileListView) {
         File folder = new File(path);
         File[] files = folder.listFiles();
-        ObservableList<FileItem> items = FXCollections.observableArrayList();
+        ObservableList<FileItem> items = fileListView.getItems();
+        items.clear();
 
         if (folder.getParentFile() != null)
             items.add(new FileItem(folder, ".."));
@@ -268,7 +278,12 @@ public class Commander {
             for (File f : files)
                 items.add(new FileItem(f));
 
-        fileListView.setItems(items);
+        fileListView.refresh();
+        fileListView.setItems(null);
+        fileListView.setItems(FXCollections.observableArrayList(items));
+
+        ((ObservableList<FileItem>)fileListView.getProperties().get("FILE_LIST")).setAll(items);
+        fileListView.refresh();
         ComboBox<String> folderNameCombox = (ComboBox<String>) fileListView.getProperties().get("PathCombox");
         folderNameCombox.getItems().clear();
         folderNameCombox.getItems().add(path);
@@ -301,8 +316,10 @@ public class Commander {
         }
 
         //todo this is an ugly hack to see the results
-        loadFolder(((ComboBox<String>) rightFileList.getProperties().get("PathCombox")).getSelectionModel().getSelectedItem(), rightFileList);
-        loadFolder(((ComboBox<String>) leftFileList.getProperties().get("PathCombox")).getSelectionModel().getSelectedItem(), leftFileList);
+        Platform.runLater(() -> loadFolder(((ComboBox<String>) rightFileList.getProperties().get("PathCombox")).getSelectionModel().getSelectedItem(), rightFileList));
+        Platform.runLater(() -> loadFolder(((ComboBox<String>) leftFileList.getProperties().get("PathCombox")).getSelectionModel().getSelectedItem(), leftFileList));
+        Platform.runLater(() -> leftFileList.refresh());
+        Platform.runLater(() -> rightFileList.refresh());
     }
 
     @FXML
