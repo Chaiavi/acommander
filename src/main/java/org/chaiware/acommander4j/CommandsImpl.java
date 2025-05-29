@@ -46,6 +46,19 @@ public class CommandsImpl implements ICommands {
         runExecutable(command);
     }
 
+    @Override
+    public void move(FileItem sourceFile, String targetFolder) throws Exception {
+        log.info("Moving: {} To: {}", sourceFile, targetFolder);
+        List<String> command = new ArrayList<>();
+        command.add(APP_PATH + "fastcopy\\FastCopy.exe");
+        command.add("/cmd=move");
+        command.add("/auto_close");
+        command.add("/verify");
+        command.add(sourceFile.getFile().toString());
+        command.add("/to=" + targetFolder);
+        runExecutable(command);
+    }
+
     private void runExecutable(List<String> params) throws Exception {
         ProcessBuilder pb = new ProcessBuilder(params);
 //        pb.directory(new File(filename).getParentFile());

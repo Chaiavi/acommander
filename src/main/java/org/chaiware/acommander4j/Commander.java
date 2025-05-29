@@ -292,8 +292,17 @@ public class Commander {
     }
 
     @FXML
-    private void moveFile() {
-        System.out.println("F6 Move");
+    private void moveFile() throws Exception {
+        FileItem selectedItem = lastFocusedListView.getSelectionModel().getSelectedItem();
+        if (selectedItem != null) {
+            String targetFolder = ((ComboBox<String>) rightFileList.getProperties().get("PathCombox")).getSelectionModel().getSelectedItem();
+            if (lastFocusedListView == rightFileList)
+                targetFolder = ((ComboBox<String>) leftFileList.getProperties().get("PathCombox")).getSelectionModel().getSelectedItem();
+
+            if (selectedItem.isDirectory())
+                targetFolder += "\\" + selectedItem.getName();
+            commands.move(selectedItem, targetFolder);
+        }
     }
 
     @FXML
