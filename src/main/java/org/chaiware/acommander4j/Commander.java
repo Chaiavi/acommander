@@ -44,7 +44,7 @@ public class Commander {
 
     @FXML
     public void initialize() {
-        // Loads properties
+        logger.debug("Loading Properties");
         Path configFile = Paths.get(System.getProperty("user.dir"), "config", "acommander.properties");
         try (FileInputStream input = new FileInputStream(configFile.toFile())) {
             properties.load(input);
@@ -58,7 +58,7 @@ public class Commander {
         fileListsLoader = new FileListsLoader(leftFileList, rightFileList);
         actions = new BasicActionsImpl(fileListsLoader);
 
-        // Configuring Keyboard Bindings
+        logger.debug("Configuring Keyboard Bindings");
         Platform.runLater(() -> rootPane.requestFocus());
         rootPane.addEventFilter(KeyEvent.KEY_PRESSED, event -> {
             if (event.getCode() == ENTER) {
@@ -88,7 +88,7 @@ public class Commander {
             }
         });
 
-        // Mouse Double Click
+        logger.debug("Configuring Mouse Double Click");
         leftFileList.setOnMouseClicked(event -> {
             if (event.getClickCount() == 2) {
                 enterSelectedItem(leftFileList);
@@ -100,9 +100,11 @@ public class Commander {
             }
         });
 
+        logger.debug("Loading file lists into the double panes file views");
         fileListsLoader.loadFolder(new File(properties.getProperty("left_folder")).getPath(), leftFileList);
         fileListsLoader.loadFolder(new File(properties.getProperty("right_folder")).getPath(), rightFileList);
 
+        logger.debug("Configuring the Left pane look and experience");
         leftFileList.setCellFactory(lv -> new ListCell<>() {
             final Label nameLabel = new Label();
             final Label sizeLabel = new Label();
@@ -151,6 +153,7 @@ public class Commander {
             }
         });
 
+        logger.debug("Configuring the right pane look and experience");
         rightFileList.setCellFactory(lv -> new ListCell<>() {
             final Label nameLabel = new Label();
             final Label sizeLabel = new Label();
@@ -199,7 +202,7 @@ public class Commander {
             }
         });
 
-        // Configure focus setting (so we will know where focus was last been)
+        logger.debug("Configure focus setting (so we will know where focus was last been)");
         leftFileList.focusedProperty().addListener((obs, wasFocused, isNowFocused) -> {
             if (isNowFocused) lastFocusedListView = leftFileList;
         });
@@ -208,6 +211,7 @@ public class Commander {
         });
         Platform.runLater(() -> leftFileList.requestFocus());
 
+        logger.debug("Binding the ENTER key");
         leftPathComboBox.getEditor().setOnKeyPressed(event -> {
             if (event.getCode() == ENTER) {
                 String path = leftPathComboBox.getValue();
@@ -226,6 +230,7 @@ public class Commander {
      * Adjusts the TAB key behavior so it would go between file lists
      */
     private void adjustTabBehavior(KeyEvent event) {
+        logger.debug("Adjusting the TAB binding");
         if (leftFileList.equals(lastFocusedListView))
             rightFileList.requestFocus();
         else
@@ -237,11 +242,13 @@ public class Commander {
      * Runs the action of clicking on an item with the ENTER key (run associated program / goto folder)
      */
     private void enterSelectedItem(ListView<FileItem> fileListView) {
+        logger.debug("User clicked ENTER (or mouse double-click)");
         if (fileListView == null || fileListView.getItems().isEmpty() || fileListView.getSelectionModel().getSelectedItem() == null)
             return;
 
         String currentPath = ((ComboBox<String>) fileListView.getProperties().get("PathCombox")).getItems().get(0);
         FileItem selectedItem = fileListView.getSelectionModel().getSelectedItem();
+        logger.debug("Running: {}", selectedItem.getName());
         if ("..".equals(selectedItem.getPresentableFilename())) {
             File parent = new File(currentPath).getParentFile();
             if (parent != null) fileListsLoader.loadFolder(parent.getAbsolutePath(), fileListView);

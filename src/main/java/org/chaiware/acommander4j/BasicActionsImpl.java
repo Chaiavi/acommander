@@ -26,6 +26,7 @@ public class BasicActionsImpl implements IActions {
 
     @Override
     public void edit(FileItem fileItem) throws Exception {
+        log.info("Editing: {}", fileItem.getName());
         List<String> command = new ArrayList<>();
         command.add(APP_PATH + "TedNPad.exe");
         command.add(fileItem.getFile().toString());
@@ -34,6 +35,7 @@ public class BasicActionsImpl implements IActions {
 
     @Override
     public void copy(FileItem sourceFile, String targetFolder) throws Exception {
+        log.info("Copying: {} To: {}", sourceFile, targetFolder);
         List<String> command = new ArrayList<>();
         command.add(APP_PATH + "fastcopy\\FastCopy.exe");
         command.add("/cmd=diff");
