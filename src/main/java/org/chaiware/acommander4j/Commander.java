@@ -1,12 +1,9 @@
 package org.chaiware.acommander4j;
 
 import javafx.application.Platform;
-import javafx.collections.FXCollections;
-import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
 import javafx.geometry.Pos;
 import javafx.scene.control.*;
-import javafx.scene.control.Label;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
@@ -14,7 +11,6 @@ import javafx.scene.layout.Priority;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.awt.*;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -22,7 +18,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Properties;
 
-import static java.awt.Desktop.*;
+import static java.awt.Desktop.getDesktop;
 import static javafx.scene.input.KeyCode.ENTER;
 
 public class Commander {
@@ -39,11 +35,11 @@ public class Commander {
     private ListView<FileItem> rightFileList;
 
     Properties properties = new Properties();
-    IActions actions = new BasicActionsImpl();
+    IActions actions;
+
     private static final Logger logger = LoggerFactory.getLogger(Commander.class);
     private ListView<FileItem> lastFocusedListView;
-    ObservableList<FileItem> leftFiles = FXCollections.observableArrayList();
-    ObservableList<FileItem> rightFiles = FXCollections.observableArrayList();
+    FileListsLoader fileListsLoader;
 
 
     @FXML
@@ -56,21 +52,21 @@ public class Commander {
             throw new RuntimeException(e);
         }
 
-        // Enables refresh using the bindings of the file list view
-        leftFileList.setItems(leftFiles);
-        leftFileList.getProperties().put("FILE_LIST", leftFiles);
-        rightFileList.setItems(rightFiles);
-        rightFileList.getProperties().put("FILE_LIST", rightFiles);
+        // Configure left & right defaults
+        leftFileList.getProperties().put("PathCombox", leftPathComboBox);
+        rightFileList.getProperties().put("PathCombox", rightPathComboBox);
+        fileListsLoader = new FileListsLoader(leftFileList, rightFileList);
+        actions = new BasicActionsImpl(fileListsLoader);
 
         // Configuring Keyboard Bindings
         Platform.runLater(() -> rootPane.requestFocus());
         rootPane.addEventFilter(KeyEvent.KEY_PRESSED, event -> {
             if (event.getCode() == ENTER) {
                 if (leftPathComboBox.getEditor().isFocused()) {
-                    loadFolder(leftPathComboBox.getEditor().getText(), leftFileList);
+                    fileListsLoader.loadFolder(leftPathComboBox.getEditor().getText(), leftFileList);
                     return;
                 } else if (rightPathComboBox.getEditor().isFocused()) {
-                    loadFolder(rightPathComboBox.getEditor().getText(), rightFileList);
+                    fileListsLoader.loadFolder(rightPathComboBox.getEditor().getText(), rightFileList);
                     return;
                 }
             }
@@ -104,13 +100,10 @@ public class Commander {
             }
         });
 
-        // Configure left & right defaults
-        leftFileList.getProperties().put("PathCombox", leftPathComboBox);
-        rightFileList.getProperties().put("PathCombox", rightPathComboBox);
-        loadFolder(new File(properties.getProperty("left_folder")).getPath(), leftFileList);
-        loadFolder(new File(properties.getProperty("right_folder")).getPath(), rightFileList);
+        fileListsLoader.loadFolder(new File(properties.getProperty("left_folder")).getPath(), leftFileList);
+        fileListsLoader.loadFolder(new File(properties.getProperty("right_folder")).getPath(), rightFileList);
 
-        leftFileList.setCellFactory(lv -> new ListCell<FileItem>() {
+        leftFileList.setCellFactory(lv -> new ListCell<>() {
             final Label nameLabel = new Label();
             final Label sizeLabel = new Label();
             final Label dateLabel = new Label();
@@ -158,7 +151,7 @@ public class Commander {
             }
         });
 
-        rightFileList.setCellFactory(lv -> new ListCell<FileItem>() {
+        rightFileList.setCellFactory(lv -> new ListCell<>() {
             final Label nameLabel = new Label();
             final Label sizeLabel = new Label();
             final Label dateLabel = new Label();
@@ -218,13 +211,13 @@ public class Commander {
         leftPathComboBox.getEditor().setOnKeyPressed(event -> {
             if (event.getCode() == ENTER) {
                 String path = leftPathComboBox.getValue();
-                loadFolder(path, leftFileList);
+                fileListsLoader.loadFolder(path, leftFileList);
             }
         });
         rightPathComboBox.getEditor().setOnKeyPressed(event -> {
             if (event.getCode() == ENTER) {
                 String path = rightPathComboBox.getValue();
-                loadFolder(path, rightFileList);
+                fileListsLoader.loadFolder(path, rightFileList);
             }
         });
     }
@@ -251,9 +244,9 @@ public class Commander {
         FileItem selectedItem = fileListView.getSelectionModel().getSelectedItem();
         if ("..".equals(selectedItem.getPresentableFilename())) {
             File parent = new File(currentPath).getParentFile();
-            if (parent != null) loadFolder(parent.getAbsolutePath(), fileListView);
+            if (parent != null) fileListsLoader.loadFolder(parent.getAbsolutePath(), fileListView);
         } else if (selectedItem.isDirectory()) {
-            loadFolder(selectedItem.getFullPath(), fileListView);
+            fileListsLoader.loadFolder(selectedItem.getFullPath(), fileListView);
         } else {
             try {
                 getDesktop().open(selectedItem.getFile());
@@ -261,33 +254,6 @@ public class Commander {
                 logger.error("Failed opening: {}", selectedItem.getName(), ex);
             }
         }
-    }
-
-    /**
-     * Loads the files in the path into the ListView
-     */
-    private void loadFolder(String path, ListView<FileItem> fileListView) {
-        File folder = new File(path);
-        File[] files = folder.listFiles();
-        ObservableList<FileItem> items = fileListView.getItems();
-        items.clear();
-
-        if (folder.getParentFile() != null)
-            items.add(new FileItem(folder, ".."));
-        if (files != null)
-            for (File f : files)
-                items.add(new FileItem(f));
-
-        fileListView.refresh();
-        fileListView.setItems(null);
-        fileListView.setItems(FXCollections.observableArrayList(items));
-
-        ((ObservableList<FileItem>)fileListView.getProperties().get("FILE_LIST")).setAll(items);
-        fileListView.refresh();
-        ComboBox<String> folderNameCombox = (ComboBox<String>) fileListView.getProperties().get("PathCombox");
-        folderNameCombox.getItems().clear();
-        folderNameCombox.getItems().add(path);
-        folderNameCombox.getSelectionModel().selectFirst();
     }
 
     @FXML
@@ -298,14 +264,14 @@ public class Commander {
     }
 
     @FXML
-    private void editFile() throws IOException {
+    private void editFile() throws Exception {
         FileItem selectedItem = lastFocusedListView.getSelectionModel().getSelectedItem();
         if (selectedItem != null)
             actions.edit(selectedItem);
     }
 
     @FXML
-    private void copyFile() throws IOException {
+    private void copyFile() throws Exception {
         FileItem selectedItem = lastFocusedListView.getSelectionModel().getSelectedItem();
         if (selectedItem != null) {
             String targetFolder = ((ComboBox<String>) rightFileList.getProperties().get("PathCombox")).getSelectionModel().getSelectedItem();
@@ -314,12 +280,6 @@ public class Commander {
 
             actions.copy(selectedItem, targetFolder);
         }
-
-        //todo this is an ugly hack to see the results
-        Platform.runLater(() -> loadFolder(((ComboBox<String>) rightFileList.getProperties().get("PathCombox")).getSelectionModel().getSelectedItem(), rightFileList));
-        Platform.runLater(() -> loadFolder(((ComboBox<String>) leftFileList.getProperties().get("PathCombox")).getSelectionModel().getSelectedItem(), leftFileList));
-        Platform.runLater(() -> leftFileList.refresh());
-        Platform.runLater(() -> rightFileList.refresh());
     }
 
     @FXML

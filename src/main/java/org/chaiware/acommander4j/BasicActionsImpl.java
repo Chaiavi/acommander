@@ -7,6 +7,11 @@ import java.util.List;
 
 public class BasicActionsImpl implements IActions {
     private final String APP_PATH = Paths.get(System.getProperty("user.dir"), "apps") + "\\";
+    private final FileListsLoader fileListsLoader;
+
+    public BasicActionsImpl(FileListsLoader fileListsLoader) {
+        this.fileListsLoader = fileListsLoader;
+    }
 
     @Override
     public void view(FileItem fileItem) throws IOException {
@@ -16,7 +21,7 @@ public class BasicActionsImpl implements IActions {
     }
 
     @Override
-    public void edit(FileItem fileItem) throws IOException {
+    public void edit(FileItem fileItem) throws Exception {
         List<String> command = new ArrayList<>();
         command.add(APP_PATH + "TedNPad.exe");
         command.add(fileItem.getFile().toString());
@@ -24,7 +29,7 @@ public class BasicActionsImpl implements IActions {
     }
 
     @Override
-    public void copy(FileItem sourceFile, String targetFolder) throws IOException {
+    public void copy(FileItem sourceFile, String targetFolder) throws Exception {
         List<String> command = new ArrayList<>();
         command.add(APP_PATH + "FastCopy.exe");
         command.add("/cmd=diff");
@@ -33,12 +38,13 @@ public class BasicActionsImpl implements IActions {
         command.add(sourceFile.getFile().toString());
         command.add("/to=" + targetFolder);
         runExecutable(command);
-         // fastcopy.exe /cmd=diff /auto_close /force_close /no_confirm_stop "FastCopy.exe" /to=".\doc"
     }
 
-    private void runExecutable(List<String> params) throws IOException {
+    private void runExecutable(List<String> params) throws Exception {
         ProcessBuilder pb = new ProcessBuilder(params);
 //        pb.directory(new File(filename).getParentFile());
-        pb.start();
+        Process process = pb.start();
+        process.waitFor();
+        fileListsLoader.refreshFileListViews();
     }
 }
