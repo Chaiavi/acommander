@@ -18,10 +18,13 @@ public class CommandsImpl implements ICommands {
     }
 
     @Override
-    public void view(FileItem fileItem) throws IOException {
-//        runExecutable("C:\\Users\\User\\Desktop\\tmp\\ql\\QuickLook.exe", fileItem.getFile().toString()); // QuickLook Best but 236mb
-//        runExecutable("C:\\Users\\User\\Desktop\\tmp\\uv\\Viewer.exe", fileItem.getFile().toString()); // UniversalViewer least features but 10mb
-//        runExecutable("C:\\Users\\User\\Desktop\\tmp\\fvl\\fv.exe", fileItem.getFile().toString()); // FileViewerLite 98mb quite good
+    public void view(FileItem fileItem) throws Exception {
+        /* Found 3 alternatives for viewing files: UniversalViewer (least features, 10mb), FileViewerLite (quite good, 98mb), QuickLook (best, 236mb) */
+        log.info("Viewing: {}", fileItem.getName());
+        List<String> command = new ArrayList<>();
+        command.add(APP_PATH + "QuickLook\\QuickLook.exe");
+        command.add(fileItem.getFile().toString());
+        runExecutable(command, false);
     }
 
     @Override
@@ -30,7 +33,7 @@ public class CommandsImpl implements ICommands {
         List<String> command = new ArrayList<>();
         command.add(APP_PATH + "TedNPad.exe");
         command.add(fileItem.getFile().toString());
-        runExecutable(command);
+        runExecutable(command, false);
     }
 
     @Override
@@ -43,7 +46,7 @@ public class CommandsImpl implements ICommands {
         command.add("/verify");
         command.add(sourceFile.getFile().toString());
         command.add("/to=" + targetFolder);
-        runExecutable(command);
+        runExecutable(command, true);
     }
 
     @Override
@@ -56,15 +59,16 @@ public class CommandsImpl implements ICommands {
         command.add("/verify");
         command.add(sourceFile.getFile().toString());
         command.add("/to=" + targetFolder);
-        runExecutable(command);
+        runExecutable(command, true);
     }
 
-    private void runExecutable(List<String> params) throws Exception {
+    private void runExecutable(List<String> params, boolean isWaitFor) throws Exception {
         ProcessBuilder pb = new ProcessBuilder(params);
-//        pb.directory(new File(filename).getParentFile());
         log.info("Running: {}", String.join(" ", pb.command()));
         Process process = pb.start();
-        process.waitFor();
-        fileListsLoader.refreshFileListViews();
+        if (isWaitFor) {
+            process.waitFor();
+            fileListsLoader.refreshFileListViews();
+        }
     }
 }

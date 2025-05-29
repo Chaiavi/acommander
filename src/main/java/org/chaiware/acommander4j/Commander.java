@@ -264,7 +264,7 @@ public class Commander {
     }
 
     @FXML
-    private void viewFile() throws IOException {
+    private void viewFile() throws Exception {
         FileItem selectedItem = lastFocusedListView.getSelectionModel().getSelectedItem();
         if (selectedItem != null)
             commands.view(selectedItem);
