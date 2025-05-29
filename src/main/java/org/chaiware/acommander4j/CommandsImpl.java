@@ -8,12 +8,12 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 
-public class BasicActionsImpl implements IActions {
-    private static final Logger log = LoggerFactory.getLogger(BasicActionsImpl.class);
+public class CommandsImpl implements ICommands {
+    private static final Logger log = LoggerFactory.getLogger(CommandsImpl.class);
     private final String APP_PATH = Paths.get(System.getProperty("user.dir"), "apps") + "\\";
     private final FileListsLoader fileListsLoader;
 
-    public BasicActionsImpl(FileListsLoader fileListsLoader) {
+    public CommandsImpl(FileListsLoader fileListsLoader) {
         this.fileListsLoader = fileListsLoader;
     }
 

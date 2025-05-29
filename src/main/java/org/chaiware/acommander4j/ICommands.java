@@ -2,7 +2,7 @@ package org.chaiware.acommander4j;
 
 import java.io.IOException;
 
-public interface IActions {
+public interface ICommands {
     void edit(FileItem fileItem) throws Exception;
     void view(FileItem fileItem) throws IOException;
     void copy(FileItem sourceFile, String targetFolder) throws Exception;

@@ -35,7 +35,7 @@ public class Commander {
     private ListView<FileItem> rightFileList;
 
     Properties properties = new Properties();
-    IActions actions;
+    ICommands commands;
 
     private static final Logger logger = LoggerFactory.getLogger(Commander.class);
     private ListView<FileItem> lastFocusedListView;
@@ -56,7 +56,7 @@ public class Commander {
         leftFileList.getProperties().put("PathCombox", leftPathComboBox);
         rightFileList.getProperties().put("PathCombox", rightPathComboBox);
         fileListsLoader = new FileListsLoader(leftFileList, rightFileList);
-        actions = new BasicActionsImpl(fileListsLoader);
+        commands = new CommandsImpl(fileListsLoader);
 
         logger.debug("Configuring Keyboard Bindings");
         Platform.runLater(() -> rootPane.requestFocus());
@@ -239,7 +239,7 @@ public class Commander {
     }
 
     /**
-     * Runs the action of clicking on an item with the ENTER key (run associated program / goto folder)
+     * Runs the command of clicking on an item with the ENTER key (run associated program / goto folder)
      */
     private void enterSelectedItem(ListView<FileItem> fileListView) {
         logger.debug("User clicked ENTER (or mouse double-click)");
@@ -267,14 +267,14 @@ public class Commander {
     private void viewFile() throws IOException {
         FileItem selectedItem = lastFocusedListView.getSelectionModel().getSelectedItem();
         if (selectedItem != null)
-            actions.view(selectedItem);
+            commands.view(selectedItem);
     }
 
     @FXML
     private void editFile() throws Exception {
         FileItem selectedItem = lastFocusedListView.getSelectionModel().getSelectedItem();
         if (selectedItem != null)
-            actions.edit(selectedItem);
+            commands.edit(selectedItem);
     }
 
     @FXML
@@ -287,7 +287,7 @@ public class Commander {
 
             if (selectedItem.isDirectory())
                 targetFolder += "\\" + selectedItem.getName();
-            actions.copy(selectedItem, targetFolder);
+            commands.copy(selectedItem, targetFolder);
         }
     }
 
