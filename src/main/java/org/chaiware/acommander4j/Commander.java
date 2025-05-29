@@ -278,6 +278,8 @@ public class Commander {
             if (lastFocusedListView == rightFileList)
                 targetFolder = ((ComboBox<String>) leftFileList.getProperties().get("PathCombox")).getSelectionModel().getSelectedItem();
 
+            if (selectedItem.isDirectory())
+                targetFolder += "\\" + selectedItem.getName();
             actions.copy(selectedItem, targetFolder);
         }
     }

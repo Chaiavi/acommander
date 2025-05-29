@@ -1,11 +1,15 @@
 package org.chaiware.acommander4j;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.IOException;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 
 public class BasicActionsImpl implements IActions {
+    private static final Logger log = LoggerFactory.getLogger(BasicActionsImpl.class);
     private final String APP_PATH = Paths.get(System.getProperty("user.dir"), "apps") + "\\";
     private final FileListsLoader fileListsLoader;
 
@@ -31,10 +35,10 @@ public class BasicActionsImpl implements IActions {
     @Override
     public void copy(FileItem sourceFile, String targetFolder) throws Exception {
         List<String> command = new ArrayList<>();
-        command.add(APP_PATH + "FastCopy.exe");
+        command.add(APP_PATH + "fastcopy\\FastCopy.exe");
         command.add("/cmd=diff");
         command.add("/auto_close");
-        command.add("/force_close");
+        command.add("/verify");
         command.add(sourceFile.getFile().toString());
         command.add("/to=" + targetFolder);
         runExecutable(command);
@@ -43,6 +47,7 @@ public class BasicActionsImpl implements IActions {
     private void runExecutable(List<String> params) throws Exception {
         ProcessBuilder pb = new ProcessBuilder(params);
 //        pb.directory(new File(filename).getParentFile());
+        log.info("Running: {}", String.join(" ", pb.command()));
         Process process = pb.start();
         process.waitFor();
         fileListsLoader.refreshFileListViews();
