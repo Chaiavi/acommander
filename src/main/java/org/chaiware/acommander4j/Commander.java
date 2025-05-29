@@ -45,7 +45,7 @@ public class Commander {
     @FXML
     public void initialize() {
         // Loads properties
-        Path configFile = Paths.get(System.getProperty("user.dir"), "config", "acommander4j.properties");
+        Path configFile = Paths.get(System.getProperty("user.dir"), "config", "acommander.properties");
         try (FileInputStream input = new FileInputStream(configFile.toFile())) {
             properties.load(input);
         } catch (Exception e) {
