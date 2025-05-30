@@ -13,7 +13,6 @@ import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Properties;
@@ -264,6 +263,20 @@ public class Commander {
     }
 
     @FXML
+    private void help() {
+        Alert alert = new Alert(Alert.AlertType.INFORMATION, "ACommander4J v1.0\nNorton Commander-style file manager");
+        alert.setHeaderText("About");
+        alert.showAndWait();
+    }
+
+    @FXML
+    private void renameFile() {
+        FileItem selectedItem = lastFocusedListView.getSelectionModel().getSelectedItem();
+        if (selectedItem != null)
+            commands.rename(selectedItem);
+    }
+
+    @FXML
     private void viewFile() throws Exception {
         FileItem selectedItem = lastFocusedListView.getSelectionModel().getSelectedItem();
         if (selectedItem != null)
@@ -318,6 +331,20 @@ public class Commander {
     @FXML
     private void exitApp() {
         Platform.exit();
+    }
+
+    @FXML
+    private void pack() {
+        FileItem selectedItem = lastFocusedListView.getSelectionModel().getSelectedItem();
+        if (selectedItem != null)
+            commands.pack(selectedItem);
+    }
+
+    @FXML
+    private void unpackFile() {
+        FileItem selectedItem = lastFocusedListView.getSelectionModel().getSelectedItem();
+        if (selectedItem != null)
+            commands.unpack(selectedItem);
     }
 
     @FXML

@@ -3,7 +3,6 @@ package org.chaiware.acommander4j;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
@@ -25,6 +24,11 @@ public class CommandsImpl implements ICommands {
         command.add(APP_PATH + "QuickLook\\QuickLook.exe");
         command.add(fileItem.getFile().toString());
         runExecutable(command, false);
+    }
+
+    @Override
+    public void rename(FileItem selectedItem) {
+
     }
 
     @Override
@@ -60,6 +64,16 @@ public class CommandsImpl implements ICommands {
         command.add(sourceFile.getFile().toString());
         command.add("/to=" + targetFolder);
         runExecutable(command, true);
+    }
+
+    @Override
+    public void pack(FileItem selectedItem) {
+
+    }
+
+    @Override
+    public void unpack(FileItem selectedItem) {
+
     }
 
     private void runExecutable(List<String> params, boolean isWaitFor) throws Exception {

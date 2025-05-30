@@ -10,11 +10,11 @@
 <?import javafx.scene.layout.BorderPane?>
 <?import javafx.scene.layout.ColumnConstraints?>
 <?import javafx.scene.layout.GridPane?>
+<?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.RowConstraints?>
 <?import javafx.scene.layout.VBox?>
-<?import javafx.scene.layout.HBox?>
 
-<BorderPane fx:id="rootPane" prefHeight="600.0" prefWidth="800.0" xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1" fx:controller="org.chaiware.acommander4j.Commander">
+<BorderPane fx:id="rootPane" prefHeight="600.0" prefWidth="800.0" xmlns="http://javafx.com/javafx/22" xmlns:fx="http://javafx.com/fxml/1" fx:controller="org.chaiware.acommander4j.Commander">
     <top>
         <VBox>
             <MenuBar>
@@ -28,15 +28,15 @@
         </VBox>
     </top>
     <center>
-        <GridPane hgap="10" vgap="5" prefWidth="Infinity">
+        <GridPane hgap="10" prefWidth="Infinity" vgap="5">
             <columnConstraints>
                 <ColumnConstraints percentWidth="50.0" />
                 <ColumnConstraints percentWidth="50.0" />
             </columnConstraints>
             <rowConstraints>
-                <RowConstraints vgrow="NEVER" minHeight="30.0" />
-                <RowConstraints vgrow="ALWAYS" minHeight="200.0" />
-                <RowConstraints vgrow="NEVER" minHeight="40.0" />
+                <RowConstraints minHeight="30.0" vgrow="NEVER" />
+                <RowConstraints minHeight="200.0" vgrow="ALWAYS" />
+                <RowConstraints minHeight="40.0" vgrow="NEVER" />
             </rowConstraints>
 
             <!-- ComboBoxes -->
@@ -64,17 +64,28 @@
                 </GridPane.margin>
             </ListView>
 
-            <HBox spacing="5" alignment="CENTER" prefHeight="35.0" GridPane.columnIndex="0" GridPane.columnSpan="2" GridPane.rowIndex="2">
+            <HBox alignment="CENTER" prefHeight="35.0" spacing="5" GridPane.columnIndex="0" GridPane.columnSpan="2" GridPane.rowIndex="2">
                 <padding>
                     <Insets bottom="5.0" left="5.0" right="5.0" top="5.0" />
                 </padding>
-                <Button onAction="#viewFile" text="F3 View" prefWidth="80.0" />
-                <Button onAction="#editFile" text="F4 Edit" prefWidth="80.0" />
-                <Button onAction="#copyFile" text="F5 Copy" prefWidth="80.0" />
-                <Button onAction="#moveFile" text="F6 Move" prefWidth="80.0" />
-                <Button onAction="#makeDirectory" text="F7 MkDir" prefWidth="80.0" />
-                <Button onAction="#deleteFile" text="F8 Delete" prefWidth="80.0" />
-                <Button onAction="#exitApp" text="F10 Exit" prefWidth="80.0" />
+                <Button maxWidth="Infinity" onAction="#help" text="F1 Help" HBox.hgrow="ALWAYS">
+               <HBox.margin>
+                  <Insets left="5.0" />
+               </HBox.margin></Button>
+                <Button maxWidth="Infinity" onAction="#renameFile" text="F2 Rename" HBox.hgrow="ALWAYS" />
+                <Button maxWidth="Infinity" onAction="#viewFile" text="F3 View" HBox.hgrow="ALWAYS" />
+                <Button maxWidth="Infinity" onAction="#editFile" text="F4 Edit" HBox.hgrow="ALWAYS" />
+                <Button maxWidth="Infinity" onAction="#copyFile" text="F5 Copy" HBox.hgrow="ALWAYS" />
+                <Button maxWidth="Infinity" onAction="#moveFile" text="F6 Move" HBox.hgrow="ALWAYS" />
+                <Button maxWidth="Infinity" onAction="#makeDirectory" text="F7 MkDir" HBox.hgrow="ALWAYS" />
+                <Button maxWidth="Infinity" onAction="#deleteFile" text="F8 Delete" HBox.hgrow="ALWAYS" />
+                <Button maxWidth="Infinity" text="F9" HBox.hgrow="ALWAYS" />
+                <Button maxWidth="Infinity" onAction="#exitApp" text="F10 Exit" HBox.hgrow="ALWAYS" />
+                <Button maxWidth="Infinity" onAction="#pack" text="F11 Pack" HBox.hgrow="ALWAYS" />
+                <Button maxWidth="Infinity" onAction="#unpackFile" text="F12 UnPack" HBox.hgrow="ALWAYS">
+               <HBox.margin>
+                  <Insets right="5.0" />
+               </HBox.margin></Button>
             </HBox>
         </GridPane>
     </center>
