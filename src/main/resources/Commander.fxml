@@ -14,7 +14,7 @@
 <?import javafx.scene.layout.RowConstraints?>
 <?import javafx.scene.layout.VBox?>
 
-<BorderPane fx:id="rootPane" prefHeight="600.0" prefWidth="800.0" xmlns="http://javafx.com/javafx/22" xmlns:fx="http://javafx.com/fxml/1" fx:controller="org.chaiware.acommander4j.Commander">
+<BorderPane fx:id="rootPane" prefHeight="600.0" prefWidth="900.0" xmlns="http://javafx.com/javafx/22" xmlns:fx="http://javafx.com/fxml/1" fx:controller="org.chaiware.acommander4j.Commander">
     <top>
         <VBox>
             <MenuBar>
@@ -79,7 +79,7 @@
                 <Button maxWidth="Infinity" onAction="#moveFile" text="F6 Move" HBox.hgrow="ALWAYS" />
                 <Button maxWidth="Infinity" onAction="#makeDirectory" text="F7 MkDir" HBox.hgrow="ALWAYS" />
                 <Button maxWidth="Infinity" onAction="#deleteFile" text="F8 Delete" HBox.hgrow="ALWAYS" />
-                <Button maxWidth="Infinity" text="F9" HBox.hgrow="ALWAYS" />
+                <Button maxWidth="Infinity" onAction="#terminalHere" text="F9 Terminal Here" HBox.hgrow="ALWAYS" />
                 <Button maxWidth="Infinity" onAction="#exitApp" text="F10 Exit" HBox.hgrow="ALWAYS" />
                 <Button maxWidth="Infinity" onAction="#pack" text="F11 Pack" HBox.hgrow="ALWAYS" />
                 <Button maxWidth="Infinity" onAction="#unpackFile" text="F12 UnPack" HBox.hgrow="ALWAYS">

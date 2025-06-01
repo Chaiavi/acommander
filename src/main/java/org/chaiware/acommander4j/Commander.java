@@ -78,6 +78,7 @@ public class Commander {
                     case F6 -> moveFile();
                     case F7 -> makeDirectory();
                     case F8, DELETE -> deleteFile();
+                    case F9 -> terminalHere();
                     case F10 -> exitApp();
                     case ENTER -> enterSelectedItem(lastFocusedListView);
                     case TAB -> adjustTabBehavior(event);
@@ -325,12 +326,22 @@ public class Commander {
 
     @FXML
     private void deleteFile() {
-            FileItem selectedItem = lastFocusedListView.getSelectionModel().getSelectedItem();
+        FileItem selectedItem = lastFocusedListView.getSelectionModel().getSelectedItem();
         try {
             if (selectedItem != null)
                 commands.delete(selectedItem);
         } catch (Exception ex) {
             logger.error("Failed to delete: {}", selectedItem.getName(), ex);
+        }
+    }
+
+    @FXML
+    private void terminalHere() {
+        String openHerePath = ((ComboBox<String>) lastFocusedListView.getProperties().get("PathCombox")).getValue();
+        try {
+            commands.openTerminal(openHerePath);
+        } catch (Exception ex) {
+            logger.error("Failed starting command line shell here: {}", openHerePath, ex);
         }
     }
 

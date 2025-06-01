@@ -75,6 +75,15 @@ public class CommandsImpl implements ICommands {
     }
 
     @Override
+    public void openTerminal(String openHerePath) throws Exception {
+        try {
+            new ProcessBuilder("cmd", "/c", "start", "powershell", "-NoExit", "-Command", "cd '" + openHerePath + "'").start();
+        } catch (IOException e) {
+            new ProcessBuilder("cmd", "/c", "start", "cmd", "/k", "cd /d " + openHerePath).start();
+        }
+    }
+
+    @Override
     public void pack(FileItem selectedItem) {
 
     }

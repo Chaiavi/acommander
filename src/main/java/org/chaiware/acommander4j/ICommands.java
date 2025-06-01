@@ -9,6 +9,7 @@ public interface ICommands {
     void copy(FileItem sourceFile, String targetFolder) throws Exception;
     void move(FileItem sourceFile, String targetFolder) throws Exception;
     void delete(FileItem selectedItem) throws IOException;
+    void openTerminal(String openHerePath) throws Exception;
     void pack(FileItem selectedItem);
     void unpack(FileItem selectedItem);
 }
