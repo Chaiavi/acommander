@@ -325,7 +325,13 @@ public class Commander {
 
     @FXML
     private void deleteFile() {
-        System.out.println("F8 Delete");
+            FileItem selectedItem = lastFocusedListView.getSelectionModel().getSelectedItem();
+        try {
+            if (selectedItem != null)
+                commands.delete(selectedItem);
+        } catch (Exception ex) {
+            logger.error("Failed to delete: {}", selectedItem.getName(), ex);
+        }
     }
 
     @FXML
