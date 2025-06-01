@@ -77,7 +77,7 @@ public class Commander {
                     case F5 -> copyFile();
                     case F6 -> moveFile();
                     case F7 -> makeDirectory();
-                    case F8 -> deleteFile();
+                    case F8, DELETE -> deleteFile();
                     case F10 -> exitApp();
                     case ENTER -> enterSelectedItem(lastFocusedListView);
                     case TAB -> adjustTabBehavior(event);
