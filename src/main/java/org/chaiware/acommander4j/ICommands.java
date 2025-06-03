@@ -3,7 +3,7 @@ package org.chaiware.acommander4j;
 import java.io.IOException;
 
 public interface ICommands {
-    void rename(FileItem selectedItem);
+    void rename(FileItem selectedItem, String newFilename) throws Exception;
     void edit(FileItem fileItem) throws Exception;
     void view(FileItem fileItem) throws Exception;
     void copy(FileItem sourceFile, String targetFolder) throws Exception;

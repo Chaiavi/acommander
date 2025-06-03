@@ -1,13 +1,16 @@
 package org.chaiware.acommander4j;
 
+import javafx.scene.control.TextInputDialog;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 public class CommandsImpl implements ICommands {
     private static final Logger log = LoggerFactory.getLogger(CommandsImpl.class);
@@ -29,8 +32,20 @@ public class CommandsImpl implements ICommands {
     }
 
     @Override
-    public void rename(FileItem selectedItem) {
+    public void rename(FileItem selectedItem, String newFilename) throws Exception {
+        File currentFile = selectedItem.getFile();
+        TextInputDialog dialog = new TextInputDialog(currentFile.getName());
+        dialog.setTitle("Rename File");
+        dialog.setHeaderText("Enter new filename:");
+        dialog.setContentText("New name:");
 
+        Optional<String> result = dialog.showAndWait();
+        if (result.isPresent()) { // if user dismisses the dialog it won't rename...
+            String newName = result.get();
+            File newFile = new File(currentFile.getParent(), newName);
+            Files.move(currentFile.toPath(), newFile.toPath());
+            fileListsLoader.refreshFileListViews();
+        }
     }
 
     @Override

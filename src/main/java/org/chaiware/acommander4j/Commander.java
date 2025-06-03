@@ -72,6 +72,7 @@ public class Commander {
 
             try {
                 switch (event.getCode()) {
+                    case F2 -> renameFile();
                     case F3 -> viewFile();
                     case F4 -> editFile();
                     case F5 -> copyFile();
@@ -265,16 +266,17 @@ public class Commander {
 
     @FXML
     private void help() {
+        logger.info("Showing Help (F1)");
         Alert alert = new Alert(Alert.AlertType.INFORMATION, "ACommander4J v1.0\nNorton Commander-style file manager");
         alert.setHeaderText("About");
         alert.showAndWait();
     }
 
     @FXML
-    private void renameFile() {
+    private void renameFile() throws Exception {
         FileItem selectedItem = lastFocusedListView.getSelectionModel().getSelectedItem();
         if (selectedItem != null)
-            commands.rename(selectedItem);
+            commands.rename(selectedItem, "abc.txt");
     }
 
     @FXML
@@ -368,6 +370,14 @@ public class Commander {
     private void showAbout() {
         Alert alert = new Alert(Alert.AlertType.INFORMATION, "ACommander4J v1.0\nNorton Commander-style file manager");
         alert.setHeaderText("About");
+        alert.showAndWait();
+    }
+
+    /** Alerts of an error and logs it */
+    private void error(String error, Exception ex) {
+        logger.error(error, ex);
+        Alert alert = new Alert(Alert.AlertType.ERROR, error + " (" + ex.getMessage() + ")");
+        alert.setHeaderText("Oops, error occurred");
         alert.showAndWait();
     }
 }
