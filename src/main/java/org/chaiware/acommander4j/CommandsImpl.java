@@ -8,6 +8,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 public class CommandsImpl implements ICommands {
@@ -22,33 +23,33 @@ public class CommandsImpl implements ICommands {
     @Override
     public void view(FileItem fileItem) throws Exception {
         /* Found 3 alternatives for viewing files: UniversalViewer (least features, 10mb), FileViewerLite (quite good, 98mb), QuickLook (best, 236mb) */
-        log.info("Viewing: {}", fileItem.getName());
         List<String> command = new ArrayList<>();
         command.add(APP_PATH + "QuickLook\\QuickLook.exe");
         command.add(fileItem.getFile().toString());
         runExecutable(command, false);
+        log.debug("Viewed: {}", fileItem.getName());
     }
 
     @Override
-    public void rename(FileItem selectedItem, String newFilename) throws Exception {
+    public void rename(FileItem selectedItem, String newFilename) throws IOException {
         File currentFile = selectedItem.getFile();
         File newFile = new File(currentFile.getParent(), newFilename);
         Files.move(currentFile.toPath(), newFile.toPath());
         fileListsLoader.refreshFileListViews();
+        log.debug("Renamed: {} to {}", currentFile.getName(), newFile.getName());
     }
 
     @Override
     public void edit(FileItem fileItem) throws Exception {
-        log.info("Editing: {}", fileItem.getName());
         List<String> command = new ArrayList<>();
         command.add(APP_PATH + "TedNPad.exe");
         command.add(fileItem.getFile().toString());
         runExecutable(command, false);
+        log.debug("Edited: {}", fileItem.getName());
     }
 
     @Override
     public void copy(FileItem sourceFile, String targetFolder) throws Exception {
-        log.info("Copying: {} To: {}", sourceFile, targetFolder);
         List<String> command = new ArrayList<>();
         command.add(APP_PATH + "fastcopy\\FastCopy.exe");
         command.add("/cmd=diff");
@@ -57,11 +58,11 @@ public class CommandsImpl implements ICommands {
         command.add(sourceFile.getFile().toString());
         command.add("/to=" + targetFolder);
         runExecutable(command, true);
+        log.debug("Copied: {} To: {}", sourceFile, targetFolder);
     }
 
     @Override
     public void move(FileItem sourceFile, String targetFolder) throws Exception {
-        log.info("Moving: {} To: {}", sourceFile, targetFolder);
         List<String> command = new ArrayList<>();
         command.add(APP_PATH + "fastcopy\\FastCopy.exe");
         command.add("/cmd=move");
@@ -70,21 +71,30 @@ public class CommandsImpl implements ICommands {
         command.add(sourceFile.getFile().toString());
         command.add("/to=" + targetFolder);
         runExecutable(command, true);
+        log.debug("Moved: {} To: {}", sourceFile, targetFolder);
     }
 
     @Override
     public void delete(FileItem selectedItem) throws IOException {
         Files.delete(selectedItem.getFile().toPath());
         fileListsLoader.refreshFileListViews();
+        log.debug("Deleted: {}", selectedItem.getName());
     }
 
     @Override
     public void openTerminal(String openHerePath) throws Exception {
         try {
-            new ProcessBuilder("cmd", "/c", "start", "powershell", "-NoExit", "-Command", "cd '" + openHerePath + "'").start();
+            List<String> command = Arrays.asList("cmd", "/c", "start", "powershell", "-NoExit", "-Command", "cd '" + openHerePath + "'");
+            runExecutable(command, false);
+//            new ProcessBuilder("cmd", "/c", "start", "powershell", "-NoExit", "-Command", "cd '" + openHerePath + "'").start();
+        log.debug("Opened Powershell Here: {}", openHerePath);
         } catch (IOException e) {
-            new ProcessBuilder("cmd", "/c", "start", "cmd", "/k", "cd /d " + openHerePath).start();
+            List<String> command = Arrays.asList("cmd", "/c", "start", "cmd", "/k", "cd /d " + openHerePath);
+            runExecutable(command, false);
+//            new ProcessBuilder("cmd", "/c", "start", "cmd", "/k", "cd /d " + openHerePath).start();
+            log.debug("Opened Command Shell Here: {}", openHerePath);
         }
+
     }
 
     @Override
@@ -97,9 +107,9 @@ public class CommandsImpl implements ICommands {
 
     }
 
-    private void runExecutable(List<String> params, boolean isWaitFor) throws Exception {
+    private void runExecutable(List<String> params, boolean isWaitFor) throws IOException, InterruptedException {
         ProcessBuilder pb = new ProcessBuilder(params);
-        log.info("Running: {}", String.join(" ", pb.command()));
+        log.debug("Running: {}", String.join(" ", pb.command()));
         Process process = pb.start();
         if (isWaitFor) {
             process.waitFor();
