@@ -15,6 +15,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Optional;
 import java.util.Properties;
 
 import static java.awt.Desktop.getDesktop;
@@ -274,9 +275,19 @@ public class Commander {
 
     @FXML
     private void renameFile() throws Exception {
+        logger.info("Renaming file (F2)");
         FileItem selectedItem = lastFocusedListView.getSelectionModel().getSelectedItem();
-        if (selectedItem != null)
-            commands.rename(selectedItem, "abc.txt");
+        if (selectedItem != null) {
+            File currentFile = selectedItem.getFile();
+            TextInputDialog dialog = new TextInputDialog(currentFile.getName());
+            dialog.setTitle("File Rename");
+            dialog.setHeaderText("");
+            dialog.setContentText("New name");
+
+            Optional<String> result = dialog.showAndWait();
+            if (result.isPresent()) // if user dismisses the dialog it won't rename...
+                commands.rename(selectedItem, result.get());
+        }
     }
 
     @FXML
