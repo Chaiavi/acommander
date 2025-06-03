@@ -8,8 +8,10 @@ public interface ICommands {
     void view(FileItem fileItem) throws Exception;
     void copy(FileItem sourceFile, String targetFolder) throws Exception;
     void move(FileItem sourceFile, String targetFolder) throws Exception;
+    void mkdir(String parentDir, String newDirName) throws IOException;
     void delete(FileItem selectedItem) throws IOException;
     void openTerminal(String openHerePath) throws Exception;
     void pack(FileItem selectedItem);
     void unpack(FileItem selectedItem);
+
 }

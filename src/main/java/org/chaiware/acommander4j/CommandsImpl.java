@@ -6,9 +6,11 @@ import org.slf4j.LoggerFactory;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.List;
 
 public class CommandsImpl implements ICommands {
@@ -75,8 +77,21 @@ public class CommandsImpl implements ICommands {
     }
 
     @Override
+    public void mkdir(String parentDir, String newDirName) throws IOException {
+        Path path = Paths.get(parentDir, newDirName);
+        Files.createDirectories(path);
+        fileListsLoader.refreshFileListViews();
+        log.debug("Created Directory: {}", newDirName);
+    }
+
+    @Override
     public void delete(FileItem selectedItem) throws IOException {
-        Files.delete(selectedItem.getFile().toPath());
+        Path path = selectedItem.getFile().toPath();
+        Files.walk(path)
+                .sorted(Comparator.reverseOrder())
+                .map(Path::toFile)
+                .forEach(File::delete);
+
         fileListsLoader.refreshFileListViews();
         log.debug("Deleted: {}", selectedItem.getName());
     }

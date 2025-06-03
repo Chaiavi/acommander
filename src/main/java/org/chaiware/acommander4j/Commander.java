@@ -337,7 +337,7 @@ public class Commander {
                 commands.copy(selectedItem, targetFolder);
             }
         } catch (Exception e) {
-            error ("Failed Copying file", e);
+            error("Failed Copying file", e);
         }
     }
 
@@ -364,6 +364,19 @@ public class Commander {
     @FXML
     private void makeDirectory() {
         logger.info("Create Directory (F7)");
+
+        try {
+            TextInputDialog dialog = new TextInputDialog();
+            dialog.setTitle("Make Directory");
+            dialog.setHeaderText("");
+            dialog.setContentText("New Directory Name");
+
+            Optional<String> result = dialog.showAndWait();
+            if (result.isPresent()) // if user dismisses the dialog it won't create a directory...
+                commands.mkdir(((ComboBox<String>) lastFocusedListView.getProperties().get("PathCombox")).getValue(), result.get());
+        } catch (Exception e) {
+            error("Failed Creating Directory", e);
+        }
     }
 
     @FXML
