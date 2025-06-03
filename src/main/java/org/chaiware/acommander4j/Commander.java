@@ -267,104 +267,137 @@ public class Commander {
 
     @FXML
     private void help() {
-        logger.info("Showing Help (F1)");
+        logger.info("Show Help (F1)");
         Alert alert = new Alert(Alert.AlertType.INFORMATION, "ACommander4J v1.0\nNorton Commander-style file manager");
         alert.setHeaderText("About");
         alert.showAndWait();
     }
 
     @FXML
-    private void renameFile() throws Exception {
-        logger.info("Renaming file (F2)");
-        FileItem selectedItem = lastFocusedListView.getSelectionModel().getSelectedItem();
-        if (selectedItem != null) {
-            File currentFile = selectedItem.getFile();
-            TextInputDialog dialog = new TextInputDialog(currentFile.getName());
-            dialog.setTitle("File Rename");
-            dialog.setHeaderText("");
-            dialog.setContentText("New name");
+    private void renameFile() {
+        logger.info("Rename (F2)");
 
-            Optional<String> result = dialog.showAndWait();
-            if (result.isPresent()) // if user dismisses the dialog it won't rename...
-                commands.rename(selectedItem, result.get());
+        try {
+            FileItem selectedItem = lastFocusedListView.getSelectionModel().getSelectedItem();
+            if (selectedItem != null) {
+                File currentFile = selectedItem.getFile();
+                TextInputDialog dialog = new TextInputDialog(currentFile.getName());
+                dialog.setTitle("File Rename");
+                dialog.setHeaderText("");
+                dialog.setContentText("New name");
+
+                Optional<String> result = dialog.showAndWait();
+                if (result.isPresent()) // if user dismisses the dialog it won't rename...
+                    commands.rename(selectedItem, result.get());
+            }
+        } catch (Exception e) {
+            error("Failed Renaming file", e);
         }
     }
 
     @FXML
-    private void viewFile() throws Exception {
-        FileItem selectedItem = lastFocusedListView.getSelectionModel().getSelectedItem();
-        if (selectedItem != null)
-            commands.view(selectedItem);
-    }
+    private void viewFile() {
+        logger.info("View (F3)");
 
-    @FXML
-    private void editFile() throws Exception {
-        FileItem selectedItem = lastFocusedListView.getSelectionModel().getSelectedItem();
-        if (selectedItem != null)
-            commands.edit(selectedItem);
-    }
-
-    @FXML
-    private void copyFile() throws Exception {
-        FileItem selectedItem = lastFocusedListView.getSelectionModel().getSelectedItem();
-        if (selectedItem != null) {
-            String targetFolder = ((ComboBox<String>) rightFileList.getProperties().get("PathCombox")).getSelectionModel().getSelectedItem();
-            if (lastFocusedListView == rightFileList)
-                targetFolder = ((ComboBox<String>) leftFileList.getProperties().get("PathCombox")).getSelectionModel().getSelectedItem();
-
-            if (selectedItem.isDirectory())
-                targetFolder += "\\" + selectedItem.getName();
-            commands.copy(selectedItem, targetFolder);
+        try {
+            FileItem selectedItem = lastFocusedListView.getSelectionModel().getSelectedItem();
+            if (selectedItem != null)
+                commands.view(selectedItem);
+        } catch (Exception ex) {
+            error("Failed Viewing file", ex);
         }
     }
 
     @FXML
-    private void moveFile() throws Exception {
-        FileItem selectedItem = lastFocusedListView.getSelectionModel().getSelectedItem();
-        if (selectedItem != null) {
-            String targetFolder = ((ComboBox<String>) rightFileList.getProperties().get("PathCombox")).getSelectionModel().getSelectedItem();
-            if (lastFocusedListView == rightFileList)
-                targetFolder = ((ComboBox<String>) leftFileList.getProperties().get("PathCombox")).getSelectionModel().getSelectedItem();
+    private void editFile() {
+        logger.info("Edit (F4)");
 
-            if (selectedItem.isDirectory())
-                targetFolder += "\\" + selectedItem.getName();
-            commands.move(selectedItem, targetFolder);
+        try {
+            FileItem selectedItem = lastFocusedListView.getSelectionModel().getSelectedItem();
+            if (selectedItem != null)
+                commands.edit(selectedItem);
+        } catch (Exception ex) {
+            error("Failed Editing file", ex);
+        }
+    }
+
+    @FXML
+    private void copyFile() {
+        logger.info("Copy (F5)");
+
+        try {
+            FileItem selectedItem = lastFocusedListView.getSelectionModel().getSelectedItem();
+            if (selectedItem != null) {
+                String targetFolder = ((ComboBox<String>) rightFileList.getProperties().get("PathCombox")).getSelectionModel().getSelectedItem();
+                if (lastFocusedListView == rightFileList)
+                    targetFolder = ((ComboBox<String>) leftFileList.getProperties().get("PathCombox")).getSelectionModel().getSelectedItem();
+
+                if (selectedItem.isDirectory())
+                    targetFolder += "\\" + selectedItem.getName();
+                commands.copy(selectedItem, targetFolder);
+            }
+        } catch (Exception e) {
+            error ("Failed Copying file", e);
+        }
+    }
+
+    @FXML
+    private void moveFile() {
+        logger.info("Move (F6)");
+
+        try {
+            FileItem selectedItem = lastFocusedListView.getSelectionModel().getSelectedItem();
+            if (selectedItem != null) {
+                String targetFolder = ((ComboBox<String>) rightFileList.getProperties().get("PathCombox")).getSelectionModel().getSelectedItem();
+                if (lastFocusedListView == rightFileList)
+                    targetFolder = ((ComboBox<String>) leftFileList.getProperties().get("PathCombox")).getSelectionModel().getSelectedItem();
+
+                if (selectedItem.isDirectory())
+                    targetFolder += "\\" + selectedItem.getName();
+                commands.move(selectedItem, targetFolder);
+            }
+        } catch (Exception ex) {
+            error("Failed Moving file", ex);
         }
     }
 
     @FXML
     private void makeDirectory() {
-        System.out.println("F7 MkDir");
+        logger.info("Create Directory (F7)");
     }
 
     @FXML
     private void deleteFile() {
+        logger.info("Delete (F8/DEL)");
         FileItem selectedItem = lastFocusedListView.getSelectionModel().getSelectedItem();
         try {
             if (selectedItem != null)
                 commands.delete(selectedItem);
         } catch (Exception ex) {
-            logger.error("Failed to delete: {}", selectedItem.getName(), ex);
+            error("Failed to delete: " + selectedItem.getName(), ex);
         }
     }
 
     @FXML
     private void terminalHere() {
+        logger.info("Open Terminal Here (F9)");
         String openHerePath = ((ComboBox<String>) lastFocusedListView.getProperties().get("PathCombox")).getValue();
         try {
             commands.openTerminal(openHerePath);
         } catch (Exception ex) {
-            logger.error("Failed starting command line shell here: {}", openHerePath, ex);
+            error("Failed starting command line shell here: " + openHerePath, ex);
         }
     }
 
     @FXML
     private void exitApp() {
+        logger.info("Exit App (F10)");
         Platform.exit();
     }
 
     @FXML
     private void pack() {
+        logger.info("Pack (F11)");
         FileItem selectedItem = lastFocusedListView.getSelectionModel().getSelectedItem();
         if (selectedItem != null)
             commands.pack(selectedItem);
@@ -372,6 +405,7 @@ public class Commander {
 
     @FXML
     private void unpackFile() {
+        logger.info("UnPack (F12)");
         FileItem selectedItem = lastFocusedListView.getSelectionModel().getSelectedItem();
         if (selectedItem != null)
             commands.unpack(selectedItem);
@@ -379,7 +413,7 @@ public class Commander {
 
     @FXML
     private void showAbout() {
-        Alert alert = new Alert(Alert.AlertType.INFORMATION, "ACommander4J v1.0\nNorton Commander-style file manager");
+        Alert alert = new Alert(Alert.AlertType.INFORMATION, "ACommander v1.0\nNorton Commander-style file manager");
         alert.setHeaderText("About");
         alert.showAndWait();
     }
