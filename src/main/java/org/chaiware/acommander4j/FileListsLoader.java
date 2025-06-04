@@ -9,129 +9,82 @@ import java.util.HashMap;
 import java.util.Map;
 
 import static org.chaiware.acommander4j.FileListsLoader.FocusSide.LEFT;
+import static org.chaiware.acommander4j.FileListsLoader.FocusSide.RIGHT;
 
 public class FileListsLoader {
-    enum FocusSide {LEFT, RIGHT}
+    public enum FocusSide {LEFT, RIGHT}
 
-    private final ListView<FileItem> leftFileList;
-    private ComboBox<String> leftPathComboBox;
-    private final ListView<FileItem> rightFileList;
-    private ComboBox<String> rightPathComboBox;
-    private String leftPath;
-    private String rightPath;
-    private ListView<FileItem> focusedFileList;
-    Map<FocusSide, FileList> fileLists = new HashMap<>();
+    Map<FocusSide, FilePane> filePanes = new HashMap<>();
+    private FocusSide focusedSide;
 
 
     public FileListsLoader(ListView<FileItem> leftFileList, ComboBox<String> leftPathComboBox, ListView<FileItem> rightFileList, ComboBox<String> rightPathComboBox) {
-        this.leftFileList = leftFileList;
-        this.leftPathComboBox = leftPathComboBox;
-        this.rightFileList = rightFileList;
-        this.rightPathComboBox = rightPathComboBox;
         setFocusedFileList(LEFT);
 
-        fileLists.put(LEFT, new FileList(leftFileList, leftPathComboBox));
+        filePanes.put(LEFT, new FilePane(leftFileList, leftPathComboBox));
+        filePanes.put(RIGHT, new FilePane(rightFileList, rightPathComboBox));
     }
 
     public void setFocusedFileList(FocusSide focusSide) {
-        if (focusSide == LEFT) {
-            focusedFileList = leftFileList;
-        } else {
-            focusedFileList = rightFileList;
-        }
+        this.focusedSide = focusSide;
     }
 
     public ListView<FileItem> getFocusedFileList() {
-        return focusedFileList;
+        return filePanes.get(focusedSide).fileListView;
+    }
+
+    public ComboBox<String> getFocusedCombox() {
+        return filePanes.get(focusedSide).pathComboBox;
     }
 
     /* Refreshes both of the file views */
     public void refreshFileListViews() {
-        refreshFileListView(leftFileList);
-        refreshFileListView(rightFileList);
+        refreshFileListView(LEFT);
+        refreshFileListView(RIGHT);
     }
 
     /**
      * Loads the files in the path into the ListView
      */
-    public void loadFolder(String path, ListView<FileItem> fileListView) {
-        ComboBox<String> folderCombox;
-        if (fileListView == leftFileList) {
-            leftPath = path;
-            folderCombox = leftPathComboBox;
-        } else {
-            rightPath = path;
-            folderCombox = rightPathComboBox;
-        }
-
-        folderCombox.getItems().setAll(path);
-        folderCombox.getSelectionModel().selectFirst();
-        refreshFileListView(fileListView);
-    }
-//
-//    public void loadFolder(FocusSide focusSide) {
-//        FileList fileList = fileLists.get(focusSide);
-//        fileList.path = fileList.pathComboBox.getValue(); // todo is this needed ?
-//
-//        ComboBox<String> folderCombox;
-//        if (fileListView == leftFileList) {
-//            leftPath = path;
-//            folderCombox = leftPathComboBox;
-//        } else {
-//            rightPath = path;
-//            folderCombox = rightPathComboBox;
-//        }
-//
-//        folderCombox.getItems().setAll(path);
-//        folderCombox.getSelectionModel().selectFirst();
-//        refreshFileListView(fileListView);
-//    }
-
-    private void refreshFileListView(ListView<FileItem> fileList) {
-        File folder = new File(getPath(fileList));
+    public void refreshFileListView(FocusSide focusSide) {
+        File folder = new File(filePanes.get(focusSide).getPath());
         File[] files = folder.listFiles();
 
-        ObservableList<FileItem> items = fileList.getItems();
+        ObservableList<FileItem> items = filePanes.get(focusSide).fileListView.getItems();
         items.clear();
         if (folder.getParentFile() != null)
             items.add(new FileItem(folder, ".."));
         if (files != null)
             for (File f : files)
                 items.add(new FileItem(f));
-    }
 
-    public String getPath(ListView<FileItem> fileList) {
-        if (fileList == leftFileList) return leftPath;
-        return rightPath;
+        filePanes.get(focusSide).pathComboBox.getSelectionModel().selectFirst();
     }
 
     public String getFocusedPath() {
-        if (focusedFileList == leftFileList) return leftPath;
-        return rightPath;
+        return filePanes.get(focusedSide).getPath();
     }
 
     public String getUnfocusedPath() {
-        if (focusedFileList == leftFileList) return rightPath;
-        return leftPath;
+        if (focusedSide == LEFT) return filePanes.get(RIGHT).getPath();
+        return filePanes.get(LEFT).getPath();
     }
 
     public FileItem getSelectedItem() {
         return getFocusedFileList().getSelectionModel().getSelectedItem();
     }
 
-    public class FileList {
-        private ListView<FileItem> fileListView;
-        private ComboBox<String> pathComboBox;
-        private String path;
+    static class FilePane {
+        private final ListView<FileItem> fileListView;
+        private final ComboBox<String> pathComboBox;
 
-        public FileList(ListView<FileItem> fileListView, ComboBox<String> pathComboBox) {
+        public FilePane(ListView<FileItem> fileListView, ComboBox<String> pathComboBox) {
             this.fileListView = fileListView;
             this.pathComboBox = pathComboBox;
-            path = pathComboBox.getValue(); // TODO is this needed ?
         }
 
         String getPath() {
-            return pathComboBox.getValue();
+            return pathComboBox.getItems().get(0);
         }
     }
 }

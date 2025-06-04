@@ -20,7 +20,8 @@ import java.util.Properties;
 
 import static java.awt.Desktop.getDesktop;
 import static javafx.scene.input.KeyCode.ENTER;
-import static javafx.scene.input.KeyCode.LEFT;
+import static org.chaiware.acommander4j.FileListsLoader.FocusSide.LEFT;
+import static org.chaiware.acommander4j.FileListsLoader.FocusSide.RIGHT;
 
 public class Commander {
 
@@ -53,24 +54,12 @@ public class Commander {
         }
 
         // Configure left & right defaults
-        leftFileList.getProperties().put("PathCombox", leftPathComboBox);
-        rightFileList.getProperties().put("PathCombox", rightPathComboBox);
         fileListsLoader = new FileListsLoader(leftFileList, leftPathComboBox, rightFileList, rightPathComboBox);
         commands = new CommandsImpl(fileListsLoader);
 
         logger.debug("Configuring Keyboard Bindings");
         Platform.runLater(() -> rootPane.requestFocus());
         rootPane.addEventFilter(KeyEvent.KEY_PRESSED, event -> {
-            if (event.getCode() == ENTER) {
-                if (leftPathComboBox.getEditor().isFocused()) {
-                    fileListsLoader.loadFolder(leftPathComboBox.getEditor().getText(), leftFileList);
-//                    return;
-                } else if (rightPathComboBox.getEditor().isFocused()) {
-                    fileListsLoader.loadFolder(rightPathComboBox.getEditor().getText(), rightFileList);
-//                    return;
-                }
-            }
-
             try {
                 switch (event.getCode()) {
                     case F2 -> renameFile();
@@ -82,7 +71,7 @@ public class Commander {
                     case F8, DELETE -> deleteFile();
                     case F9 -> terminalHere();
                     case F10 -> exitApp();
-                    case ENTER -> enterSelectedItem(fileListsLoader.getFocusedFileList());
+                    case ENTER -> enterSelectedItem();
                     case TAB -> adjustTabBehavior(event);
                 }
             } catch (Exception e) {
@@ -93,18 +82,19 @@ public class Commander {
         logger.debug("Configuring Mouse Double Click");
         leftFileList.setOnMouseClicked(event -> {
             if (event.getClickCount() == 2) {
-                enterSelectedItem(leftFileList);
+                enterSelectedItem();
             }
         });
         rightFileList.setOnMouseClicked(event -> {
             if (event.getClickCount() == 2) {
-                enterSelectedItem(rightFileList);
+                enterSelectedItem();
             }
         });
 
         logger.debug("Loading file lists into the double panes file views");
-        fileListsLoader.loadFolder(new File(properties.getProperty("left_folder")).getPath(), leftFileList);
-        fileListsLoader.loadFolder(new File(properties.getProperty("right_folder")).getPath(), rightFileList);
+        leftPathComboBox.getItems().add(new File(properties.getProperty("left_folder")).getPath());
+        rightPathComboBox.getItems().add(new File(properties.getProperty("right_folder")).getPath());
+        fileListsLoader.refreshFileListViews();
 
         logger.debug("Configuring the Left pane look and experience");
         leftFileList.setCellFactory(lv -> new ListCell<>() {
@@ -209,22 +199,16 @@ public class Commander {
             if (isNowFocused) fileListsLoader.setFocusedFileList(FileListsLoader.FocusSide.LEFT);
         });
         rightFileList.focusedProperty().addListener((obs, wasFocused, isNowFocused) -> {
-            if (isNowFocused) fileListsLoader.setFocusedFileList(FileListsLoader.FocusSide.RIGHT);
+            if (isNowFocused) fileListsLoader.setFocusedFileList(RIGHT);
         });
         Platform.runLater(() -> leftFileList.requestFocus());
 
         logger.debug("Binding the ENTER key");
         leftPathComboBox.getEditor().setOnKeyPressed(event -> {
-            if (event.getCode() == ENTER) {
-                String path = leftPathComboBox.getValue();
-                fileListsLoader.loadFolder(path, leftFileList);
-            }
+            if (event.getCode() == ENTER) fileListsLoader.refreshFileListView(LEFT);
         });
         rightPathComboBox.getEditor().setOnKeyPressed(event -> {
-            if (event.getCode() == ENTER) {
-                String path = rightPathComboBox.getValue();
-                fileListsLoader.loadFolder(path, rightFileList);
-            }
+            if (event.getCode() == ENTER) fileListsLoader.refreshFileListView(RIGHT);
         });
     }
 
@@ -243,19 +227,21 @@ public class Commander {
     /**
      * Runs the command of clicking on an item with the ENTER key (run associated program / goto folder)
      */
-    private void enterSelectedItem(ListView<FileItem> fileListView) {
+    private void enterSelectedItem() {
         logger.debug("User clicked ENTER (or mouse double-click)");
-        if (fileListView == null || fileListView.getItems().isEmpty() || fileListView.getSelectionModel().getSelectedItem() == null)
-            return;
 
-        String currentPath = fileListsLoader.getUnfocusedPath();
+        String currentPath = fileListsLoader.getFocusedPath();
         FileItem selectedItem = fileListsLoader.getSelectedItem();
         logger.debug("Running: {}", selectedItem.getName());
         if ("..".equals(selectedItem.getPresentableFilename())) {
             File parent = new File(currentPath).getParentFile();
-            if (parent != null) fileListsLoader.loadFolder(parent.getAbsolutePath(), fileListView);
+            if (parent != null) {
+                fileListsLoader.getFocusedCombox().getItems().setAll(parent.getAbsolutePath());
+                fileListsLoader.refreshFileListViews();
+            }
         } else if (selectedItem.isDirectory()) {
-            fileListsLoader.loadFolder(selectedItem.getFullPath(), fileListView);
+            fileListsLoader.getFocusedCombox().getItems().setAll(selectedItem.getFullPath());
+            fileListsLoader.refreshFileListViews();
         } else {
             try {
                 getDesktop().open(selectedItem.getFile());
