@@ -23,16 +23,6 @@ public class CommandsImpl implements ICommands {
     }
 
     @Override
-    public void view(FileItem fileItem) throws Exception {
-        /* Found 3 alternatives for viewing files: UniversalViewer (least features, 10mb), FileViewerLite (quite good, 98mb), QuickLook (best, 236mb) */
-        List<String> command = new ArrayList<>();
-        command.add(APP_PATH + "QuickLook\\QuickLook.exe");
-        command.add(fileItem.getFile().toString());
-        runExecutable(command, false);
-        log.debug("Viewed: {}", fileItem.getName());
-    }
-
-    @Override
     public void rename(FileItem selectedItem, String newFilename) throws IOException {
         File currentFile = selectedItem.getFile();
         File newFile = new File(currentFile.getParent(), newFilename);
@@ -42,9 +32,24 @@ public class CommandsImpl implements ICommands {
     }
 
     @Override
+    public void view(FileItem fileItem) throws Exception {
+        /*
+        UniversalViewer (least features, 10mb),
+        FileViewerLite (quite good, 98mb),
+        QuickLook (best, 236mb)
+        */
+        List<String> command = new ArrayList<>();
+        command.add(APP_PATH + "QuickLook\\QuickLook.exe");
+        command.add(fileItem.getFile().toString());
+        runExecutable(command, false);
+        log.debug("Viewed: {}", fileItem.getName());
+    }
+
+    @Override
     public void edit(FileItem fileItem) throws Exception {
         List<String> command = new ArrayList<>();
-        command.add(APP_PATH + "TedNPad.exe");
+//        command.add(APP_PATH + "TedNPad.exe");
+        command.add(APP_PATH + "Notepad4.exe");
         command.add(fileItem.getFile().toString());
         runExecutable(command, false);
         log.debug("Edited: {}", fileItem.getName());
@@ -101,15 +106,12 @@ public class CommandsImpl implements ICommands {
         try {
             List<String> command = Arrays.asList("cmd", "/c", "start", "powershell", "-NoExit", "-Command", "cd '" + openHerePath + "'");
             runExecutable(command, false);
-//            new ProcessBuilder("cmd", "/c", "start", "powershell", "-NoExit", "-Command", "cd '" + openHerePath + "'").start();
         log.debug("Opened Powershell Here: {}", openHerePath);
         } catch (IOException e) {
             List<String> command = Arrays.asList("cmd", "/c", "start", "cmd", "/k", "cd /d " + openHerePath);
             runExecutable(command, false);
-//            new ProcessBuilder("cmd", "/c", "start", "cmd", "/k", "cd /d " + openHerePath).start();
             log.debug("Opened Command Shell Here: {}", openHerePath);
         }
-
     }
 
     @Override

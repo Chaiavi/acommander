@@ -32,12 +32,10 @@ public class FileItem {
         return file.getAbsolutePath();
     }
 
-    public String getSize() {
+    public String gethumanReadableSize() {
         if (isDirectory()) return "";
-        return humanReadableSize(file.length());
-    }
+        long bytes = file.length();
 
-    private String humanReadableSize(long bytes) {
         if (bytes < 1024) return bytes + " B";
         int exp = (int) (Math.log(bytes) / Math.log(1024));
         String unit = "KMGTPE".charAt(exp - 1) + "B";
@@ -49,6 +47,8 @@ public class FileItem {
 
     public String getDate() {
         try {
+            if (getPresentableFilename().equals("..")) return "";
+
             BasicFileAttributes attr = Files.readAttributes(file.toPath(), BasicFileAttributes.class);
             Instant instant = attr.creationTime().toInstant();
             LocalDateTime ldt = instant.atZone(ZoneId.systemDefault()).toLocalDateTime();

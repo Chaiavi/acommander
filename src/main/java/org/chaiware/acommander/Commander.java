@@ -129,7 +129,7 @@ public class Commander {
                     setGraphic(null);
                 } else {
                     nameLabel.setText(item.getPresentableFilename());
-                    sizeLabel.setText(String.format("%s", item.getSize()));
+                    sizeLabel.setText(String.format("%s", item.gethumanReadableSize()));
                     dateLabel.setText(item.getDate());
 
                     // Constrain width to ListView cell
@@ -178,7 +178,7 @@ public class Commander {
                     setGraphic(null);
                 } else {
                     nameLabel.setText(item.getPresentableFilename());
-                    sizeLabel.setText(String.format("%s", item.getSize()));
+                    sizeLabel.setText(String.format("%s", item.gethumanReadableSize()));
                     dateLabel.setText(item.getDate());
 
                     // Constrain width to ListView cell
@@ -287,7 +287,7 @@ public class Commander {
 
         try {
             FileItem selectedItem = fileListsLoader.getSelectedItem();
-            if (selectedItem != null) // TODO ".." FileItem
+            if (selectedItem != null)
                 commands.view(selectedItem);
         } catch (Exception ex) {
             error("Failed Viewing file", ex);
