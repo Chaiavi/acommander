@@ -73,6 +73,7 @@ public class Commander {
                     case F10 -> exitApp();
                     case ENTER -> enterSelectedItem();
                     case TAB -> adjustTabBehavior(event);
+                    case BACK_SPACE -> goUpOneFolder();
                 }
             } catch (Exception e) {
                 throw new RuntimeException(e);
@@ -210,6 +211,16 @@ public class Commander {
         rightPathComboBox.getEditor().setOnKeyPressed(event -> {
             if (event.getCode() == ENTER) fileListsLoader.refreshFileListView(RIGHT);
         });
+    }
+
+    private void goUpOneFolder() {
+        String currentPath = fileListsLoader.getFocusedPath();
+        File parent = new File(currentPath).getParentFile();
+        if (parent != null) {
+            logger.debug("(Backspace) going up one folder");
+            fileListsLoader.getFocusedCombox().getItems().setAll(parent.getAbsolutePath());
+            fileListsLoader.refreshFileListViews();
+        }
     }
 
     /**
