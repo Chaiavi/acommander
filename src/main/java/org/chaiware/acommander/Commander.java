@@ -62,7 +62,7 @@ public class Commander {
         rootPane.addEventFilter(KeyEvent.KEY_PRESSED, event -> {
             try {
                 switch (event.getCode()) {
-                    case F1 -> showAbout();
+                    case F1 -> help();
                     case F2 -> renameFile();
                     case F3 -> viewFile();
                     case F4 -> editFile();
@@ -265,10 +265,15 @@ public class Commander {
 
     @FXML
     private void help() {
-        logger.info("Show Help (F1)");
-        Alert alert = new Alert(Alert.AlertType.INFORMATION, "ACommander v1.0\nNorton Commander-style file manager");
-        alert.setHeaderText("About");
-        alert.showAndWait();
+        logger.info("Help (F1)");
+
+        try {
+            File helpFile = (Paths.get(System.getProperty("user.dir"), "config", "f1-help.md")).toFile();
+            FileItem selectedItem = new FileItem(helpFile, helpFile.getName());
+            commands.view(selectedItem);
+        } catch (Exception ex) {
+            error("Failed Viewing file", ex);
+        }
     }
 
     @FXML
@@ -414,19 +419,6 @@ public class Commander {
         FileItem selectedItem = fileListsLoader.getSelectedItem();
         if (selectedItem != null)
             commands.unpack(selectedItem);
-    }
-
-    @FXML
-    private void showAbout() {
-        logger.info("Help (F1)");
-
-        try {
-            File helpFile = (Paths.get(System.getProperty("user.dir"), "config", "f1-help.md")).toFile();
-            FileItem selectedItem = new FileItem(helpFile, helpFile.getName());
-            commands.view(selectedItem);
-        } catch (Exception ex) {
-            error("Failed Viewing file", ex);
-        }
     }
 
     /** Alerts of an error and logs it */
