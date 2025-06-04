@@ -1,4 +1,4 @@
-package org.chaiware.acommander4j;
+package org.chaiware.acommander;
 
 import javafx.application.Platform;
 import javafx.fxml.FXML;
@@ -20,8 +20,8 @@ import java.util.Properties;
 
 import static java.awt.Desktop.getDesktop;
 import static javafx.scene.input.KeyCode.ENTER;
-import static org.chaiware.acommander4j.FileListsLoader.FocusSide.LEFT;
-import static org.chaiware.acommander4j.FileListsLoader.FocusSide.RIGHT;
+import static org.chaiware.acommander.FilesPanesHelper.FocusSide.LEFT;
+import static org.chaiware.acommander.FilesPanesHelper.FocusSide.RIGHT;
 
 public class Commander {
 
@@ -40,7 +40,7 @@ public class Commander {
     ICommands commands;
 
     private static final Logger logger = LoggerFactory.getLogger(Commander.class);
-    FileListsLoader fileListsLoader;
+    FilesPanesHelper fileListsLoader;
 
 
     @FXML
@@ -54,7 +54,7 @@ public class Commander {
         }
 
         // Configure left & right defaults
-        fileListsLoader = new FileListsLoader(leftFileList, leftPathComboBox, rightFileList, rightPathComboBox);
+        fileListsLoader = new FilesPanesHelper(leftFileList, leftPathComboBox, rightFileList, rightPathComboBox);
         commands = new CommandsImpl(fileListsLoader);
 
         logger.debug("Configuring Keyboard Bindings");
@@ -196,7 +196,7 @@ public class Commander {
 
         logger.debug("Configure focus setting (so we will know where focus was last been)");
         leftFileList.focusedProperty().addListener((obs, wasFocused, isNowFocused) -> {
-            if (isNowFocused) fileListsLoader.setFocusedFileList(FileListsLoader.FocusSide.LEFT);
+            if (isNowFocused) fileListsLoader.setFocusedFileList(FilesPanesHelper.FocusSide.LEFT);
         });
         rightFileList.focusedProperty().addListener((obs, wasFocused, isNowFocused) -> {
             if (isNowFocused) fileListsLoader.setFocusedFileList(RIGHT);

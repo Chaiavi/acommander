@@ -1,4 +1,4 @@
-package org.chaiware.acommander4j;
+package org.chaiware.acommander;
 
 import javafx.application.Application;
 import javafx.fxml.FXMLLoader;

@@ -1,4 +1,4 @@
-package org.chaiware.acommander4j;
+package org.chaiware.acommander;
 
 import java.io.File;
 import java.io.IOException;

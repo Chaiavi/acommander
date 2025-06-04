@@ -1,4 +1,4 @@
-package org.chaiware.acommander4j;
+package org.chaiware.acommander;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -16,9 +16,9 @@ import java.util.List;
 public class CommandsImpl implements ICommands {
     private static final Logger log = LoggerFactory.getLogger(CommandsImpl.class);
     private final String APP_PATH = Paths.get(System.getProperty("user.dir"), "apps") + "\\";
-    private final FileListsLoader fileListsLoader;
+    private final FilesPanesHelper fileListsLoader;
 
-    public CommandsImpl(FileListsLoader fileListsLoader) {
+    public CommandsImpl(FilesPanesHelper fileListsLoader) {
         this.fileListsLoader = fileListsLoader;
     }
 

@@ -1,4 +1,4 @@
-package org.chaiware.acommander4j;
+package org.chaiware.acommander;
 
 import javafx.collections.ObservableList;
 import javafx.scene.control.ComboBox;
@@ -8,17 +8,17 @@ import java.io.File;
 import java.util.HashMap;
 import java.util.Map;
 
-import static org.chaiware.acommander4j.FileListsLoader.FocusSide.LEFT;
-import static org.chaiware.acommander4j.FileListsLoader.FocusSide.RIGHT;
+import static org.chaiware.acommander.FilesPanesHelper.FocusSide.LEFT;
+import static org.chaiware.acommander.FilesPanesHelper.FocusSide.RIGHT;
 
-public class FileListsLoader {
+public class FilesPanesHelper {
     public enum FocusSide {LEFT, RIGHT}
 
     Map<FocusSide, FilePane> filePanes = new HashMap<>();
     private FocusSide focusedSide;
 
 
-    public FileListsLoader(ListView<FileItem> leftFileList, ComboBox<String> leftPathComboBox, ListView<FileItem> rightFileList, ComboBox<String> rightPathComboBox) {
+    public FilesPanesHelper(ListView<FileItem> leftFileList, ComboBox<String> leftPathComboBox, ListView<FileItem> rightFileList, ComboBox<String> rightPathComboBox) {
         setFocusedFileList(LEFT);
 
         filePanes.put(LEFT, new FilePane(leftFileList, leftPathComboBox));

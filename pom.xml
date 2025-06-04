@@ -72,7 +72,7 @@
                             <archive>
                                 <manifest>
                                     <mainClass>
-                                        org.chaiware.acommander4j.Commander
+                                        org.chaiware.acommander.Commander
                                     </mainClass>
                                 </manifest>
                             </archive>
