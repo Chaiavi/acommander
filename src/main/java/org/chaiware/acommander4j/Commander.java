@@ -20,6 +20,7 @@ import java.util.Properties;
 
 import static java.awt.Desktop.getDesktop;
 import static javafx.scene.input.KeyCode.ENTER;
+import static javafx.scene.input.KeyCode.LEFT;
 
 public class Commander {
 
@@ -38,7 +39,6 @@ public class Commander {
     ICommands commands;
 
     private static final Logger logger = LoggerFactory.getLogger(Commander.class);
-    private ListView<FileItem> lastFocusedListView;
     FileListsLoader fileListsLoader;
 
 
@@ -55,7 +55,7 @@ public class Commander {
         // Configure left & right defaults
         leftFileList.getProperties().put("PathCombox", leftPathComboBox);
         rightFileList.getProperties().put("PathCombox", rightPathComboBox);
-        fileListsLoader = new FileListsLoader(leftFileList, rightFileList);
+        fileListsLoader = new FileListsLoader(leftFileList, leftPathComboBox, rightFileList, rightPathComboBox);
         commands = new CommandsImpl(fileListsLoader);
 
         logger.debug("Configuring Keyboard Bindings");
@@ -64,10 +64,10 @@ public class Commander {
             if (event.getCode() == ENTER) {
                 if (leftPathComboBox.getEditor().isFocused()) {
                     fileListsLoader.loadFolder(leftPathComboBox.getEditor().getText(), leftFileList);
-                    return;
+//                    return;
                 } else if (rightPathComboBox.getEditor().isFocused()) {
                     fileListsLoader.loadFolder(rightPathComboBox.getEditor().getText(), rightFileList);
-                    return;
+//                    return;
                 }
             }
 
@@ -82,7 +82,7 @@ public class Commander {
                     case F8, DELETE -> deleteFile();
                     case F9 -> terminalHere();
                     case F10 -> exitApp();
-                    case ENTER -> enterSelectedItem(lastFocusedListView);
+                    case ENTER -> enterSelectedItem(fileListsLoader.getFocusedFileList());
                     case TAB -> adjustTabBehavior(event);
                 }
             } catch (Exception e) {
@@ -206,10 +206,10 @@ public class Commander {
 
         logger.debug("Configure focus setting (so we will know where focus was last been)");
         leftFileList.focusedProperty().addListener((obs, wasFocused, isNowFocused) -> {
-            if (isNowFocused) lastFocusedListView = leftFileList;
+            if (isNowFocused) fileListsLoader.setFocusedFileList(FileListsLoader.FocusSide.LEFT);
         });
         rightFileList.focusedProperty().addListener((obs, wasFocused, isNowFocused) -> {
-            if (isNowFocused) lastFocusedListView = rightFileList;
+            if (isNowFocused) fileListsLoader.setFocusedFileList(FileListsLoader.FocusSide.RIGHT);
         });
         Platform.runLater(() -> leftFileList.requestFocus());
 
@@ -233,7 +233,7 @@ public class Commander {
      */
     private void adjustTabBehavior(KeyEvent event) {
         logger.debug("Adjusting the TAB binding");
-        if (leftFileList.equals(lastFocusedListView))
+        if (leftFileList.equals(fileListsLoader.getFocusedFileList()))
             rightFileList.requestFocus();
         else
             leftFileList.requestFocus();
@@ -248,8 +248,8 @@ public class Commander {
         if (fileListView == null || fileListView.getItems().isEmpty() || fileListView.getSelectionModel().getSelectedItem() == null)
             return;
 
-        String currentPath = ((ComboBox<String>) fileListView.getProperties().get("PathCombox")).getItems().get(0);
-        FileItem selectedItem = fileListView.getSelectionModel().getSelectedItem();
+        String currentPath = fileListsLoader.getUnfocusedPath();
+        FileItem selectedItem = fileListsLoader.getSelectedItem();
         logger.debug("Running: {}", selectedItem.getName());
         if ("..".equals(selectedItem.getPresentableFilename())) {
             File parent = new File(currentPath).getParentFile();
@@ -268,7 +268,7 @@ public class Commander {
     @FXML
     private void help() {
         logger.info("Show Help (F1)");
-        Alert alert = new Alert(Alert.AlertType.INFORMATION, "ACommander4J v1.0\nNorton Commander-style file manager");
+        Alert alert = new Alert(Alert.AlertType.INFORMATION, "ACommander v1.0\nNorton Commander-style file manager");
         alert.setHeaderText("About");
         alert.showAndWait();
     }
@@ -278,8 +278,8 @@ public class Commander {
         logger.info("Rename (F2)");
 
         try {
-            FileItem selectedItem = lastFocusedListView.getSelectionModel().getSelectedItem();
-            if (selectedItem != null) {
+            FileItem selectedItem = fileListsLoader.getSelectedItem();
+            if (selectedItem != null) { // todo ".." fileItem
                 File currentFile = selectedItem.getFile();
                 TextInputDialog dialog = new TextInputDialog(currentFile.getName());
                 dialog.setTitle("File Rename");
@@ -300,8 +300,8 @@ public class Commander {
         logger.info("View (F3)");
 
         try {
-            FileItem selectedItem = lastFocusedListView.getSelectionModel().getSelectedItem();
-            if (selectedItem != null)
+            FileItem selectedItem = fileListsLoader.getSelectedItem();
+            if (selectedItem != null) // TODO ".." FileItem
                 commands.view(selectedItem);
         } catch (Exception ex) {
             error("Failed Viewing file", ex);
@@ -313,8 +313,8 @@ public class Commander {
         logger.info("Edit (F4)");
 
         try {
-            FileItem selectedItem = lastFocusedListView.getSelectionModel().getSelectedItem();
-            if (selectedItem != null)
+            FileItem selectedItem = fileListsLoader.getSelectedItem();
+            if (selectedItem != null) // todo what about the ".." fileItem ?
                 commands.edit(selectedItem);
         } catch (Exception ex) {
             error("Failed Editing file", ex);
@@ -326,12 +326,9 @@ public class Commander {
         logger.info("Copy (F5)");
 
         try {
-            FileItem selectedItem = lastFocusedListView.getSelectionModel().getSelectedItem();
+            FileItem selectedItem = fileListsLoader.getSelectedItem();
             if (selectedItem != null) {
-                String targetFolder = ((ComboBox<String>) rightFileList.getProperties().get("PathCombox")).getSelectionModel().getSelectedItem();
-                if (lastFocusedListView == rightFileList)
-                    targetFolder = ((ComboBox<String>) leftFileList.getProperties().get("PathCombox")).getSelectionModel().getSelectedItem();
-
+                String targetFolder = fileListsLoader.getUnfocusedPath();
                 if (selectedItem.isDirectory())
                     targetFolder += "\\" + selectedItem.getName();
                 commands.copy(selectedItem, targetFolder);
@@ -346,12 +343,9 @@ public class Commander {
         logger.info("Move (F6)");
 
         try {
-            FileItem selectedItem = lastFocusedListView.getSelectionModel().getSelectedItem();
+            FileItem selectedItem = fileListsLoader.getSelectedItem();
             if (selectedItem != null) {
-                String targetFolder = ((ComboBox<String>) rightFileList.getProperties().get("PathCombox")).getSelectionModel().getSelectedItem();
-                if (lastFocusedListView == rightFileList)
-                    targetFolder = ((ComboBox<String>) leftFileList.getProperties().get("PathCombox")).getSelectionModel().getSelectedItem();
-
+                String targetFolder = fileListsLoader.getUnfocusedPath();
                 if (selectedItem.isDirectory())
                     targetFolder += "\\" + selectedItem.getName();
                 commands.move(selectedItem, targetFolder);
@@ -373,7 +367,7 @@ public class Commander {
 
             Optional<String> result = dialog.showAndWait();
             if (result.isPresent()) // if user dismisses the dialog it won't create a directory...
-                commands.mkdir(((ComboBox<String>) lastFocusedListView.getProperties().get("PathCombox")).getValue(), result.get());
+                commands.mkdir((fileListsLoader.getFocusedPath()), result.get());
         } catch (Exception e) {
             error("Failed Creating Directory", e);
         }
@@ -382,7 +376,7 @@ public class Commander {
     @FXML
     private void deleteFile() {
         logger.info("Delete (F8/DEL)");
-        FileItem selectedItem = lastFocusedListView.getSelectionModel().getSelectedItem();
+        FileItem selectedItem = fileListsLoader.getSelectedItem();
         try {
             if (selectedItem != null)
                 commands.delete(selectedItem);
@@ -394,7 +388,7 @@ public class Commander {
     @FXML
     private void terminalHere() {
         logger.info("Open Terminal Here (F9)");
-        String openHerePath = ((ComboBox<String>) lastFocusedListView.getProperties().get("PathCombox")).getValue();
+        String openHerePath = fileListsLoader.getFocusedPath();
         try {
             commands.openTerminal(openHerePath);
         } catch (Exception ex) {
@@ -411,7 +405,7 @@ public class Commander {
     @FXML
     private void pack() {
         logger.info("Pack (F11)");
-        FileItem selectedItem = lastFocusedListView.getSelectionModel().getSelectedItem();
+        FileItem selectedItem = fileListsLoader.getSelectedItem();
         if (selectedItem != null)
             commands.pack(selectedItem);
     }
@@ -419,7 +413,7 @@ public class Commander {
     @FXML
     private void unpackFile() {
         logger.info("UnPack (F12)");
-        FileItem selectedItem = lastFocusedListView.getSelectionModel().getSelectedItem();
+        FileItem selectedItem = fileListsLoader.getSelectedItem();
         if (selectedItem != null)
             commands.unpack(selectedItem);
     }
