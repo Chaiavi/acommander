@@ -74,6 +74,10 @@ public class FilesPanesHelper {
         return getFocusedFileList().getSelectionModel().getSelectedItem();
     }
 
+    public FocusSide getFocusedSide() {
+        return focusedSide;
+    }
+
     static class FilePane {
         private final ListView<FileItem> fileListView;
         private final ComboBox<String> pathComboBox;
@@ -84,7 +88,7 @@ public class FilesPanesHelper {
         }
 
         String getPath() {
-            return pathComboBox.getItems().get(0);
+            return pathComboBox.getValue();
         }
     }
 }

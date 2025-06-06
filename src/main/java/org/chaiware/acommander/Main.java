@@ -17,6 +17,9 @@ public class Main extends Application {
         stage.setTitle("A Commander for Java");
         stage.setScene(scene);
         stage.show();
+
+        Commander commander = loader.getController();
+        commander.setupBindings();
     }
 
     public static void main(String[] args) {

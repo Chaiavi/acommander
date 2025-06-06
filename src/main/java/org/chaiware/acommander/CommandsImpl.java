@@ -106,7 +106,7 @@ public class CommandsImpl implements ICommands {
         try {
             List<String> command = Arrays.asList("cmd", "/c", "start", "powershell", "-NoExit", "-Command", "cd '" + openHerePath + "'");
             runExecutable(command, false);
-        log.debug("Opened Powershell Here: {}", openHerePath);
+            log.debug("Opened Powershell Here: {}", openHerePath);
         } catch (IOException e) {
             List<String> command = Arrays.asList("cmd", "/c", "start", "cmd", "/k", "cd /d " + openHerePath);
             runExecutable(command, false);

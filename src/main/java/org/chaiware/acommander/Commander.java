@@ -3,11 +3,15 @@ package org.chaiware.acommander;
 import javafx.application.Platform;
 import javafx.fxml.FXML;
 import javafx.geometry.Pos;
+import javafx.scene.Node;
+import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
+import org.chaiware.acommander.keybinding.KeyBindingManager;
+import org.chaiware.acommander.keybinding.KeyBindingManager.KeyContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -19,68 +23,77 @@ import java.util.Optional;
 import java.util.Properties;
 
 import static java.awt.Desktop.getDesktop;
-import static javafx.scene.input.KeyCode.ENTER;
 import static org.chaiware.acommander.FilesPanesHelper.FocusSide.LEFT;
 import static org.chaiware.acommander.FilesPanesHelper.FocusSide.RIGHT;
 
 public class Commander {
 
     @FXML
-    private BorderPane rootPane;
+    public BorderPane rootPane;
     @FXML
-    private ComboBox<String> leftPathComboBox;
+    public ComboBox<String> leftPathComboBox;
     @FXML
-    private ComboBox<String> rightPathComboBox;
+    public ComboBox<String> rightPathComboBox;
     @FXML
-    private ListView<FileItem> leftFileList;
+    public ListView<FileItem> leftFileList;
     @FXML
-    private ListView<FileItem> rightFileList;
+    public ListView<FileItem> rightFileList;
 
     Properties properties = new Properties();
     ICommands commands;
 
     private static final Logger logger = LoggerFactory.getLogger(Commander.class);
-    FilesPanesHelper fileListsLoader;
+    public FilesPanesHelper filesPanesHelper;
 
 
     @FXML
     public void initialize() {
         logger.debug("Loading Properties");
+        loadConfigFile();
+
+        // Configure left & right defaults
+        filesPanesHelper = new FilesPanesHelper(leftFileList, leftPathComboBox, rightFileList, rightPathComboBox);
+        commands = new CommandsImpl(filesPanesHelper);
+        configMouseDoubleClick();
+
+        logger.debug("Loading file lists into the double panes file views");
+        leftPathComboBox.setValue(new File(properties.getProperty("left_folder")).getPath());
+        rightPathComboBox.setValue(new File(properties.getProperty("right_folder")).getPath());
+
+        configPaneLookAndBehavior(leftFileList);
+        configPaneLookAndBehavior(rightFileList);
+        configFileListsFocus();
+
+        filesPanesHelper.refreshFileListViews();
+    }
+
+    /** Setsup all of the keyboard bindings */
+    public void setupBindings() {
+        Scene scene = rootPane.getScene();
+        KeyBindingManager keyBindingManager = new KeyBindingManager(this);
+        scene.addEventFilter(KeyEvent.KEY_PRESSED, event -> {
+            keyBindingManager.setCurrentContext(determineCurrentContext(scene));
+            keyBindingManager.handleKeyEvent(event);
+        });
+    }
+
+    public KeyContext determineCurrentContext(Scene scene) {
+        Node focused = scene.getFocusOwner();
+        if (focused == leftFileList || focused == rightFileList) return KeyContext.FILE_PANE;
+        if (focused == leftPathComboBox || focused == rightPathComboBox) return KeyContext.PATH_COMBO_BOX;
+        return KeyContext.GLOBAL;
+    }
+
+    private void loadConfigFile() {
         Path configFile = Paths.get(System.getProperty("user.dir"), "config", "acommander.properties");
         try (FileInputStream input = new FileInputStream(configFile.toFile())) {
             properties.load(input);
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
+    }
 
-        // Configure left & right defaults
-        fileListsLoader = new FilesPanesHelper(leftFileList, leftPathComboBox, rightFileList, rightPathComboBox);
-        commands = new CommandsImpl(fileListsLoader);
-
-        logger.debug("Configuring Keyboard Bindings");
-        Platform.runLater(() -> rootPane.requestFocus());
-        rootPane.addEventFilter(KeyEvent.KEY_PRESSED, event -> {
-            try {
-                switch (event.getCode()) {
-                    case F1 -> help();
-                    case F2 -> renameFile();
-                    case F3 -> viewFile();
-                    case F4 -> editFile();
-                    case F5 -> copyFile();
-                    case F6 -> moveFile();
-                    case F7 -> makeDirectory();
-                    case F8, DELETE -> deleteFile();
-                    case F9 -> terminalHere();
-                    case F10 -> exitApp();
-                    case ENTER -> enterSelectedItem();
-                    case TAB -> adjustTabBehavior(event);
-                    case BACK_SPACE -> goUpOneFolder();
-                }
-            } catch (Exception e) {
-                throw new RuntimeException(e);
-            }
-        });
-
+    private void configMouseDoubleClick() {
         logger.debug("Configuring Mouse Double Click");
         leftFileList.setOnMouseClicked(event -> {
             if (event.getClickCount() == 2) {
@@ -92,14 +105,11 @@ public class Commander {
                 enterSelectedItem();
             }
         });
+    }
 
-        logger.debug("Loading file lists into the double panes file views");
-        leftPathComboBox.getItems().add(new File(properties.getProperty("left_folder")).getPath());
-        rightPathComboBox.getItems().add(new File(properties.getProperty("right_folder")).getPath());
-        fileListsLoader.refreshFileListViews();
-
-        logger.debug("Configuring the Left pane look and experience");
-        leftFileList.setCellFactory(lv -> new ListCell<>() {
+    private void configPaneLookAndBehavior(ListView<FileItem> listView) {
+        logger.debug("Configuring the pane look and experience");
+        listView.setCellFactory(lv -> new ListCell<>() {
             final Label nameLabel = new Label();
             final Label sizeLabel = new Label();
             final Label dateLabel = new Label();
@@ -137,7 +147,7 @@ public class Commander {
                     // Constrain width to ListView cell
                     hbox.setMaxWidth(rightFileList.getWidth() - 20); // leave margin for scrollbar
                     hbox.setPrefWidth(rightFileList.getWidth() - 20);
-                    rightFileList.widthProperty().addListener((obs, oldVal, newVal) -> {
+                    listView.widthProperty().addListener((obs, oldVal, newVal) -> {
                         hbox.setMaxWidth(newVal.doubleValue() - 20);
                         hbox.setPrefWidth(newVal.doubleValue() - 20);
                     });
@@ -146,114 +156,37 @@ public class Commander {
                 }
             }
         });
+    }
 
-        logger.debug("Configuring the right pane look and experience");
-        rightFileList.setCellFactory(lv -> new ListCell<>() {
-            final Label nameLabel = new Label();
-            final Label sizeLabel = new Label();
-            final Label dateLabel = new Label();
-            final HBox hbox = new HBox(nameLabel, sizeLabel, dateLabel);
-
-            {
-                HBox.setHgrow(nameLabel, Priority.ALWAYS);
-                nameLabel.setMaxWidth(Double.MAX_VALUE);
-                nameLabel.setEllipsisString("...");
-                nameLabel.setTextOverrun(OverrunStyle.ELLIPSIS);
-                HBox.setHgrow(nameLabel, Priority.ALWAYS);
-
-                sizeLabel.setMinWidth(100);
-                sizeLabel.setMaxWidth(100);
-                sizeLabel.setAlignment(Pos.CENTER_RIGHT);
-
-                dateLabel.setMinWidth(120);
-                dateLabel.setMaxWidth(120);
-                dateLabel.setAlignment(Pos.CENTER_RIGHT);
-
-                hbox.setSpacing(10);
-                hbox.setStyle("-fx-font-family: 'JetBrains Mono'; -fx-font-size: 14px; -fx-hbar-policy: never;");
-            }
-
-            @Override
-            protected void updateItem(FileItem item, boolean empty) {
-                super.updateItem(item, empty);
-                if (empty || item == null) {
-                    setGraphic(null);
-                } else {
-                    nameLabel.setText(item.getPresentableFilename());
-                    sizeLabel.setText(String.format("%s", item.gethumanReadableSize()));
-                    dateLabel.setText(item.getDate());
-
-                    // Constrain width to ListView cell
-                    hbox.setMaxWidth(rightFileList.getWidth() - 20); // leave margin for scrollbar
-                    hbox.setPrefWidth(rightFileList.getWidth() - 20);
-                    rightFileList.widthProperty().addListener((obs, oldVal, newVal) -> {
-                        hbox.setMaxWidth(newVal.doubleValue() - 20);
-                        hbox.setPrefWidth(newVal.doubleValue() - 20);
-                    });
-
-                    setGraphic(hbox);
-                }
-            }
-        });
-
+    private void configFileListsFocus() {
         logger.debug("Configure focus setting (so we will know where focus was last been)");
         leftFileList.focusedProperty().addListener((obs, wasFocused, isNowFocused) -> {
-            if (isNowFocused) fileListsLoader.setFocusedFileList(FilesPanesHelper.FocusSide.LEFT);
+            if (isNowFocused) filesPanesHelper.setFocusedFileList(LEFT);
         });
         rightFileList.focusedProperty().addListener((obs, wasFocused, isNowFocused) -> {
-            if (isNowFocused) fileListsLoader.setFocusedFileList(RIGHT);
+            if (isNowFocused) filesPanesHelper.setFocusedFileList(RIGHT);
         });
-        Platform.runLater(() -> leftFileList.requestFocus());
-
-        logger.debug("Binding the ENTER key");
-        leftPathComboBox.getEditor().setOnKeyPressed(event -> {
-            if (event.getCode() == ENTER) fileListsLoader.refreshFileListView(LEFT);
-        });
-        rightPathComboBox.getEditor().setOnKeyPressed(event -> {
-            if (event.getCode() == ENTER) fileListsLoader.refreshFileListView(RIGHT);
-        });
-    }
-
-    private void goUpOneFolder() {
-        String currentPath = fileListsLoader.getFocusedPath();
-        File parent = new File(currentPath).getParentFile();
-        if (parent != null) {
-            logger.debug("(Backspace) going up one folder");
-            fileListsLoader.getFocusedCombox().getItems().setAll(parent.getAbsolutePath());
-            fileListsLoader.refreshFileListViews();
-        }
-    }
-
-    /**
-     * Adjusts the TAB key behavior so it would go between file lists
-     */
-    private void adjustTabBehavior(KeyEvent event) {
-        logger.debug("Adjusting the TAB binding");
-        if (leftFileList.equals(fileListsLoader.getFocusedFileList()))
-            rightFileList.requestFocus();
-        else
-            leftFileList.requestFocus();
-        event.consume(); // Prevent default tab behavior
+        leftFileList.requestFocus();
     }
 
     /**
      * Runs the command of clicking on an item with the ENTER key (run associated program / goto folder)
      */
-    private void enterSelectedItem() {
+    public void enterSelectedItem() {
         logger.debug("User clicked ENTER (or mouse double-click)");
 
-        String currentPath = fileListsLoader.getFocusedPath();
-        FileItem selectedItem = fileListsLoader.getSelectedItem();
+        String currentPath = filesPanesHelper.getFocusedPath();
+        FileItem selectedItem = filesPanesHelper.getSelectedItem();
         logger.debug("Running: {}", selectedItem.getName());
         if ("..".equals(selectedItem.getPresentableFilename())) {
             File parent = new File(currentPath).getParentFile();
             if (parent != null) {
-                fileListsLoader.getFocusedCombox().getItems().setAll(parent.getAbsolutePath());
-                fileListsLoader.refreshFileListViews();
+                filesPanesHelper.getFocusedCombox().setValue(parent.getAbsolutePath());
+                filesPanesHelper.refreshFileListViews();
             }
         } else if (selectedItem.isDirectory()) {
-            fileListsLoader.getFocusedCombox().getItems().setAll(selectedItem.getFullPath());
-            fileListsLoader.refreshFileListViews();
+            filesPanesHelper.getFocusedCombox().setValue(selectedItem.getFullPath());
+            filesPanesHelper.refreshFileListViews();
         } else {
             try {
                 getDesktop().open(selectedItem.getFile());
@@ -264,7 +197,7 @@ public class Commander {
     }
 
     @FXML
-    private void help() {
+    public void help() {
         logger.info("Help (F1)");
 
         try {
@@ -277,11 +210,11 @@ public class Commander {
     }
 
     @FXML
-    private void renameFile() {
+    public void renameFile() {
         logger.info("Rename (F2)");
 
         try {
-            FileItem selectedItem = fileListsLoader.getSelectedItem();
+            FileItem selectedItem = filesPanesHelper.getSelectedItem();
             if (selectedItem != null) { // todo ".." fileItem
                 File currentFile = selectedItem.getFile();
                 TextInputDialog dialog = new TextInputDialog(currentFile.getName());
@@ -299,11 +232,11 @@ public class Commander {
     }
 
     @FXML
-    private void viewFile() {
+    public void viewFile() {
         logger.info("View (F3)");
 
         try {
-            FileItem selectedItem = fileListsLoader.getSelectedItem();
+            FileItem selectedItem = filesPanesHelper.getSelectedItem();
             if (selectedItem != null)
                 commands.view(selectedItem);
         } catch (Exception ex) {
@@ -312,11 +245,11 @@ public class Commander {
     }
 
     @FXML
-    private void editFile() {
+    public void editFile() {
         logger.info("Edit (F4)");
 
         try {
-            FileItem selectedItem = fileListsLoader.getSelectedItem();
+            FileItem selectedItem = filesPanesHelper.getSelectedItem();
             if (selectedItem != null) // todo what about the ".." fileItem ?
                 commands.edit(selectedItem);
         } catch (Exception ex) {
@@ -325,13 +258,13 @@ public class Commander {
     }
 
     @FXML
-    private void copyFile() {
+    public void copyFile() {
         logger.info("Copy (F5)");
 
         try {
-            FileItem selectedItem = fileListsLoader.getSelectedItem();
+            FileItem selectedItem = filesPanesHelper.getSelectedItem();
             if (selectedItem != null) {
-                String targetFolder = fileListsLoader.getUnfocusedPath();
+                String targetFolder = filesPanesHelper.getUnfocusedPath();
                 if (selectedItem.isDirectory())
                     targetFolder += "\\" + selectedItem.getName();
                 commands.copy(selectedItem, targetFolder);
@@ -342,13 +275,13 @@ public class Commander {
     }
 
     @FXML
-    private void moveFile() {
+    public void moveFile() {
         logger.info("Move (F6)");
 
         try {
-            FileItem selectedItem = fileListsLoader.getSelectedItem();
+            FileItem selectedItem = filesPanesHelper.getSelectedItem();
             if (selectedItem != null) {
-                String targetFolder = fileListsLoader.getUnfocusedPath();
+                String targetFolder = filesPanesHelper.getUnfocusedPath();
                 if (selectedItem.isDirectory())
                     targetFolder += "\\" + selectedItem.getName();
                 commands.move(selectedItem, targetFolder);
@@ -359,7 +292,7 @@ public class Commander {
     }
 
     @FXML
-    private void makeDirectory() {
+    public void makeDirectory() {
         logger.info("Create Directory (F7)");
 
         try {
@@ -370,16 +303,16 @@ public class Commander {
 
             Optional<String> result = dialog.showAndWait();
             if (result.isPresent()) // if user dismisses the dialog it won't create a directory...
-                commands.mkdir((fileListsLoader.getFocusedPath()), result.get());
+                commands.mkdir((filesPanesHelper.getFocusedPath()), result.get());
         } catch (Exception e) {
             error("Failed Creating Directory", e);
         }
     }
 
     @FXML
-    private void deleteFile() {
+    public void deleteFile() {
         logger.info("Delete (F8/DEL)");
-        FileItem selectedItem = fileListsLoader.getSelectedItem();
+        FileItem selectedItem = filesPanesHelper.getSelectedItem();
         try {
             if (selectedItem != null)
                 commands.delete(selectedItem);
@@ -389,9 +322,9 @@ public class Commander {
     }
 
     @FXML
-    private void terminalHere() {
+    public void terminalHere() {
         logger.info("Open Terminal Here (F9)");
-        String openHerePath = fileListsLoader.getFocusedPath();
+        String openHerePath = filesPanesHelper.getFocusedPath();
         try {
             commands.openTerminal(openHerePath);
         } catch (Exception ex) {
@@ -400,23 +333,23 @@ public class Commander {
     }
 
     @FXML
-    private void exitApp() {
+    public void exitApp() {
         logger.info("Exit App (F10)");
         Platform.exit();
     }
 
     @FXML
-    private void pack() {
+    public void pack() {
         logger.info("Pack (F11)");
-        FileItem selectedItem = fileListsLoader.getSelectedItem();
+        FileItem selectedItem = filesPanesHelper.getSelectedItem();
         if (selectedItem != null)
             commands.pack(selectedItem);
     }
 
     @FXML
-    private void unpackFile() {
+    public void unpackFile() {
         logger.info("UnPack (F12)");
-        FileItem selectedItem = fileListsLoader.getSelectedItem();
+        FileItem selectedItem = filesPanesHelper.getSelectedItem();
         if (selectedItem != null)
             commands.unpack(selectedItem);
     }
