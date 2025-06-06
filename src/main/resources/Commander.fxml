@@ -9,68 +9,102 @@
 <?import javafx.scene.layout.GridPane?>
 <?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.RowConstraints?>
+<?import javafx.scene.layout.VBox?>
 
-<BorderPane fx:id="rootPane" prefHeight="600.0" prefWidth="900.0" xmlns="http://javafx.com/javafx/22" xmlns:fx="http://javafx.com/fxml/1" fx:controller="org.chaiware.acommander.Commander">
+<BorderPane fx:id="rootPane" prefHeight="600.0" prefWidth="900.0" style="-fx-background-color: #0000AA;" xmlns="http://javafx.com/javafx/22" xmlns:fx="http://javafx.com/fxml/1" fx:controller="org.chaiware.acommander.Commander">
     <center>
-        <GridPane hgap="10" prefWidth="Infinity" vgap="5">
+        <GridPane hgap="2" style="-fx-background-color: #0000AA;" vgap="2">
             <columnConstraints>
                 <ColumnConstraints percentWidth="50.0" />
                 <ColumnConstraints percentWidth="50.0" />
             </columnConstraints>
             <rowConstraints>
-                <RowConstraints minHeight="30.0" vgrow="NEVER" />
+                <RowConstraints minHeight="35.0" vgrow="NEVER" />
+                <RowConstraints minHeight="25.0" vgrow="NEVER" />
                 <RowConstraints minHeight="200.0" vgrow="ALWAYS" />
-                <RowConstraints minHeight="40.0" vgrow="NEVER" />
             </rowConstraints>
 
-            <!-- ComboBoxes -->
-            <ComboBox fx:id="leftPathComboBox" editable="true" maxWidth="Infinity" prefHeight="25.0" GridPane.columnIndex="0" GridPane.hgrow="ALWAYS" GridPane.rowIndex="0">
+            <!-- Drive/Path ComboBoxes -->
+            <ComboBox fx:id="leftPathComboBox" editable="true" maxWidth="Infinity" prefHeight="30.0" style="-fx-background-color: #FFFFFF; -fx-text-fill: #000000; -fx-border-color: #000000;" GridPane.columnIndex="0" GridPane.hgrow="ALWAYS" GridPane.rowIndex="0">
                 <GridPane.margin>
-                    <Insets left="5.0" right="5.0" top="5.0" />
+                    <Insets left="3.0" right="1.0" top="3.0" />
                 </GridPane.margin>
             </ComboBox>
 
-            <ComboBox fx:id="rightPathComboBox" editable="true" maxWidth="Infinity" prefHeight="25.0" GridPane.columnIndex="1" GridPane.hgrow="ALWAYS" GridPane.rowIndex="0">
+            <ComboBox fx:id="rightPathComboBox" editable="true" maxWidth="Infinity" prefHeight="30.0" style="-fx-background-color: #FFFFFF; -fx-text-fill: #000000; -fx-border-color: #000000;" GridPane.columnIndex="1" GridPane.hgrow="ALWAYS" GridPane.rowIndex="0">
                 <GridPane.margin>
-                    <Insets left="5.0" right="5.0" top="5.0" />
+                    <Insets left="1.0" right="3.0" top="3.0" />
                 </GridPane.margin>
             </ComboBox>
 
             <!-- File Lists -->
-            <ListView fx:id="leftFileList" prefHeight="200.0" GridPane.columnIndex="0" GridPane.rowIndex="1">
+            <ListView fx:id="leftFileList" prefHeight="200.0" style="-fx-background-color: #0000AA; -fx-control-inner-background: #0000AA; -fx-text-fill: #FFFF00; -fx-border-color: #FFFFFF; -fx-border-width: 1; -fx-font-family: 'Courier New', monospace; -fx-font-size: 12px;" GridPane.columnIndex="0" GridPane.rowIndex="1" GridPane.rowSpan="2">
                 <GridPane.margin>
-                    <Insets bottom="5.0" left="5.0" right="5.0" top="5.0" />
-                </GridPane.margin>
-            </ListView>
-            <ListView fx:id="rightFileList" prefHeight="200.0" GridPane.columnIndex="1" GridPane.rowIndex="1">
-                <GridPane.margin>
-                    <Insets bottom="5.0" left="5.0" right="5.0" top="5.0" />
+                    <Insets bottom="2.0" left="3.0" right="1.0" />
                 </GridPane.margin>
             </ListView>
 
-            <HBox alignment="CENTER" prefHeight="35.0" spacing="5" GridPane.columnIndex="0" GridPane.columnSpan="2" GridPane.rowIndex="2">
-                <padding>
-                    <Insets bottom="5.0" left="5.0" right="5.0" top="5.0" />
-                </padding>
-                <Button maxWidth="Infinity" onAction="#help" text="F1 Help" HBox.hgrow="ALWAYS">
-               <HBox.margin>
-                  <Insets left="5.0" />
-               </HBox.margin></Button>
-                <Button maxWidth="Infinity" onAction="#renameFile" text="F2 Rename" HBox.hgrow="ALWAYS" />
-                <Button maxWidth="Infinity" onAction="#viewFile" text="F3 View" HBox.hgrow="ALWAYS" />
-                <Button maxWidth="Infinity" onAction="#editFile" text="F4 Edit" HBox.hgrow="ALWAYS" />
-                <Button maxWidth="Infinity" onAction="#copyFile" text="F5 Copy" HBox.hgrow="ALWAYS" />
-                <Button maxWidth="Infinity" onAction="#moveFile" text="F6 Move" HBox.hgrow="ALWAYS" />
-                <Button maxWidth="Infinity" onAction="#makeDirectory" text="F7 MkDir" HBox.hgrow="ALWAYS" />
-                <Button maxWidth="Infinity" onAction="#deleteFile" text="F8 Delete" HBox.hgrow="ALWAYS" />
-                <Button maxWidth="Infinity" onAction="#terminalHere" text="F9 Terminal Here" HBox.hgrow="ALWAYS" />
-                <Button maxWidth="Infinity" onAction="#exitApp" text="F10 Exit" HBox.hgrow="ALWAYS" />
-                <Button maxWidth="Infinity" onAction="#pack" text="F11 Pack" HBox.hgrow="ALWAYS" />
-                <Button maxWidth="Infinity" onAction="#unpackFile" text="F12 UnPack" HBox.hgrow="ALWAYS">
-               <HBox.margin>
-                  <Insets right="5.0" />
-               </HBox.margin></Button>
-            </HBox>
+            <ListView fx:id="rightFileList" prefHeight="200.0" style="-fx-background-color: #0000AA; -fx-control-inner-background: #0000AA; -fx-text-fill: #FFFF00; -fx-border-color: #FFFFFF; -fx-border-width: 1; -fx-font-family: 'Courier New', monospace; -fx-font-size: 12px;" GridPane.columnIndex="1" GridPane.rowIndex="1" GridPane.rowSpan="2">
+                <GridPane.margin>
+                    <Insets bottom="2.0" left="1.0" right="3.0" />
+                </GridPane.margin>
+            </ListView>
         </GridPane>
     </center>
+
+    <bottom>
+        <!-- Function keys bar -->
+        <VBox style="-fx-background-color: #C0C0C0; -fx-border-color: #808080; -fx-border-width: 1 0 0 0;">
+            <HBox alignment="CENTER" prefHeight="40.0" spacing="1" style="-fx-background-color: #C0C0C0; -fx-padding: 3;">
+                <Button maxWidth="Infinity" onAction="#help" prefHeight="32.0" style="-fx-background-color: #E0E0E0; -fx-text-fill: #000000; -fx-font-size: 10px; -fx-font-weight: bold; -fx-border-color: #808080; -fx-border-width: 1; -fx-background-radius: 3; -fx-border-radius: 3;" text="F1 Help" HBox.hgrow="ALWAYS">
+                    <HBox.margin>
+                        <Insets left="5.0" />
+                    </HBox.margin></Button>
+                <Button maxWidth="Infinity" onAction="#renameFile" prefHeight="32.0" style="-fx-background-color: #E0E0E0; -fx-text-fill: #000000; -fx-font-size: 10px; -fx-font-weight: bold; -fx-border-color: #808080; -fx-border-width: 1; -fx-background-radius: 3; -fx-border-radius: 3;" text="F2 Rename" HBox.hgrow="ALWAYS">
+                    <HBox.margin>
+                        <Insets left="5.0" />
+                    </HBox.margin></Button>
+                <Button maxWidth="Infinity" onAction="#viewFile" prefHeight="32.0" style="-fx-background-color: #E0E0E0; -fx-text-fill: #000000; -fx-font-size: 10px; -fx-font-weight: bold; -fx-border-color: #808080; -fx-border-width: 1; -fx-background-radius: 3; -fx-border-radius: 3;" text="F3 View" HBox.hgrow="ALWAYS">
+                    <HBox.margin>
+                        <Insets left="5.0" />
+                    </HBox.margin></Button>
+                <Button maxWidth="Infinity" onAction="#editFile" prefHeight="32.0" style="-fx-background-color: #E0E0E0; -fx-text-fill: #000000; -fx-font-size: 10px; -fx-font-weight: bold; -fx-border-color: #808080; -fx-border-width: 1; -fx-background-radius: 3; -fx-border-radius: 3;" text="F4 Edit" HBox.hgrow="ALWAYS">
+                    <HBox.margin>
+                        <Insets left="5.0" />
+                    </HBox.margin></Button>
+                <Button maxWidth="Infinity" onAction="#copyFile" prefHeight="32.0" style="-fx-background-color: #E0E0E0; -fx-text-fill: #000000; -fx-font-size: 10px; -fx-font-weight: bold; -fx-border-color: #808080; -fx-border-width: 1; -fx-background-radius: 3; -fx-border-radius: 3;" text="F5 Copy" HBox.hgrow="ALWAYS">
+                    <HBox.margin>
+                        <Insets left="5.0" />
+                    </HBox.margin></Button>
+                <Button maxWidth="Infinity" onAction="#moveFile" prefHeight="32.0" style="-fx-background-color: #E0E0E0; -fx-text-fill: #000000; -fx-font-size: 10px; -fx-font-weight: bold; -fx-border-color: #808080; -fx-border-width: 1; -fx-background-radius: 3; -fx-border-radius: 3;" text="F6 Move" HBox.hgrow="ALWAYS">
+                    <HBox.margin>
+                        <Insets left="5.0" />
+                    </HBox.margin></Button>
+                <Button maxWidth="Infinity" onAction="#makeDirectory" prefHeight="32.0" style="-fx-background-color: #E0E0E0; -fx-text-fill: #000000; -fx-font-size: 10px; -fx-font-weight: bold; -fx-border-color: #808080; -fx-border-width: 1; -fx-background-radius: 3; -fx-border-radius: 3;" text="F7 MkDir" HBox.hgrow="ALWAYS">
+                    <HBox.margin>
+                        <Insets left="5.0" />
+                    </HBox.margin></Button>
+                <Button maxWidth="Infinity" onAction="#deleteFile" prefHeight="32.0" style="-fx-background-color: #E0E0E0; -fx-text-fill: #000000; -fx-font-size: 10px; -fx-font-weight: bold; -fx-border-color: #808080; -fx-border-width: 1; -fx-background-radius: 3; -fx-border-radius: 3;" text="F8 Delete" HBox.hgrow="ALWAYS">
+                    <HBox.margin>
+                        <Insets left="5.0" />
+                    </HBox.margin></Button>
+                <Button maxWidth="Infinity" onAction="#terminalHere" prefHeight="32.0" style="-fx-background-color: #E0E0E0; -fx-text-fill: #000000; -fx-font-size: 10px; -fx-font-weight: bold; -fx-border-color: #808080; -fx-border-width: 1; -fx-background-radius: 3; -fx-border-radius: 3;" text="F9 Terminal" HBox.hgrow="ALWAYS">
+                    <HBox.margin>
+                        <Insets left="5.0" />
+                    </HBox.margin></Button>
+                <Button maxWidth="Infinity" onAction="#exitApp" prefHeight="32.0" style="-fx-background-color: #E0E0E0; -fx-text-fill: #000000; -fx-font-size: 10px; -fx-font-weight: bold; -fx-border-color: #808080; -fx-border-width: 1; -fx-background-radius: 3; -fx-border-radius: 3;" text="F10 Exit" HBox.hgrow="ALWAYS">
+                    <HBox.margin>
+                        <Insets left="5.0" />
+                    </HBox.margin></Button>
+                <Button maxWidth="Infinity" onAction="#pack" prefHeight="32.0" style="-fx-background-color: #E0E0E0; -fx-text-fill: #000000; -fx-font-size: 10px; -fx-font-weight: bold; -fx-border-color: #808080; -fx-border-width: 1; -fx-background-radius: 3; -fx-border-radius: 3;" text="F11 Pack" HBox.hgrow="ALWAYS">
+                    <HBox.margin>
+                        <Insets left="5.0" />
+                    </HBox.margin></Button>
+                <Button maxWidth="Infinity" onAction="#unpackFile" prefHeight="32.0" style="-fx-background-color: #E0E0E0; -fx-text-fill: #000000; -fx-font-size: 10px; -fx-font-weight: bold; -fx-border-color: #808080; -fx-border-width: 1; -fx-background-radius: 3; -fx-border-radius: 3;" text="F12 UnPack" HBox.hgrow="ALWAYS">
+                    <HBox.margin>
+                        <Insets left="5.0" right="5.0" />
+                    </HBox.margin></Button>
+            </HBox>
+        </VBox>
+    </bottom>
 </BorderPane>
