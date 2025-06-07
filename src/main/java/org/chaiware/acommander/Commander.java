@@ -342,16 +342,24 @@ public class Commander {
     public void pack() {
         logger.info("Pack (F11)");
         FileItem selectedItem = filesPanesHelper.getSelectedItem();
-        if (selectedItem != null)
-            commands.pack(selectedItem);
+        try {
+            if (selectedItem != null)
+                commands.pack(selectedItem, "a.zip", filesPanesHelper.getUnfocusedPath());
+        } catch (Exception e) {
+            error("Failed Packing file: " + selectedItem.getPresentableFilename(), e);
+        }
     }
 
     @FXML
     public void unpackFile() {
         logger.info("UnPack (F12)");
         FileItem selectedItem = filesPanesHelper.getSelectedItem();
-        if (selectedItem != null)
-            commands.unpack(selectedItem);
+        try {
+            if (selectedItem != null)
+                commands.unpack(selectedItem, filesPanesHelper.getUnfocusedPath());
+        } catch (Exception e) {
+            error("Failed UNPacking file: " + selectedItem.getPresentableFilename(), e);
+        }
     }
 
     /** Alerts of an error and logs it */

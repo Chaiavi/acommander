@@ -11,7 +11,7 @@ public interface ICommands {
     void mkdir(String parentDir, String newDirName) throws IOException;
     void delete(FileItem selectedItem) throws IOException;
     void openTerminal(String openHerePath) throws Exception;
-    void pack(FileItem selectedItem);
-    void unpack(FileItem selectedItem);
+    void pack(FileItem selectedItem, String archiveFilename, String destinationPath) throws Exception;
+    void unpack(FileItem selectedItem, String destinationPath) throws Exception;
 
 }

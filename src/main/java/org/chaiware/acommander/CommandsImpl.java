@@ -115,13 +115,25 @@ public class CommandsImpl implements ICommands {
     }
 
     @Override
-    public void pack(FileItem selectedItem) {
-
+    public void pack(FileItem source, String archiveFilename, String destinationPath) throws Exception {
+        List<String> command = new ArrayList<>();
+        command.add(APP_PATH + "7zG.exe");
+        command.add("a");
+        command.add(destinationPath + "\\" + archiveFilename);
+        command.add(source.getFullPath());
+        runExecutable(command, true);
+        log.debug("Archived (zip): {} to: {}", archiveFilename, destinationPath);
     }
 
     @Override
-    public void unpack(FileItem selectedItem) {
-
+    public void unpack(FileItem fileItem, String destinationPath) throws Exception {
+        List<String> command = new ArrayList<>();
+        command.add(APP_PATH + "7zG.exe");
+        command.add("x");
+        command.add("-o" + destinationPath);
+        command.add(fileItem.getFile().toString());
+        runExecutable(command, true);
+        log.debug("UnPacked Archive: {} to: {}", fileItem.getName(), destinationPath);
     }
 
     private void runExecutable(List<String> params, boolean isWaitFor) throws IOException, InterruptedException {
