@@ -17,9 +17,11 @@ public class CommandsImpl implements ICommands {
     private static final Logger log = LoggerFactory.getLogger(CommandsImpl.class);
     private final String APP_PATH = Paths.get(System.getProperty("user.dir"), "apps") + "\\";
     private final FilesPanesHelper fileListsLoader;
+    ICommands commandsSimpleImpl;
 
     public CommandsImpl(FilesPanesHelper fileListsLoader) {
         this.fileListsLoader = fileListsLoader;
+        commandsSimpleImpl = new CommandsSimpleImpl(fileListsLoader);
     }
 
     @Override
@@ -61,7 +63,7 @@ public class CommandsImpl implements ICommands {
         command.add(APP_PATH + "fastcopy\\FastCopy.exe");
         command.add("/cmd=diff");
         command.add("/auto_close");
-        command.add("/verify");
+//        command.add("/verify");
         command.add(sourceFile.getFile().toString());
         command.add("/to=" + targetFolder);
         runExecutable(command, true);
@@ -70,15 +72,19 @@ public class CommandsImpl implements ICommands {
 
     @Override
     public void move(FileItem sourceFile, String targetFolder) throws Exception {
-        List<String> command = new ArrayList<>();
-        command.add(APP_PATH + "fastcopy\\FastCopy.exe");
-        command.add("/cmd=move");
-        command.add("/auto_close");
-        command.add("/verify");
-        command.add(sourceFile.getFile().toString());
-        command.add("/to=" + targetFolder);
-        runExecutable(command, true);
-        log.debug("Moved: {} To: {}", sourceFile, targetFolder);
+        if (sourceFile.getFile().toPath().getRoot().toString().equalsIgnoreCase(Paths.get(targetFolder).getRoot().toString())) // Use FASTEST move in the case of moving file over same drive
+            commandsSimpleImpl.move(sourceFile, targetFolder);
+        else {
+            List<String> command = new ArrayList<>();
+            command.add(APP_PATH + "fastcopy\\FastCopy.exe");
+            command.add("/cmd=move");
+            command.add("/auto_close");
+//        command.add("/verify");
+            command.add(sourceFile.getFile().toString());
+            command.add("/to=" + targetFolder);
+            runExecutable(command, true);
+            log.debug("Moved: {} To: {}", sourceFile, targetFolder);
+        }
     }
 
     @Override
@@ -112,6 +118,18 @@ public class CommandsImpl implements ICommands {
             runExecutable(command, false);
             log.debug("Opened Command Shell Here: {}", openHerePath);
         }
+    }
+
+    @Override
+    public void searchFiles(String sourcePath, String filenameWildcard) throws Exception {
+        List<String> command = new ArrayList<>();
+        command.add(APP_PATH + "SearchMyFiles.exe");
+        command.add("/StartSearch");
+        command.add("/scomma 1.csv");
+        command.add("/BaseFolder \"" + sourcePath + "\"");
+        command.add("/FilesWildcard " + filenameWildcard);
+        runExecutable(command, true);
+        log.debug("Searched for: {} under: {}", filenameWildcard, sourcePath);
     }
 
     @Override
