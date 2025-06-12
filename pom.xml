@@ -15,18 +15,26 @@
         <org.slf4j.version>2.0.17</org.slf4j.version>
         <ch.qos.logback.version>1.5.18</ch.qos.logback.version>
         <org.junit.jupiter.version>5.12.2</org.junit.jupiter.version>
+        <org.projectlombok.version>1.18.38</org.projectlombok.version>
+        <org.openjfx.version>25-ea+17</org.openjfx.version>
     </properties>
 
     <dependencies>
         <dependency>
             <groupId>org.openjfx</groupId>
             <artifactId>javafx-controls</artifactId>
-            <version>25-ea+17</version>
+            <version>${org.openjfx.version}</version>
         </dependency>
         <dependency>
-        <groupId>org.openjfx</groupId>
-        <artifactId>javafx-fxml</artifactId>
-            <version>25-ea+17</version>
+            <groupId>org.openjfx</groupId>
+            <artifactId>javafx-fxml</artifactId>
+            <version>${org.openjfx.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <version>${org.projectlombok.version}</version>
         </dependency>
 
         <dependency>
