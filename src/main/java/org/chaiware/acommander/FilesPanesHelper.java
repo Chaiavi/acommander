@@ -3,6 +3,7 @@ package org.chaiware.acommander;
 import javafx.collections.ObservableList;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.ListView;
+import lombok.Data;
 
 import java.io.File;
 import java.util.HashMap;
@@ -29,8 +30,13 @@ public class FilesPanesHelper {
         this.focusedSide = focusSide;
     }
 
+    public void setFileListPath(FocusSide focusSide, String path) {
+        filePanes.get(focusSide).getPathComboBox().setValue(path);
+        refreshFileListView(focusSide);
+    }
+
     public ListView<FileItem> getFocusedFileList() {
-        return filePanes.get(focusedSide).fileListView;
+        return filePanes.get(focusedSide).getFileListView();
     }
 
     public ComboBox<String> getFocusedCombox() {
@@ -50,7 +56,7 @@ public class FilesPanesHelper {
         File folder = new File(filePanes.get(focusSide).getPath());
         File[] files = folder.listFiles();
 
-        ObservableList<FileItem> items = filePanes.get(focusSide).fileListView.getItems();
+        ObservableList<FileItem> items = filePanes.get(focusSide).getFileListView().getItems();
         items.clear();
         if (folder.getParentFile() != null)
             items.add(new FileItem(folder, ".."));
@@ -58,7 +64,7 @@ public class FilesPanesHelper {
             for (File f : files)
                 items.add(new FileItem(f));
 
-        filePanes.get(focusSide).pathComboBox.getSelectionModel().selectFirst();
+        filePanes.get(focusSide).getPathComboBox().getSelectionModel().selectFirst();
     }
 
     public String getFocusedPath() {
@@ -78,6 +84,7 @@ public class FilesPanesHelper {
         return focusedSide;
     }
 
+    @Data
     static class FilePane {
         private final ListView<FileItem> fileListView;
         private final ComboBox<String> pathComboBox;
