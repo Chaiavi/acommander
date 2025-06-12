@@ -1,21 +1,22 @@
 package org.chaiware.acommander;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import javafx.scene.control.Alert;
 
+import javax.swing.*;
+import java.awt.*;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
+import java.util.List;
 
-public class CommandsSimpleImpl implements ICommands {
-    private static final Logger log = LoggerFactory.getLogger(CommandsSimpleImpl.class);
+public class CommandsSimpleImpl extends ACommands {
     FilesPanesHelper filesPanesHelper;
 
     public CommandsSimpleImpl(FilesPanesHelper filesPanesHelper) {
-        this.filesPanesHelper = filesPanesHelper;
+        super(filesPanesHelper);
     }
 
     @Override
@@ -66,7 +67,69 @@ public class CommandsSimpleImpl implements ICommands {
 
     @Override
     public void searchFiles(String sourcePath, String filenameWildcard) throws Exception {
+        log.info("Searching for: {} from: {}", filenameWildcard, sourcePath);
+        List<String> command = List.of(
+                "powershell",
+                "-Command",
+                "Get-ChildItem -Path '" + sourcePath + "' -Recurse -File | Where-Object { $_.Name -like '" + filenameWildcard + "' } | Select-Object -ExpandProperty FullName"
+        );
 
+        List<String> files = runExecutable(command, true);
+        if (!files.isEmpty()) {
+            log.debug("Files found in the search are:");
+            files.forEach(log::debug);
+
+            log.debug("Showing the found files to the user so he could select which he wants");
+            FileItem selectedFile = getSelectedFileByUser(files);
+
+            if (selectedFile != null) {
+                log.info("From the search, the selected file is: {}", selectedFile.getFullPath());
+                fileListsLoader.setFileListPath(fileListsLoader.getFocusedSide(), selectedFile.getFile().getParent());
+                fileListsLoader.getFocusedFileList().getSelectionModel().select(selectedFile);
+            } else
+                log.info("User didn't select any file from the search results");
+        } else {
+            log.info("No files were found in the search results");
+            Alert alert = new Alert(Alert.AlertType.INFORMATION, "No files found :-(");
+            alert.setHeaderText(null);
+            alert.showAndWait();
+        }
+    }
+
+    /** From a list of files, it shows the user a dialog and when he chooses a file, it returns the selected-by-user FileItem
+     * or Null in the case of canceling... */
+    private FileItem getSelectedFileByUser(List<String> files) {
+        List<FileItem> fileItems = files.stream().map(filename -> new FileItem(new File(filename))).toList();
+        JList<FileItem> fileList = new JList<>(fileItems.toArray(new FileItem[0]));
+        fileList.setCellRenderer(new DefaultListCellRenderer() {
+            @Override
+            public Component getListCellRendererComponent(JList<?> list, Object value,
+                                                          int index, boolean isSelected, boolean cellHasFocus) {
+                super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
+                if (value instanceof FileItem) {
+                    setText(((FileItem) value).getFullPath());
+                }
+                return this;
+            }
+        });
+        fileList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+
+        JScrollPane scrollPane = new JScrollPane(fileList);
+        scrollPane.setPreferredSize(new Dimension(300, 200));
+
+        int result = JOptionPane.showConfirmDialog(
+                null,
+                scrollPane,
+                "Files Found, Select if you wish to browse to one",
+                JOptionPane.OK_CANCEL_OPTION,
+                JOptionPane.PLAIN_MESSAGE
+        );
+
+        FileItem selectedFile = null;
+        if (result == JOptionPane.OK_OPTION)
+            selectedFile = fileList.getSelectedValue();
+
+        return selectedFile;
     }
 
     @Override

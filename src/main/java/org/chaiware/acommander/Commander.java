@@ -1,6 +1,5 @@
 package org.chaiware.acommander;
 
-import javafx.application.Platform;
 import javafx.fxml.FXML;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
@@ -40,7 +39,7 @@ public class Commander {
     public ListView<FileItem> rightFileList;
 
     Properties properties = new Properties();
-    ICommands commands;
+    ACommands commands;
 
     private static final Logger logger = LoggerFactory.getLogger(Commander.class);
     public FilesPanesHelper filesPanesHelper;
@@ -141,7 +140,7 @@ public class Commander {
                     setGraphic(null);
                 } else {
                     nameLabel.setText(item.getPresentableFilename());
-                    sizeLabel.setText(String.format("%s", item.gethumanReadableSize()));
+                    sizeLabel.setText(String.format("%s", item.getHumanReadableSize()));
                     dateLabel.setText(item.getDate());
 
                     // Constrain width to ListView cell
@@ -333,9 +332,22 @@ public class Commander {
     }
 
     @FXML
-    public void exitApp() {
-        logger.info("Exit App (F10)");
-        Platform.exit();
+    public void search() {
+        logger.info("Search Files (F10)");
+        TextInputDialog dialog = new TextInputDialog();
+        dialog.setTitle("Search for File/s");
+        dialog.setHeaderText("");
+        dialog.setContentText("Enter (partial/wildcard) filename");
+
+        Optional<String> result = dialog.showAndWait();
+        if (result.isPresent()) {
+            String searchFromPath = filesPanesHelper.getFocusedPath();
+            try {
+                commands.searchFiles(searchFromPath, result.get().contains("*") ? result.get() : "*" + result.get() + "*");
+            } catch (Exception e) {
+                error("Failed searching for: " + result.get(), e);
+            }
+        }
     }
 
     @FXML
@@ -343,7 +355,7 @@ public class Commander {
         logger.info("Pack (F11)");
         FileItem selectedItem = filesPanesHelper.getSelectedItem();
         try {
-            if (selectedItem != null)
+            if (selectedItem != null) // TODO fix the zip filename
                 commands.pack(selectedItem, "a.zip", filesPanesHelper.getUnfocusedPath());
         } catch (Exception e) {
             error("Failed Packing file: " + selectedItem.getPresentableFilename(), e);
