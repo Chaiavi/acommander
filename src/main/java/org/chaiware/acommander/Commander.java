@@ -215,13 +215,7 @@ public class Commander {
         try {
             FileItem selectedItem = filesPanesHelper.getSelectedItem();
             if (selectedItem != null) { // todo ".." fileItem
-                File currentFile = selectedItem.getFile();
-                TextInputDialog dialog = new TextInputDialog(currentFile.getName());
-                dialog.setTitle("File Rename");
-                dialog.setHeaderText("");
-                dialog.setContentText("New name");
-
-                Optional<String> result = dialog.showAndWait();
+                Optional<String> result = getUserFeedback(selectedItem.getFile().getName(), "File Rename", "New name");
                 if (result.isPresent()) // if user dismisses the dialog it won't rename...
                     commands.rename(selectedItem, result.get());
             }
@@ -295,12 +289,7 @@ public class Commander {
         logger.info("Create Directory (F7)");
 
         try {
-            TextInputDialog dialog = new TextInputDialog();
-            dialog.setTitle("Make Directory");
-            dialog.setHeaderText("");
-            dialog.setContentText("New Directory Name");
-
-            Optional<String> result = dialog.showAndWait();
+            Optional<String> result = getUserFeedback("", "Make Directory", "New Directory Name");
             if (result.isPresent()) // if user dismisses the dialog it won't create a directory...
                 commands.mkdir((filesPanesHelper.getFocusedPath()), result.get());
         } catch (Exception e) {
@@ -334,12 +323,8 @@ public class Commander {
     @FXML
     public void search() {
         logger.info("Search Files (F10)");
-        TextInputDialog dialog = new TextInputDialog();
-        dialog.setTitle("Search for File/s");
-        dialog.setHeaderText("");
-        dialog.setContentText("Enter (partial/wildcard) filename");
 
-        Optional<String> result = dialog.showAndWait();
+        Optional<String> result = getUserFeedback("", "Search for File/s", "Enter (partial/wildcard) filename");
         if (result.isPresent()) {
             String searchFromPath = filesPanesHelper.getFocusedPath();
             try {
@@ -372,6 +357,16 @@ public class Commander {
         } catch (Exception e) {
             error("Failed UNPacking file: " + selectedItem.getPresentableFilename(), e);
         }
+    }
+
+    /** Opens a dialog with the title asking the requested question returning the optional user's input */
+    private Optional<String> getUserFeedback(String defaultValue, String title, String question) {
+        TextInputDialog dialog = new TextInputDialog(defaultValue);
+        dialog.setHeaderText("");
+        dialog.setTitle(title);
+        dialog.setContentText(question);
+
+        return dialog.showAndWait();
     }
 
     /** Alerts of an error and logs it */
