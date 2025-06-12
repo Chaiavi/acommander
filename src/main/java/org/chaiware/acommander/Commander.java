@@ -340,8 +340,14 @@ public class Commander {
         logger.info("Pack (F11)");
         FileItem selectedItem = filesPanesHelper.getSelectedItem();
         try {
-            if (selectedItem != null) // TODO fix the zip filename
-                commands.pack(selectedItem, "a.zip", filesPanesHelper.getUnfocusedPath());
+            if (selectedItem != null) {
+                File selectedFile = selectedItem.getFile();
+                Optional<String> result = getUserFeedback(selectedFile.getName().substring(0, selectedFile.getName().lastIndexOf('.')) + ".zip", "Pack to zip", "Zip filename");
+                if (result.isPresent())
+                    commands.pack(selectedItem, result.get(), filesPanesHelper.getUnfocusedPath());
+                else
+                    logger.info("User cancelled the packing");
+            }
         } catch (Exception e) {
             error("Failed Packing file: " + selectedItem.getPresentableFilename(), e);
         }
@@ -365,6 +371,7 @@ public class Commander {
         dialog.setHeaderText("");
         dialog.setTitle(title);
         dialog.setContentText(question);
+        dialog.getEditor().setPrefWidth(300);
 
         return dialog.showAndWait();
     }
