@@ -3,6 +3,7 @@ package org.chaiware.acommander.keybinding;
 import java.util.HashMap;
 import java.util.Map;
 import javafx.scene.input.KeyEvent;
+import lombok.Setter;
 import org.chaiware.acommander.Commander;
 
 import static org.chaiware.acommander.keybinding.KeyBindingManager.KeyContext.*;
@@ -17,7 +18,8 @@ public class KeyBindingManager {
     }
 
     private final Map<KeyContext, IKeyHandler> contextHandlers = new HashMap<>();
-    private KeyContext currentContext = KeyContext.GLOBAL;
+    @Setter
+    private KeyContext currentContext;
 
     public KeyBindingManager(Commander commander) {
         contextHandlers.put(GLOBAL, new GlobalKeyHandlerImpl(commander));
@@ -28,9 +30,5 @@ public class KeyBindingManager {
     public void handleKeyEvent(KeyEvent event) {
         if (!contextHandlers.get(currentContext).handle(event))
             contextHandlers.get(GLOBAL).handle(event);
-    }
-
-    public void setCurrentContext(KeyContext keyContext) {
-        this.currentContext = keyContext;
     }
 }
