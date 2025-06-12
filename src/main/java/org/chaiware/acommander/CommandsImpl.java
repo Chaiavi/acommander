@@ -1,8 +1,5 @@
 package org.chaiware.acommander;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -13,14 +10,11 @@ import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
 
-public class CommandsImpl implements ICommands {
-    private static final Logger log = LoggerFactory.getLogger(CommandsImpl.class);
-    private final String APP_PATH = Paths.get(System.getProperty("user.dir"), "apps") + "\\";
-    private final FilesPanesHelper fileListsLoader;
-    ICommands commandsSimpleImpl;
+public class CommandsImpl extends ACommands {
+    ACommands commandsSimpleImpl;
 
     public CommandsImpl(FilesPanesHelper fileListsLoader) {
-        this.fileListsLoader = fileListsLoader;
+        super(fileListsLoader);
         commandsSimpleImpl = new CommandsSimpleImpl(fileListsLoader);
     }
 
@@ -122,14 +116,15 @@ public class CommandsImpl implements ICommands {
 
     @Override
     public void searchFiles(String sourcePath, String filenameWildcard) throws Exception {
-        List<String> command = new ArrayList<>();
-        command.add(APP_PATH + "SearchMyFiles.exe");
-        command.add("/StartSearch");
-        command.add("/scomma 1.csv");
-        command.add("/BaseFolder \"" + sourcePath + "\"");
-        command.add("/FilesWildcard " + filenameWildcard);
-        runExecutable(command, true);
-        log.debug("Searched for: {} under: {}", filenameWildcard, sourcePath);
+//        List<String> command = new ArrayList<>();
+//        command.add(APP_PATH + "SearchMyFiles.exe");
+//        command.add("/StartSearch");
+//        command.add("/scomma \"%TEMP%\\1.csv\"");
+//        command.add("/BaseFolder \"" + sourcePath + "\"");
+//        command.add("/FilesWildcard " + filenameWildcard);
+//        runExecutable(command, true);
+//        log.debug("Searched for: {} under: {}", filenameWildcard, sourcePath);
+        commandsSimpleImpl.searchFiles(sourcePath, filenameWildcard);
     }
 
     @Override
@@ -152,15 +147,5 @@ public class CommandsImpl implements ICommands {
         command.add(fileItem.getFile().toString());
         runExecutable(command, true);
         log.debug("UnPacked Archive: {} to: {}", fileItem.getName(), destinationPath);
-    }
-
-    private void runExecutable(List<String> params, boolean isWaitFor) throws IOException, InterruptedException {
-        ProcessBuilder pb = new ProcessBuilder(params);
-        log.debug("Running: {}", String.join(" ", pb.command()));
-        Process process = pb.start();
-        if (isWaitFor) {
-            process.waitFor();
-            fileListsLoader.refreshFileListViews();
-        }
     }
 }
