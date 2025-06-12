@@ -17,7 +17,7 @@ public class GlobalKeyHandlerImpl implements IKeyHandler {
         return switch (event.getCode()) {
             case F1 -> { commander.help(); yield true; }
             case F9 -> { commander.terminalHere(); yield true; }
-            case F10 -> { commander.exitApp(); yield true; }
+            case F10 -> { commander.search(); event.consume(); yield true; }
             case TAB -> { clickTab(); event.consume(); yield true; }
             default -> false;
         };
