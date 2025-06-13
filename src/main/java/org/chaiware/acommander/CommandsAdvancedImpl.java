@@ -10,10 +10,10 @@ import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
 
-public class CommandsImpl extends ACommands {
+public class CommandsAdvancedImpl extends ACommands {
     ACommands commandsSimpleImpl;
 
-    public CommandsImpl(FilesPanesHelper fileListsLoader) {
+    public CommandsAdvancedImpl(FilesPanesHelper fileListsLoader) {
         super(fileListsLoader);
         commandsSimpleImpl = new CommandsSimpleImpl(fileListsLoader);
     }

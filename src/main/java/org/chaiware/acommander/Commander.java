@@ -52,7 +52,7 @@ public class Commander {
 
         // Configure left & right defaults
         filesPanesHelper = new FilesPanesHelper(leftFileList, leftPathComboBox, rightFileList, rightPathComboBox);
-        commands = new CommandsImpl(filesPanesHelper);
+        commands = new CommandsAdvancedImpl(filesPanesHelper);
         configMouseDoubleClick();
 
         logger.debug("Loading file lists into the double panes file views");
