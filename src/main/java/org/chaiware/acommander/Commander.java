@@ -9,6 +9,8 @@ import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
+import org.chaiware.acommander.commands.ACommands;
+import org.chaiware.acommander.commands.CommandsAdvancedImpl;
 import org.chaiware.acommander.keybinding.KeyBindingManager;
 import org.chaiware.acommander.keybinding.KeyBindingManager.KeyContext;
 import org.slf4j.Logger;

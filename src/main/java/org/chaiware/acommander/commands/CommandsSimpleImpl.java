@@ -1,6 +1,8 @@
-package org.chaiware.acommander;
+package org.chaiware.acommander.commands;
 
 import javafx.scene.control.Alert;
+import org.chaiware.acommander.FileItem;
+import org.chaiware.acommander.FilesPanesHelper;
 
 import javax.swing.*;
 import java.awt.*;

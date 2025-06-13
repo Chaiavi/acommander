@@ -1,4 +1,7 @@
-package org.chaiware.acommander;
+package org.chaiware.acommander.commands;
+
+import org.chaiware.acommander.FileItem;
+import org.chaiware.acommander.FilesPanesHelper;
 
 import java.io.File;
 import java.io.IOException;

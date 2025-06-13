@@ -1,5 +1,7 @@
-package org.chaiware.acommander;
+package org.chaiware.acommander.commands;
 
+import org.chaiware.acommander.FileItem;
+import org.chaiware.acommander.FilesPanesHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -10,22 +12,22 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 
-abstract class ACommands {
+public abstract class ACommands {
     protected final String APP_PATH = Paths.get(System.getProperty("user.dir"), "apps") + "\\";
     protected FilesPanesHelper fileListsLoader;
     final Logger log = LoggerFactory.getLogger(ACommands.class);
 
-    abstract void rename(FileItem selectedItem, String newFilename) throws Exception;
-    abstract void edit(FileItem fileItem) throws Exception;
-    abstract void view(FileItem fileItem) throws Exception;
-    abstract void copy(FileItem sourceFile, String targetFolder) throws Exception;
-    abstract void move(FileItem sourceFile, String targetFolder) throws Exception;
-    abstract void mkdir(String parentDir, String newDirName) throws IOException;
-    abstract void delete(FileItem selectedItem) throws IOException;
-    abstract void openTerminal(String openHerePath) throws Exception;
-    abstract void searchFiles(String sourcePath, String filenameWildcard) throws Exception;
-    abstract void pack(FileItem selectedItem, String archiveFilename, String destinationPath) throws Exception;
-    abstract void unpack(FileItem selectedItem, String destinationPath) throws Exception;
+    public abstract void rename(FileItem selectedItem, String newFilename) throws Exception;
+    public abstract void edit(FileItem fileItem) throws Exception;
+    public abstract void view(FileItem fileItem) throws Exception;
+    public abstract void copy(FileItem sourceFile, String targetFolder) throws Exception;
+    public abstract void move(FileItem sourceFile, String targetFolder) throws Exception;
+    public abstract void mkdir(String parentDir, String newDirName) throws IOException;
+    public abstract void delete(FileItem selectedItem) throws IOException;
+    public abstract void openTerminal(String openHerePath) throws Exception;
+    public abstract void searchFiles(String sourcePath, String filenameWildcard) throws Exception;
+    public abstract void pack(FileItem selectedItem, String archiveFilename, String destinationPath) throws Exception;
+    public abstract void unpack(FileItem selectedItem, String destinationPath) throws Exception;
 
     public ACommands(FilesPanesHelper filesPanesHelper) {
         this.fileListsLoader = filesPanesHelper;
