@@ -4,7 +4,10 @@ import javafx.application.Application;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Scene;
 import javafx.scene.Parent;
+import javafx.scene.image.Image;
 import javafx.stage.Stage;
+
+import java.util.Objects;
 
 public class Main extends Application {
 
@@ -13,6 +16,8 @@ public class Main extends Application {
         FXMLLoader loader = new FXMLLoader(getClass().getResource("/Commander.fxml"));
         Parent root = loader.load();
         Scene scene = new Scene(root, 800, 600);
+        Image icon = new Image(Objects.requireNonNull(getClass().getResourceAsStream("/icon.png")));
+        stage.getIcons().add(icon);
         stage.setMaximized(true);
         stage.setTitle("A Commander for Java");
         stage.setScene(scene);
