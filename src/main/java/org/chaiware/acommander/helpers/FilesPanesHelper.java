@@ -5,7 +5,6 @@ import javafx.scene.control.ComboBox;
 import javafx.scene.control.ListView;
 import lombok.Data;
 import lombok.Getter;
-import org.chaiware.acommander.model.Drive;
 import org.chaiware.acommander.model.FileItem;
 import org.chaiware.acommander.model.Folder;
 import org.slf4j.Logger;
@@ -74,8 +73,6 @@ public class FilesPanesHelper {
         if (files != null)
             for (File f : files)
                 items.add(new FileItem(f));
-
-//        filePanes.get(focusSide).getPathComboBox().getSelectionModel().selectFirst();
     }
 
     public String getFocusedPath() {
