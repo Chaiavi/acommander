@@ -1,8 +1,5 @@
 package org.chaiware.acommander.keybinding;
 
-import javafx.scene.input.KeyCode;
-import javafx.scene.input.KeyCodeCombination;
-import javafx.scene.input.KeyCombination;
 import javafx.scene.input.KeyEvent;
 import org.chaiware.acommander.Commander;
 
@@ -10,9 +7,6 @@ import static org.chaiware.acommander.helpers.FilesPanesHelper.FocusSide.LEFT;
 
 public class GlobalKeyHandlerImpl implements IKeyHandler {
     private final Commander commander;
-    private static final KeyCombination ALT_F1_COMBO = new KeyCodeCombination(KeyCode.F1, KeyCombination.ALT_DOWN);
-    private static final KeyCombination ALT_F2_COMBO = new KeyCodeCombination(KeyCode.F2, KeyCombination.ALT_DOWN);
-
 
     public GlobalKeyHandlerImpl(Commander commander) {
         this.commander = commander;
