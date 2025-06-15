@@ -39,11 +39,8 @@ public class FilePaneKeyHandlerImpl implements IKeyHandler {
     }
 
     private void goUpOneFolder() {
-        String currentPath = commander.filesPanesHelper.getFocusedPath();
-        File parent = new File(currentPath).getParentFile();
-        if (parent != null) {
-            commander.filesPanesHelper.getFocusedCombox().setValue(parent.getAbsolutePath());
-            commander.filesPanesHelper.refreshFileListViews();
-        }
+        File parent = new File(commander.filesPanesHelper.getFocusedPath()).getParentFile();
+        if (parent != null)
+            commander.filesPanesHelper.setFocusedFileListPath(parent.getAbsolutePath());
     }
 }

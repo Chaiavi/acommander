@@ -2,6 +2,7 @@ package org.chaiware.acommander.keybinding;
 
 import javafx.scene.input.KeyEvent;
 import org.chaiware.acommander.Commander;
+import org.chaiware.acommander.model.Folder;
 
 public class ComboxKeyHandlerImpl implements IKeyHandler {
     private final Commander commander;
@@ -14,8 +15,8 @@ public class ComboxKeyHandlerImpl implements IKeyHandler {
     public boolean handle(KeyEvent event) {
         return switch (event.getCode()) {
             case ENTER -> {
-                commander.leftPathComboBox.setValue(commander.leftPathComboBox.getEditor().getText());
-                commander.rightPathComboBox.setValue(commander.rightPathComboBox.getEditor().getText());
+                commander.leftPathComboBox.setValue(new Folder(commander.leftPathComboBox.getEditor().getText()));
+                commander.rightPathComboBox.setValue(new Folder(commander.rightPathComboBox.getEditor().getText()));
                 commander.filesPanesHelper.refreshFileListViews();
                 yield true;
             }

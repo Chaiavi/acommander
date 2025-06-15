@@ -11,30 +11,33 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import org.chaiware.acommander.commands.ACommands;
 import org.chaiware.acommander.commands.CommandsAdvancedImpl;
+import org.chaiware.acommander.helpers.ComboBoxSetup;
+import org.chaiware.acommander.model.FileItem;
+import org.chaiware.acommander.helpers.FilesPanesHelper;
 import org.chaiware.acommander.keybinding.KeyBindingManager;
 import org.chaiware.acommander.keybinding.KeyBindingManager.KeyContext;
+import org.chaiware.acommander.model.Folder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.FileInputStream;
-import java.nio.file.Path;
-import java.nio.file.Paths;
+import java.nio.file.*;
 import java.util.Optional;
 import java.util.Properties;
 
 import static java.awt.Desktop.getDesktop;
-import static org.chaiware.acommander.FilesPanesHelper.FocusSide.LEFT;
-import static org.chaiware.acommander.FilesPanesHelper.FocusSide.RIGHT;
+import static org.chaiware.acommander.helpers.FilesPanesHelper.FocusSide.LEFT;
+import static org.chaiware.acommander.helpers.FilesPanesHelper.FocusSide.RIGHT;
 
 public class Commander {
 
     @FXML
     public BorderPane rootPane;
     @FXML
-    public ComboBox<String> leftPathComboBox;
+    public ComboBox<Folder> leftPathComboBox;
     @FXML
-    public ComboBox<String> rightPathComboBox;
+    public ComboBox<Folder> rightPathComboBox;
     @FXML
     public ListView<FileItem> leftFileList;
     @FXML
@@ -58,8 +61,22 @@ public class Commander {
         configMouseDoubleClick();
 
         logger.debug("Loading file lists into the double panes file views");
-        leftPathComboBox.setValue(new File(properties.getProperty("left_folder")).getPath());
-        rightPathComboBox.setValue(new File(properties.getProperty("right_folder")).getPath());
+        ComboBoxSetup setup = new ComboBoxSetup();
+        setup.setupComboBox(leftPathComboBox);
+        setup.setupComboBox(rightPathComboBox);
+        filesPanesHelper.setFileListPath(LEFT, new File(properties.getProperty("left_folder")).getPath());
+        filesPanesHelper.setFileListPath(RIGHT, new File(properties.getProperty("right_folder")).getPath());
+
+        leftPathComboBox.getSelectionModel().selectedItemProperty().addListener((observable, oldValue, newValue) -> {
+            if (newValue != null) {
+                filesPanesHelper.refreshFileListView(LEFT);
+            }
+        });
+        rightPathComboBox.getSelectionModel().selectedItemProperty().addListener((observable, oldValue, newValue) -> {
+            if (newValue != null) {
+                filesPanesHelper.refreshFileListView(RIGHT);
+            }
+        });
 
         configPaneLookAndBehavior(leftFileList);
         configPaneLookAndBehavior(rightFileList);
@@ -68,7 +85,7 @@ public class Commander {
         filesPanesHelper.refreshFileListViews();
     }
 
-    /** Setsup all of the keyboard bindings */
+    /** Setup all of the keyboard bindings */
     public void setupBindings() {
         Scene scene = rootPane.getScene();
         KeyBindingManager keyBindingManager = new KeyBindingManager(this);
@@ -181,14 +198,11 @@ public class Commander {
         logger.debug("Running: {}", selectedItem.getName());
         if ("..".equals(selectedItem.getPresentableFilename())) {
             File parent = new File(currentPath).getParentFile();
-            if (parent != null) {
-                filesPanesHelper.getFocusedCombox().setValue(parent.getAbsolutePath());
-                filesPanesHelper.refreshFileListViews();
-            }
-        } else if (selectedItem.isDirectory()) {
-            filesPanesHelper.getFocusedCombox().setValue(selectedItem.getFullPath());
-            filesPanesHelper.refreshFileListViews();
-        } else {
+            if (parent != null)
+                filesPanesHelper.setFocusedFileListPath(parent.getAbsolutePath());
+        } else if (selectedItem.isDirectory())
+            filesPanesHelper.setFocusedFileListPath(selectedItem.getFullPath());
+        else {
             try {
                 getDesktop().open(selectedItem.getFile());
             } catch (Exception ex) {

@@ -1,6 +1,7 @@
 package org.chaiware.acommander.helpers;
 
 import javafx.scene.control.ComboBox;
+import javafx.util.StringConverter;
 import org.chaiware.acommander.model.Drive;
 import org.chaiware.acommander.model.Folder;
 import org.chaiware.acommander.model.WindowsFolder;
@@ -14,7 +15,23 @@ public class ComboBoxSetup {
 
         comboBox.setButtonCell(new FolderComboBoxCell());
         populateComboBox(comboBox);
+        setStringInput(comboBox);
         comboBox.getSelectionModel().selectLast();
+    }
+
+    /** Enables user input into the combox as string (it will convert it to Folder object) */
+    private void setStringInput(ComboBox<Folder> comboBox) {
+        comboBox.setConverter(new StringConverter<>() {
+            @Override
+            public String toString(Folder folder) {
+                return folder != null ? folder.getPath() : "";
+            }
+
+            @Override
+            public Folder fromString(String string) {
+                return new Folder(string); // or null if not valid
+            }
+        });
     }
 
     private void populateComboBox(ComboBox<Folder> comboBox) {
