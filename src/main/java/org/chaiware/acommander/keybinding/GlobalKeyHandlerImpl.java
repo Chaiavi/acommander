@@ -1,12 +1,18 @@
 package org.chaiware.acommander.keybinding;
 
+import javafx.scene.input.KeyCode;
+import javafx.scene.input.KeyCodeCombination;
+import javafx.scene.input.KeyCombination;
 import javafx.scene.input.KeyEvent;
 import org.chaiware.acommander.Commander;
 
-import static org.chaiware.acommander.FilesPanesHelper.FocusSide.LEFT;
+import static org.chaiware.acommander.helpers.FilesPanesHelper.FocusSide.LEFT;
 
 public class GlobalKeyHandlerImpl implements IKeyHandler {
     private final Commander commander;
+    private static final KeyCombination ALT_F1_COMBO = new KeyCodeCombination(KeyCode.F1, KeyCombination.ALT_DOWN);
+    private static final KeyCombination ALT_F2_COMBO = new KeyCodeCombination(KeyCode.F2, KeyCombination.ALT_DOWN);
+
 
     public GlobalKeyHandlerImpl(Commander commander) {
         this.commander = commander;
@@ -14,6 +20,9 @@ public class GlobalKeyHandlerImpl implements IKeyHandler {
 
     @Override
     public boolean handle(KeyEvent event) {
+        if (ALT_F1_COMBO.match(event)) { commander.leftPathComboBox.show(); return true; }
+        if (ALT_F2_COMBO.match(event)) { commander.rightPathComboBox.show(); return true; }
+
         return switch (event.getCode()) {
             case F1 -> { commander.help(); yield true; }
             case F9 -> { commander.terminalHere(); yield true; }
