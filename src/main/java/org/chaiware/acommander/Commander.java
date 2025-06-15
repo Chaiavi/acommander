@@ -12,17 +12,20 @@ import javafx.scene.layout.Priority;
 import org.chaiware.acommander.commands.ACommands;
 import org.chaiware.acommander.commands.CommandsAdvancedImpl;
 import org.chaiware.acommander.helpers.ComboBoxSetup;
-import org.chaiware.acommander.model.FileItem;
 import org.chaiware.acommander.helpers.FilesPanesHelper;
 import org.chaiware.acommander.keybinding.KeyBindingManager;
 import org.chaiware.acommander.keybinding.KeyBindingManager.KeyContext;
+import org.chaiware.acommander.model.FileItem;
 import org.chaiware.acommander.model.Folder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.FileInputStream;
-import java.nio.file.*;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 import java.util.Properties;
 
@@ -78,8 +81,8 @@ public class Commander {
             }
         });
 
-        configPaneLookAndBehavior(leftFileList);
-        configPaneLookAndBehavior(rightFileList);
+        configListViewLookAndBehavior(leftFileList);
+        configListViewLookAndBehavior(rightFileList);
         configFileListsFocus();
 
         filesPanesHelper.refreshFileListViews();
@@ -125,8 +128,9 @@ public class Commander {
         });
     }
 
-    private void configPaneLookAndBehavior(ListView<FileItem> listView) {
-        logger.debug("Configuring the pane look and experience");
+    private void configListViewLookAndBehavior(ListView<FileItem> listView) {
+        logger.debug("Configuring the ListViews look and experience");
+        listView.getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE);
         listView.setCellFactory(lv -> new ListCell<>() {
             final Label nameLabel = new Label();
             final Label sizeLabel = new Label();
@@ -245,8 +249,8 @@ public class Commander {
         logger.info("View (F3)");
 
         try {
-            FileItem selectedItem = filesPanesHelper.getSelectedItem();
-            if (selectedItem != null)
+            List<FileItem> selectedItems = filesPanesHelper.getFocusedFileList().getSelectionModel().getSelectedItems();
+            for (FileItem selectedItem : selectedItems)
                 commands.view(selectedItem);
         } catch (Exception ex) {
             error("Failed Viewing file", ex);
@@ -258,9 +262,9 @@ public class Commander {
         logger.info("Edit (F4)");
 
         try {
-            FileItem selectedItem = filesPanesHelper.getSelectedItem();
-            if (selectedItem != null) // todo what about the ".." fileItem ?
-                commands.edit(selectedItem);
+            List<FileItem> fileItems = filesPanesHelper.getFocusedFileList().getSelectionModel().getSelectedItems();
+            for (FileItem fileItem : fileItems)
+                commands.edit(fileItem);
         } catch (Exception ex) {
             error("Failed Editing file", ex);
         }
@@ -271,8 +275,8 @@ public class Commander {
         logger.info("Copy (F5)");
 
         try {
-            FileItem selectedItem = filesPanesHelper.getSelectedItem();
-            if (selectedItem != null) {
+            List<FileItem> selectedItems = new ArrayList<>(filesPanesHelper.getFocusedFileList().getSelectionModel().getSelectedItems());
+            for (FileItem selectedItem : selectedItems) {
                 String targetFolder = filesPanesHelper.getUnfocusedPath();
                 if (selectedItem.isDirectory())
                     targetFolder += "\\" + selectedItem.getName();
@@ -288,8 +292,8 @@ public class Commander {
         logger.info("Move (F6)");
 
         try {
-            FileItem selectedItem = filesPanesHelper.getSelectedItem();
-            if (selectedItem != null) {
+            List<FileItem> selectedItems = new ArrayList<>(filesPanesHelper.getFocusedFileList().getSelectionModel().getSelectedItems());
+            for (FileItem selectedItem : selectedItems) {
                 String targetFolder = filesPanesHelper.getUnfocusedPath();
                 if (selectedItem.isDirectory())
                     targetFolder += "\\" + selectedItem.getName();
@@ -316,12 +320,12 @@ public class Commander {
     @FXML
     public void deleteFile() {
         logger.info("Delete (F8/DEL)");
-        FileItem selectedItem = filesPanesHelper.getSelectedItem();
         try {
-            if (selectedItem != null)
+            List<FileItem> selectedItems = new ArrayList<>(filesPanesHelper.getFocusedFileList().getSelectionModel().getSelectedItems());
+            for (FileItem selectedItem : selectedItems)
                 commands.delete(selectedItem);
         } catch (Exception ex) {
-            error("Failed to delete: " + selectedItem.getName(), ex);
+            error("Failed to delete", ex);
         }
     }
 
@@ -354,30 +358,31 @@ public class Commander {
     @FXML
     public void pack() {
         logger.info("Pack (F11)");
-        FileItem selectedItem = filesPanesHelper.getSelectedItem();
         try {
-            if (selectedItem != null) {
-                File selectedFile = selectedItem.getFile();
-                Optional<String> result = getUserFeedback(selectedFile.getName().substring(0, selectedFile.getName().lastIndexOf('.')) + ".zip", "Pack to zip", "Zip filename");
-                if (result.isPresent())
-                    commands.pack(selectedItem, result.get(), filesPanesHelper.getUnfocusedPath());
-                else
-                    logger.info("User cancelled the packing");
-            }
+            List<FileItem> selectedItems = filesPanesHelper.getFocusedFileList().getSelectionModel().getSelectedItems();
+            String firstFilename = selectedItems.get(0).getName();
+            String zipFilename = firstFilename.contains(".")
+                    ? firstFilename.substring(0, firstFilename.lastIndexOf('.')) + ".zip"
+                    : firstFilename + ".zip";
+            Optional<String> result = getUserFeedback(zipFilename, "Pack to zip", "Zip filename");
+            if (result.isPresent())
+                commands.pack(selectedItems, result.get(), filesPanesHelper.getUnfocusedPath());
+            else
+                logger.info("User cancelled the packing");
         } catch (Exception e) {
-            error("Failed Packing file: " + selectedItem.getPresentableFilename(), e);
+            error("Failed Packing file", e);
         }
     }
 
     @FXML
     public void unpackFile() {
         logger.info("UnPack (F12)");
-        FileItem selectedItem = filesPanesHelper.getSelectedItem();
         try {
-            if (selectedItem != null)
+            List<FileItem> selectedItems = new ArrayList<>(filesPanesHelper.getFocusedFileList().getSelectionModel().getSelectedItems());
+            for (FileItem selectedItem : selectedItems)
                 commands.unpack(selectedItem, filesPanesHelper.getUnfocusedPath());
         } catch (Exception e) {
-            error("Failed UNPacking file: " + selectedItem.getPresentableFilename(), e);
+            error("Failed UNPacking file", e);
         }
     }
 

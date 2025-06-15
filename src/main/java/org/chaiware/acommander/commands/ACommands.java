@@ -26,7 +26,7 @@ public abstract class ACommands {
     public abstract void delete(FileItem selectedItem) throws IOException;
     public abstract void openTerminal(String openHerePath) throws Exception;
     public abstract void searchFiles(String sourcePath, String filenameWildcard) throws Exception;
-    public abstract void pack(FileItem selectedItem, String archiveFilename, String destinationPath) throws Exception;
+    public abstract void pack(List<FileItem> selectedItem, String archiveFilename, String destinationPath) throws Exception;
     public abstract void unpack(FileItem selectedItem, String destinationPath) throws Exception;
 
     public ACommands(FilesPanesHelper filesPanesHelper) {

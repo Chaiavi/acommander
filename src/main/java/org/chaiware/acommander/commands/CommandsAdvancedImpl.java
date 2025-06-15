@@ -1,7 +1,7 @@
 package org.chaiware.acommander.commands;
 
-import org.chaiware.acommander.model.FileItem;
 import org.chaiware.acommander.helpers.FilesPanesHelper;
+import org.chaiware.acommander.model.FileItem;
 
 import java.io.File;
 import java.io.IOException;
@@ -12,6 +12,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
+import java.util.stream.Collectors;
 
 public class CommandsAdvancedImpl extends ACommands {
     ACommands commandsSimpleImpl;
@@ -47,7 +48,7 @@ public class CommandsAdvancedImpl extends ACommands {
     @Override
     public void edit(FileItem fileItem) throws Exception {
         List<String> command = new ArrayList<>();
-//        command.add(APP_PATH + "TedNPad.exe");
+//          command.add(APP_PATH + "TedNPad.exe");
         command.add(APP_PATH + "Notepad4.exe");
         command.add(fileItem.getFile().toString());
         runExecutable(command, false);
@@ -131,12 +132,14 @@ public class CommandsAdvancedImpl extends ACommands {
     }
 
     @Override
-    public void pack(FileItem source, String archiveFilename, String destinationPath) throws Exception {
+    public void pack(List<FileItem> sources, String archiveFilename, String destinationPath) throws Exception {
         List<String> command = new ArrayList<>();
         command.add(APP_PATH + "7zG.exe");
         command.add("a");
         command.add(destinationPath + "\\" + archiveFilename);
-        command.add(source.getFullPath());
+        command.add(sources.stream()
+                .map(f -> "\"" + f.getFullPath() + "\"")
+                .collect(Collectors.joining(" ")));
         runExecutable(command, true);
         log.debug("Archived (zip): {} to: {}", archiveFilename, destinationPath);
     }

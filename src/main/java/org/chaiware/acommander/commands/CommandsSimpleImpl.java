@@ -14,11 +14,10 @@ import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.List;
 
+/** Not sure if this class will be needed */
 public class CommandsSimpleImpl extends ACommands {
-    FilesPanesHelper filesPanesHelper;
-
-    public CommandsSimpleImpl(FilesPanesHelper filesPanesHelper) {
-        super(filesPanesHelper);
+    public CommandsSimpleImpl(FilesPanesHelper fileListsLoader) {
+        super(fileListsLoader);
     }
 
     @Override
@@ -46,9 +45,11 @@ public class CommandsSimpleImpl extends ACommands {
     public void move(FileItem sourceFile, String targetFolder) throws Exception {
         Path source = Paths.get(sourceFile.getFullPath());
         Path target = Paths.get(targetFolder + "\\" + sourceFile.getName());
+        if (sourceFile.isDirectory())
+            target = Paths.get(targetFolder + "\\");
 
         Files.move(source, target, StandardCopyOption.REPLACE_EXISTING);
-        filesPanesHelper.refreshFileListViews();
+        fileListsLoader.refreshFileListViews();
         log.debug("Moved: {} to {}", sourceFile.getName(), targetFolder);
     }
 
@@ -135,7 +136,7 @@ public class CommandsSimpleImpl extends ACommands {
     }
 
     @Override
-    public void pack(FileItem selectedItem, String archiveFilename, String destinationPath) throws Exception {
+    public void pack(List<FileItem> selectedItem, String archiveFilename, String destinationPath) throws Exception {
 
     }
 
