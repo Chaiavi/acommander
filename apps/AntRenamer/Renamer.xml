@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<AntRenamer Version="2.13.0" Date="6/15/2025">
+ <LastValues>
+  <MultstrRepl LastSet="" IncludeExt="False" CaseSensitive="True">
+   <Sets>
+    <Set Name="Remove west-european accents">
+     <![CDATA[á	a
+à	a
+ä	a
+â	a
+ã	a
+Á	A
+À	A
+Ä	A
+Â	A
+Ã	A
+ç	c
+Ç	C
+é	e
+è	e
+ë	e
+ê	e
+É	E
+È	E
+Ë	E
+Ê	E
+í	i
+ì	i
+ï	i
+î	i
+Í	I
+Ì	I
+Ï	I
+Î	I
+ñ	n
+Ñ	N
+ó	o
+ò	o
+ö	o
+ô	o
+õ	o
+Ó	O
+Ò	O
+Ö	O
+Ô	O
+Õ	O
+ú	u
+ù	u
+ü	u
+û	u
+Ú	U
+Ù	U
+Ü	U
+Û	U
+ý	y
+ÿ	y
+Ý	Y
+]]>
+    </Set>
+   </Sets>
+   <CurrentList>
+    <![CDATA[]]>
+   </CurrentList>
+  </MultstrRepl>
+  <MRU/>
+  <ChangeExt NewExt="ext" NoReplace="False"/>
+  <StrRepl Search="old" Repl="new" AllOccurences="True" CaseSensitive="True" IncludeExt="False" OnlyExt="False"/>
+  <StrIns Str="new" Pos="0" FromBegin="True" Ext="False"/>
+  <MoveStr FromPos="0" FromBegin="True" Count="1" ToPos="0" ToBegin="True"/>
+  <CharDel Nb="1" AfterString="0" Pos="0" FromBegin="True" Str="str" Ext="False"/>
+  <Enum Mask="File %num%%ext%" Start="1" Digits="3" Incr="1" Restart="False"/>
+  <MP3 Mask="%author% - %title%%ext" TwoDigit="False"/>
+  <DateTime Mask="yyyy&#39;-&#39;mm&#39;-&#39;dde" AddSuffix="False" WhichDate="1" Offset="0"/>
+  <Random Mask="%random%%ext%" Method="0"/>
+  <ChangeCase Option="0" AfterChars="- .+(" UseLocale="True" IncludeExt="False" OnlyExt="False"/>
+  <FromList AppendExt="False" OnlyExt="False">
+   <ListContents>
+    <![CDATA[]]>
+   </ListContents>
+  </FromList>
+  <Regexp Expr="" Repl=""/>
+  <Exif Mask="%datetime%%ext%" Offset="0"/>
+ </LastValues>
+ <Forms>
+  <Main State="0" Width="1159" Height="500" Left="1011" Top="326" AlwaysOnTop="False" FilesSortOrder="True" FilesSortColumn="-1" ActionsListWidth="150" EnableBatch="False" EnableSample="True" LogFilterOk="True" LogFilterError="True" LogFilterNot="True">
+   <Toolbars>
+    <tbProgram Rev="2000" Visible="1" DockedTo="tbdMain" LastDock="tbdMain" DockRow="0" DockPos="-2" FloatLeft="0" FloatTop="0" FloatRightX="0" DisplayMode="0"/>
+    <tbTabs Rev="2000" Visible="1" DockedTo="tbdMain" LastDock="tbdMain" DockRow="0" DockPos="-3" FloatLeft="0" FloatTop="0" FloatRightX="0" DisplayMode="0"/>
+    <tbFiles Rev="2000" Visible="1" DockedTo="tbdMain" LastDock="tbdMain" DockRow="1" DockPos="-1" FloatLeft="0" FloatTop="0" FloatRightX="0" DisplayMode="0"/>
+    <tbActions Rev="2000" Visible="1" DockedTo="tbdMain" LastDock="tbdMain" DockRow="1" DockPos="2" FloatLeft="0" FloatTop="0" FloatRightX="0" DisplayMode="0"/>
+    <tbLog Rev="2000" Visible="0" DockedTo="tbdMain" LastDock="tbdMain" DockRow="1" DockPos="3" FloatLeft="0" FloatTop="0" FloatRightX="0" DisplayMode="0"/>
+    <tbMove Rev="2000" Visible="0" DockedTo="tbdMain" LastDock="tbdMain" DockRow="1" DockPos="1" FloatLeft="0" FloatTop="0" FloatRightX="0" DisplayMode="0"/>
+   </Toolbars>
+   <FilesListColumns>
+    <Column Nr="0" Position="0" Width="200" Visible="-1"/>
+    <Column Nr="1" Position="1" Width="400" Visible="-1"/>
+    <Column Nr="2" Position="2" Width="400" Visible="0"/>
+    <Column Nr="3" Position="3" Width="50" Visible="0"/>
+    <Column Nr="4" Position="4" Width="100" Visible="0"/>
+    <Column Nr="5" Position="5" Width="70" Visible="0"/>
+    <Column Nr="6" Position="6" Width="130" Visible="0"/>
+    <Column Nr="7" Position="7" Width="130" Visible="0"/>
+   </FilesListColumns>
+  </Main>
+  <SelectDirectory/>
+ </Forms>
+ <Options Language="">
+  <Display ToolbarIconSet="Windows 10 Large" RealtimeUpdate="True" ResizeColsFiles="False" ShowFilesIcons="True" ForceFont="False" FontName="Default Windows font" FontHeight="0" DropdownMax="20" DropdownComplete="False" DragDropNoAsk="False" LaunchFile="False">
+   <DragDropOptions/>
+  </Display>
+  <Processing ForceDir="True" DetectAbsdir="True" FolderExt="False" Copy="False" GenerLog="True" DSTRelativeToFile="True" StartedSwitch="-1" StartedClearLog="True" FinishedSwitch="-1" FinishedClearFiles="False" FinishedClearBatch="False" SaveLog="False" SaveLogAppend="True" SaveLogFile=""/>
+ </Options>
+ <Folders>
+  <AddFiles/>
+  <AddFolder/>
+  <FromList/>
+  <Batch/>
+ </Folders>
+ <Hints/>
+</AntRenamer>

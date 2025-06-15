@@ -1,0 +1,429 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+Icon=Qk32AAAAAAAAAHYAAAAoAAAAEAAAABAAAAABAAQAAAAAAAAAAADDDgAAww4AAAAAAAAAAAAA////AAAAAAAAZf0AM5j/AAAyzACqqqoAzMzMAFQAAABmAAAA7u7uAMxmZgAAMgAAAEQAAAB2AAAAAAAAAAAAAAAAAAAAAAAAEREREREREREbu7u7u7u7wRvMzMzMzMzRG8zMzMzMzNEbzMzMzMzM0RVmZmd2ZmaRFWZmeqdmZpEVZmZ6qGZmkRVmZmeGZmaRFCIiIiIiIjEUIiIiIiIiMRQiIiIiIiIxEjMzMzMzMzEREREREREREQAAAAAAAAAA
+Name=Tamil
+LocalName=தமிழ்
+Version=2.13
+VersionFormat=2.13
+Comments=பிற மொழிபெயர்ப்புகளுக்கான குறிப்பு / மாதிரி கோப்பு.|நீங்கள் நிரலை ஆங்கிலத்தில் பயன்படுத்த விரும்பினால், அதை மாற்ற விரும்பவில்லை எனில், "ஆங்கிலம் (இயல்புநிலை)" ஐத் தேர்ந்தெடுக்க பரிந்துரைக்கப்படுகிறது.
+Authors=தமிழ்நேர குழு|https://TamilNeram.github.io
+-->
+<Application>
+  <MainForm>
+    <tbTabs Caption="பக்கங்கள்"/>
+    <tbProgram Caption="நிரல்"/>
+    <tbFiles Caption="நிரல்"/>
+    <tbMove Caption="உருப்படிகளை நகர்த்து"/>
+    <tbActions Caption="செயல்கள்"/>
+    <tbLog Caption="பதிவு"/>
+    <ActionBatchAddAction Caption="தொகுதிக்குச் சேர்" Hint="தொகுதிக்குச் சேர்|தேர்ந்தெடுக்கப்பட்ட செயலையும் அதன் அமைப்புகளையும் தொகுப்பில் சேர்க்கவும்"/>
+    <ActionBatchOpen Caption="திற ..." Hint="திற |ஒரு தொகுதி கோப்பைத் திற"/>
+    <ActionBatchSaveAs Caption="சேமி ..." Hint="சேமி | இந்த தொகுப்பை ஒரு கோப்பில் சேமிக்கவும்"/>
+    <ActionBatchRemoveSel Caption="தேர்ந்தெடுக்கப்பட்டவற்றை அகற்று" Hint="தேர்ந்தெடுக்கப்பட்டவற்றை அகற்று|தேர்ந்தெடுக்கப்பட்ட செயல்களை தொகுப்பிலிருந்து அகற்று"/>
+    <ActionBatchClear Caption="அழி" Hint="தொகுதி அழி|தொகுப்பிலிருந்து எல்லா செயல்களையும் அகற்று"/>
+    <ActionBatchNoRecent Caption="(சமீபத்திய கோப்பு இல்லை)"/>
+    <ActionAddFiles Caption="கோப்புகளைச் சேர்..." Hint="கோப்புகளைச் சேர்|பட்டியலில் கோப்புகளைச் சேர்"/>
+    <ActionAddFolders Caption="கோப்புறைகளைச் சேர்..." Hint="கோப்புறைகளைச் சேர்|கோப்புறைகள் அல்லது கோப்புறை உள்ளடக்கங்களை பட்டியலில் சேர்க்கவும்"/>
+    <ActionRemoveSelected Caption="தேர்ந்தெடுக்கப்பட்டவற்றை அகற்று" Hint="தேர்ந்தெடுக்கப்பட்டவற்றை அகற்று|தேர்ந்தெடுக்கப்பட்ட கோப்புகளை பட்டியலிலிருந்து அகற்று"/>
+    <ActionRemoveAll Caption="அனைத்தையும் அகற்று" Hint="அனைத்தையும் அகற்று|பட்டியலிலிருந்து எல்லா கோப்புகளையும் அகற்று"/>
+    <ActionRemoveDead Caption="இறந்ததை அகற்று" Hint="இறந்ததை அகற்று|பட்டியலிலிருந்து இறந்த கோப்புகளை அகற்று"/>
+    <ActionPreview Caption="முன்னோட்டம்" Hint="முன்னோட்டத்தை புதுப்பிக்கவும்|தற்போது திட்டமிடப்பட்ட செயல்களுடன் முன்னோட்ட நெடுவரிசையை புதுப்பிக்கவும்"/>
+    <ActionFromListClear Caption="அழி" Hint="பட்டியலை அழி|பட்டியலை அழி"/>
+    <ActionFromListOpen Caption="திற..." Hint="திற |ஒரு கோப்பிலிருந்து ஒரு பட்டியலை ஏற்றவும்"/>
+    <ActionFromListSave Caption="சேமி..." Hint="சேமி |பட்டியலை ஒரு கோப்பில் சேமிக்கவும்"/>
+    <ActionMultistrReplClear Caption="கட்டத்தை அழி" Hint="சரம் கட்டத்தை அழி"/>
+    <ActionMultistrReplCopy Caption="நகல்/ஏற்று" Hint="|எக்செல் அல்லது உரைதிருத்திகளில் இறக்குமதி செய்ய முழு சரம் அட்டவணையையும் இடைநிலைப் பலகைக்கு தாவல்-பிரிக்கப்பட்ட உரையாக நகலெடு"/>
+    <ActionMultistrReplPaste Caption="ஒட்டு/இறக்கு" Hint="|எக்செல் அல்லது உரைதிருத்திகளில் இருந்து இறக்குமதி செய்ய, இடைநிலைப் பலகையிலிருந்து முழு சரம் அட்டவணையையும் தாவல்-பிரிக்கப்பட்ட உரையாக ஒட்டவும்"/>
+    <ActionMultistrReplSave Caption="சேமி" Hint="|மேலே எழுதப்பட்ட பெயரில் தற்போதைய தொகுப்பை சேமிக்கவும்"/>
+    <ActionMultistrReplDelete Caption="நீக்கு" Hint="|தற்போது தேர்ந்தெடுக்கப்பட்ட தொகுப்பு பெயரை நீக்கு"/>
+    <ActionMoveUp Caption="மேலே" Hint="மேலே நகர்த்தவும் | தேர்ந்தெடுக்கப்பட்ட உருப்படிகளை மேலே நகர்த்தவும்"/>
+    <ActionMoveDown Caption="கீழே" Hint="கீழே நகர்த்தவும் | தேர்ந்தெடுக்கப்பட்ட உருப்படிகளை கீழே நகர்த்தவும்"/>
+    <ActionMoveTop Caption="உச்சி" Hint="உச்சிக்கு நகர்த்தவும்|தேர்ந்தெடுக்கப்பட்ட உருப்படிகளை பட்டியலின் மேலே நகர்த்தவும்"/>
+    <ActionMoveBottom Caption="கீழ்ப்பாகம்" Hint="கீழ்ப்பாகதிறக்கு நகர்த்தவும்|தேர்ந்தெடுக்கப்பட்ட உருப்படிகளை பட்டியலின் கீழே நகர்த்தவும்"/>
+    <ActionItemsUnsort Caption="வரிசைப்படுத்தப்படாத உருப்படிகள்" Hint="|தற்போதைய வரிசை வரிசையை நீக்குகிறது"/>
+    <ActionItemsSelectAll Caption="அனைத்தையும் தேர்ந்தெடுக்கவும்" Hint="அனைத்தையும் தேர்ந்தெடுக்கவும்|எல்லா பொருட்களையும் தேர்ந்தெடுக்கவும்"/>
+    <ActionItemsSelectNone Caption="எதையும் தேர்ந்தெடுக்காதீர்கள்" Hint="எதையும் தேர்ந்தெடுக்காதீர்கள்|எல்லா உருப்படிகளையும் தேர்வுநீக்கு"/>
+    <ActionItemsSelectInvert Caption="தேர்வைத் திருப்பு" Hint="தேர்வைத் திருப்பு|உருப்படிகளைத் தலைகீழ் தேர்வு"/>
+    <ActionLogClear Caption="அழி" Hint="அழி|பதிவை அழி"/>
+    <ActionLogSave Caption="சேமி..." Hint="சேமி|ஒரு கோப்பில் பதிவைச் சேமி"/>
+    <ActionLogCopy Caption="நகலெடு" Hint="நகலெடு|இடைநிலைப் பலகைக்கு பதிவை நகலெடு"/>
+    <ActionLogFilter Caption="வடிகட்டி" Hint="வடிகட்டி|பதிவு உள்ளீடுகளை வடிகட்டவும்"/>
+    <ActionLogFilterOk Caption="வெற்றிகள்" Hint="மறுபெயரிடப்பட்ட கோப்புகளைக் காட்டு|வெற்றிகரமாக மறுபெயரிடப்பட்ட கோப்புகளுடன் தொடர்புடைய உள்ளீடுகளைக் காட்டு"/>
+    <ActionLogFilterError Caption="பிழைகள்" Hint="பிழைகளைக் காட்டு|பிழைகள் தொடர்பான உள்ளீடுகளைக் காட்டு"/>
+    <ActionLogFilterNot Caption="மறுபெயரிடப்படவில்லை" Hint="தவிர்க்கப்பட்ட கோப்புகளைக் காட்டு|மறுபெயரிடப்படாத கோப்புகளுடன் தொடர்புடைய உள்ளீடுகளைக் காட்டு"/>
+    <ActionActionGo Caption="செல்" Hint="செல்|மறுபெயரிடும் செயல்முறையைத் தொடங்கவும்"/>
+    <ActionActionStop Caption="நிறுத்து" Hint="நிறுத்து|மறுபெயரிடும் செயல்முறையை நிறுத்து"/>
+    <ActionOptions Caption="விருப்பங்கள்..." Hint="விருப்பங்கள்|நிரல் விருப்பங்களை மாற்று"/>
+    <ActionActionUndo Caption="செயல்தவிர்" Hint="செயல்தவிர்|கடைசி மறுபெயரிடுதலை செயல்தவிர்"/>
+    <ActionHelpContents Caption="உதவி" Hint="உதவி உள்ளடக்கங்கள்|உதவி உள்ளடக்கங்களைத் திறக்கவும்"/>
+    <ActionHelpAbout Caption="பற்றி..." Hint="பற்றி|இந்த திட்டத்தைப் பற்றி"/>
+    <ActionExit Caption="வெளியேறு" Hint="வெளியேறு|நிரலிலிருந்து வெளியேறு"/>
+    <ActionAlwaysOnTop Caption="மேலே" Hint="எப்போதும் மேலே|சாளரத்தை எப்போதும் மேலே வைத்திருங்கள்"/>
+    <ActionTabFiles Caption="கோப்புகள்" Hint="கோப்புகள்|கோப்புகளைக் காண்பி"/>
+    <ActionTabActions Caption="செயல்கள்" Hint="செயல்கள்|செயல்களைக் காண்பி"/>
+    <ActionTabLog Caption="பதிவு" Hint="பதிவு|காட்சி பதிவு"/>
+    <lstFiles Hint="|கோப்புகள் பட்டியல் - நெடுவரிசைகளைத் தனிப்பயனாக்க தலைப்புகளில் வலது சுட்டி பொத்தானைக் சொடுக்குக">
+      <Header>
+        <Columns>
+          <Item Index="0" Text="கோப்புறை"/>
+          <Item Index="1" Text="கோப்பு பெயர்"/>
+          <Item Index="2" Text="முழு பாதை"/>
+          <Item Index="3" Text="நீட்டிப்பு."/>
+          <Item Index="4" Text="முன்னோட்டம்"/>
+          <Item Index="5" Text="அளவு"/>
+          <Item Index="6" Text="உருவாக்கப்பட்ட தேதி"/>
+          <Item Index="7" Text="மாற்றியமைக்கப்பட்ட தேதி"/>
+        </Columns>
+      </Header>
+    </lstFiles>
+    <grpPreview Caption="       தேர்ந்தெடுக்கப்பட்ட கோப்பின் முன்னோட்டம் "/>
+    <grpBatch Caption="       தொகுதி உள்ளடக்கங்கள் (திட்டமிட்ட செயல்கள்) "/>
+    <lstBatch Hint="|தொகுதி உள்ளடக்கங்கள் (திட்டமிட்ட செயல்கள்)"/>
+    <lblPreviewOld Caption="தற்போதைய பெயர்:"/>
+    <lblPreviewNew Caption="மாதிரி புதிய பெயர்:"/>
+    <lstActions Hint="|செயல்களின் பட்டியல்">
+      <Items>
+        <Item Index="0" Value="நீட்டிப்பை மாற்று"/>
+        <Item Index="1" Value="சரம் மாற்றுதல்"/>
+        <Item Index="2" Value="பல சரம் மாற்றீடு"/>
+        <Item Index="3" Value="சரம் செருகல்"/>
+        <Item Index="4" Value="சரம் நகர்த்து"/>
+        <Item Index="5" Value="எழுத்துக்கள் நீக்குதல்"/>
+        <Item Index="6" Value="எண்ணிக்கையீடு"/>
+        <Item Index="7" Value="எம்பி3 குறிச்சொல் தகவலைப் பயன்படுத்தவும்"/>
+        <Item Index="8" Value="தேதி &#38; நேரத்தைப் பயன்படுத்து"/>
+        <Item Index="9" Value="சீரற்ற பெயர்கள்"/>
+        <Item Index="10" Value="வழக்கை மாற்று"/>
+        <Item Index="11" Value="பட்டியலிலிருந்து பெயர்களை எடுத்துக் கொள்ளுங்கள்"/>
+        <Item Index="12" Value="வழக்கமான வெளிப்பாடு"/>
+        <Item Index="13" Value="கோப்பக தகவலைப் பயன்படுத்து"/>
+      </Items>
+    </lstActions>
+    <lblChangeExt Caption="நீட்டிப்பை மாற்று:"/>
+    <cbxChangeExtNoRepl Caption="நீட்டிப்பை மாற்ற வேண்டாம், தற்போதைய முழு பெயருடன் சேர்"/>
+    <lblChangeExtNotes Caption="குறிப்புகள்:&lt;br&gt;- புள்ளியைச் சேர்க்க வேண்டாம், புதிய நீட்டிப்பை உள்ளிடவும்&lt;br&gt;- நீங்கள் அதிகரித்த நீட்டிப்பை உருவாக்க விரும்பினால்&lt;LINK&gt;எண்ணிக்கையீடு&lt;/LINK&gt; செயல் பயன்படுத்து"/>
+    <lblStrReplSearch Caption="தேடு:"/>
+    <lblStrReplBy Caption="இதால் மாற்றவும்:"/>
+    <cbxStrReplAll Caption="எல்லாஇடம்    "/>
+    <cbxStrReplCase Caption="வழக்குணர்    "/>
+    <cbxStrReplExt Caption="தேடலில் நீட்டிப்பைச் சேர்க்கவும்"/>
+    <cbxStrReplOnlyExt Caption="பெயருக்கு பதிலாக நீட்டிப்புக்கு இடு"/>
+    <lblMultstrSearch Caption="தேடு:"/>
+    <lblMultstrReplBy Caption="இதை மாற்றவும்:"/>
+    <lblMultstrReplSet Caption="முன் வரையறுக்கப்பட்ட தொகுப்புகள்:"/>
+    <cbxMultstrReplExt Caption="தேடலில் நீட்டிப்பைச் சேர்க்கவும்"/>
+    <cbxMultstrCase Caption="வழக்கு உணர்திறன்"/>
+    <lblMultstrReplNotes Caption="குறிப்புகள்:&lt;BR&gt;- தற்போதைய நிலையில் ஒரு வரியைச் செருக அல்லது நீக்க Ctrl+Plus (+) and Ctrl+கழித்தல்(-) ஐப் பயன்படுத்தவும்"/>
+    <lblStrInsStr Caption="செருகுவதற்கான சரம்:"/>
+    <lblStrInsPos Caption="நிலையில்:"/>
+    <rbtStrInsBegin Caption="தொடக்கத்திலிருந்து"/>
+    <rbtStrInsEnd Caption="முடிவில் இருந்து"/>
+    <cbxStrInsExt Caption="பெயருக்கு பதிலாக நீட்டிப்புக்கு இடு"/>
+    <lblStrInsNotes Caption="குறிப்புகள்:&lt;br&gt;- நீங்கள் ஒரு சரத்தை இன்னொருவருக்குப் பின் அல்லது அதற்கு முன் செருக விரும்பினால், use the &lt;LINK&gt;சரம் மாற்றுதல்&lt;/LINK&gt; செயல்&lt;br&gt;- %name% = அசல் கோப்பு பெயர் ( நீட்டிப்பு இல்லாமல்) &lt;BR&gt;- %ext% = அசல் நீட்டிப்பு (புள்ளி உட்பட) &lt;BR&gt;- %folderN% = கோப்புறையின் பெயர்&lt;BR&gt;- %% = % எழுத்து&lt;BR&gt;மேலும் தகவலுக்கு &lt;LINK&gt; உதவியை &lt;/LINK&gt; காண்க"/>
+    <lblMoveStrFrom Caption="நிலையில் இருந்து:"/>
+    <rbtMoveStrFromBegin Caption="தொடக்கத்திலிருந்து"/>
+    <rbtMoveStrFromEnd Caption="முடிவில் இருந்து"/>
+    <lblMoveStrCount Caption="நகர்த்த வேண்டிய எழுத்துகள்:"/>
+    <lblMoveStrTo Caption="நிலைக்கு:"/>
+    <rbtMoveStrToBegin Caption="தொடக்கத்திலிருந்து"/>
+    <rbtMoveStrToEnd Caption="முடிவில் இருந்து"/>
+    <lblMoveStrNotes Caption="குறிப்புகள்:&lt;br&gt;-  நீங்கள் ஒரு குறிப்பிட்ட சரத்தை நகர்த்த விரும்பினால், ஆனால் அது எப்போதும் ஒரே நிலையில் இல்லை என்றால்,  &lt;link&gt;சரம் மாற்று&lt;/link&gt;செயலைப் பயன்படுத்தி நீக்கு, பின்னர் &lt;link&gt;சரம் செருகல்&lt;/link&gt; இதை புதிய இடத்தில் செருக &lt;BR&gt;- The &#34;நிலைநிறுத்த&#34; மதிப்பில் நகர்த்தப்பட்ட எழுத்துக்கள் இல்லை (அதாவது அவை ஏற்கனவே நீக்கப்பட்டதைப் போன்றது) "/>
+    <lblCharDel Caption="நீக்க வேண்டிய எழுத்துகள்:"/>
+    <rbtCharDelPos Caption="நிலை:"/>
+    <rbtCharDelBegin Caption="தொடக்கத்தில்"/>
+    <rbtCharDelEnd Caption="முடிவில்"/>
+    <rbtCharDelStr Caption="சரத்திற்குப் பிறகு:"/>
+    <rbtCharDelStr2 Caption="சரத்திற்கு முன்:"/>
+    <cbxCharDelExt Caption="பெயருக்கு பதிலாக நீட்டிப்புக்கு இடு"/>
+    <lblCharDelNotes Caption="குறிப்புகள்:&lt;BR&gt;- ஒரு குறிப்பிட்ட சரத்தை நீக்க, &lt;LINK&gt;சரம் மாற்றுதல்&lt;/LINK&gt; செயலைப் பயன்படுத்தி , சரத்தை காலியாக மாற்றவும்"/>
+    <lblEnumMask Caption="முகமூடி:"/>
+    <lblEnumStart Caption="தொடங்கு:"/>
+    <lblEnumDigits Caption="இலக்கங்கள் :"/>
+    <lblEnumIncr Caption="அதிகரிப்பு:"/>
+    <cbxEnumRestart Caption="கோப்புறையை மாற்றும்போது தொடக்க மதிப்புக்குச் செல்லவும்"/>
+    <lblEnumNotes Caption="குறிப்புகள்:&lt;BR&gt;- %name% = அசல் கோப்பு பெயர் (நீட்டிப்பு இல்லாமல்)&lt;BR&gt;- %ext% = அசல் நீட்டிப்பு (புள்ளி உட்பட) &lt;BR&gt;- %num% = எண்&lt;BR&gt;- %folderN% = கோப்புறை பெயர்&lt;BR&gt;- %% = % எழுத்து&lt;BR&gt; மேலும் தகவலுக்கு &lt;LINK&gt;உதவியை&lt;/LINK&gt; காண்க"/>
+    <lblMP3Mask Caption="முகமூடி:"/>
+    <cbxMP3TwoDigit Caption="இரண்டு இலக்க தட எண் (தேவைப்பட்டால் எண்ணின் முன் '0' ஐ செருகவும்)"/>
+    <cbxMP3Convert Caption="இது போன்ற அங்கீகரிக்கப்படாத எழுத்துக்களை மாற்றவா ? / \ : &lt; &gt; | � *"/>
+    <lblMP3Notes Caption="குறிப்புகள்:&lt;BR&gt;- %author% = ஆசிரியர்&lt;BR&gt;- %title% = தலைப்பு&lt;BR&gt;- %album% = ஆல்பம்&lt;BR&gt;- %year% = ஆண்டு&lt;BR&gt;- %genre% = வகை&lt;BR&gt;- %comm% = கருத்து&lt;BR&gt;- %track% = தட எண் (ID3V1.1)&lt;BR&gt;- %name% = அசல் கோப்பு பெயர் (நீட்டிப்பு இல்லாமல்) &lt;BR&gt;- %ext% =  அசல் நீட்டிப்பு (புள்ளி உட்பட)&lt;BR&gt;- %folderN% = கோப்புறை பெயர் &lt;BR&gt;- %% = % எழுத்து&lt;BR&gt;- $if(நிபந்தனை, உண்மை-மதிப்பு, தவறான மதிப்பு) &lt;BR&gt; மேலும் தகவலுக்கு &lt;LINK&gt;உதவியை &lt;/LINK&gt; காண்க"/>
+    <lblDTMask Caption="முகமூடி:"/>
+    <cbxDTSuffix Caption="ஒரே தேதி / நேரத்துடன் ஒன்றுக்கு மேற்பட்ட கோப்புகள் இருந்தால் பின்னொட்டைச் சேர்க்கவும்"/>
+    <lblDTWhich Caption="பயன்படுத்த வேண்டிய தேதி:"/>
+    <rbtDTWhichCreation Caption="உருவாக்கம்"/>
+    <rbtDTWhichModif Caption="கடைசி மாற்றம்"/>
+    <lblDTOffset Caption="ஈடுசெய்:"/>
+    <lblDTOffsetSec Caption="விநாடிகள்"/>
+    <lblDTNotes Caption="குறிப்புகள்:"/>
+    <lblDTNotes2>
+      <Lines>
+        <![CDATA[f	அசல் கோப்பு பெயர் (நீட்டிப்பு இல்லாமல்)
+e	அசல் நீட்டிப்பு (புள்ளி உட்பட)
+c	சாளரத்தின் நிலையான வடிவமைப்பைப் பயன்படுத்தும் தேதி மற்றும் நேரம்
+d	ஒரு முன்னணி சுழியம் இல்லாத நாள் (1-31)
+dd	முன்னணி சுழியத்துடன் நாள் (01-31)
+ddd	நாள், குறுகிய பெயர்  (ஞா.-ச.)
+dddd	நாள், முழு பெயர் (ஞாயிறு-சனி)
+ddddd	சாளரத்தின் குறுகிய தேதி வடிவமைப்பைப் பயன்படுத்தி தேதி
+dddddd	சாளரத்தின் நீண்ட தேதி வடிவமைப்பைப் பயன்படுத்தி தேதி
+m	திங்கள் முன்னணி சுழியம் இல்லாமல் (1-12)
+mm	திங்கள் ஒரு முன்னணி சுழியத்துடன் (01-12)
+mmm	திங்கள், குறுகிய பெயர் (தை-மா)
+mmmm	திங்கள், முழு பெயர் (தை-மார்கழி)
+yy	ஆண்டு, 2-இலக்க எண் (00-99)
+yyyy	ஆண்டு, 4-இலக்க எண் (0000-9999)
+h	முன்னணி சுழியம் இல்லாத மணிநேரம் (0-23)
+hh	முன்னணி சுழியத்துடன் மணிநேரம் (00-23)
+n	நிமையம் ஒரு முன்னணி சுழியம் இல்லாமல்  (0-59)
+nn	நிமையம் ஒரு முன்னணி சுழியத்துடன்  (00-59)
+s	முன்னணி சுழியம் இல்லாத விநாடி (0-59)
+ss	விநாடி ஒரு முன்னணி சுழியத்துடன்  (00-59)
+z	மில்லிவிநாடி முன்னணி சுழியம் இல்லாமல் (0-999)
+zzz	மில்லிவிநாடி முன்னணி சுழியத்துடன் (000-999)
+am/pm	முந்தைய h அல்லது hhக்கு 12-மணி நேர கடிகாரத்தைப் பயன்படுத்துகிறது
+a/p	முந்தைய h அல்லது hhக்கு 12 மணிநேர கடிகாரத்தைப் பயன்படுத்துகிறது
+'xx'/"xx"	ஒற்றை அல்லது இரட்டை மேற்கோள்களில் இணைக்கப்பட்ட எழுத்துகள் மாறாமல் இருக்கும்
+
+m அல்லது mm உடனடியாக h அல்லது hh ஐப் பின்தொடர்ந்தால், திங்களை விட நிமையம் பயன்படுத்தப்படுகிறது ]]>
+      </Lines>
+    </lblDTNotes2>
+    <lblRandomMask Caption="முகமூடி:"/>
+    <lblRandomMethod Caption="முறை:"/>
+    <rbtRandomNumber Caption="சீரற்ற எண் (8 இலக்கங்கள்)"/>
+    <rbtRandomTick Caption="சாளரத்தின் டிக் கவுண்டர்"/>
+    <rbtRandomGUID Caption="இமுஅ"/>
+    <lblRandomNotes Caption="குறிப்புகள்:&lt;BR&gt;- %name% = அசல் கோப்பு பெயர் (நீட்டிப்பு இல்லாமல்)&lt;BR&gt;- %ext% = அசல் நீட்டிப்பு (புள்ளி உட்பட)&lt;BR&gt;- %random% = சீரற்ற உருவாக்கப்படும் சரம்&lt;BR&gt;- %% = % எழுத்து&lt;BR&gt; கூடுதல் தகவலுக்கு &lt;LINK&gt;உதவியை&lt;/LINK&gt; காண்க"/>
+    <rbtCaseWords Caption="முதல் எழுத்து பெரிய எழுத்தில் பின்பு இதில் எதேனும் எழுத்துகள்:"/>
+    <rbtCaseFirst Caption="கோப்புபெயர் முதல் எழுத்து பெரிய எழுத்தில்"/>
+    <rbtCaseUpper Caption="பெரிய எழுத்தில்"/>
+    <rbtCaseLower Caption="சிறிய எழுத்தில்"/>
+    <cbxCaseLocale Caption="உச்சரிக்கப்பட்ட எழுத்துக்களை மாற்ற, சாளரத்தின் வட்டார அமைப்புகளைப் பயன்படுத்தவும்"/>
+    <cbxCaseIncludeExt Caption="நீட்டிப்புக்கும் இடு"/>
+    <cbxCaseOnlyExt Caption="பெயருக்கு பதிலாக நீட்டிப்புக்கு இடு"/>
+    <cbxFromListExt Caption="கோப்பின் அசல் நீட்டிப்பைச் சேர்க்கவும்"/>
+    <cbxFromListOnlyExt Caption="பெயர்களுக்குப் பதிலாக உருப்படிகளை நீட்டிப்புகளாகப் பயன்படுத்தவும்"/>
+    <lblFromListNotes Caption="குறிப்புகள்:&lt;BR&gt;- இந்தப் பட்டியலில் உள்ள ஒவ்வொரு வரியும் ஒரு கோப்பின் பெயராகப் பயன்படுத்தப்படும். பொருட்கள் வரிசையாகப் பயன்படுத்தப்படுகின்றன&lt;BR&gt;- கோடுகள் காலியாக இருந்தால் அல்லது போதுமான வரிகள் இல்லை என்றால், தொடர்புடைய கோப்புகள் மறுபெயரிடப்படாது"/>
+    <lblRegexp Caption="வெளிப்பாடு:"/>
+    <lblRegexpRepl Caption="புதிய பெயர்:"/>
+    <lblRegexpNotes Caption="குறிப்புகள்:&lt;BR&gt;- சிறப்பு எழுத்துக்களில் இருந்து தப்பிக்க \ எழுத்து பயன்படுத்தப்படலாம் ($ மற்றும் மற்றவை போன்றவை), புதிய பெயரில் எளிய \க்கு \\ ஐப் பயன்படுத்தவும் (புதிய பெயரை மற்றொரு கோப்புறையில் குறிவைக்க விரும்பினால்)&lt;BR&gt;- பெயரின் தொடக்கத்தைக் குறிக்க ^ மற்றும் பெயரின் முடிவைக் குறிக்க $ ஐப் பயன்படுத்தவும்&lt;BR&gt;- காணப்படும் எழுத்துக்கள் எங்கே வரும் என்பதைக் குறிப்பிட புதிய பெயரில் $1, $2 போன்றவை இருக்க வேண்டும்&lt;BR&gt;வழக்கமான வெளிப்பாடுகள் பற்றிய கூடுதல் தகவலுக்கு &lt;LINK&gt;உதவியை&lt;/LINK&gt; காண்க"/>
+    <lblExifMask Caption="முகமூடி:"/>
+    <lblExifOffset Caption="ஈடுசெய்:"/>
+    <lblExifOffsetSec Caption="விநாடிகள்"/>
+    <lblExifNotes Caption="குறிப்புகள்:&lt;BR&gt;- %name% = அசல் கோப்பின் பெயர் (நீட்டிப்பு இல்லாமல்)&lt;BR&gt;- %ext% = அசல் நீட்டிப்பு (புள்ளி உட்பட)&lt;BR&gt;- %datetimeoriginal% அல்லது %datetime% = படத்தின் அசல் தேதி மற்றும் நேரம்&lt;BR&gt;- %orientation% = பட நோக்குநிலை&lt;BR&gt;- %flash% = மின்னொளி  இயக்கப்பட்டு  அல்லது அணைகப்பட்டு இருந்தது&lt;BR&gt;- %% = % எழுத்து&lt;BR&gt;மேலும் தகவலுக்கு மற்றும் கோபக குறிச்சொற்களின் முழுமையான பட்டியலுக்கு &lt;LINK&gt;உதவியை&lt;/LINK&gt; காண்க"/>
+    <lstLog Hint="|Log"/>
+    <VarMessages>
+      <Item Name="strfltAllFiles" Value="எல்லா கோப்புகளும்"/>
+      <Item Name="strfltTextFiles" Value="உரை கோப்புகள்"/>
+      <Item Name="strfltBatchFiles" Value="எறும்பு மறுபெயர் தொகுதி கோப்புகள்"/>
+      <Item Name="strmsgSelectFiles" Value="கோப்புகளைத் தேர்ந்தெடு"/>
+      <Item Name="strmsgSelectFolder" Value="கோப்புறையைத் தேர்ந்தெடுக்கவும்"/>
+      <Item Name="strmsgStatusAddingFiles" Value="கோப்புகளைச் சேர்த்தல்"/>
+      <Item Name="strmsgStatusRenaming" Value="கோப்புகளை மறுபெயரிடுதல்"/>
+      <Item Name="strmsgFilesCount" Value="%d கோப்புகள்"/>
+      <Item Name="strmsgBusy" Value="பயன்பாடு பிஸியாக உள்ளது: செயல்பாட்டை மறுபெயரிடுவது செயலில் உள்ளது."/>
+      <Item Name="strmsgNothingToDo" Value="செய்ய ஒன்றுமில்லை: தயவுசெய்து குறைந்தது ஒரு கோப்பையும் செய்ய ஒரு செயலையும் தேர்ந்தெடுக்கவும்."/>
+      <Item Name="strlogStartRename" Value="மறுபெயரிடும் செயல்முறை தொடங்கியது"/>
+      <Item Name="strlogStartPreview" Value="முன்னோட்டத்தை புதுப்பித்தல்"/>
+      <Item Name="strlogStartRevert" Value="முந்தைய பெயர்களுக்குத் திரும்பு"/>
+      <Item Name="strlogEndRename" Value="மறுபெயரிடுதல் செயல்முறை முடிந்தது"/>
+      <Item Name="strlogEndPreview" Value="முன்னோட்ட செயல்முறை முடிந்தது"/>
+      <Item Name="strlogEndRevert" Value="மாற்ற செயல்முறை முடிந்தது"/>
+      <Item Name="strlogStoppedByUser" Value="பயனரால் செயல்பாடு நிறுத்தப்பட்டது"/>
+      <Item Name="stradUnknown" Value="ஒன்றும் செய்யாதீர்கள்"/>
+      <Item Name="stradInclExt" Value=", நீட்டிப்புக்கும் பொருந்தும்"/>
+      <Item Name="stradOnlyExt" Value=", பெயருக்கு பதிலாக நீட்டிப்புக்கு பொருந்தும்"/>
+      <Item Name="stradChangeExt" Value="நீட்டிப்பை &#34;%s&#34;ஆக மாற்றவும்"/>
+      <Item Name="stradChangeExtRmv" Value="நீட்டிப்பை அகற்று"/>
+      <Item Name="stradChangeExtNoRepl" Value="நீட்டிப்பைச் சேர்க்கவும் &#34;%s&#34;"/>
+      <Item Name="stradStringRepl" Value="&#34;%s&#34; ஐ &#34;%s&#34;ஆல் மாற்றவும்"/>
+      <Item Name="stradStringReplAll" Value=", எல்லாஇடம்"/>
+      <Item Name="stradStringReplCase" Value=", வழக்குணர்"/>
+      <Item Name="stradMultstrRepl" Value="&#34;%s&#34;தொகுப்பைப் பயன்படுத்தி பல சரங்களை மாற்றவும்"/>
+      <Item Name="stradStringIns" Value="&#34;%s&#34;ஐ செருகவும் %d நிலையில் "/>
+      <Item Name="stradMoveStr" Value="%d எழுத்துக்களை %d%s நிலையில் இருந்து, %d%s நிலைக்கு நகர்த்தவும்"/>
+      <Item Name="stradCharDel" Value="%d எழுத்துக்களை நீக்கு"/>
+      <Item Name="stradCharDelPos" Value=" நிலையில் %d"/>
+      <Item Name="stradCharDelStr" Value="&#34;%s&#34;சரத்தின் பிறகு"/>
+      <Item Name="stradCharDelStr2" Value=" &#34;%s&#34; சரத்தின் முன்"/>
+      <Item Name="stradEnum" Value="&#34;%s&#34; வரை %d இலிருந்து %d முதல் %dஉடன் ஒரு கணக்கீட்டை உருவாக்கவும்"/>
+      <Item Name="stradMP3" Value="முகமூடியின் அடிப்படையில் எம்பி3 குறிச்சொற்களைக் கொண்டு பெயர்களை உருவாக்கவும் &#34;%s&#34;"/>
+      <Item Name="stradMP3TwoDigit" Value=", தேவைப்பட்டால் தட எண்ணில் '0' ஐ செருகவும்"/>
+      <Item Name="stradMP3Convert" Value=", அங்கீகரிக்கப்படாத எழுத்துக்களை மாற்றவும்"/>
+      <Item Name="stradFromBegin" Value=", தொடக்கத்திலிருந்து"/>
+      <Item Name="stradFromEnd" Value=", முடிவில் இருந்து"/>
+      <Item Name="stradDateTime" Value="முகமூடியின் அடிப்படையில் கோப்புகளின் தேதி மற்றும் நேரத்திலிருந்து பெயர்களை உருவாக்கவும் &#34;%s&#34;"/>
+      <Item Name="stradDateTimeCreat" Value=" உருவாக்கும் தேதியைப் பயன்படுத்தி"/>
+      <Item Name="stradDateTimeModif" Value=" கடைசி மாற்ற தேதியைப் பயன்படுத்தி"/>
+      <Item Name="stradDateTimeSuffix" Value=", தேவைப்பட்டால் பின்னொட்டைச் சேர்க்கவும்"/>
+      <Item Name="stradDateTimeOffset" Value=" %d வி உடன் ஈடுசெய்"/>
+      <Item Name="stradRandom" Value="முகமூடியைப் பயன்படுத்தி சீரற்ற பெயர்களை உருவாக்கவும் &#34;%s&#34;"/>
+      <Item Name="stradRandomNumbers" Value=", எண்களுடன்"/>
+      <Item Name="stradRandomTick" Value=", சாளரத்தின் டிக் கணக்கிடைப் பயன்படுத்தி"/>
+      <Item Name="stradRandomGUID" Value=", இமுஅ களைப் பயன்படுத்தி"/>
+      <Item Name="stradCase" Value="வழக்கை மாற்று:"/>
+      <Item Name="stradCaseWords" Value=" எந்த எழுத்துக்களையும் தொடர்ந்து முதல் எழுத்து &#34;%s&#34;"/>
+      <Item Name="stradCaseFirst" Value=" பெயரின் மேல் முதல் எழுத்து"/>
+      <Item Name="stradCaseUpper" Value=" அனைத்தும் பெரிய எழுத்தில்"/>
+      <Item Name="stradCaseLower" Value=" அனைத்தும் சிறிய எழுத்துக்களில்"/>
+      <Item Name="stradCaseLocale" Value=", சாளரத்தின் இருப்பிட அமைப்புகளைப் பயன்படுத்தி"/>
+      <Item Name="stradFromList" Value="குறிப்பிட்ட பட்டியலைப் பயன்படுத்தி கோப்புகளை மறுபெயரிடு"/>
+      <Item Name="stradFromListExt" Value=", அசல் நீட்டிப்பைச் சேர்க்கவும்"/>
+      <Item Name="stradFromListOnlyExt" Value=", பெயர்களுக்கு பதிலாக உருப்படிகளை நீட்டிப்புகளாகப் பயன்படுத்தவும்"/>
+      <Item Name="stradRegexp" Value="வழக்கமான வெளிப்பாட்டைப் பயன்படுத்தி கோப்புகளை மறுபெயரிடு"/>
+      <Item Name="stradExif" Value="முகமூடியின் அடிப்படையில் கோப்பக ​​தகவலுடன் பெயர்களை உருவாக்கவும் &#34;%s&#34;"/>
+      <Item Name="straeFromListEmpty" Value="வெற்று வரி"/>
+      <Item Name="straeFromListEnd" Value="பட்டியலின் முடிவு"/>
+      <Item Name="straeExifNoInfo" Value="கோப்பக தகவல் இல்லை"/>
+      <Item Name="strfsNotRenamed" Value="%s மறுபெயரிடப்படவில்லை : %s"/>
+      <Item Name="strfsRenamed" Value="%s - %sஎன மறுபெயரிடப்பட்டது "/>
+      <Item Name="strfsReverted" Value="%s முந்தைய பெயருக்கு மாற்றப்பட்டது %s"/>
+      <Item Name="strfsRenError" Value="%s ஐ %s க்கு மறுபெயரிட முடியவில்லை: %s"/>
+      <Item Name="strfsNoOldName" Value="பழைய பெயரை மாற்ற %s க்கு முந்தைய பெயர் எதுவும் சேமிக்கப்படவில்லை"/>
+      <Item Name="strfs404" Value="மூல கோப்பு கிடைக்கவில்லை"/>
+      <Item Name="strfsAlreadyExist" Value="இந்த பெயருடன் ஒரு கோப்பு அல்லது கோப்புறை ஏற்கனவே உள்ளது"/>
+      <Item Name="strfeIdentical" Value="புதிய பெயர் பழைய பெயரை விட ஒன்றாகும்"/>
+      <Item Name="strhintNotAgain" Value="இந்த குறிப்பை மீண்டும் காட்ட வேண்டாம்"/>
+      <Item Name="strhintShowPreview" Value="முன்னோட்டம் நெடுவரிசை இப்போது தெரியும். நீங்கள் அதை மறைக்க விரும்பினால், கோப்புகள் பட்டியலின் நெடுவரிசை தலைப்புகளில் வலது சுட்டி பொத்தானைக் சொடுக்குக."/>
+    </VarMessages>
+  </MainForm>
+  <AboutForm Caption="இந்த நிரலைப் பற்றி">
+    <btn1 Caption="வரலாறு"/>
+    <btn2 Caption="மூடு"/>
+    <tshGeneral Caption="பொது"/>
+    <tshCredits Caption="வரவு"/>
+  </AboutForm>
+  <MessageWin>
+    <Captions>
+      <Strings>
+        <Item Index="0" Value="எச்சரிக்கை"/>
+        <Item Index="1" Value="பிழை"/>
+        <Item Index="2" Value="தகவல்"/>
+        <Item Index="3" Value="உறுதிப்படுத்தல்"/>
+        <Item Index="4" Value="&#38;ஆம்"/>
+        <Item Index="5" Value="&#38;இல்லை"/>
+        <Item Index="6" Value="&#38;சரி"/>
+        <Item Index="7" Value="&#38;கைவிடு"/>
+        <Item Index="8" Value="&#38;நிறுத்து"/>
+        <Item Index="9" Value="&#38;மீண்டும் முயற்சிக்கவும்"/>
+        <Item Index="10" Value="&#38;புறக்கணிக்கவும்"/>
+        <Item Index="11" Value="&#38;அனைத்தும்"/>
+        <Item Index="12" Value="அனைத்தும் இல்லை"/>
+        <Item Index="13" Value="அனைத்தும் ஆம்"/>
+        <Item Index="14" Value="&#38;உதவி"/>
+      </Strings>
+    </Captions>
+  </MessageWin>
+  <OptionsForm Caption="விருப்பங்கள்">
+    <btn1 Caption="உதவி"/>
+    <btn2 Caption="கைவிடு"/>
+    <btn3 Caption="சரி"/>
+    <tshDisplay Caption="காட்சி"/>
+    <tshAdding Caption="கோப்புகள் &#38;&#38; கோப்புறைகள்"/>
+    <tshProcessing Caption="செயலாக்கம்"/>
+    <tshEvents Caption="நிகழ்வுகள்"/>
+    <tshLanguage Caption="மொழி"/>
+    <lbhLists Caption="பட்டியல்கள்"/>
+    <cbxRealtimeUpdate Caption="கோப்புகளை மறுபெயரிடும்போது நிகழ்நேர புதுப்பிப்பு"/>
+    <cbxResizeColsFiles Caption="கோப்புகள் பட்டியலின் தானாக மறுஅளவிடல் நெடுவரிசைகள்"/>
+    <cbxFilesIcons Caption="கோப்பு நீட்டிப்பின் அடிப்படையில் கோப்புகளின் பட்டியலில் ஐகான்களைக் காட்டு"/>
+    <lbhFonts Caption="எழுத்துருக்கள்"/>
+    <cbxForceFont Caption="சிறப்பு எழுத்துக்களைக் காட்ட வேண்டிய கட்டுப்பாடுகளுக்கு பின்வரும் எழுத்துருவை கட்டாயப்படுத்தவும்:"/>
+    <cmbForceFont>
+      <Items>
+        <Item Index="0" Value="இயல்புநிலை சாளர எழுத்துரு"/>
+      </Items>
+    </cmbForceFont>
+    <lblForceFont Caption="குறிப்பு: TAC Barathi, Noto Sans, DejaVu Sans அல்லது Arial Unicode MS இருந்தால் பரிந்துரைக்கபடுகிறது"/>  <!-- old caption: குறிப்பு: ஏரியல் யூனிகோட் எம்எஸ் கிடைத்தால் அது கடுமையாக பரிந்துரைக்கப்படுகிறது  -->
+    <lbhDropdown Caption="கீழ்தோன்றும் புலங்கள்"/>
+    <lblDropdownMax Caption="வரலாற்றில் வைக்க வேண்டிய மதிப்புகள்:"/>
+    <cbxDropdownComplete Caption="தட்டச்சு செய்யும் போது வரலாற்று மதிப்புகளுடன் தானாக நிறைவு"/>
+    <lbhToolbars Caption="கருவிப்பட்டிகள்"/>
+    <lblIconSet Caption="ஐகான் தொகுப்பு:"/>
+    <lblColorType Caption="வண்ண வகை:"/>
+    <cmbColorType>
+      <Items>
+        <Item Index="0" Value="தானியங்கி"/>
+        <Item Index="1" Value="செயலற்ற நிலையில் சாம்பல்"/>
+        <Item Index="2" Value="செயலற்ற நிலையில் கலந்த ஒளி (எக்ஸ்பி பாணி)"/>
+        <Item Index="3" Value="செயலற்ற நிலையில் கலந்த இருண்ட"/>
+        <Item Index="4" Value="எப்போதும் வண்ணமானது"/>
+      </Items>
+    </cmbColorType>
+    <cbxOfficeXP Caption="அலுவலகம் எக்சுபி நடை"/>
+    <lbhDragdrop Caption="இழுத்து &#38; விடு"/>
+    <cbxDragdropNoAsk Caption="என்ன செய்வது என்று கேட்க வேண்டாம், எப்போதும் பின்வரும் விருப்பங்களைப் பயன்படுத்தவும்:"/>
+    <DragdropOptions>
+      <cbxFiles Caption="தேர்ந்தெடுக்கப்பட்ட கோப்புறைகளின் கோப்புகளைச் சேர்"/>
+      <cbxFolders Caption="தேர்ந்தெடுக்கப்பட்ட கோப்புறைகளைச் சேர்"/>
+      <cbxRecursive Caption="இந்த இரண்டு விருப்பங்களையும் துணை கோப்புறைகளுக்குப் பயன்படுத்துங்கள்"/>
+    </DragdropOptions>
+    <lbhBehaviour Caption="பட்டியல் நடத்தை"/>
+    <cbxLaunchFile Caption="இரட்டைக் சொடுக்கு மூலம் கோப்பைத் தொடங்கவும்"/>
+    <lbhRenaming Caption="கோப்பு மறுபெயரிடுதல்"/>
+    <cbxCopy Caption="மறுபெயரிடுவதற்கு பதிலாக நகலெடு"/>
+    <cbxGenerLog Caption="பதிவை உருவாக்கு"/>
+    <cbxDSTRelativeToFile Caption="கோப்பு தேதியுடன் தொடர்புடைய நாகாநே ஈடுசெய்தல்"/>
+    <lbhFoldersRules Caption="கோப்புறை விதிகள்"/>
+    <cbxForceDir Caption="கட்டாய அடைவுகள் (&#34;\&#34; பெயர்களில் காணப்பட்டால் கோப்புறைகளை உருவாக்க அனுமதிக்கிறது)"/>
+    <cbxDetectAbsdir Caption="ஒரு முழுமையான பாதையாக ஒரு &#34;:\&#34; அல்லது &#34;\\&#34; ஐக் கண்டறிக (கோப்புகளை எங்கும் நகர்த்த அனுமதிக்கிறது)"/>
+    <cbxFolderExt Caption="கோப்புறைகளைப் போல நீட்டிப்பு டிலிமிட்டராக ஒரு கோப்புறை பெயரில் &#34;.&#34; கடைசியாக "/>
+    <lbhWhenStarted Caption="மறுபெயரிடும் போது தொடங்கும்"/>
+    <cbxStartSwitch Caption="இதற்கு மாறு:"/>
+    <cmbStartSwitch>
+      <Items>
+        <Item Index="0" Value="கோப்புகள் பட்டியல்"/>
+        <Item Index="1" Value="செயல்கள்"/>
+        <Item Index="2" Value="பதிவு"/>
+      </Items>
+    </cmbStartSwitch>
+    <cbxStartClearLog Caption="பதிவை அழி"/>
+    <lbhWhenFinished Caption="மறுபெயரிடும் போது"/>
+    <cbxFinishSwitch Caption="இதற்கு மாறு:"/>
+    <cmbFinishSwitch>
+      <Items>
+        <Item Index="0" Value="கோப்புகளின் பட்டியல்"/>
+        <Item Index="1" Value="செயல்கள்"/>
+        <Item Index="2" Value="பதிவு"/>
+      </Items>
+    </cmbFinishSwitch>
+    <cbxClearFilesList Caption="கோப்புகளின் பட்டியலை அழி"/>
+    <cbxClearBatchList Caption="தொகுதி பட்டியலை அழி"/>
+    <cbxSaveLog Caption="பதிவை கோப்பில் சேமிக்கவும்:"/>
+    <btnSaveLog Hint="உலாவு..."/>
+    <cbxSaveLogAppend Caption="தற்போதைய கோப்பைச் சேர்"/>
+    <lbhLanguage Caption="மொழி"/>
+    <LanguageFrame>
+      <lstLanguages>
+        <Columns>
+          <Column Index="0" Caption="பெயர்"/>
+          <Column Index="1" Caption="உள்ளூர் பெயர்"/>
+        </Columns>
+      </lstLanguages>
+      <lblVersion Caption="பதிப்பு:"/>
+      <lblMadeby Caption="செய்தவர்:"/>
+      <lblComments Caption="கருத்துகள்:"/>
+    </LanguageFrame>
+  </OptionsForm>
+  <SelectDirectoryForm Caption="சேர்க்க கோப்புறைகளைத் தேர்ந்தெடுக்கவும்">
+    <btn1 Caption="உதவி"/>
+    <btn2 Caption="கைவிடு"/>
+    <btn3 Caption="சரி"/>
+    <btn4 Caption="வலைப்பின்னல்..."/>
+    <Options>
+      <cbxFiles Caption="தேர்ந்தெடுக்கப்பட்ட கோப்புறைகளின் கோப்புகளைச் சேர்"/>
+      <cbxFolders Caption="தேர்ந்தெடுக்கப்பட்ட கோப்புறைகளைச் சேர்"/>
+      <cbxRecursive Caption="இந்த இரண்டு விருப்பங்களையும் துணை கோப்புறைகளுக்குப் பயன்படுத்துங்கள்s"/>
+    </Options>
+  </SelectDirectoryForm>
+  <DragdropOptionsForm Caption="இழுத்து &#38;  விடு விருப்பங்கள்">
+    <btn1 Caption="உதவி"/>
+    <btn2 Caption="கைவிடு"/>
+    <btn3 Caption="சரி"/>
+    <lblOptions Caption="கைவிடப்பட்ட கோப்புகளைச் சேர்க்க பயன்படுத்தும் விருப்பங்கள்:"/>
+    <Options>
+      <cbxFiles Caption="தேர்ந்தெடுக்கப்பட்ட கோப்புறைகளின் கோப்புகளைச் சேர்"/>
+      <cbxFolders Caption="தேர்ந்தெடுக்கப்பட்ட கோப்புறைகளைச் சேர்"/>
+      <cbxRecursive Caption="இந்த இரண்டு விருப்பங்களையும் துணை கோப்புறைகளுக்குப் பயன்படுத்துங்கள்"/>
+    </Options>
+    <cbxNotAgain Caption="இந்த சாளரத்தை மீண்டும் காண்பிக்க வேண்டாம் (தேர்ந்தெடுக்கப்பட்ட விருப்பங்களை அடுத்த முறை வைக்கவும்)"/>
+  </DragdropOptionsForm>
+</Application>

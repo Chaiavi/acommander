@@ -1,0 +1,433 @@
+<?xml version="1.0" encoding="windows-1251"?>
+<!--
+Icon=Qk32AAAAAAAAAHYAAAAoAAAAEAAAABAAAAABAAQAAAAAAAAAAAASCwAAEgsAAAAAAAAAAAAA////ADg4OAAAAAAAqqqqAO7u7gDMzMwAACIAAABUAAAzzAAAAACqAAAA/QCZmf8AX19fAAAAAAAAAAAAAAAAAAAAAAAAAAAAzMzMzMzMzMwpmZmZmZmZoimqqqqqqqqyKaqqqqqqqrIpqqqqqqqqsiZ3d3d3d3eCJnd3d3d3d4Imd3d3d3d3giZ3d3d3d3eCJnd3d3d3d4IjVVVVVVVVQiNVVVVVVVVCI0REREREREIREREREREREQAAAAAAAAAA
+Name=Bulgarian
+LocalName=Български
+Version=2.12
+VersionFormat=2.13
+Comments=Don't Worry Be Happy
+Authors=N.Nedelev|
+-->
+<!--
+Note for translators: If you want to complete this translation, simple search for the text <n/> that indicate new lines that should be translated.
+Replace the English text by the correct translation, and once done you can send the file to antrenamer-contact@antp.be to have it included in the next update.
+-->
+<Application>
+  <MainForm>
+    <tbTabs Caption="Pages"/>
+    <tbProgram Caption="Program"/>
+    <tbFiles Caption="Files"/>
+    <tbMove Caption="Move Items"/>
+    <tbActions Caption="Actions"/>
+    <tbLog Caption="Log"/>
+    <ActionBatchAddAction Caption="Добави в пакет" Hint="Добави в пакет|Добавяне на избраното действие и неговите настройки към пакета"/>
+    <ActionBatchOpen Caption="Отвори..." Hint="Отвори|Отвори файл пакетна обработка"/>
+    <ActionBatchSaveAs Caption="Запиши..." Hint="Запиши|Запиши тази партида (пакетна обработка) във файл"/>
+    <ActionBatchRemoveSel Caption="Премахни избраните" Hint="Премахни избраните|Премахване на избраните действия от партидата"/>
+    <ActionBatchClear Caption="Изчисти" Hint="Изчисти пакетите|Премахнете всички действия от пакета"/>
+    <ActionBatchNoRecent Caption="(няма последно използван файл)"/>
+    <ActionAddFiles Caption="Добавяне на файлове..." Hint="Добавяне на файлове|Добавяне на файлове към списъка"/>
+    <ActionAddFolders Caption="Добавяна на папки..." Hint="Добавяна на папки|Добавяне на папки или съдържанието на папката към списъка"/>
+    <ActionRemoveSelected Caption="Премахни избраните" Hint="Премахни избраните|Премахване на избраните файлове от списъка"/>
+    <ActionRemoveAll Caption="Премахни всички" Hint="Премахни всички|Премахни всички файлове от списъка"/>
+    <ActionRemoveDead Caption="Премахни липсващите" Hint="Премахни липсващите|Премахни липсващите файлове от списъка"/>
+    <ActionPreview Caption="Преглед" Hint="Обнови преглед|Обновява визуализацията на колоната с текущо планираните действия"/>
+    <ActionFromListClear Caption="Изчисти" Hint="Изчисти списъка|Изчисти списъка"/>
+    <ActionFromListOpen Caption="Отвори..." Hint="Отвори|Зареждане на списък от файл"/>
+    <ActionFromListSave Caption="Запиши..." Hint="Запиши|Запишете този списък във файл"/>
+    <ActionMultistrReplClear Caption="Изчисти" Hint="Изчиства съдържанието на мрежата"/>
+<n/>    <ActionMultistrReplCopy Caption="Copy/Export" Hint="|Copy the whole string table to the clipboard as tab-delimited text for importing in Excel or text editors"/>
+<n/>    <ActionMultistrReplPaste Caption="Paste/Import" Hint="|Paste the whole string table from the clipboard as tab-delimited text, for importing from Excel or text editors"/>
+    <ActionMultistrReplSave Caption="Запиши" Hint="|Запиши текущия набор под името, написано по-горе"/>
+    <ActionMultistrReplDelete Caption="Изтрий" Hint="|Delete currently selected set name"/>
+    <ActionMoveUp Caption="Up" Hint="Премести нагоре|Преместване на избраните обекти нагоре"/>
+    <ActionMoveDown Caption="Down" Hint="Премести надолу|Преместване на избраните обекти надолу"/>
+    <ActionMoveTop Caption="В началото" Hint="Премести най-отгоре|Преместване на избраните елементи в началото на списъка"/>
+    <ActionMoveBottom Caption="В края" Hint="Премести най-долу|Преместване на избраните елементи на дъното на списъка"/>
+    <ActionItemsUnsort Caption="Несортирани елементи" Hint="|Премахва текущия ред на сортиране"/>
+    <ActionItemsSelectAll Caption="Избери всички" Hint="Избери всички|Избери всички елементи"/>
+    <ActionItemsSelectNone Caption="Отмяна на избора" Hint="Откажи всички|Отмяна на избора всички елементи"/>
+    <ActionItemsSelectInvert Caption="Обърни селекцията" Hint="Обърни селекцията|Обръщане на избора елементи"/>
+    <ActionLogClear Caption="Изчисти" Hint="Изчисти|Изчисти дневника"/>
+    <ActionLogSave Caption="Запиши..." Hint="Запиши|Запиши лог файла (във файл)"/>
+    <ActionLogCopy Caption="Копирай" Hint="Копирай|Копирай лог файла в клипборда"/>
+    <ActionLogFilter Caption="Филтър" Hint="Филтър|Филтър лог елементи"/>
+    <ActionLogFilterOk Caption="Успешно" Hint="Покажи преименуваните файлове|Показва записи съответствуващи на успешно преименуваните файлове EDIT"/>
+    <ActionLogFilterError Caption="Грешки" Hint="Покажи грешките|Показване на записи за грешките"/>
+    <ActionLogFilterNot Caption="Не може да преименува" Hint="Показване на пропуснатите файлове|Показва записи, съответстващи на файлове, които не са били преименувани"/>
+    <ActionActionGo Caption="Старт" Hint="Старт|Стартира процеса на преименуване"/>
+    <ActionActionStop Caption="Стоп" Hint="Стоп|Спрете процеса на преименуване"/>
+    <ActionOptions Caption="Настроики..." Hint="Настроики|Промяна на текущите настройки на програмата"/>
+    <ActionActionUndo Caption="Отмени" Hint="Отмени|Отмяни последното преименуване"/>
+    <ActionHelpContents Caption="Помощ" Hint="Помощ|Показване на съдържанието"/>
+    <ActionHelpAbout Caption="За..." Hint="За|За тази програма"/>
+    <ActionExit Caption="Изход" Hint="Изход|Затворете програмата"/>
+    <ActionAlwaysOnTop Caption="На преден план" Hint="Винаги отгоре|Прозореца винаги над другите прозорци"/>
+    <ActionTabFiles Caption="Файлове" Hint="Файлове|Показва списъка с файлове"/>
+    <ActionTabActions Caption="Действия" Hint="Действия|Показване на действията"/>
+    <ActionTabLog Caption="Лог файл" Hint="Лог файл|Показва лог файла"/>
+    <lstFiles Hint="|Файл лист - Щракнете с десен бутон на мишката да промените колоните">
+      <Header>
+        <Columns>
+          <Item Index="0" Text="Папка"/>
+          <Item Index="1" Text="Име на файл"/>
+          <Item Index="2" Text="Пълен път"/>
+          <Item Index="3" Text="Разширение"/>
+          <Item Index="4" Text="Преглед"/>
+          <Item Index="5" Text="Размер"/>
+          <Item Index="6" Text="Дата на създаване"/>
+          <Item Index="7" Text="Дата на промяна"/>
+        </Columns>
+      </Header>
+    </lstFiles>
+    <grpPreview Caption="       Предварителен преглед "/>
+    <grpBatch Caption="       Пакетно съдържание (планирани действия) "/>
+    <lstBatch Hint="|Пакетно съдържание (планирани действия)"/>
+    <lblPreviewOld Caption="Текущо име:"/>
+    <lblPreviewNew Caption="Ново име:"/>
+    <lstActions Hint="|Списък на възможни действия, за преименуване">
+      <Items>
+        <Item Index="0" Value="Промяна на разширение"/>
+        <Item Index="1" Value="Подмяна на низ"/>
+        <Item Index="2" Value="Промяна на множество елементи"/>
+        <Item Index="3" Value="Вмъкване на низ"/>
+        <Item Index="4" Value="Преместване на низ"/>
+        <Item Index="5" Value="Изтриване на символи"/>
+        <Item Index="6" Value="Номерация"/>
+        <Item Index="7" Value="Използвайте mp3 таг информация"/>
+        <Item Index="8" Value="Дата &#38; Час"/>
+        <Item Index="9" Value="Случайни имена"/>
+        <Item Index="10" Value="Смяна на регистъра"/>
+        <Item Index="11" Value="Вземете имена от списъка"/>
+        <Item Index="12" Value="Регулярни изрази"/>
+        <Item Index="13" Value="Използвайте EXIF информация"/>
+      </Items>
+    </lstActions>
+    <lblChangeExt Caption="Замяна на оригиналното разширение на:"/>
+    <cbxChangeExtNoRepl Caption="Не заменяй разширението, добави го към текущото пълно име"/>
+    <lblChangeExtNotes Caption="Забележка:&lt;br&gt;- Не въвеждайте точката, просто въведете новото разширение&lt;br&gt;- Ако искате да получите номерирано разширение, използвайте действието &lt;LINK&gt;Номерация&lt;/LINK&gt; Моля, използвайте"/>
+    <lblStrReplSearch Caption="Търсене за:"/>
+    <lblStrReplBy Caption="Замени с:"/>
+    <cbxStrReplAll Caption="Замени всички съвпадения"/>
+    <cbxStrReplCase Caption="Големи/малки букви"/>
+    <cbxStrReplExt Caption="Включи разширението в търсенето"/>
+    <cbxStrReplOnlyExt Caption="Приложи разширението вместо името"/>
+    <lblMultstrSearch Caption="Търсене за:"/>
+    <lblMultstrReplBy Caption="Замени с:"/>
+    <lblMultstrReplSet Caption="Предварително зададени (шаблони):"/>
+    <cbxMultstrReplExt Caption="Включи разширението в търсенето"/>
+    <cbxMultstrCase Caption="Големи/малки букви"/>
+    <lblMultstrReplNotes Caption="Забележка:&lt;BR&gt;- Използвайте Ctrl+Plus (+) и Ctrl+Minus (-) за да вмъкнете или изтриете ред в текущата позиция в таблицата"/>
+    <lblStrInsStr Caption="Вмъкване на низ:"/>
+    <lblStrInsPos Caption="Започвайки от позиция:"/>
+    <rbtStrInsBegin Caption="От началото"/>
+    <rbtStrInsEnd Caption="От края"/>
+    <cbxStrInsExt Caption="Приложи разширението вместо името"/>
+    <lblStrInsNotes Caption="Забележка:&lt;br&gt;- Ако искате да вмъкнете ред след или преди друг низ, използвайте действието &lt;LINK&gt;Подмяна на низ&lt;/LINK&gt; действие&lt;br&gt;- %name% = Оригинално име на файла (без разширение)&lt;BR&gt;- %ext% = Оригиналното разширение на файла (Включително разделител (точка)&lt;BR&gt;- %folderN% = Име на папка (N - Нива подпапкии)&lt;BR&gt;- %% = % знак&lt;BR&gt;вижте &lt;LINK&gt;Помощ&lt;/LINK&gt; за повече информация"/>
+    <lblMoveStrFrom Caption="Започвайки от позиция:"/>
+    <rbtMoveStrFromBegin Caption="От началото"/>
+    <rbtMoveStrFromEnd Caption="От края"/>
+    <lblMoveStrCount Caption="Брой на знаците за преместване:"/>
+    <lblMoveStrTo Caption="В позиция:"/>
+    <rbtMoveStrToBegin Caption="От началото"/>
+    <rbtMoveStrToEnd Caption="От края"/>
+    <lblMoveStrNotes Caption="Забележка:&lt;br&gt;- Ако искате да преместите определен низ, който не винаги е в едно и същото положение, използвайте &lt;link&gt;Подмяна на низ&lt;/link&gt; да го изтриете, и след това &lt;link&gt;Вмъкване на низ&lt;/link&gt; да го поставите на новото място&lt;BR&gt;- значение &#34;В позиция&#34; стойността не включва в себе си преместени символи (както и ако те вече са били изтрити)"/>
+    <lblCharDel Caption="Брой на знаците за изтриване:"/>
+    <rbtCharDelPos Caption="От позиция:"/>
+    <rbtCharDelBegin Caption="От началото"/>
+    <rbtCharDelEnd Caption="От края"/>
+    <rbtCharDelStr Caption="След низа:"/>
+    <rbtCharDelStr2 Caption="Преди низа:"/>
+    <cbxCharDelExt Caption="Приложи разширението вместо името"/>
+    <lblCharDelNotes Caption="Забележка:&lt;BR&gt;- За да изтриете определен низ, използвайте &lt;LINK&gt;Подмяна на низ&lt;/LINK&gt; и заменете оригиналния низ"/>
+    <lblEnumMask Caption="Маска:"/>
+    <lblEnumStart Caption="Започни от:"/>
+    <lblEnumDigits Caption="Брой цифри:"/>
+    <lblEnumIncr Caption="Нарастване с:"/>
+    <cbxEnumRestart Caption="Върни началната стойност при смяна на папка"/>
+    <lblEnumNotes Caption="Забележка:&lt;BR&gt;- %name% = Оригинално име на файла (без разширението)&lt;BR&gt;- %ext% = Оригиналото разширение на файла (включително на точката)&lt;BR&gt;- %num% = Номер (число)&lt;BR&gt;- %folderN% = Име на папка&lt;BR&gt;- %% = % символ&lt;BR&gt;виж &lt;LINK&gt;Помощ&lt;/LINK&gt; за повече информация"/>
+    <lblMP3Mask Caption="Маска:"/>
+    <cbxMP3TwoDigit Caption="Добавете номера на трака, от две цифри (вмъкнете '0' пред номера, ако е необходимо)"/>
+    <cbxMP3Convert Caption="Конвертиране на неоторизиран символи като ? / \ : &lt; &gt; | ¦ *"/>
+    <lblMP3Notes Caption="Забележка:&lt;BR&gt;- %author% = Автор&lt;BR&gt;- %title% = Име&lt;BR&gt;- %album% = Албум&lt;BR&gt;- %year% = Година&lt;BR&gt;- %genre% = Жанр&lt;BR&gt;- %comm% = Коментар&lt;BR&gt;- %track% = Номер на Трака (песента) (ID3V1.1)&lt;BR&gt;- %name% = Оригинално име на файла (без разширение)&lt;BR&gt;- %ext% = Оригинално разширение (включително точка)&lt;BR&gt;- %folderN% = Име на папката&lt;BR&gt;- %% = % символ&lt;BR&gt;- $if(състояние,вярно/невярно)&lt;BR&gt;виж &lt;LINK&gt;Помощ&lt;/LINK&gt; за повече информация"/>
+    <lblDTMask Caption="Маска:"/>
+    <cbxDTSuffix Caption="Добавете суфикс, ако има повече от един файл със същата дата/час"/>
+    <lblDTWhich Caption="Използвай дата:"/>
+    <rbtDTWhichCreation Caption="Създаване:"/>
+    <rbtDTWhichModif Caption="Последна промяна:"/>
+<n/>    <lblDTOffset Caption="Offset:"/>
+<n/>    <lblDTOffsetSec Caption="seconds"/>
+    <lblDTNotes Caption="Забележка:"/>
+    <lblDTNotes2>
+      <Lines>
+        <![CDATA[f	Оригинално име на файла (без разширение)
+e	Оригинално разширение на файла (включително разделител (точка)
+c	Дата и час в стандартен формат на Windows
+d	Ден, без водеща нула (1-31)
+dd	Ден, с водеща нула (01-31)
+ddd	Ден, кратко име (Sun-Sat)
+dddd	Ден, пълно име (Неделя – Събота)
+ddddd	Дата използвайки кратък формат на дата в Windows
+dddddd	Дата използвайки дълъг формат на дата в Windows
+m	Месец без водеща нула (1-12)
+mm	Месец с водеща нула (01-12)
+mmm	Месец, кратко име (Ян - Дек)
+mmmm	Месец, пълно име (Януари – Декември)
+yy	Година, 2-цифрен номер (00-99)
+yyyy	Година, 4-цифрен номер (0000-9999)
+h	Час без водеща нула (0-23)
+hh	Час с водеща нула (00-23)
+n	Минута без водеща нула (0-59)
+nn	Минута с водеща нула (00-59)
+s	Секунда, без водеща нула (0-59)
+ss	Секунда, с водеща нула (00-59)
+z	Милисекунда без водеща нула (0-999)
+zzz	Милисекунда с водеща нула (000-999)
+am/pm	Използвай 12-часов формат за h или hh
+a/p	Използвай 12-часов формат за h или hh
+'xx'/"xx"	Знаци в единични или двойни кавички остават непроменени
+
+Ако атрибутът m или mm следва веднага следва атрибута h или hh, Това се тълкува като минути, а не като месец]]>
+      </Lines>
+    </lblDTNotes2>
+    <lblRandomMask Caption="Маска:"/>
+    <lblRandomMethod Caption="Метод:"/>
+    <rbtRandomNumber Caption="Случайно число (8 цифри)"/>
+    <rbtRandomTick Caption="Брояч на Windows"/>
+    <rbtRandomGUID Caption="Глобален уникален идентификатор (GUID)"/>
+    <lblRandomNotes Caption="Забележка:&lt;BR&gt;- %name% = Оригинално име на файла (без разширението)&lt;BR&gt;- %ext% = Оригиналното разширение (включително разделител (точка)&lt;BR&gt;- %random% = Произволно генериран низ&lt;BR&gt;- %% = % символ&lt;BR&gt;виж &lt;LINK&gt;Помощ&lt;/LINK&gt; за повече информация"/>
+    <rbtCaseWords Caption="Главна буква след всеки от тези знаци:"/>
+    <rbtCaseFirst Caption="Направи главна първата буква в името на файла"/>
+    <rbtCaseUpper Caption="Преобразувай всички малки букви в главни букви"/>
+    <rbtCaseLower Caption="Преобразувай всички главни букви в малки букви"/>
+    <cbxCaseLocale Caption="Използвайте локалните настройки на Windows за промяна на диакритични знаци (ударения)"/>
+    <cbxCaseIncludeExt Caption="Приложи също и за разширението"/>
+    <cbxCaseOnlyExt Caption="Приложи само за разширението на файла не за името"/>
+    <cbxFromListExt Caption="Добавяне на първоначалното разширение на файла"/>
+    <cbxFromListOnlyExt Caption="Използвайте елемента като разширение вместо име"/>
+    <lblFromListNotes Caption="Забележка:&lt;BR&gt;- Всеки ред от този списък ще бъде използван като име на файл. Елементите се използват последователно&lt;BR&gt;- Ако редовете са празни или ако няма достатъчно редове, съответните файлове не ще бъде преименувани"/>
+    <lblRegexp Caption="Израз:"/>
+    <lblRegexpRepl Caption="Ново име:"/>
+    <lblRegexpNotes Caption="Забележка:&lt;BR&gt;- Символът \ може да се използва да се избягват специални символи (като $ и др.), използвайте \\ за да получите символа \ в новото име (Ако искате да поставите файла с ново име в друга папка)&lt;BR&gt;- използвайте символа ^ за да посочи началото на името и $ за края на името&lt;BR&gt;- Новото име трябва да съдържа $ 1, $ 2, и т.н. за да се обозначи къде ще намерите новите символите&lt;BR&gt;виж &lt;LINK&gt;Помощ&lt;/LINK&gt; За повече информация за регулярните изрази"/>
+    <lblExifMask Caption="Маска:"/>
+<n/>    <lblExifOffset Caption="Offset:"/>
+<n/>    <lblExifOffsetSec Caption="seconds"/>
+    <lblExifNotes Caption="Забележка:&lt;BR&gt;- %name% = Оригинално име на файла (без разширение)&lt;BR&gt;- %ext% = Оригинално разширение (включително точката)&lt;BR&gt;- %datetimeoriginal% или %datetime% = Оригинална дата и час на снимката&lt;BR&gt;- %orientation% = Ориентация на изображението&lt;BR&gt;- %flash% = Светкавицата е включена или изключена&lt;BR&gt;- %% = % символ&lt;BR&gt;Виж &lt;LINK&gt;Помощ&lt;/LINK&gt; за повече информация и за пълен списък на EXIF тагове"/>
+    <lstLog Hint="|Лог"/>
+    <VarMessages>
+      <Item Name="strfltAllFiles" Value="Всички файлове"/>
+      <Item Name="strfltTextFiles" Value="Текстови файлове"/>
+      <Item Name="strfltBatchFiles" Value="Ant Renamer, пакетни файлове"/>
+      <Item Name="strmsgSelectFiles" Value="Избор на файлове"/>
+      <Item Name="strmsgSelectFolder" Value="Изберете папка"/>
+      <Item Name="strmsgStatusAddingFiles" Value="Добавяне на файлове"/>
+      <Item Name="strmsgStatusRenaming" Value="Преименуване на файлове"/>
+      <Item Name="strmsgFilesCount" Value="%d файл(а)"/>
+      <Item Name="strmsgBusy" Value="Приложението е заето: Изпълнява се операция по преименуване."/>
+      <Item Name="strmsgNothingToDo" Value="Не може да се изпълни ! Изберете поне един файл или операция за изпълнение."/>
+      <Item Name="strlogStartRename" Value="В процес на преименуване"/>
+      <Item Name="strlogStartPreview" Value="Актуализиране на визуализацията"/>
+      <Item Name="strlogStartRevert" Value="Връщане към оригиналните имена"/>
+      <Item Name="strlogEndRename" Value="Процесът на Преименуване на завърши"/>
+      <Item Name="strlogEndPreview" Value="Процесът на преглед е завършен"/>
+      <Item Name="strlogEndRevert" Value="Процесът на връщане към оригиналните имена на завършен"/>
+      <Item Name="strlogStoppedByUser" Value="Операцията е прекратена от потребителя"/>
+      <Item Name="stradUnknown" Value="Не прави нищо"/>
+      <Item Name="stradInclExt" Value=", се прилага и за разширението EDIT"/>
+      <Item Name="stradOnlyExt" Value=", Приложи разширението вместо името EDIT"/>
+      <Item Name="stradChangeExt" Value="Промяна на разширението на &#34;%s&#34;"/>
+      <Item Name="stradChangeExtRmv" Value="Премахване разширението"/>
+      <Item Name="stradChangeExtNoRepl" Value="Добавяне на разширение &#34;%s&#34;"/>
+      <Item Name="stradStringRepl" Value="Замени EDIT &#34;%s&#34; на &#34;%s&#34;"/>
+      <Item Name="stradStringReplAll" Value=", замени всички съвпадения"/>
+      <Item Name="stradStringReplCase" Value=", Разграничаване между големи / малки букви"/>
+      <Item Name="stradMultstrRepl" Value="Замяна на множество низове (използвайки набор) &#34;%s&#34;"/>
+      <Item Name="stradStringIns" Value="Вмъкни &#34;%s&#34; в позицияn %d"/>
+      <Item Name="stradMoveStr" Value="Премести %d символ(и) от позиция %d%s, до позиция %d%s"/>
+      <Item Name="stradCharDel" Value="Изтриване на %d символи"/>
+      <Item Name="stradCharDelPos" Value=" в позиция %d"/>
+      <Item Name="stradCharDelStr" Value=" След низа &#34;%s&#34;"/>
+<n/>      <Item Name="stradCharDelStr2" Value=" before the string &#34;%s&#34;"/>
+      <Item Name="stradEnum" Value="Генериране на номерация с помощта &#34;%s&#34; от %d до %d с %d"/>
+      <Item Name="stradMP3" Value="Генериране на имена с MP3 тагове, въз основа на маската EDIT &#34;%s&#34;"/>
+      <Item Name="stradMP3TwoDigit" Value=", въведете '0' в номера на песента, ако е необходимо"/>
+      <Item Name="stradMP3Convert" Value=", Конвертиране на нестандартни знаци"/>
+      <Item Name="stradFromBegin" Value=", от началото"/>
+      <Item Name="stradFromEnd" Value=", от края"/>
+      <Item Name="stradDateTime" Value="Генериране на имена на базата на дата и час на файлове с помощта на маска &#34;%s&#34;"/>
+      <Item Name="stradDateTimeCreat" Value=" използване дата на създаване"/>
+      <Item Name="stradDateTimeModif" Value=" използване на датата на последно модифициране"/>
+      <Item Name="stradDateTimeSuffix" Value=", добавяне на суфикс, ако е необходимо"/>
+<n/>      <Item Name="stradDateTimeOffset" Value=" with %d s offset"/>
+      <Item Name="stradRandom" Value="Генериране на произволни имена с помощта на маска &#34;%s&#34;"/>
+      <Item Name="stradRandomNumbers" Value=", използване на случайни числа"/>
+      <Item Name="stradRandomTick" Value=", използване на часовника на Windows EDIT"/>
+      <Item Name="stradRandomGUID" Value=", използване на глобален уникален идентификатор (GUID)"/>
+      <Item Name="stradCase" Value="Промяна на главни / малки букви: EDIT"/>
+      <Item Name="stradCaseWords" Value=" главна буква след всеки от знаците EDIT &#34;%s&#34;"/>
+      <Item Name="stradCaseFirst" Value=" Главна първата буква от името"/>
+      <Item Name="stradCaseUpper" Value=" всичко с главни букви"/>
+      <Item Name="stradCaseLower" Value=" всичко с малки букви"/>
+      <Item Name="stradCaseLocale" Value=", използвайте локалните настройки на Windows"/>
+      <Item Name="stradFromList" Value="Преименуване на файлове с помощта на списък"/>
+      <Item Name="stradFromListExt" Value=", добави оригиналното разширение"/>
+      <Item Name="stradFromListOnlyExt" Value=", използвайте EDIT елемента като разширение вместо име"/>
+      <Item Name="stradRegexp" Value="Преименуване на файлове с помощта на регулярен израз"/>
+      <Item Name="stradExif" Value="Генериране на имена, съдържащи EXIF информация, въз основа на маската &#34;%s&#34;"/>
+      <Item Name="straeFromListEmpty" Value="Празен ред"/>
+      <Item Name="straeFromListEnd" Value="Край на списъка"/>
+<n/>      <Item Name="straeExifNoInfo" Value="No EXIF info found"/>
+      <Item Name="strfsNotRenamed" Value="%s не беше преименуван : %s"/>
+      <Item Name="strfsRenamed" Value="%s преименуван на %s"/>
+      <Item Name="strfsReverted" Value="%s ВЪРНАТО към предишното име %s"/>
+      <Item Name="strfsRenError" Value="Не може да се преименува %s в %s: %s"/>
+      <Item Name="strfsNoOldName" Value="Не е записано старото име на файла %s не може да върнете предишното име"/>
+      <Item Name="strfs404" Value="Изходният файл не е намерен"/>
+      <Item Name="strfsAlreadyExist" Value="Вече съществува файл или папка с това име"/>
+      <Item Name="strfeIdentical" Value="Новото име е същото като старото име"/>
+      <Item Name="strhintNotAgain" Value="Не показвай това отново"/>
+      <Item Name="strhintShowPreview" Value="Визуализацията на колоната е видима. Ако искате да скриете, щракнете с десен бутон на мишката върху заглавията на колоните в списъка с файлове."/>
+    </VarMessages>
+  </MainForm>
+  <AboutForm Caption="За тази програма">
+    <btn1 Caption="История"/>
+    <btn2 Caption="Затвори"/>
+    <tshGeneral Caption="Общи"/>
+    <tshCredits Caption="Благодарности"/>
+  </AboutForm>
+  <MessageWin>
+    <Captions>
+      <Strings>
+        <Item Index="0" Value="Внимание"/>
+        <Item Index="1" Value="Грешка"/>
+        <Item Index="2" Value="Информация"/>
+        <Item Index="3" Value="Потвърждение"/>
+        <Item Index="4" Value="&#38;Да"/>
+        <Item Index="5" Value="&#38;Не"/>
+        <Item Index="6" Value="&#38;OK"/>
+        <Item Index="7" Value="&#38;Отмени"/>
+        <Item Index="8" Value="&#38;Прекъсване"/>
+        <Item Index="9" Value="&#38;Повторен опит"/>
+        <Item Index="10" Value="&#38;Игнорирай"/>
+        <Item Index="11" Value="&#38;Всички"/>
+        <Item Index="12" Value="Не за всички"/>
+        <Item Index="13" Value="Да за всички"/>
+        <Item Index="14" Value="&#38;Помощ"/>
+      </Strings>
+    </Captions>
+  </MessageWin>
+  <OptionsForm Caption="Опции">
+    <btn1 Caption="Помощ"/>
+    <btn2 Caption="Отказ"/>
+    <btn3 Caption="OK"/>
+    <tshDisplay Caption="Дисплей"/>
+    <tshAdding Caption="Файлове &#38;&#38; Папки"/>
+    <tshProcessing Caption="Обработка"/>
+<n/>    <tshEvents Caption="Събития"/>
+    <tshLanguage Caption="Език"/>
+    <lbhLists Caption="Списъци"/>
+    <cbxRealtimeUpdate Caption="Актуализация в реално време по време на обработката на файла"/>
+    <cbxResizeColsFiles Caption="Авто-преоразмеряване колони на списъка на файловете"/>
+    <cbxFilesIcons Caption="Покажи икони на файлове от списъка на база на файлово разширение"/>
+    <lbhFonts Caption="Шрифт"/>
+    <cbxForceFont Caption="Принудително използване на шрифт за показване специални символи:"/>
+    <cmbForceFont>
+      <Items>
+        <Item Index="0" Value="Стандартен шрифт на Windows"/>
+      </Items>
+    </cmbForceFont>
+    <lblForceFont Caption="Бележка: Noto Sans, DejaVu Sans или Arial Unicode MS силно се препоръчва, ако е наличен"/>
+    <lbhDropdown Caption="Падащ списък"/>
+    <lblDropdownMax Caption="Брой на стойностите, които да се пазят в историята:"/>
+    <cbxDropdownComplete Caption="Автоматично вмъкване на елементи по време на набиране"/>
+    <lbhToolbars Caption="Ленти с инструменти"/>
+    <lblIconSet Caption="Набор икони:"/>
+    <lblColorType Caption="Цветове:"/>
+    <cmbColorType>
+      <Items>
+        <Item Index="0" Value="Автоматично"/>
+        <Item Index="1" Value="Сив при неактивни"/>
+        <Item Index="2" Value="Светли когато са неактивни (XP стил)"/>
+        <Item Index="3" Value="Тъмно ако не е активен"/>
+        <Item Index="4" Value="Винаги цветна"/>
+      </Items>
+    </cmbColorType>
+    <cbxOfficeXP Caption="Office XP стил"/>
+    <lbhDragdrop Caption="Плъзгане &#38; Пускане"/>
+    <cbxDragdropNoAsk Caption="Винаги използвай тези настройки:"/>
+    <DragdropOptions>
+      <cbxFiles Caption="Добавяне на файлове от избраните папки"/>
+      <cbxFolders Caption="Добави избраните папки"/>
+      <cbxRecursive Caption="Тези две опции да се прилагат и към подпапки"/>
+    </DragdropOptions>
+    <lbhBehaviour Caption="Настройки на списък"/>
+    <cbxLaunchFile Caption="Стартиране на файл с двоен клик на мишката"/>
+    <lbhRenaming Caption="Преименуване на файл"/>
+    <cbxCopy Caption="Направи ново преименувано копие"/>
+    <cbxGenerLog Caption="Генериране на Лог файл"/>
+<n/>    <cbxDSTRelativeToFile Caption="DST offset related to file date"/> <!-- note for translators: DST = daylight saving time -->
+    <lbhFoldersRules Caption="Правилата за папките"/>
+    <cbxForceDir Caption="Създаване на папки (Ако има знак &#34;\&#34; в имената на файловете)"/>
+    <cbxDetectAbsdir Caption="Считай &#34;:\&#34; или &#34;\\&#34; като абсолютен път (При преместване на файлове)"/>
+<n/>    <cbxFolderExt Caption="Consider the last &#34;.&#34; in a folder name as extension delimiter, like for files"/>
+    <lbhWhenStarted Caption="При започване на преименуването"/>
+    <cbxStartSwitch Caption="Премини към:"/>
+    <cmbStartSwitch>
+      <Items>
+        <Item Index="0" Value="Списък с файлове"/>
+        <Item Index="1" Value="Действия"/>
+        <Item Index="2" Value="Лог файл"/>
+      </Items>
+    </cmbStartSwitch>
+    <cbxStartClearLog Caption="Изчисти дневника"/>
+<n/>    <lbhWhenFinished Caption="При завършване на преименуването"/>
+    <cbxFinishSwitch Caption="Премини към:"/>
+    <cmbFinishSwitch>
+      <Items>
+        <Item Index="0" Value="Списък с файлове"/>
+        <Item Index="1" Value="Действия"/>
+        <Item Index="2" Value="Лог файл"/>
+      </Items>
+    </cmbFinishSwitch>
+    <cbxClearFilesList Caption="Изчистване на списъка с файлове"/>
+    <cbxClearBatchList Caption="Изчистване на списъка с пакетите"/>
+    <cbxSaveLog Caption="Запиши Лог файл:"/>
+    <btnSaveLog Hint="Преглед..."/>
+    <cbxSaveLogAppend Caption="Добавяне към текущия файл"/>
+    <lbhLanguage Caption="Език"/>
+    <LanguageFrame>
+      <lstLanguages>
+        <Columns>
+          <Column Index="0" Caption="Име"/>
+          <Column Index="1" Caption="Родно име"/>
+        </Columns>
+      </lstLanguages>
+      <lblVersion Caption="Версия:"/>
+      <lblMadeby Caption="Превод:"/>
+      <lblComments Caption="Коментар:"/>
+    </LanguageFrame>
+  </OptionsForm>
+  <SelectDirectoryForm Caption="Изберете папки за добавяне">
+    <btn1 Caption="Помощ"/>
+    <btn2 Caption="Отказ"/>
+    <btn3 Caption="OK"/>
+    <btn4 Caption="Мрежа..."/>
+    <Options>
+      <cbxFiles Caption="Добавяне на файлове от избраните папки"/>
+      <cbxFolders Caption="Добави избраните папки"/>
+      <cbxRecursive Caption="Тези две опции да се прилагат и към подпапките"/>
+    </Options>
+  </SelectDirectoryForm>
+  <DragdropOptionsForm Caption="Плъзгане &#38; Пускане Опции">
+    <btn1 Caption="Помощ"/>
+    <btn2 Caption="Отказ"/>
+    <btn3 Caption="OK"/>
+    <lblOptions Caption="Опции за добавяне на файлове и папки:"/>
+    <Options>
+      <cbxFiles Caption="Добавяне на файлове от избраните папки"/>
+      <cbxFolders Caption="Добави избраните папки"/>
+      <cbxRecursive Caption="Двете опции се прилагат към подпапките"/>
+    </Options>
+    <cbxNotAgain Caption="Не показвай отново (запази настройките за следващия път)"/>
+  </DragdropOptionsForm>
+</Application>

@@ -1,0 +1,430 @@
+<?xml version="1.0" encoding="windows-1252"?>
+<!--
+Icon=Qk32AAAAAAAAAHYAAAAoAAAAEAAAABAAAAABAAQAAAAAAIAAAAATCwAAEwsAABAAAAAQAAAAAAAAAJgAAAD9AAAA/2VlAKqqqgDMzMwA7u7uAP///wAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAHd3d3d3d3d3AAAAAAAAAAAERBEUREREQARVIiVVVVVgBFUiJVVVVWAEVSIlVVVVYARVIiVVVVVgASIiIiIiIjABIiIiIiIiMAEiIiIiIiIwBFUiJVVVVWAEVSIlVVVVYARVIiVVVVVgBmYzNmZmZmAAAAAAAAAAAHd3d3d3d3d3
+Name=Finnish
+LocalName=suomi
+Version=2.13
+VersionFormat=2.13
+Comments=Voit muokata tätä käännöstä tavallisella tekstieditorilla. Säilytä kopio alkuoperäisestä kaiken varalta.
+Authors=Kari Eveli|lexitec@lexitec.fi
+-->
+<Application>
+  <MainForm>
+    <tbTabs Caption="Sivut"/>
+    <tbProgram Caption="Ohjelma"/>
+    <tbFiles Caption="Tiedostot"/>
+    <tbMove Caption="Siirrä kohteita"/>
+    <tbActions Caption="Komennot"/>
+    <tbLog Caption="Loki"/>
+    <ActionBatchAddAction Caption="Lisää komentosarjaan" Hint="Lisää komentosarjaan|Lisää valittu komento asetuksineen komentosarjaan"/>
+    <ActionBatchOpen Caption="Avaa..." Hint="Avaa|Avaa komentosarjatiedosto"/>
+    <ActionBatchSaveAs Caption="Tallenna..." Hint="Tallenna|Tallenna komentosarja tiedostoon"/>
+    <ActionBatchRemoveSel Caption="Poista valitut" Hint="Poista valitut|Poista valitut komennot komentosarjasta"/>
+    <ActionBatchClear Caption="Tyhjennä" Hint="Tyhjennä komentosarja|Poista kaikki komennot komentosarjasta"/>
+    <ActionBatchNoRecent Caption="(ei aiempaa tiedostoa)"/>
+    <ActionAddFiles Caption="Lisää tiedostoja..." Hint="Lisää tiedostoja|Lisää tiedostoja luetteloon"/>
+    <ActionAddFolders Caption="Lisää kansioita..." Hint="Lisää kansioita|Lisää kansioita tai niiden sisältö luetteloon"/>
+    <ActionRemoveSelected Caption="Poista valitut" Hint="Poista valitut|Poista valitut tiedostot luettelosta"/>
+    <ActionRemoveAll Caption="Poista kaikki" Hint="Poista kaikki|Poista kaikki tiedostot luettelosta"/>
+    <ActionRemoveDead Caption="Poista puuttuvat" Hint="Poista puuttuvat|Poista luettelosta ne tiedostot, joita ei enää ole"/>
+    <ActionPreview Caption="Esikatselu" Hint="Virkistä esikatselu|Virkistä esikatselusarake ja näytä nyt suunnitellut komennot"/>
+    <ActionFromListClear Caption="Tyhjennä" Hint="Tyhjennä luettelo|Tyhjennä luettelo"/>
+    <ActionFromListOpen Caption="Avaa..." Hint="Avaa|Avaa luettelo tiedostosta"/>
+    <ActionFromListSave Caption="Tallenna..." Hint="Tallenna|Tallenna luettelo tiedostoon"/>
+    <ActionMultistrReplClear Caption="Tyhjennä" Hint="Tyhjennä merkkijonoruudukko"/>
+    <ActionMultistrReplCopy Caption="Kopioi/Vie" Hint="|Kopioi koko merkkijonotaulukko leikepöydälle sarkaimilla eroteltuna tekstinä (TSV) tuodaksesi sen Exceliin tai tekstieditoreihin"/>
+editors"/>
+    <ActionMultistrReplPaste Caption="Liitä/Tuo" Hint="|Liitä leikepöydältä Excelistä tai tekstieditoreista peräisin oleva sarkaimilla eroteltu merkkijonotaulukko (TSV)"/>
+    <ActionMultistrReplSave Caption="Tallenna" Hint="|Tallenna tämä merkkijonomuunnossarja ylläolevaan kenttään kirjoitetulla nimellä"/>
+    <ActionMultistrReplDelete Caption="Poista" Hint="|Poista valittu merkkijonomuunnossarja ylläolevasta pudotusvalikosta"/>
+    <ActionMoveUp Caption="Ylös" Hint="Siirrä ylös|Siirrä valittuja ylöspäin"/>
+    <ActionMoveDown Caption="Alas" Hint="Siirrä alas|Siirrä valittuja alaspäin"/>
+    <ActionMoveTop Caption="Ylimmäksi" Hint="Siirrä ylimmäksi|Siirrä valitut luettelossa ylimmäksi"/>
+    <ActionMoveBottom Caption="Alimmaksi" Hint="Siirrä alimmaksi|Siirrä valitut luettelossa alimmaksi"/>
+    <ActionItemsUnsort Caption="Poista lajittelu" Hint="|Poistaa nykyisen lajittelun"/>
+    <ActionItemsSelectAll Caption="Valitse kaikki" Hint="Valitse kaikki|Valitse kaikki kohteet"/>
+    <ActionItemsSelectNone Caption="Älä valitse mitään" Hint="Älä valitse mitään|Poista kaikki kohteiden valinnat"/>
+    <ActionItemsSelectInvert Caption="Käänteinen valinta" Hint="Käänteinen valinta|Valitse ne, jotka eivät ole valittuja"/>
+    <ActionLogClear Caption="Tyhjennä" Hint="Tyhjennä|Tyhjennä loki"/>
+    <ActionLogSave Caption="Tallenna..." Hint="Tallenna|Tallenna loki tiedostoon"/>
+    <ActionLogCopy Caption="Kopioi" Hint="Kopioi|Kopioi loki leikepöydälle"/>
+    <ActionLogFilter Caption="Suodata" Hint="Suodata|Suodata lokin kohdat"/>
+    <ActionLogFilterOk Caption="Toteutuneet" Hint="Näytä uudelleennimetyt|Näytä kohdat, jotka vastaavat onnistuneesti uudelleennimettyjä tiedostoja"/>
+    <ActionLogFilterError Caption="Epäonnistuneet" Hint="Näytä epäonnistuneet|Näytä kohdat, jotka vastaavat epäonnistumisia uudelleennimeämisessä"/>
+    <ActionLogFilterNot Caption="Ohitetut" Hint="Näytä ohitetut|Näytä kohdat, jotka vastaavat uudelleennimeämisessä ohitettuja tiedostoja"/>
+    <ActionActionGo Caption="Tee" Hint="Tee|Käynnistä uudelleennimeäminen"/>
+    <ActionActionStop Caption="Seis" Hint="Seis|Pysäytä uudelleennimeäminen"/>
+    <ActionOptions Caption="Asetukset..." Hint="Asetukset|Muuta ohjelman asetuksia"/>
+    <ActionActionUndo Caption="Peru" Hint="Peru|Peru viimeisin uudelleennimeäminen"/>
+    <ActionHelpContents Caption="Ohje" Hint="Ohje|Avaa ohjetiedosto"/>
+    <ActionHelpAbout Caption="Tietoja..." Hint="Tietoja|Tietoja ohjelmasta"/>
+    <ActionExit Caption="Sulje" Hint="Sulje|Poistu ohjelmasta"/>
+    <ActionAlwaysOnTop Caption="Ylimpänä" Hint="Aina ylimpänä|Pidä ohjelmaikkuna aina ylimpänä"/>
+    <ActionTabFiles Caption="Tiedostot" Hint="Tiedostot|Näytä tiedostot"/>
+    <ActionTabActions Caption="Komennot" Hint="Komennot|Näytä komennot"/>
+    <ActionTabLog Caption="Loki" Hint="Loki|Näytä loki"/>
+    <lstFiles Hint="|Tiedostoluettlo - napsauta hiiren oikealla näppäimellä sarakkeiden otsikoita sarakkeiden räätälöimiseksi">
+      <Header>
+        <Columns>
+          <Item Index="0" Text="Kansio"/>
+          <Item Index="1" Text="Tiedostonimi"/>
+          <Item Index="2" Text="Koko polku"/>
+          <Item Index="3" Text="Tiedostopääte"/>
+          <Item Index="4" Text="Esikatselu"/>
+          <Item Index="5" Text="Koko"/>
+          <Item Index="6" Text="Luontipäivä"/>
+          <Item Index="7" Text="Muutospäivä"/>
+        </Columns>
+      </Header>
+    </lstFiles>
+    <grpPreview Caption="       Valitun tiedoston esikatselu "/>
+    <grpBatch Caption="       Komentosarjan sisältö (suunnitellut toimet) "/>
+    <lstBatch Hint="|Komentosarjan sisältö (suunnitellut toimet)"/>
+    <lblPreviewOld Caption="Nykyinen nimi:"/>
+    <lblPreviewNew Caption="Ehdokas nimeksi:"/>
+    <lstActions Hint="|Komentoluettelo">
+      <Items>
+        <Item Index="0" Value="Muuta tiedostopääte"/>
+        <Item Index="1" Value="Korvaa merkkijono"/>
+        <Item Index="2" Value="Korvaa useampi merkkijono"/>
+        <Item Index="3" Value="Merkkijonon lisäys"/>
+        <Item Index="4" Value="Merkkijonon siirto"/>
+        <Item Index="5" Value="Merkkien poisto"/>
+        <Item Index="6" Value="Numerointi"/>
+        <Item Index="7" Value="Käytä MP3-tägin tietoja"/>
+        <Item Index="8" Value="Käytä päiväystä ja aikaa"/>
+        <Item Index="9" Value="Satunnaiset nimet"/>
+        <Item Index="10" Value="Isot ja pienet kirjaimet"/>
+        <Item Index="11" Value="Poimi nimet luettelosta"/>
+        <Item Index="12" Value="Säännölliset lausekkeet"/>
+        <Item Index="13" Value="Käytä EXIF-tietoja"/>
+      </Items>
+    </lstActions>
+    <lblChangeExt Caption="Korvaa tiedostopääte merkkijonolla:"/>
+    <cbxChangeExtNoRepl Caption="Älä korvaa tiedostopäätettä, lisää se nykyisen koko nimen jälkeen"/>
+    <lblChangeExtNotes Caption="Huomautuksia:&lt;br&gt;- Älä merkitse pistettä, syötä vain uusi tiedostopääte&lt;br&gt;- Mikäli haluat luoda numeerisesti kasvavan tiedostopäätteen, käytä komentoa &lt;LINK&gt;Numerointi&lt;/LINK&gt;"/>
+    <lblStrReplSearch Caption="Etsi merkkijonoa:"/>
+    <lblStrReplBy Caption="ja korvaa se tällä:"/>
+    <cbxStrReplAll Caption="Korvaa kaikki esiintymät"/>
+    <cbxStrReplCase Caption="Isot ja pienet kirjaimet merkitseviä"/>
+    <cbxStrReplExt Caption="Sisällytä tiedostopääte hakuun"/>
+    <cbxStrReplOnlyExt Caption="Sovella tiedostopäätteeseen eikä tiedostonimeen"/>
+    <lblMultstrSearch Caption="Etsi merkkijonoa:"/>
+    <lblMultstrReplBy Caption="ja korvaa se tällä:"/>
+    <lblMultstrReplSet Caption="Valmiiksi määritellyt merkkijonomuunnossarjat:"/>
+    <cbxMultstrReplExt Caption="Sisällytä tiedostopääte hakuun"/>
+    <cbxMultstrCase Caption="Isot ja pienet kirjaimet merkitseviä"/>
+    <lblMultstrReplNotes Caption="Huomautuksia:&lt;BR&gt;- Käytä Ctrl+plus (+) ja Ctrl+miinus (-) -näppäimiä lisätäksesi ja poistaaksesi rivejä kursorin kohdalla"/>
+    <lblStrInsStr Caption="Lisättävä merkkijono:"/>
+    <lblStrInsPos Caption="Kohtaan:"/>
+    <rbtStrInsBegin Caption="Alusta lukien"/>
+    <rbtStrInsEnd Caption="Lopusta lukien"/>
+    <cbxStrInsExt Caption="Sovella tiedostopäätteeseen tiedostonimen sijasta"/>
+    <lblStrInsNotes Caption="Huomautuksia:&lt;br&gt;- Mikäli haluat lisätä merkkijonon toisen merkkijonon eteen tai jälkeen, käytä komentoa &lt;LINK&gt;Korvaa merkkijono&lt;/LINK&gt; &lt;br&gt;- %name% = Alkuperäinen tiedostonimi (ilman tiedostopäätettä)&lt;BR&gt;- %ext% = Alkuperäinen tiedostopääte (pisteineen)&lt;BR&gt;- %folderN% = Kansion nimi&lt;BR&gt;- %% = %-merkki&lt;BR&gt;katso &lt;LINK&gt;ohjeesta&lt;/LINK&gt; tarkempia tietoja"/>
+    <lblMoveStrFrom Caption="Merkkipaikasta:"/>
+    <rbtMoveStrFromBegin Caption="Alusta lukien"/>
+    <rbtMoveStrFromEnd Caption="Lopusta lukien"/>
+    <lblMoveStrCount Caption="Montako merkkiä siirretään:"/>
+    <lblMoveStrTo Caption="merkkipaikkaan:"/>
+    <rbtMoveStrToBegin Caption="Alusta lukien"/>
+    <rbtMoveStrToEnd Caption="Lopusta lukien"/>
+    <lblMoveStrNotes Caption="Huomautuksia:&lt;br&gt;- Mikäli haluat siirtää tietyn merkkijonon, joka ei ole aina samassa merkkipaikassa, käytä komentoa &lt;link&gt;Korvaa merkkijono&lt;/link&gt; sen poistamiseksi ja sitten komentoa &lt;link&gt;Merkkijonon lisäys&lt;/link&gt; sen sijoittamiseksi uuteen paikkaan&lt;BR&gt;- &#34;Merkkipaikkaan&#34;-kohdan arvo ei sisällä siirrettyjä merkkejä (se siis käyttäytyy ikään kuin ne olisi jo poistettu)"/>
+    <lblCharDel Caption="Montako merkkiä poistetaan:"/>
+    <rbtCharDelPos Caption="Merkkipaikasta:"/>
+    <rbtCharDelBegin Caption="Alusta lukien"/>
+    <rbtCharDelEnd Caption="Lopusta lukien"/>
+    <rbtCharDelStr Caption="Merkkijonon jälkeen:"/>
+    <rbtCharDelStr2 Caption="Ennen merkkijonoa:"/>
+    <cbxCharDelExt Caption="Sovella tiedostopäätteeseen tiedostonimen sijasta"/>
+    <lblCharDelNotes Caption="Huomautuksia:&lt;BR&gt;- Kohdat poisto yhtäältä &#34;Merkkipaikasta&#34; ja toisaalta tietyn &#34;Merkkijonon jälkeen&#34; tai &#34;Ennen merkkijonoa&#34; ovat toisensa poissulkevia vaihtoehtoja&lt;BR&gt;- Poistaaksesi tietyn merkkijonon käytä komentoa &lt;LINK&gt;Korvaa merkkijono&lt;/LINK&gt; ja korvaa merkkijono tyhjällä merkkijonolla"/>
+    <lblEnumMask Caption="Luontikaava:"/>
+    <lblEnumStart Caption="Aloita numerosta:"/>
+    <lblEnumDigits Caption="Numeropaikkoja:"/>
+    <lblEnumIncr Caption="Kasvata luvulla:"/>
+    <cbxEnumRestart Caption="Palaa aloitusnumeroon, kun kansio vaihtuu"/>
+    <lblEnumNotes Caption="Huomautuksia:&lt;BR&gt;- %name% = Alkuperäinen tiedostonimi (ilman tiedostopäätettä)&lt;BR&gt;- %ext% = Alkuperäinen tiedostopääte (pisteineen)&lt;BR&gt;- %num% = Numero&lt;BR&gt;- %folderN% = Kansion nimi&lt;BR&gt;- %% = %-merkki&lt;BR&gt;katso &lt;LINK&gt;ohjeesta&lt;/LINK&gt; tarkempia tietoja"/>
+    <lblMP3Mask Caption="Luontikaava:"/>
+    <cbxMP3TwoDigit Caption="Kaksinumeroinen raidan numero (lisää '0' numeron eteen tarvittaessa)"/>
+    <cbxMP3Convert Caption="Muunna laittomat merkit kuten ? / \ : &lt; &gt; | ¦ *"/>
+    <lblMP3Notes Caption="Huomautuksia:&lt;BR&gt;- %author% = Tekijä&lt;BR&gt;- %title% = Nimike&lt;BR&gt;- %album% = Albumi&lt;BR&gt;- %year% = Vuosi&lt;BR&gt;- %genre% = Genre&lt;BR&gt;- %comm% = Kommentti&lt;BR&gt;- %track% = Raidan numero (ID3V1.1)&lt;BR&gt;- %name% = Alkuperäinen tiedostonimi (ilman tiedostopäätettä)&lt;BR&gt;- %ext% = Alkuperäinen tiedostopääte (pisteineen)&lt;BR&gt;- %folderN% = Kansion nimi&lt;BR&gt;- %% = %-merkki&lt;BR&gt;- $if(ehto,tosiarvo,epätosiarvo)&lt;BR&gt;katso &lt;LINK&gt;ohjeesta&lt;/LINK&gt; tarkempia tietoja"/>
+    <lblDTMask Caption="Luontikaava:"/>
+    <cbxDTSuffix Caption="Lisää suffiksi, jos yhtä useammalla tiedostolla on sama päiväys/aika"/>
+    <lblDTWhich Caption="Päiväystyyppi:"/>
+    <rbtDTWhichCreation Caption="luonti"/>
+    <rbtDTWhichModif Caption="viimeinen muutos"/>
+    <lblDTOffset Caption="Ero:"/>
+    <lblDTOffsetSec Caption="sekuntia"/>
+    <lblDTNotes Caption="Huomautuksia:"/>
+    <lblDTNotes2>
+      <Lines>
+        <![CDATA[f	Alkuperäinen tiedostonimi (ilman tiedostopäätettä)
+e	Alkuperäinen tiedostopääte (pisteineen)
+c	Aika ja päiväys Windowsin standardimuodossa
+d	Päivä ilman edeltävää nollaa (1-31)
+dd	Päivä edeltävän nollan kera (01-31)
+ddd	Päivä, lyhyt nimi (ke)
+dddd	Päivä, pitkä nimi (keskiviikko)
+ddddd	Päivä Windowsin lyhyessä päiväysmuodossa
+dddddd	Päivä Windowsin pitkässä päiväysmuodossa
+m	Kuukausi ilman edeltävää nollaa (1-12)
+mm	Kuukausi edeltävän nollan kera (01-12)
+mmm	Kuukausi, lyhyt nimi  (elo)
+mmmm	Kuukausi, pitkä nimi (elokuu)
+yy	Vuosi kahdella numerolla (00-99)
+yyyy	Vuosi neljällä numerolla (0000-9999)
+h	Tunti ilman edeltävää nollaa (0-23)
+hh	Tunti edeltävän nollan kera (00-23)
+n	Minuutti ilman edeltävää nollaa (0-59)
+nn	Minuutti edeltävän nollan kera (00-59)
+s	Sekunti ilman edeltävää nollaa  (0-59)
+ss	Sekunti edeltävän nollan kera (00-59)
+z	Millisekunti ilman edeltävää nollaa (0-999)
+zzz	Millisekunti edeltävän nollan kera (000-999)
+am/pm	Käytä 12-tunnin kelloa sitä edeltävässä h tai hh -merkinnässä
+a/p	Käytä 12-tunnin kelloa sitä edeltävässä h tai hh -merkinnässä
+'xx'/"xx"	Yksöis- tai kaksoislainausmerkkien sisällä olevat merkit eivät muutu
+
+Mikäli m tai mm seuraavat välittömästi h tai hh -merkintöjä, ne tulkitaan minuuteiksi eikä kuukauksiksi]]>
+      </Lines>
+    </lblDTNotes2>
+    <lblRandomMask Caption="Luontikaava:"/>
+    <lblRandomMethod Caption="Luontitapa:"/>
+    <rbtRandomNumber Caption="Satunnaisluku (8 numeroa)"/>
+    <rbtRandomTick Caption="Luku millisekunteina Windowsin käynnistyksestä (Windows tick count)"/>
+    <rbtRandomGUID Caption="GUID-tunnusluku"/>
+    <lblRandomNotes Caption="Huomautuksia:&lt;BR&gt;- %name% = Alkuperäinen tiedostonimi (ilman tiedostopäätettä)&lt;BR&gt;- %ext% = Alkuperäinen tiedostopääte (pisteineen)&lt;BR&gt;- %random% = Satunnainen merkkijono&lt;BR&gt;- %% = %-merkki&lt;BR&gt;katso &lt;LINK&gt;ohjeesta&lt;/LINK&gt; tarkempia tietoja"/>
+    <rbtCaseWords Caption="Iso alkukirjain, jota seuraa mikä tahansa näistä merkeistä:"/>
+    <rbtCaseFirst Caption="Tiedostonimen iso alkukirjain"/>
+    <rbtCaseUpper Caption="Isot kirjaimet"/>
+    <rbtCaseLower Caption="Pienet kirjaimet"/>
+    <cbxCaseLocale Caption="Käytä Windowsin maakohtaisia asetuksia aksenteilla varustettujen merkkien muuttamiseksi"/>
+    <cbxCaseIncludeExt Caption="Sovella tätä myös tiedostopäätteeseen"/>
+    <cbxCaseOnlyExt Caption="Sovella tiedostopäätteeseen tiedostonimen sijasta"/>
+    <cbxFromListExt Caption="Lisää tiedoston alkuperäinen pääte loppuun"/>
+    <cbxFromListOnlyExt Caption="Käytä kohteita tiedostopäätteinä nimien sijasta"/>
+    <lblFromListNotes Caption="Huomautuksia:&lt;BR&gt;- Jokaista tämän luettelon riviä käytetään tiedoston nimenä. Nimet poimitaan luettelon mukaisessa järjestyksessä&lt;BR&gt;- Mikäli luettelo sisältää tyhjiä rivejä tai rivejä ei ole tarpeeksi, vastaavat tiedostot jäävät uudelleennimeämättä"/>
+    <lblRegexp Caption="Regexp-lauseke:"/>
+    <lblRegexpRepl Caption="Uusi nimi:"/>
+    <lblRegexpNotes Caption="Huomautuksia:&lt;BR&gt;- Merkkiä edeltävällä \-merkillä voidaan palauttaa merkin alkuperäinen l. literaalimerkitys, kun jollain merkillä on erikoismerkitys (kuten $ . + ym). Käytä merkintää \\ tavallisen \-merkin sijasta uudessa nimessä (mikäli tiedosto, jolla on uusi nimi, ohjataan toiseen kansioon)&lt;BR&gt;- Käytä ^-merkkiä nimen alun merkitsemiseksi ja $-merkkiä sen lopun merkitsemiseksi&lt;BR&gt;- Uudessa nimessä tulee olla $1, $2, jne. ilmoittamaan löydettyjen merkkien paikkoja (takaisinviittauksia)&lt;BR&gt;katso &lt;LINK&gt;ohjeesta&lt;/LINK&gt; lisätietoja säännöllisistä lausekkeista (regular expressions)"/>
+    <lblExifMask Caption="Luontikaava:"/>
+    <lblExifOffset Caption="Ero:"/>
+    <lblExifOffsetSec Caption="sekuntia"/>
+    <lblExifNotes Caption="Huomautuksia:&lt;BR&gt;- %name% = Alkuperäinen tiedostonimi (ilman tiedostopäätettä)&lt;BR&gt;- %ext% = Alkuperäinen tiedostopääte (pisteineen)&lt;BR&gt;- %datetimeoriginal% tai %datetime% = Kuvan alkuperäinen aika ja päiväys&lt;BR&gt;- %orientation% = Kuvan suunta&lt;BR&gt;- %flash% = Salama oli käytössä tai pois käytöstä&lt;BR&gt;- %% = %-merkki&lt;BR&gt;katso &lt;LINK&gt;ohjeesta&lt;/LINK&gt; tarkempia tietoja tai täydellistä EXIF-tägien luetteloa"/>
+    <lstLog Hint="|Loki"/>
+    <VarMessages>
+      <Item Name="strfltAllFiles" Value="Kaikki tiedostot"/>
+      <Item Name="strfltTextFiles" Value="Tekstitiedostot"/>
+      <Item Name="strfltBatchFiles" Value="Ant Renamer -komentosarjat"/>
+      <Item Name="strmsgSelectFiles" Value="Valitse tiedostoja"/>
+      <Item Name="strmsgSelectFolder" Value="Valitse kansio"/>
+      <Item Name="strmsgStatusAddingFiles" Value="Tiedostoja lisätään"/>
+      <Item Name="strmsgStatusRenaming" Value="Tiedostoja uudelleennimetään"/>
+      <Item Name="strmsgFilesCount" Value="%d tiedosto(a)"/>
+      <Item Name="strmsgBusy" Value="Ohjelman suoritus on kesken: uudelleennimetään."/>
+      <Item Name="strmsgNothingToDo" Value="Ei suoritettavaa: valitse ainakin yksi tiedosto ja siihen sovellettava komento."/>
+      <Item Name="strlogStartRename" Value="Uudelleennimeäminen aloitettiin"/>
+      <Item Name="strlogStartPreview" Value="Virkistetään esikatselua"/>
+      <Item Name="strlogStartRevert" Value="Palautetaan aiemmat nimet"/>
+      <Item Name="strlogEndRename" Value="Uudelleennimeäminen tuli valmiiksi"/>
+      <Item Name="strlogEndPreview" Value="Esikatselun virkistäminen tuli valmiiksi"/>
+      <Item Name="strlogEndRevert" Value="Aiemmat nimet palautettu"/>
+      <Item Name="strlogStoppedByUser" Value="Käyttäjä pysäytti toimenpiteen"/>
+      <Item Name="stradUnknown" Value="Älä tee mitään"/>
+      <Item Name="stradInclExt" Value=", sovella myös tiedostopäätteeseen"/>
+      <Item Name="stradOnlyExt" Value=", sovella tiedostopäätteeseen nimen sijasta"/>
+      <Item Name="stradChangeExt" Value="Muuta tiedostopäätteeksi &#34;%s&#34;"/>
+      <Item Name="stradChangeExtRmv" Value="Poista tiedostopääte"/>
+      <Item Name="stradChangeExtNoRepl" Value="Lisää loppuun tiedostopääte &#34;%s&#34;"/>
+      <Item Name="stradStringRepl" Value="Korvaa &#34;%s&#34; => &#34;%s&#34;"/>
+      <Item Name="stradStringReplAll" Value=" mukaan lukien kaikki esiintymät"/>
+      <Item Name="stradStringReplCase" Value=", isot ja pienet kirjaimet merkitseviä"/>
+      <Item Name="stradMultstrRepl" Value="Korvaa useat merkkijonot käyttäen merkkijonomuunnossarjaa &#34;%s&#34;"/>
+      <Item Name="stradStringIns" Value="Sijoita &#34;%s&#34; merkkikohtaan %d"/>
+      <Item Name="stradMoveStr" Value="Siirrä %d merkkiä merkkikohdasta %d%s merkkikohtaan %d%s"/>
+      <Item Name="stradCharDel" Value="Poista %d merkkiä"/>
+      <Item Name="stradCharDelPos" Value=" merkkikohdasta %d"/>
+      <Item Name="stradCharDelStr" Value=" merkkijonon &#34;%s&#34; jälkeen"/>
+      <Item Name="stradCharDelStr2" Value=" ennen merkkijonoa &#34;%s&#34;"/>
+      <Item Name="stradEnum" Value="Luo numerointi käyttäen kaavaa &#34;%s&#34; alkaen luvusta %d, numeropaikkoja on %d ja lisäys on %d"/>
+      <Item Name="stradMP3" Value="Luo nimet MP3-tägien avulla perustuen luontikaavaan &#34;%s&#34;"/>
+      <Item Name="stradMP3TwoDigit" Value=", lisää '0' uran numeroon tarvittaessa"/>
+      <Item Name="stradMP3Convert" Value=", muunna laittomat merkit"/>
+      <Item Name="stradFromBegin" Value=" alusta lukien"/>
+      <Item Name="stradFromEnd" Value=" lopusta lukien"/>
+      <Item Name="stradDateTime" Value="Luo nimet perustuen tiedostojen aikaan ja päiväykseen luontikaavalla &#34;%s&#34;"/>
+      <Item Name="stradDateTimeCreat" Value=" luontipäivän mukaan"/>
+      <Item Name="stradDateTimeModif" Value=" viimeisen muutospäivän mukaan"/>
+      <Item Name="stradDateTimeSuffix" Value=", lisää suffiksi tarvittaessa"/>
+      <Item Name="stradDateTimeOffset" Value=", jossa %d s eroa"/>
+      <Item Name="stradRandom" Value="Luo satunnaisnimiä luontikaavalla &#34;%s&#34;"/>
+      <Item Name="stradRandomNumbers" Value=" käyttäen numeroita"/>
+      <Item Name="stradRandomTick" Value=" käyttäen lukua Windowsin käynnistyksestä"/>
+      <Item Name="stradRandomGUID" Value=" käyttäen GUID-tunnuslukua"/>
+      <Item Name="stradCase" Value="Muuta kirjainkokoa:"/>
+      <Item Name="stradCaseWords" Value=" iso alkukirjain, jota seuraa mikä tahansa seuraavista merkeistä &#34;%s&#34;"/>
+      <Item Name="stradCaseFirst" Value=" tiedostonimen iso alkukirjain"/>
+      <Item Name="stradCaseUpper" Value=" kaikki isolla"/>
+      <Item Name="stradCaseLower" Value=" kaikki pienellä"/>
+      <Item Name="stradCaseLocale" Value=" käyttäen Windowsin maakohtaisia asetuksia"/>
+      <Item Name="stradFromList" Value="Nimeä tiedostot uudelleen käyttämällä määriteltyä luetteloa"/>
+      <Item Name="stradFromListExt" Value=", lisää loppuun alkuperäinen tiedostopääte"/>
+      <Item Name="stradFromListOnlyExt" Value=", käytä kohteita päätteinä nimien sijasta"/>
+      <Item Name="stradRegexp" Value="Nimeä tiedostot uudelleen käyttämällä säännöllistä lauseketta"/>
+      <Item Name="stradExif" Value="Luo nimet EXIF-tiedoista luontikaavalla &#34;%s&#34;"/>
+      <Item Name="straeFromListEmpty" Value="luettelossa tyhjä rivi"/>
+      <Item Name="straeFromListEnd" Value="luettelossa ei enempiä rivejä"/>
+      <Item Name="straeExifNoInfo" Value="ei EXIF-tietoja"/>
+      <Item Name="strfsNotRenamed" Value="%s - ei uudelleennimetty: %s"/>
+      <Item Name="strfsRenamed" Value="%s uudelleennimettiin nimellä %s"/>
+      <Item Name="strfsReverted" Value="%s:lle palautettiin aiempi nimi %s"/>
+      <Item Name="strfsRenError" Value="Ei kyetty uudelleennimeämään %s => %s: %s"/>
+      <Item Name="strfsNoOldName" Value="Ei aiempaa tallennettua nimeä, johon %s:n nimi voitaisiin palauttaa"/>
+      <Item Name="strfs404" Value="lähdetiedostoa ei löytynyt"/>
+      <Item Name="strfsAlreadyExist" Value="samanniminen tiedosto tai kansio on jo"/>
+      <Item Name="strfeIdentical" Value="uusi nimi on sama kuin vanha nimi"/>
+      <Item Name="strhintNotAgain" Value="Älä näytä tätä vinkkiä uudestaan"/>
+      <Item Name="strhintShowPreview" Value="Esikatselusarake on nyt esillä. Napsauta hiiren oikeaa näppäintä sarakkeen otsakkeen kohdalla tiedostoluettelossa sen piilottamiseksi."/>
+    </VarMessages>
+  </MainForm>
+  <AboutForm Caption="Tietoja tästä ohjelmasta">
+    <btn1 Caption="Historia"/>
+    <btn2 Caption="Sulje"/>
+    <tshGeneral Caption="Yleistä"/>
+    <tshCredits Caption="Kiitokset"/>
+  </AboutForm>
+  <MessageWin>
+    <Captions>
+      <Strings>
+        <Item Index="0" Value="Varoitus"/>
+        <Item Index="1" Value="Virhe"/>
+        <Item Index="2" Value="Tieto"/>
+        <Item Index="3" Value="Vahvistus"/>
+        <Item Index="4" Value="&#38;Kyllä"/>
+        <Item Index="5" Value="&#38;Ei"/>
+        <Item Index="6" Value="&#38;OK"/>
+        <Item Index="7" Value="&#38;Peruuta"/>
+        <Item Index="8" Value="&#38;Keskeytä"/>
+        <Item Index="9" Value="&#38;Yritä uud."/>
+        <Item Index="10" Value="&#38;Ohita"/>
+        <Item Index="11" Value="&#38;Kaikki"/>
+        <Item Index="12" Value="Ei kaikkiin"/>
+        <Item Index="13" Value="Käyllä kaikkiin"/>
+        <Item Index="14" Value="&#38;Ohje"/>
+      </Strings>
+    </Captions>
+  </MessageWin>
+  <OptionsForm Caption="Asetukset">
+    <btn1 Caption="Ohje"/>
+    <btn2 Caption="Peruuta"/>
+    <btn3 Caption="OK"/>
+    <tshDisplay Caption="Näyttö"/>
+    <tshAdding Caption="Tiedostot ja kansiot"/>
+    <tshProcessing Caption="Toiminta"/>
+    <tshEvents Caption="Tapahtumat"/>
+    <tshLanguage Caption="Kieli"/>
+    <lbhLists Caption="Luettelot"/>
+    <cbxRealtimeUpdate Caption="Päivitys reaaliajassa tiedostoja uudelleennimettäessä"/>
+    <cbxResizeColsFiles Caption="Tiedostoluettelon sarakkeiden koon automaattinen säätö"/>
+    <cbxFilesIcons Caption="Näytä kuvakkeet tiedostoluettelossa tiedostopäätteen mukaisesti"/>
+    <lbhFonts Caption="Fontit"/>
+    <cbxForceFont Caption="Pakota seuraava fontti erikoismerkkejä näytettäessä:"/>
+    <cmbForceFont>
+      <Items>
+        <Item Index="0" Value="Windowsin oletusfontti"/>
+      </Items>
+    </cmbForceFont>
+    <lblForceFont Caption="Huom.: fontteja Noto Sans, DejaVu Sans tai Arial Unicode MS:ää suositellaan, mikäli jokin niistä on saatavilla"/>
+    <lbhDropdown Caption="Pudotusvalikot"/>
+    <lblDropdownMax Caption="Muistissa pidettävien rivien lukumäärä:"/>
+    <cbxDropdownComplete Caption="Täydennä automaattisesti muistista tietoa syötettäessä"/>
+    <lbhToolbars Caption="Työkalupalkit"/>
+    <lblIconSet Caption="Kuvakesarja:"/>
+    <lblColorType Caption="Väritystapa:"/>
+    <cmbColorType>
+      <Items>
+        <Item Index="0" Value="Automaattinen"/>
+        <Item Index="1" Value="Himmennetty, kun ei aktiivinen"/>
+        <Item Index="2" Value="Sekoitettu vaalea, kun ei aktiivinen (XP:n kaltainen)"/>
+        <Item Index="3" Value="Sekoitettu tumma, kun ei aktiivinen"/>
+        <Item Index="4" Value="Aina väritetty"/>
+      </Items>
+    </cmbColorType>
+    <cbxOfficeXP Caption="Office XP:n kaltainen"/>
+    <lbhDragdrop Caption="Vedä ja pudota"/>
+    <cbxDragdropNoAsk Caption="Älä kysy, mitä tehdään, vaan käytä aina seuraavia asetuksia:"/>
+    <DragdropOptions>
+      <cbxFiles Caption="Lisää valittujen kansioiden tiedostot"/>
+      <cbxFolders Caption="Lisää valitut kansiot"/>
+      <cbxRecursive Caption="Sovella näitä kahta asetusta myös alikansioihin"/>
+    </DragdropOptions>
+    <lbhBehaviour Caption="Luettelojen toiminta"/>
+    <cbxLaunchFile Caption="Käynnistä tiedosto kaksoisnapsautuksesta"/>
+    <lbhRenaming Caption="Tiedoston uudelleennimeäminen"/>
+    <cbxCopy Caption="Kopioi uudelleennimeämisen sijasta"/>
+    <cbxGenerLog Caption="Luo loki"/>
+    <cbxDSTRelativeToFile Caption="Huomioi kesäaika tiedoston ajan mukaan"/>
+    <lbhFoldersRules Caption="Kansiosäännöt"/>
+    <cbxForceDir Caption="Kansion olemassaolon tarkastus ja luonti (kun &#34;\&#34;-merkki on tiedostonimessä)"/>
+    <cbxDetectAbsdir Caption="Tunnista &#34;:\&#34; tai &#34;\\&#34; absoluuttiseksi poluksi (= tiedostojen siirto minne tahansa)"/>
+    <cbxFolderExt Caption="Pidä viimeistä &#34;.&#34; kansion nimessä päätteen erottimena kuten tiedostoissa"/>
+    <lbhWhenStarted Caption="Kun uudelleennimeäminen käynnistyy"/>
+    <cbxStartSwitch Caption="Vaihda näkymä:"/>
+    <cmbStartSwitch>
+      <Items>
+        <Item Index="0" Value="tiedostojen luetteloon"/>
+        <Item Index="1" Value="komentoihin"/>
+        <Item Index="2" Value="lokiin"/>
+      </Items>
+    </cmbStartSwitch>
+    <cbxStartClearLog Caption="Tyhjennä loki"/>
+    <lbhWhenFinished Caption="Kun uudelleennimeäminen päättyy"/>
+    <cbxFinishSwitch Caption="Vaihda näkymä:"/>
+    <cmbFinishSwitch>
+      <Items>
+        <Item Index="0" Value="tiedostojen luetteloon"/>
+        <Item Index="1" Value="komentoihin"/>
+        <Item Index="2" Value="lokiin"/>
+      </Items>
+    </cmbFinishSwitch>
+    <cbxClearFilesList Caption="Tyhjennä tiedostoluettelo"/>
+    <cbxClearBatchList Caption="Tyhjennä komentosarjaluettelo"/>
+    <cbxSaveLog Caption="Tallenna loki nimellä:"/>
+    <btnSaveLog Hint="Selaa..."/>
+    <cbxSaveLogAppend Caption="Liitä nykytiedoston loppuun"/>
+    <lbhLanguage Caption="Kieli"/>
+    <LanguageFrame>
+      <lstLanguages>
+        <Columns>
+          <Column Index="0" Caption="Nimi"/>
+          <Column Index="1" Caption="Paikallinen nimi"/>
+        </Columns>
+      </lstLanguages>
+      <lblVersion Caption="Versio:"/>
+      <lblMadeby Caption="Kääntänyt:"/>
+      <lblComments Caption="Huomaa:"/>
+    </LanguageFrame>
+  </OptionsForm>
+  <SelectDirectoryForm Caption="Valitse lisättävät kansiot">
+    <btn1 Caption="Ohje"/>
+    <btn2 Caption="Peruuta"/>
+    <btn3 Caption="OK"/>
+    <btn4 Caption="Verkko..."/>
+    <Options>
+      <cbxFiles Caption="Lisää valittujen kansioiden tiedostot"/>
+      <cbxFolders Caption="Lisää valitut kansiot"/>
+      <cbxRecursive Caption="Sovella näitä kahta asetusta myös alikansioihin"/>
+    </Options>
+  </SelectDirectoryForm>
+  <DragdropOptionsForm Caption="Vedä ja pudota -asetukset">
+    <btn1 Caption="Ohje"/>
+    <btn2 Caption="Peruuta"/>
+    <btn3 Caption="OK"/>
+    <lblOptions Caption="Pudotettujen tiedostojen lisäämisasetukset:"/>
+    <Options>
+      <cbxFiles Caption="Lisää valittujen kansioiden tiedostot"/>
+      <cbxFolders Caption="Lisää valitut kansiot"/>
+      <cbxRecursive Caption="Sovella näitä kahta asetusta myös alikansioihin"/>
+    </Options>
+    <cbxNotAgain Caption="Älä näytä tätä ikkunaa uudestaan (ja säilytä valitut asetukset)"/>
+  </DragdropOptionsForm>
+</Application>

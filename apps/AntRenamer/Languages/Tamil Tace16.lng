@@ -1,0 +1,429 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+Icon=Qk32AAAAAAAAAHYAAAAoAAAAEAAAABAAAAABAAQAAAAAAAAAAADDDgAAww4AAAAAAAAAAAAA////AAAAAAAAZf0AM5j/AAAyzACqqqoAzMzMAFQAAABmAAAA7u7uAMxmZgAAMgAAAEQAAAB2AAAAAAAAAAAAAAAAAAAAAAAAEREREREREREbu7u7u7u7wRvMzMzMzMzRG8zMzMzMzNEbzMzMzMzM0RVmZmd2ZmaRFWZmeqdmZpEVZmZ6qGZmkRVmZmeGZmaRFCIiIiIiIjEUIiIiIiIiMRQiIiIiIiIxEjMzMzMzMzEREREREREREQAAAAAAAAAA
+Name=Tamil (Tace16)
+LocalName=
+Version=2.13
+VersionFormat=2.13
+Comments=   /  .|    ,    , " ()"   .
+Authors= |https://TamilNeram.github.io
+-->
+<Application>
+  <MainForm>
+    <tbTabs Caption=""/>
+    <tbProgram Caption=""/>
+    <tbFiles Caption=""/>
+    <tbMove Caption=" "/>
+    <tbActions Caption=""/>
+    <tbLog Caption=""/>
+    <ActionBatchAddAction Caption=" " Hint=" |     "/>
+    <ActionBatchOpen Caption=" ..." Hint=" |   "/>
+    <ActionBatchSaveAs Caption=" ..." Hint=" |     "/>
+    <ActionBatchRemoveSel Caption=" " Hint=" |   "/>
+    <ActionBatchClear Caption="" Hint=" |   "/>
+    <ActionBatchNoRecent Caption="(  )"/>
+    <ActionAddFiles Caption=" ..." Hint=" |  "/>
+    <ActionAddFolders Caption=" ..." Hint=" |     "/>
+    <ActionRemoveSelected Caption=" " Hint=" |   "/>
+    <ActionRemoveAll Caption=" " Hint=" |   "/>
+    <ActionRemoveDead Caption=" " Hint=" |   "/>
+    <ActionPreview Caption="" Hint=" |     "/>
+    <ActionFromListClear Caption="" Hint=" | "/>
+    <ActionFromListOpen Caption="..." Hint=" |    "/>
+    <ActionFromListSave Caption="..." Hint=" |   "/>
+    <ActionMultistrReplClear Caption=" " Hint="  "/>
+    <ActionMultistrReplCopy Caption="/" Hint="|          -  "/>
+    <ActionMultistrReplPaste Caption="/" Hint="|     ,      -  "/>
+    <ActionMultistrReplSave Caption="" Hint="|     "/>
+    <ActionMultistrReplDelete Caption="" Hint="|    "/>
+    <ActionMoveUp Caption="" Hint="  |    "/>
+    <ActionMoveDown Caption="" Hint="  |    "/>
+    <ActionMoveTop Caption="" Hint=" |    "/>
+    <ActionMoveBottom Caption="" Hint=" |    "/>
+    <ActionItemsUnsort Caption=" " Hint="|   "/>
+    <ActionItemsSelectAll Caption=" " Hint=" |  "/>
+    <ActionItemsSelectNone Caption=" " Hint=" |  "/>
+    <ActionItemsSelectInvert Caption=" " Hint=" |  "/>
+    <ActionLogClear Caption="" Hint="| "/>
+    <ActionLogSave Caption="..." Hint="|   "/>
+    <ActionLogCopy Caption="" Hint="|   "/>
+    <ActionLogFilter Caption="" Hint="|  "/>
+    <ActionLogFilterOk Caption="" Hint="  |     "/>
+    <ActionLogFilterError Caption="" Hint=" |   "/>
+    <ActionLogFilterNot Caption="" Hint="  |    "/>
+    <ActionActionGo Caption="" Hint="|  "/>
+    <ActionActionStop Caption="" Hint="|  "/>
+    <ActionOptions Caption="..." Hint="|  "/>
+    <ActionActionUndo Caption="" Hint="|  "/>
+    <ActionHelpContents Caption="" Hint=" |  "/>
+    <ActionHelpAbout Caption="..." Hint="|  "/>
+    <ActionExit Caption="" Hint="| "/>
+    <ActionAlwaysOnTop Caption="" Hint=" |   "/>
+    <ActionTabFiles Caption="" Hint="| "/>
+    <ActionTabActions Caption="" Hint="| "/>
+    <ActionTabLog Caption="" Hint="| "/>
+    <lstFiles Hint="|  -       ">
+      <Header>
+        <Columns>
+          <Item Index="0" Text=""/>
+          <Item Index="1" Text=" "/>
+          <Item Index="2" Text=" "/>
+          <Item Index="3" Text="."/>
+          <Item Index="4" Text=""/>
+          <Item Index="5" Text=""/>
+          <Item Index="6" Text=" "/>
+          <Item Index="7" Text=" "/>
+        </Columns>
+      </Header>
+    </lstFiles>
+    <grpPreview Caption="          "/>
+    <grpBatch Caption="         ( ) "/>
+    <lstBatch Hint="|  ( )"/>
+    <lblPreviewOld Caption=" :"/>
+    <lblPreviewNew Caption="  :"/>
+    <lstActions Hint="| ">
+      <Items>
+        <Item Index="0" Value=" "/>
+        <Item Index="1" Value=" "/>
+        <Item Index="2" Value="  "/>
+        <Item Index="3" Value=" "/>
+        <Item Index="4" Value=" "/>
+        <Item Index="5" Value=" "/>
+        <Item Index="6" Value=""/>
+        <Item Index="7" Value="3   "/>
+        <Item Index="8" Value=" &#38;  "/>
+        <Item Index="9" Value=" "/>
+        <Item Index="10" Value=" "/>
+        <Item Index="11" Value="   "/>
+        <Item Index="12" Value=" "/>
+        <Item Index="13" Value="  "/>
+      </Items>
+    </lstActions>
+    <lblChangeExt Caption=" :"/>
+    <cbxChangeExtNoRepl Caption="  ,    "/>
+    <lblChangeExtNotes Caption=":&lt;br&gt;-   ,   &lt;br&gt;-     &lt;LINK&gt;&lt;/LINK&gt;  "/>
+    <lblStrReplSearch Caption=":"/>
+    <lblStrReplBy Caption=" :"/>
+    <cbxStrReplAll Caption="    "/>
+    <cbxStrReplCase Caption="    "/>
+    <cbxStrReplExt Caption="  "/>
+    <cbxStrReplOnlyExt Caption="   "/>
+    <lblMultstrSearch Caption=":"/>
+    <lblMultstrReplBy Caption=" :"/>
+    <lblMultstrReplSet Caption="  :"/>
+    <cbxMultstrReplExt Caption="  "/>
+    <cbxMultstrCase Caption=" "/>
+    <lblMultstrReplNotes Caption=":&lt;BR&gt;-        Ctrl+Plus (+) and Ctrl+(-)  "/>
+    <lblStrInsStr Caption=" :"/>
+    <lblStrInsPos Caption=":"/>
+    <rbtStrInsBegin Caption=""/>
+    <rbtStrInsEnd Caption=" "/>
+    <cbxStrInsExt Caption="   "/>
+    <lblStrInsNotes Caption=":&lt;br&gt;-          , use the &lt;LINK&gt; &lt;/LINK&gt; &lt;br&gt;- %name% =    (  ) &lt;BR&gt;- %ext% =   ( ) &lt;BR&gt;- %folderN% =  &lt;BR&gt;- %% = % &lt;BR&gt;  &lt;LINK&gt;  &lt;/LINK&gt; "/>
+    <lblMoveStrFrom Caption=" :"/>
+    <rbtMoveStrFromBegin Caption=""/>
+    <rbtMoveStrFromEnd Caption=" "/>
+    <lblMoveStrCount Caption="  :"/>
+    <lblMoveStrTo Caption=":"/>
+    <rbtMoveStrToBegin Caption=""/>
+    <rbtMoveStrToEnd Caption=" "/>
+    <lblMoveStrNotes Caption=":&lt;br&gt;-       ,       ,  &lt;link&gt; &lt;/link&gt;  ,  &lt;link&gt; &lt;/link&gt;     &lt;BR&gt;- The &#34;&#34;     (    ) "/>
+    <lblCharDel Caption="  :"/>
+    <rbtCharDelPos Caption=":"/>
+    <rbtCharDelBegin Caption=""/>
+    <rbtCharDelEnd Caption=""/>
+    <rbtCharDelStr Caption=" :"/>
+    <rbtCharDelStr2 Caption=" :"/>
+    <cbxCharDelExt Caption="   "/>
+    <lblCharDelNotes Caption=":&lt;BR&gt;-    , &lt;LINK&gt; &lt;/LINK&gt;   ,   "/>
+    <lblEnumMask Caption=":"/>
+    <lblEnumStart Caption=":"/>
+    <lblEnumDigits Caption=" :"/>
+    <lblEnumIncr Caption=":"/>
+    <cbxEnumRestart Caption="    "/>
+    <lblEnumNotes Caption=":&lt;BR&gt;- %name% =    ( )&lt;BR&gt;- %ext% =   ( ) &lt;BR&gt;- %num% = &lt;BR&gt;- %folderN% =  &lt;BR&gt;- %% = % &lt;BR&gt;   &lt;LINK&gt;&lt;/LINK&gt; "/>
+    <lblMP3Mask Caption=":"/>
+    <cbxMP3TwoDigit Caption="    (   '0'  )"/>
+    <cbxMP3Convert Caption="     ? / \ : &lt; &gt; | � *"/>
+    <lblMP3Notes Caption=":&lt;BR&gt;- %author% = &lt;BR&gt;- %title% = &lt;BR&gt;- %album% = &lt;BR&gt;- %year% = &lt;BR&gt;- %genre% = &lt;BR&gt;- %comm% = &lt;BR&gt;- %track% =   (ID3V1.1)&lt;BR&gt;- %name% =    ( ) &lt;BR&gt;- %ext% =    ( )&lt;BR&gt;- %folderN% =   &lt;BR&gt;- %% = % &lt;BR&gt;- $if(, -,  ) &lt;BR&gt;   &lt;LINK&gt; &lt;/LINK&gt; "/>
+    <lblDTMask Caption=":"/>
+    <cbxDTSuffix Caption="  /       "/>
+    <lblDTWhich Caption="  :"/>
+    <rbtDTWhichCreation Caption=""/>
+    <rbtDTWhichModif Caption=" "/>
+    <lblDTOffset Caption=":"/>
+    <lblDTOffsetSec Caption=""/>
+    <lblDTNotes Caption=":"/>
+    <lblDTNotes2>
+      <Lines>
+        <![CDATA[f	   ( )
+e	  ( )
+c	      
+d	     (1-31)
+dd	   (01-31)
+ddd	,    (.-.)
+dddd	,   (-)
+ddddd	     
+dddddd	     
+m	    (1-12)
+mm	    (01-12)
+mmm	,   (-)
+mmmm	,   (-)
+yy	, 2-  (00-99)
+yyyy	, 4-  (0000-9999)
+h	    (0-23)
+hh	   (00-23)
+n	      (0-59)
+nn	     (00-59)
+s	    (0-59)
+ss	     (00-59)
+z	    (0-999)
+zzz	   (000-999)
+am/pm	 h  hh 12-   
+a/p	 h  hh 12   
+'xx'/"xx"	       
+
+m  mm  h  hh  ,     ]]>
+      </Lines>
+    </lblDTNotes2>
+    <lblRandomMask Caption=":"/>
+    <lblRandomMethod Caption=":"/>
+    <rbtRandomNumber Caption="  (8 )"/>
+    <rbtRandomTick Caption="  "/>
+    <rbtRandomGUID Caption=""/>
+    <lblRandomNotes Caption=":&lt;BR&gt;- %name% =    ( )&lt;BR&gt;- %ext% =   ( )&lt;BR&gt;- %random% =   &lt;BR&gt;- %% = % &lt;BR&gt;   &lt;LINK&gt;&lt;/LINK&gt; "/>
+    <rbtCaseWords Caption="       :"/>
+    <rbtCaseFirst Caption="    "/>
+    <rbtCaseUpper Caption=" "/>
+    <rbtCaseLower Caption=" "/>
+    <cbxCaseLocale Caption="  ,    "/>
+    <cbxCaseIncludeExt Caption=" "/>
+    <cbxCaseOnlyExt Caption="   "/>
+    <cbxFromListExt Caption="   "/>
+    <cbxFromListOnlyExt Caption="    "/>
+    <lblFromListNotes Caption=":&lt;BR&gt;-         .   &lt;BR&gt;-        ,   "/>
+    <lblRegexp Caption=":"/>
+    <lblRegexpRepl Caption=" :"/>
+    <lblRegexpNotes Caption=":&lt;BR&gt;-     \   ($   ),    \ \\   (     )&lt;BR&gt;-    ^     $  &lt;BR&gt;-         $1, $2   &lt;BR&gt;     &lt;LINK&gt;&lt;/LINK&gt; "/>
+    <lblExifMask Caption=":"/>
+    <lblExifOffset Caption=":"/>
+    <lblExifOffsetSec Caption=""/>
+    <lblExifNotes Caption=":&lt;BR&gt;- %name% =    ( )&lt;BR&gt;- %ext% =   ( )&lt;BR&gt;- %datetimeoriginal%  %datetime% =     &lt;BR&gt;- %orientation% =  &lt;BR&gt;- %flash% =       &lt;BR&gt;- %% = % &lt;BR&gt;       &lt;LINK&gt;&lt;/LINK&gt; "/>
+    <lstLog Hint="|Log"/>
+    <VarMessages>
+      <Item Name="strfltAllFiles" Value=" "/>
+      <Item Name="strfltTextFiles" Value=" "/>
+      <Item Name="strfltBatchFiles" Value="   "/>
+      <Item Name="strmsgSelectFiles" Value=" "/>
+      <Item Name="strmsgSelectFolder" Value=" "/>
+      <Item Name="strmsgStatusAddingFiles" Value=" "/>
+      <Item Name="strmsgStatusRenaming" Value=" "/>
+      <Item Name="strmsgFilesCount" Value="%d "/>
+      <Item Name="strmsgBusy" Value="  :    ."/>
+      <Item Name="strmsgNothingToDo" Value=" :        ."/>
+      <Item Name="strlogStartRename" Value="  "/>
+      <Item Name="strlogStartPreview" Value=" "/>
+      <Item Name="strlogStartRevert" Value="  "/>
+      <Item Name="strlogEndRename" Value="  "/>
+      <Item Name="strlogEndPreview" Value="  "/>
+      <Item Name="strlogEndRevert" Value="  "/>
+      <Item Name="strlogStoppedByUser" Value="  "/>
+      <Item Name="stradUnknown" Value=" "/>
+      <Item Name="stradInclExt" Value=",  "/>
+      <Item Name="stradOnlyExt" Value=",    "/>
+      <Item Name="stradChangeExt" Value=" &#34;%s&#34; "/>
+      <Item Name="stradChangeExtRmv" Value=" "/>
+      <Item Name="stradChangeExtNoRepl" Value="  &#34;%s&#34;"/>
+      <Item Name="stradStringRepl" Value="&#34;%s&#34;  &#34;%s&#34; "/>
+      <Item Name="stradStringReplAll" Value=", "/>
+      <Item Name="stradStringReplCase" Value=", "/>
+      <Item Name="stradMultstrRepl" Value="&#34;%s&#34;    "/>
+      <Item Name="stradStringIns" Value="&#34;%s&#34;  %d  "/>
+      <Item Name="stradMoveStr" Value="%d  %d%s  , %d%s  "/>
+      <Item Name="stradCharDel" Value="%d  "/>
+      <Item Name="stradCharDelPos" Value="  %d"/>
+      <Item Name="stradCharDelStr" Value="&#34;%s&#34; "/>
+      <Item Name="stradCharDelStr2" Value=" &#34;%s&#34;  "/>
+      <Item Name="stradEnum" Value="&#34;%s&#34;  %d  %d  %d   "/>
+      <Item Name="stradMP3" Value="  3     &#34;%s&#34;"/>
+      <Item Name="stradMP3TwoDigit" Value=",    '0'  "/>
+      <Item Name="stradMP3Convert" Value=",   "/>
+      <Item Name="stradFromBegin" Value=", "/>
+      <Item Name="stradFromEnd" Value=",  "/>
+      <Item Name="stradDateTime" Value="        &#34;%s&#34;"/>
+      <Item Name="stradDateTimeCreat" Value="   "/>
+      <Item Name="stradDateTimeModif" Value="    "/>
+      <Item Name="stradDateTimeSuffix" Value=",   "/>
+      <Item Name="stradDateTimeOffset" Value=" %d   "/>
+      <Item Name="stradRandom" Value="     &#34;%s&#34;"/>
+      <Item Name="stradRandomNumbers" Value=", "/>
+      <Item Name="stradRandomTick" Value=",    "/>
+      <Item Name="stradRandomGUID" Value=",   "/>
+      <Item Name="stradCase" Value=" :"/>
+      <Item Name="stradCaseWords" Value="      &#34;%s&#34;"/>
+      <Item Name="stradCaseFirst" Value="    "/>
+      <Item Name="stradCaseUpper" Value="   "/>
+      <Item Name="stradCaseLower" Value="   "/>
+      <Item Name="stradCaseLocale" Value=",    "/>
+      <Item Name="stradFromList" Value="    "/>
+      <Item Name="stradFromListExt" Value=",   "/>
+      <Item Name="stradFromListOnlyExt" Value=",     "/>
+      <Item Name="stradRegexp" Value="    "/>
+      <Item Name="stradExif" Value="   ​​   &#34;%s&#34;"/>
+      <Item Name="straeFromListEmpty" Value=" "/>
+      <Item Name="straeFromListEnd" Value=" "/>
+      <Item Name="straeExifNoInfo" Value="  "/>
+      <Item Name="strfsNotRenamed" Value="%s  : %s"/>
+      <Item Name="strfsRenamed" Value="%s - %s  "/>
+      <Item Name="strfsReverted" Value="%s    %s"/>
+      <Item Name="strfsRenError" Value="%s  %s   : %s"/>
+      <Item Name="strfsNoOldName" Value="   %s     "/>
+      <Item Name="strfs404" Value="  "/>
+      <Item Name="strfsAlreadyExist" Value="       "/>
+      <Item Name="strfeIdentical" Value="     "/>
+      <Item Name="strhintNotAgain" Value="    "/>
+      <Item Name="strhintShowPreview" Value="   .    ,        ."/>
+    </VarMessages>
+  </MainForm>
+  <AboutForm Caption="  ">
+    <btn1 Caption=""/>
+    <btn2 Caption=""/>
+    <tshGeneral Caption=""/>
+    <tshCredits Caption=""/>
+  </AboutForm>
+  <MessageWin>
+    <Captions>
+      <Strings>
+        <Item Index="0" Value=""/>
+        <Item Index="1" Value=""/>
+        <Item Index="2" Value=""/>
+        <Item Index="3" Value=""/>
+        <Item Index="4" Value="&#38;"/>
+        <Item Index="5" Value="&#38;"/>
+        <Item Index="6" Value="&#38;"/>
+        <Item Index="7" Value="&#38;"/>
+        <Item Index="8" Value="&#38;"/>
+        <Item Index="9" Value="&#38; "/>
+        <Item Index="10" Value="&#38;"/>
+        <Item Index="11" Value="&#38;"/>
+        <Item Index="12" Value=" "/>
+        <Item Index="13" Value=" "/>
+        <Item Index="14" Value="&#38;"/>
+      </Strings>
+    </Captions>
+  </MessageWin>
+  <OptionsForm Caption="">
+    <btn1 Caption=""/>
+    <btn2 Caption=""/>
+    <btn3 Caption=""/>
+    <tshDisplay Caption=""/>
+    <tshAdding Caption=" &#38;&#38; "/>
+    <tshProcessing Caption=""/>
+    <tshEvents Caption=""/>
+    <tshLanguage Caption=""/>
+    <lbhLists Caption=""/>
+    <cbxRealtimeUpdate Caption="   "/>
+    <cbxResizeColsFiles Caption="    "/>
+    <cbxFilesIcons Caption="      "/>
+    <lbhFonts Caption=""/>
+    <cbxForceFont Caption="       :"/>
+    <cmbForceFont>
+      <Items>
+        <Item Index="0" Value="  "/>
+      </Items>
+    </cmbForceFont>
+    <lblForceFont Caption=": TAC Barathi, Noto Sans, DejaVu Sans  Arial Unicode MS  "/>  <!-- old caption: :         -->
+    <lbhDropdown Caption=" "/>
+    <lblDropdownMax Caption="   :"/>
+    <cbxDropdownComplete Caption="      "/>
+    <lbhToolbars Caption=""/>
+    <lblIconSet Caption=" :"/>
+    <lblColorType Caption=" :"/>
+    <cmbColorType>
+      <Items>
+        <Item Index="0" Value=""/>
+        <Item Index="1" Value="  "/>
+        <Item Index="2" Value="    ( )"/>
+        <Item Index="3" Value="   "/>
+        <Item Index="4" Value=" "/>
+      </Items>
+    </cmbColorType>
+    <cbxOfficeXP Caption="  "/>
+    <lbhDragdrop Caption=" &#38; "/>
+    <cbxDragdropNoAsk Caption="    ,    :"/>
+    <DragdropOptions>
+      <cbxFiles Caption="   "/>
+      <cbxFolders Caption="  "/>
+      <cbxRecursive Caption="     "/>
+    </DragdropOptions>
+    <lbhBehaviour Caption=" "/>
+    <cbxLaunchFile Caption="    "/>
+    <lbhRenaming Caption=" "/>
+    <cbxCopy Caption="  "/>
+    <cbxGenerLog Caption=" "/>
+    <cbxDSTRelativeToFile Caption="    "/>
+    <lbhFoldersRules Caption=" "/>
+    <cbxForceDir Caption="  (&#34;\&#34;     )"/>
+    <cbxDetectAbsdir Caption="    &#34;:\&#34;  &#34;\\&#34;   (   )"/>
+    <cbxFolderExt Caption="       &#34;.&#34;  "/>
+    <lbhWhenStarted Caption="  "/>
+    <cbxStartSwitch Caption=" :"/>
+    <cmbStartSwitch>
+      <Items>
+        <Item Index="0" Value=" "/>
+        <Item Index="1" Value=""/>
+        <Item Index="2" Value=""/>
+      </Items>
+    </cmbStartSwitch>
+    <cbxStartClearLog Caption=" "/>
+    <lbhWhenFinished Caption=" "/>
+    <cbxFinishSwitch Caption=" :"/>
+    <cmbFinishSwitch>
+      <Items>
+        <Item Index="0" Value=" "/>
+        <Item Index="1" Value=""/>
+        <Item Index="2" Value=""/>
+      </Items>
+    </cmbFinishSwitch>
+    <cbxClearFilesList Caption="  "/>
+    <cbxClearBatchList Caption="  "/>
+    <cbxSaveLog Caption="  :"/>
+    <btnSaveLog Hint="..."/>
+    <cbxSaveLogAppend Caption="  "/>
+    <lbhLanguage Caption=""/>
+    <LanguageFrame>
+      <lstLanguages>
+        <Columns>
+          <Column Index="0" Caption=""/>
+          <Column Index="1" Caption=" "/>
+        </Columns>
+      </lstLanguages>
+      <lblVersion Caption=":"/>
+      <lblMadeby Caption=":"/>
+      <lblComments Caption=":"/>
+    </LanguageFrame>
+  </OptionsForm>
+  <SelectDirectoryForm Caption="  ">
+    <btn1 Caption=""/>
+    <btn2 Caption=""/>
+    <btn3 Caption=""/>
+    <btn4 Caption="..."/>
+    <Options>
+      <cbxFiles Caption="   "/>
+      <cbxFolders Caption="  "/>
+      <cbxRecursive Caption="     s"/>
+    </Options>
+  </SelectDirectoryForm>
+  <DragdropOptionsForm Caption=" &#38;   ">
+    <btn1 Caption=""/>
+    <btn2 Caption=""/>
+    <btn3 Caption=""/>
+    <lblOptions Caption="    :"/>
+    <Options>
+      <cbxFiles Caption="   "/>
+      <cbxFolders Caption="  "/>
+      <cbxRecursive Caption="     "/>
+    </Options>
+    <cbxNotAgain Caption="     (    )"/>
+  </DragdropOptionsForm>
+</Application>
