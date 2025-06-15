@@ -1,8 +1,8 @@
 package org.chaiware.acommander.commands;
 
 import javafx.scene.control.Alert;
-import org.chaiware.acommander.FileItem;
-import org.chaiware.acommander.FilesPanesHelper;
+import org.chaiware.acommander.model.FileItem;
+import org.chaiware.acommander.helpers.FilesPanesHelper;
 
 import javax.swing.*;
 import java.awt.*;
@@ -86,7 +86,7 @@ public class CommandsSimpleImpl extends ACommands {
 
             if (selectedFile != null) {
                 log.info("From the search, the selected file is: {}", selectedFile.getFullPath());
-                fileListsLoader.setFileListPath(fileListsLoader.getFocusedSide(), selectedFile.getFile().getParent());
+                fileListsLoader.setFocusedFileListPath(selectedFile.getFile().getParent());
                 fileListsLoader.getFocusedFileList().getSelectionModel().select(selectedFile);
             } else
                 log.info("User didn't select any file from the search results");
