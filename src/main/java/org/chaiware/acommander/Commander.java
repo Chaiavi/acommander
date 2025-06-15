@@ -24,10 +24,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
-import java.util.Properties;
+import java.util.*;
 
 import static java.awt.Desktop.getDesktop;
 import static org.chaiware.acommander.helpers.FilesPanesHelper.FocusSide.LEFT;
@@ -233,14 +230,16 @@ public class Commander {
         logger.info("Rename (F2)");
 
         try {
-            FileItem selectedItem = filesPanesHelper.getSelectedItem();
-            if (selectedItem != null) { // todo ".." fileItem
+            List<FileItem> selectedItems = filesPanesHelper.getSelectedItems();
+            if (selectedItems.size() == 1) {
+                FileItem selectedItem = selectedItems.get(0);
                 Optional<String> result = getUserFeedback(selectedItem.getFile().getName(), "File Rename", "New name");
                 if (result.isPresent()) // if user dismisses the dialog it won't rename...
-                    commands.rename(selectedItem, result.get());
-            }
+                    commands.rename(Collections.singletonList(selectedItem), result.get());
+            } else // Multi files selected (multi rename)
+                commands.rename(selectedItems, "");
         } catch (Exception e) {
-            error("Failed Renaming file", e);
+            error("Failed Renaming file/s", e);
         }
     }
 
@@ -249,7 +248,7 @@ public class Commander {
         logger.info("View (F3)");
 
         try {
-            List<FileItem> selectedItems = filesPanesHelper.getFocusedFileList().getSelectionModel().getSelectedItems();
+            List<FileItem> selectedItems = filesPanesHelper.getSelectedItems();
             for (FileItem selectedItem : selectedItems)
                 commands.view(selectedItem);
         } catch (Exception ex) {
@@ -262,7 +261,7 @@ public class Commander {
         logger.info("Edit (F4)");
 
         try {
-            List<FileItem> fileItems = filesPanesHelper.getFocusedFileList().getSelectionModel().getSelectedItems();
+            List<FileItem> fileItems = filesPanesHelper.getSelectedItems();
             for (FileItem fileItem : fileItems)
                 commands.edit(fileItem);
         } catch (Exception ex) {
@@ -275,7 +274,7 @@ public class Commander {
         logger.info("Copy (F5)");
 
         try {
-            List<FileItem> selectedItems = new ArrayList<>(filesPanesHelper.getFocusedFileList().getSelectionModel().getSelectedItems());
+            List<FileItem> selectedItems = new ArrayList<>(filesPanesHelper.getSelectedItems());
             for (FileItem selectedItem : selectedItems) {
                 String targetFolder = filesPanesHelper.getUnfocusedPath();
                 if (selectedItem.isDirectory())
@@ -292,7 +291,7 @@ public class Commander {
         logger.info("Move (F6)");
 
         try {
-            List<FileItem> selectedItems = new ArrayList<>(filesPanesHelper.getFocusedFileList().getSelectionModel().getSelectedItems());
+            List<FileItem> selectedItems = new ArrayList<>(filesPanesHelper.getSelectedItems());
             for (FileItem selectedItem : selectedItems) {
                 String targetFolder = filesPanesHelper.getUnfocusedPath();
                 if (selectedItem.isDirectory())
@@ -321,7 +320,7 @@ public class Commander {
     public void deleteFile() {
         logger.info("Delete (F8/DEL)");
         try {
-            List<FileItem> selectedItems = new ArrayList<>(filesPanesHelper.getFocusedFileList().getSelectionModel().getSelectedItems());
+            List<FileItem> selectedItems = new ArrayList<>(filesPanesHelper.getSelectedItems());
             for (FileItem selectedItem : selectedItems)
                 commands.delete(selectedItem);
         } catch (Exception ex) {
@@ -359,7 +358,7 @@ public class Commander {
     public void pack() {
         logger.info("Pack (F11)");
         try {
-            List<FileItem> selectedItems = filesPanesHelper.getFocusedFileList().getSelectionModel().getSelectedItems();
+            List<FileItem> selectedItems = filesPanesHelper.getSelectedItems();
             String firstFilename = selectedItems.get(0).getName();
             String zipFilename = firstFilename.contains(".")
                     ? firstFilename.substring(0, firstFilename.lastIndexOf('.')) + ".zip"
@@ -378,7 +377,7 @@ public class Commander {
     public void unpackFile() {
         logger.info("UnPack (F12)");
         try {
-            List<FileItem> selectedItems = new ArrayList<>(filesPanesHelper.getFocusedFileList().getSelectionModel().getSelectedItems());
+            List<FileItem> selectedItems = new ArrayList<>(filesPanesHelper.getSelectedItems());
             for (FileItem selectedItem : selectedItems)
                 commands.unpack(selectedItem, filesPanesHelper.getUnfocusedPath());
         } catch (Exception e) {

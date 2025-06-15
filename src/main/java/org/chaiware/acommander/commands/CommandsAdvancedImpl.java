@@ -23,12 +23,22 @@ public class CommandsAdvancedImpl extends ACommands {
     }
 
     @Override
-    public void rename(FileItem selectedItem, String newFilename) throws IOException {
-        File currentFile = selectedItem.getFile();
-        File newFile = new File(currentFile.getParent(), newFilename);
-        Files.move(currentFile.toPath(), newFile.toPath());
-        fileListsLoader.refreshFileListViews();
-        log.debug("Renamed: {} to {}", currentFile.getName(), newFile.getName());
+    public void rename(List<FileItem> selectedItems, String newFilename) throws Exception {
+        if (selectedItems.size() == 1) {
+            FileItem selectedItem = selectedItems.get(0);
+            File currentFile = selectedItem.getFile();
+            File newFile = new File(currentFile.getParent(), newFilename);
+            Files.move(currentFile.toPath(), newFile.toPath());
+            fileListsLoader.refreshFileListViews();
+            log.debug("Renamed: {} to {}", currentFile.getName(), newFile.getName());
+        } else {
+            List<String> command = new ArrayList<>();
+            command.add(APP_PATH + "AntRenamer\\Renamer.exe");
+            command.add("-af");
+            command.add(selectedItems.stream().map(f -> "\"" + f.getFullPath() + "\"").collect(Collectors.joining(" ")));
+            runExecutable(command, true);
+            log.debug("Finished Multi File Rename Process");
+        }
     }
 
     @Override

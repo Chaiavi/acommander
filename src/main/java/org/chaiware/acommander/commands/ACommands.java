@@ -17,7 +17,7 @@ public abstract class ACommands {
     protected FilesPanesHelper fileListsLoader;
     final Logger log = LoggerFactory.getLogger(ACommands.class);
 
-    public abstract void rename(FileItem selectedItem, String newFilename) throws Exception;
+    public abstract void rename(List<FileItem> selectedItem, String newFilename) throws Exception;
     public abstract void edit(FileItem fileItem) throws Exception;
     public abstract void view(FileItem fileItem) throws Exception;
     public abstract void copy(FileItem sourceFile, String targetFolder) throws Exception;

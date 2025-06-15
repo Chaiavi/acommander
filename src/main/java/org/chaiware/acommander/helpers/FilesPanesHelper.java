@@ -12,6 +12,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import static org.chaiware.acommander.helpers.FilesPanesHelper.FocusSide.LEFT;
@@ -86,6 +87,10 @@ public class FilesPanesHelper {
 
     public FileItem getSelectedItem() {
         return getFocusedFileList().getSelectionModel().getSelectedItem();
+    }
+
+    public List<FileItem> getSelectedItems() {
+        return getFocusedFileList().getSelectionModel().getSelectedItems();
     }
 
     @Data

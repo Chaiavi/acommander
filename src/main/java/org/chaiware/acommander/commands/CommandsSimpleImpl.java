@@ -21,7 +21,11 @@ public class CommandsSimpleImpl extends ACommands {
     }
 
     @Override
-    public void rename(FileItem selectedItem, String newFilename) throws Exception {
+    public void rename(List<FileItem> selectedItems, String newFilename) throws Exception {
+        if (selectedItems.size() > 1)
+            throw new Exception("No nice way to rename more than a single file using the simplest method");
+
+        FileItem selectedItem = selectedItems.get(0);
         selectedItem.getFile().renameTo(new File(selectedItem.getFile().getParent(), newFilename));
         log.debug("Renamed: {} to {}", selectedItem.getName(), newFilename);
     }
