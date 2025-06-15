@@ -1,4 +1,4 @@
-package org.chaiware.acommander;
+package org.chaiware.acommander.model;
 
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
