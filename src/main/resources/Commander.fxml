@@ -56,51 +56,51 @@
         <!-- Function keys bar -->
         <VBox style="-fx-background-color: #C0C0C0; -fx-border-color: #808080; -fx-border-width: 1 0 0 0;">
             <HBox alignment="CENTER" prefHeight="40.0" spacing="1" style="-fx-background-color: #C0C0C0; -fx-padding: 3;">
-                <Button maxWidth="Infinity" onAction="#help" prefHeight="32.0" style="-fx-background-color: #E0E0E0; -fx-text-fill: #000000; -fx-font-size: 10px; -fx-font-weight: bold; -fx-border-color: #808080; -fx-border-width: 1; -fx-background-radius: 3; -fx-border-radius: 3;" text="F1 Help" HBox.hgrow="ALWAYS">
+                <Button fx:id="btnF1" maxWidth="Infinity" onAction="#help" prefHeight="32.0" style="-fx-background-color: #E0E0E0; -fx-text-fill: #000000; -fx-font-size: 10px; -fx-font-weight: bold; -fx-border-color: #808080; -fx-border-width: 1; -fx-background-radius: 3; -fx-border-radius: 3;" HBox.hgrow="ALWAYS">
                     <HBox.margin>
                         <Insets left="5.0" />
                     </HBox.margin></Button>
-                <Button maxWidth="Infinity" onAction="#renameFile" prefHeight="32.0" style="-fx-background-color: #E0E0E0; -fx-text-fill: #000000; -fx-font-size: 10px; -fx-font-weight: bold; -fx-border-color: #808080; -fx-border-width: 1; -fx-background-radius: 3; -fx-border-radius: 3;" text="F2 Rename" HBox.hgrow="ALWAYS">
+                <Button fx:id="btnF2" maxWidth="Infinity" onAction="#renameFile" prefHeight="32.0" style="-fx-background-color: #E0E0E0; -fx-text-fill: #000000; -fx-font-size: 10px; -fx-font-weight: bold; -fx-border-color: #808080; -fx-border-width: 1; -fx-background-radius: 3; -fx-border-radius: 3;" HBox.hgrow="ALWAYS">
                     <HBox.margin>
                         <Insets left="5.0" />
                     </HBox.margin></Button>
-                <Button maxWidth="Infinity" onAction="#viewFile" prefHeight="32.0" style="-fx-background-color: #E0E0E0; -fx-text-fill: #000000; -fx-font-size: 10px; -fx-font-weight: bold; -fx-border-color: #808080; -fx-border-width: 1; -fx-background-radius: 3; -fx-border-radius: 3;" text="F3 View" HBox.hgrow="ALWAYS">
+                <Button fx:id="btnF3" maxWidth="Infinity" onAction="#viewFile" prefHeight="32.0" style="-fx-background-color: #E0E0E0; -fx-text-fill: #000000; -fx-font-size: 10px; -fx-font-weight: bold; -fx-border-color: #808080; -fx-border-width: 1; -fx-background-radius: 3; -fx-border-radius: 3;" HBox.hgrow="ALWAYS">
                     <HBox.margin>
                         <Insets left="5.0" />
                     </HBox.margin></Button>
-                <Button maxWidth="Infinity" onAction="#editFile" prefHeight="32.0" style="-fx-background-color: #E0E0E0; -fx-text-fill: #000000; -fx-font-size: 10px; -fx-font-weight: bold; -fx-border-color: #808080; -fx-border-width: 1; -fx-background-radius: 3; -fx-border-radius: 3;" text="F4 Edit" HBox.hgrow="ALWAYS">
+                <Button fx:id="btnF4" maxWidth="Infinity" onAction="#editFile" prefHeight="32.0" style="-fx-background-color: #E0E0E0; -fx-text-fill: #000000; -fx-font-size: 10px; -fx-font-weight: bold; -fx-border-color: #808080; -fx-border-width: 1; -fx-background-radius: 3; -fx-border-radius: 3;" HBox.hgrow="ALWAYS">
                     <HBox.margin>
                         <Insets left="5.0" />
                     </HBox.margin></Button>
-                <Button maxWidth="Infinity" onAction="#copyFile" prefHeight="32.0" style="-fx-background-color: #E0E0E0; -fx-text-fill: #000000; -fx-font-size: 10px; -fx-font-weight: bold; -fx-border-color: #808080; -fx-border-width: 1; -fx-background-radius: 3; -fx-border-radius: 3;" text="F5 Copy" HBox.hgrow="ALWAYS">
+                <Button fx:id="btnF5" maxWidth="Infinity" onAction="#copyFile" prefHeight="32.0" style="-fx-background-color: #E0E0E0; -fx-text-fill: #000000; -fx-font-size: 10px; -fx-font-weight: bold; -fx-border-color: #808080; -fx-border-width: 1; -fx-background-radius: 3; -fx-border-radius: 3;" HBox.hgrow="ALWAYS">
                     <HBox.margin>
                         <Insets left="5.0" />
                     </HBox.margin></Button>
-                <Button maxWidth="Infinity" onAction="#moveFile" prefHeight="32.0" style="-fx-background-color: #E0E0E0; -fx-text-fill: #000000; -fx-font-size: 10px; -fx-font-weight: bold; -fx-border-color: #808080; -fx-border-width: 1; -fx-background-radius: 3; -fx-border-radius: 3;" text="F6 Move" HBox.hgrow="ALWAYS">
+                <Button fx:id="btnF6" maxWidth="Infinity" onAction="#moveFile" prefHeight="32.0" style="-fx-background-color: #E0E0E0; -fx-text-fill: #000000; -fx-font-size: 10px; -fx-font-weight: bold; -fx-border-color: #808080; -fx-border-width: 1; -fx-background-radius: 3; -fx-border-radius: 3;" HBox.hgrow="ALWAYS">
                     <HBox.margin>
                         <Insets left="5.0" />
                     </HBox.margin></Button>
-                <Button maxWidth="Infinity" onAction="#makeDirectory" prefHeight="32.0" style="-fx-background-color: #E0E0E0; -fx-text-fill: #000000; -fx-font-size: 10px; -fx-font-weight: bold; -fx-border-color: #808080; -fx-border-width: 1; -fx-background-radius: 3; -fx-border-radius: 3;" text="F7 MkDir" HBox.hgrow="ALWAYS">
+                <Button fx:id="btnF7" maxWidth="Infinity" onAction="#makeDirectory" prefHeight="32.0" style="-fx-background-color: #E0E0E0; -fx-text-fill: #000000; -fx-font-size: 10px; -fx-font-weight: bold; -fx-border-color: #808080; -fx-border-width: 1; -fx-background-radius: 3; -fx-border-radius: 3;" HBox.hgrow="ALWAYS">
                     <HBox.margin>
                         <Insets left="5.0" />
                     </HBox.margin></Button>
-                <Button maxWidth="Infinity" onAction="#deleteFile" prefHeight="32.0" style="-fx-background-color: #E0E0E0; -fx-text-fill: #000000; -fx-font-size: 10px; -fx-font-weight: bold; -fx-border-color: #808080; -fx-border-width: 1; -fx-background-radius: 3; -fx-border-radius: 3;" text="F8 Delete" HBox.hgrow="ALWAYS">
+                <Button fx:id="btnF8" maxWidth="Infinity" onAction="#deleteFile" prefHeight="32.0" style="-fx-background-color: #E0E0E0; -fx-text-fill: #000000; -fx-font-size: 10px; -fx-font-weight: bold; -fx-border-color: #808080; -fx-border-width: 1; -fx-background-radius: 3; -fx-border-radius: 3;" HBox.hgrow="ALWAYS">
                     <HBox.margin>
                         <Insets left="5.0" />
                     </HBox.margin></Button>
-                <Button maxWidth="Infinity" onAction="#terminalHere" prefHeight="32.0" style="-fx-background-color: #E0E0E0; -fx-text-fill: #000000; -fx-font-size: 10px; -fx-font-weight: bold; -fx-border-color: #808080; -fx-border-width: 1; -fx-background-radius: 3; -fx-border-radius: 3;" text="F9 Terminal" HBox.hgrow="ALWAYS">
+                <Button fx:id="btnF9" maxWidth="Infinity" onAction="#terminalHere" prefHeight="32.0" style="-fx-background-color: #E0E0E0; -fx-text-fill: #000000; -fx-font-size: 10px; -fx-font-weight: bold; -fx-border-color: #808080; -fx-border-width: 1; -fx-background-radius: 3; -fx-border-radius: 3;" HBox.hgrow="ALWAYS">
                     <HBox.margin>
                         <Insets left="5.0" />
                     </HBox.margin></Button>
-                <Button maxWidth="Infinity" onAction="#search" prefHeight="32.0" style="-fx-background-color: #E0E0E0; -fx-text-fill: #000000; -fx-font-size: 10px; -fx-font-weight: bold; -fx-border-color: #808080; -fx-border-width: 1; -fx-background-radius: 3; -fx-border-radius: 3;" text="F10 Search" HBox.hgrow="ALWAYS">
+                <Button fx:id="btnF10" maxWidth="Infinity" onAction="#search" prefHeight="32.0" style="-fx-background-color: #E0E0E0; -fx-text-fill: #000000; -fx-font-size: 10px; -fx-font-weight: bold; -fx-border-color: #808080; -fx-border-width: 1; -fx-background-radius: 3; -fx-border-radius: 3;" HBox.hgrow="ALWAYS">
                     <HBox.margin>
                         <Insets left="5.0" />
                     </HBox.margin></Button>
-                <Button maxWidth="Infinity" onAction="#pack" prefHeight="32.0" style="-fx-background-color: #E0E0E0; -fx-text-fill: #000000; -fx-font-size: 10px; -fx-font-weight: bold; -fx-border-color: #808080; -fx-border-width: 1; -fx-background-radius: 3; -fx-border-radius: 3;" text="F11 Pack" HBox.hgrow="ALWAYS">
+                <Button fx:id="btnF11" maxWidth="Infinity" onAction="#pack" prefHeight="32.0" style="-fx-background-color: #E0E0E0; -fx-text-fill: #000000; -fx-font-size: 10px; -fx-font-weight: bold; -fx-border-color: #808080; -fx-border-width: 1; -fx-background-radius: 3; -fx-border-radius: 3;" HBox.hgrow="ALWAYS">
                     <HBox.margin>
                         <Insets left="5.0" />
                     </HBox.margin></Button>
-                <Button maxWidth="Infinity" onAction="#unpackFile" prefHeight="32.0" style="-fx-background-color: #E0E0E0; -fx-text-fill: #000000; -fx-font-size: 10px; -fx-font-weight: bold; -fx-border-color: #808080; -fx-border-width: 1; -fx-background-radius: 3; -fx-border-radius: 3;" text="F12 UnPack" HBox.hgrow="ALWAYS">
+                <Button fx:id="btnF12" maxWidth="Infinity" onAction="#unpackFile" prefHeight="32.0" style="-fx-background-color: #E0E0E0; -fx-text-fill: #000000; -fx-font-size: 10px; -fx-font-weight: bold; -fx-border-color: #808080; -fx-border-width: 1; -fx-background-radius: 3; -fx-border-radius: 3;" HBox.hgrow="ALWAYS">
                     <HBox.margin>
                         <Insets left="5.0" right="5.0" />
                     </HBox.margin></Button>

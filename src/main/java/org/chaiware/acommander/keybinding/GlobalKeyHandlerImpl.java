@@ -3,6 +3,7 @@ package org.chaiware.acommander.keybinding;
 import javafx.scene.input.KeyEvent;
 import org.chaiware.acommander.Commander;
 
+import static javafx.scene.input.KeyCode.ALT;
 import static org.chaiware.acommander.helpers.FilesPanesHelper.FocusSide.LEFT;
 
 public class GlobalKeyHandlerImpl implements IKeyHandler {
@@ -14,6 +15,16 @@ public class GlobalKeyHandlerImpl implements IKeyHandler {
 
     @Override
     public boolean handle(KeyEvent event) {
+        // Handle ALT for button labels
+        if (event.getCode() == ALT) {
+            if (event.getEventType() == KeyEvent.KEY_PRESSED) {
+                commander.updateBottomButtons(true);
+            } else if (event.getEventType() == KeyEvent.KEY_RELEASED) {
+                commander.updateBottomButtons(false);
+            }
+            return false;
+        }
+
         if (ALT_F1_COMBO.match(event)) { commander.leftPathComboBox.show(); return true; }
         if (ALT_F2_COMBO.match(event)) { commander.rightPathComboBox.show(); return true; }
 

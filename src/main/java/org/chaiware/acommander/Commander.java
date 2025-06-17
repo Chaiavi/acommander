@@ -42,6 +42,7 @@ public class Commander {
     public ListView<FileItem> leftFileList;
     @FXML
     public ListView<FileItem> rightFileList;
+    @FXML Button btnF1, btnF2, btnF3, btnF4, btnF5, btnF6, btnF7, btnF8, btnF9, btnF10, btnF11, btnF12;
 
     Properties properties = new Properties();
     ACommands commands;
@@ -82,6 +83,7 @@ public class Commander {
         configListViewLookAndBehavior(rightFileList);
         configFileListsFocus();
 
+        updateBottomButtons(false);
         filesPanesHelper.refreshFileListViews();
     }
 
@@ -90,6 +92,10 @@ public class Commander {
         Scene scene = rootPane.getScene();
         KeyBindingManager keyBindingManager = new KeyBindingManager(this);
         scene.addEventFilter(KeyEvent.KEY_PRESSED, event -> {
+            keyBindingManager.setCurrentContext(determineCurrentContext(scene));
+            keyBindingManager.handleKeyEvent(event);
+        });
+        scene.addEventFilter(KeyEvent.KEY_RELEASED, event -> {
             keyBindingManager.setCurrentContext(determineCurrentContext(scene));
             keyBindingManager.handleKeyEvent(event);
         });
@@ -402,5 +408,25 @@ public class Commander {
         Alert alert = new Alert(Alert.AlertType.ERROR, error + " (" + ex.getMessage() + ")");
         alert.setHeaderText("Oops, error occurred");
         alert.showAndWait();
+    }
+
+    public void updateBottomButtons(boolean isAltPressed) {
+        if (isAltPressed) {
+            btnF1.setText("ALT+F1 Left Folder");
+            btnF2.setText("ALT+F2 Right Folder");
+        } else {
+            btnF1.setText("F1 Help");
+            btnF2.setText("F2 Rename");
+            btnF3.setText("F3 View");
+            btnF4.setText("F4 Edit");
+            btnF5.setText("F5 Copy");
+            btnF6.setText("F6 Move");
+            btnF7.setText("F7 MkDir");
+            btnF8.setText("F8 Delete");
+            btnF9.setText("F9 Terminal");
+            btnF10.setText("F10 Search");
+            btnF11.setText("F11 Pack");
+            btnF12.setText("F12 UnPack");
+        }
     }
 }
