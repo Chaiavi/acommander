@@ -13,6 +13,8 @@ public class ComboxKeyHandlerImpl implements IKeyHandler {
 
     @Override
     public boolean handle(KeyEvent event) {
+        if (event.isAltDown()) { return false; }
+
         return switch (event.getCode()) {
             case ENTER -> {
                 commander.leftPathComboBox.setValue(new Folder(commander.leftPathComboBox.getEditor().getText()));
