@@ -14,7 +14,8 @@ public class KeyBindingManager {
         FILE_PANE,
         PATH_COMBO_BOX,
         COMMAND_PALETTE,
-        GLOBAL
+        GLOBAL,
+        DIALOG
     }
 
     private final Map<KeyContext, IKeyHandler> contextHandlers = new HashMap<>();
@@ -30,5 +31,10 @@ public class KeyBindingManager {
     public void handleKeyEvent(KeyEvent event) {
         if (!contextHandlers.get(currentContext).handle(event))
             contextHandlers.get(GLOBAL).handle(event);
+    }
+
+    /** Global handles keyreleased events (ALT/SHIFT/CTRL) */
+    public void handleReleasedKeyEvent(KeyEvent event) {
+        ((GlobalKeyHandlerImpl)contextHandlers.get(GLOBAL)).handleKeyReleased(event);
     }
 }

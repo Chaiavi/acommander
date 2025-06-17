@@ -63,6 +63,11 @@ public class CommandsSimpleImpl extends ACommands {
     }
 
     @Override
+    public void mkFile(String focusedPath, String newFileName) throws Exception {
+
+    }
+
+    @Override
     public void delete(FileItem selectedItem) throws IOException {
 
     }

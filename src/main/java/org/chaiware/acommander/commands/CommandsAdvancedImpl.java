@@ -104,6 +104,14 @@ public class CommandsAdvancedImpl extends ACommands {
     }
 
     @Override
+    public void mkFile(String parentDir, String newFileName) throws Exception {
+        Path path = Paths.get(parentDir, newFileName);
+        Files.createFile(path);
+        fileListsLoader.refreshFileListViews();
+        log.debug("Created File: {}", newFileName);
+    }
+
+    @Override
     public void delete(FileItem selectedItem) throws IOException {
         Path path = selectedItem.getFile().toPath();
         Files.walk(path)

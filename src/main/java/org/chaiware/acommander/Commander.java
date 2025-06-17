@@ -9,6 +9,7 @@ import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
+import javafx.stage.Window;
 import org.chaiware.acommander.commands.ACommands;
 import org.chaiware.acommander.commands.CommandsAdvancedImpl;
 import org.chaiware.acommander.helpers.ComboBoxSetup;
@@ -97,12 +98,21 @@ public class Commander {
         });
         scene.addEventFilter(KeyEvent.KEY_RELEASED, event -> {
             keyBindingManager.setCurrentContext(determineCurrentContext(scene));
-            keyBindingManager.handleKeyEvent(event);
+            keyBindingManager.handleReleasedKeyEvent(event);
         });
     }
 
     public KeyContext determineCurrentContext(Scene scene) {
         Node focused = scene.getFocusOwner();
+
+        // Check if we're in a JavaFX Dialog
+        if (focused != null) {
+            Window focusedWindow = focused.getScene().getWindow();
+            // Check if the focused window is different from main window (likely a dialog)
+            if (focusedWindow != scene.getWindow())
+                return KeyContext.DIALOG;
+        }
+
         if (focused == leftFileList || focused == rightFileList) return KeyContext.FILE_PANE;
         if (focused == leftPathComboBox || focused == rightPathComboBox) return KeyContext.PATH_COMBO_BOX;
         return KeyContext.GLOBAL;
@@ -322,6 +332,18 @@ public class Commander {
         }
     }
 
+    public void makeFile() {
+        logger.info("Create File (ALT+F7)");
+
+        try {
+            Optional<String> result = getUserFeedback("", "Make File", "New File Name");
+            if (result.isPresent()) // if user dismisses the dialog it won't create a file...
+                commands.mkFile((filesPanesHelper.getFocusedPath()), result.get());
+        } catch (Exception e) {
+            error("Failed Creating File", e);
+        }
+    }
+
     @FXML
     public void deleteFile() {
         logger.info("Delete (F8/DEL)");
@@ -415,6 +437,7 @@ public class Commander {
             btnF1.setText("ALT+F1 Left Folder");
             btnF2.setText("ALT+F2 Right Folder");
             btnF4.setText("ALT+F4 Exit");
+            btnF7.setText("ALT+F7 MkFile");
         } else {
             btnF1.setText("F1 Help");
             btnF2.setText("F2 Rename");

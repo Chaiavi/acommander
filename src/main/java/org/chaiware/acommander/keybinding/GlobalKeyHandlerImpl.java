@@ -15,26 +15,55 @@ public class GlobalKeyHandlerImpl implements IKeyHandler {
 
     @Override
     public boolean handle(KeyEvent event) {
+        logger.trace("Key event phase: " + event.getEventType());
+        logger.trace("Event target: " + event.getTarget());
+        logger.trace("Event source: " + event.getSource());
+
         // Handle ALT for button labels
         if (event.getCode() == ALT) {
-            if (event.getEventType() == KeyEvent.KEY_PRESSED) {
-                commander.updateBottomButtons(true);
-            } else if (event.getEventType() == KeyEvent.KEY_RELEASED) {
-                commander.updateBottomButtons(false);
-            }
+            commander.updateBottomButtons(true);
             return false;
         }
 
-        if (ALT_F1_COMBO.match(event)) { commander.leftPathComboBox.show(); return true; }
-        if (ALT_F2_COMBO.match(event)) { commander.rightPathComboBox.show(); return true; }
+        if (ALT_F1.match(event)) {
+            commander.leftPathComboBox.show();
+            return true;
+        }
+        if (ALT_F2.match(event)) {
+            commander.rightPathComboBox.show();
+            return true;
+        }
+        if (ALT_F7.match(event)) {
+            commander.makeFile();
+            event.consume();
+            return true;
+        }
 
         return switch (event.getCode()) {
-            case F1 -> { commander.help(); yield true; }
-            case F9 -> { commander.terminalHere(); yield true; }
-            case F10 -> { commander.search(); event.consume(); yield true; }
-            case TAB -> { clickTab(); event.consume(); yield true; }
+            case F1 -> {
+                commander.help();
+                yield true;
+            }
+            case F9 -> {
+                commander.terminalHere();
+                yield true;
+            }
+            case F10 -> {
+                commander.search();
+                event.consume();
+                yield true;
+            }
+            case TAB -> {
+                clickTab();
+                event.consume();
+                yield true;
+            }
             default -> false;
         };
+    }
+
+    public void handleKeyReleased(KeyEvent event) {
+        commander.updateBottomButtons(false);
     }
 
     /** Changes focus between file lists */
