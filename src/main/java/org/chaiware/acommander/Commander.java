@@ -414,6 +414,7 @@ public class Commander {
         if (isAltPressed) {
             btnF1.setText("ALT+F1 Left Folder");
             btnF2.setText("ALT+F2 Right Folder");
+            btnF4.setText("ALT+F4 Exit");
         } else {
             btnF1.setText("F1 Help");
             btnF2.setText("F2 Rename");
