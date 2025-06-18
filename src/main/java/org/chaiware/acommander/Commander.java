@@ -43,7 +43,8 @@ public class Commander {
     public ListView<FileItem> leftFileList;
     @FXML
     public ListView<FileItem> rightFileList;
-    @FXML Button btnF1, btnF2, btnF3, btnF4, btnF5, btnF6, btnF7, btnF8, btnF9, btnF10, btnF11, btnF12;
+    @FXML
+    Button btnF1, btnF2, btnF3, btnF4, btnF5, btnF6, btnF7, btnF8, btnF9, btnF10, btnF11, btnF12;
 
     Properties properties = new Properties();
     ACommands commands;
@@ -348,9 +349,7 @@ public class Commander {
     public void deleteFile() {
         logger.info("Delete (F8/DEL)");
         try {
-            List<FileItem> selectedItems = new ArrayList<>(filesPanesHelper.getSelectedItems());
-            for (FileItem selectedItem : selectedItems)
-                commands.delete(selectedItem);
+            commands.delete(new ArrayList<>(filesPanesHelper.getSelectedItems()));
         } catch (Exception ex) {
             error("Failed to delete", ex);
         }

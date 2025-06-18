@@ -24,7 +24,8 @@ public abstract class ACommands {
     public abstract void move(FileItem sourceFile, String targetFolder) throws Exception;
     public abstract void mkdir(String parentDir, String newDirName) throws IOException;
     public abstract void mkFile(String focusedPath, String newFileName) throws Exception;
-    public abstract void delete(FileItem selectedItem) throws IOException;
+    public abstract void delete(List<FileItem> selectedItems) throws Exception;
+    public abstract void unlockDelete(List<FileItem> selectedItems) throws Exception;
     public abstract void openTerminal(String openHerePath) throws Exception;
     public abstract void searchFiles(String sourcePath, String filenameWildcard) throws Exception;
     public abstract void pack(List<FileItem> selectedItem, String archiveFilename, String destinationPath) throws Exception;

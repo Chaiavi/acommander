@@ -68,7 +68,12 @@ public class CommandsSimpleImpl extends ACommands {
     }
 
     @Override
-    public void delete(FileItem selectedItem) throws IOException {
+    public void delete(List<FileItem> selectedItems) throws Exception {
+
+    }
+
+    @Override
+    public void unlockDelete(List<FileItem> selectedItems) throws Exception {
 
     }
 

@@ -112,15 +112,43 @@ public class CommandsAdvancedImpl extends ACommands {
     }
 
     @Override
-    public void delete(FileItem selectedItem) throws IOException {
-        Path path = selectedItem.getFile().toPath();
-        Files.walk(path)
-                .sorted(Comparator.reverseOrder())
-                .map(Path::toFile)
-                .forEach(File::delete);
+    public void delete(List<FileItem> selectedItems) throws Exception {
+        List<FileItem> failedDeletes = new ArrayList<>();
+        for (FileItem selectedItem : selectedItems) {
+            Path path = selectedItem.getFile().toPath();
+            Files.walk(path) // This is done for deleting folders recursively
+                    .sorted(Comparator.reverseOrder())
+                    .forEach(filePath -> {
+                        try {
+                            Files.delete(filePath);
+                            log.info("Deleted: {}", filePath);
+                        } catch (IOException e) {
+                            log.error("Failed deleting: {}", filePath, e);
+                            failedDeletes.add(new FileItem(filePath.toFile()));
+                        }
+                    });
+        }
+
+        if (!failedDeletes.isEmpty()) {
+            log.info("Failed to delete {} files, attempting to unlock then delete them all", failedDeletes.size());
+            unlockDelete(failedDeletes);
+        }
 
         fileListsLoader.refreshFileListViews();
-        log.debug("Deleted: {}", selectedItem.getName());
+    }
+
+    @Override
+    public void unlockDelete(List<FileItem> selectedItems) throws Exception {
+        String fullPaths = selectedItems.stream()
+                .map(f -> "\"" + f.getFullPath() + "\"")
+                .collect(Collectors.joining(" "));
+
+        List<String> command = new ArrayList<>();
+        command.add(APP_PATH + "unlock_delete\\ThisIsMyFile.exe");
+        command.add(fullPaths);
+        runExecutable(command, true);
+        fileListsLoader.refreshFileListViews();
+        log.debug("Unlocked & Deleted: {}", selectedItems.stream().map(FileItem::getName).collect(Collectors.joining(", ")));
     }
 
     @Override

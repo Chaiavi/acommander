@@ -35,7 +35,6 @@ public class GlobalKeyHandlerImpl implements IKeyHandler {
         }
         if (ALT_F7.match(event)) {
             commander.makeFile();
-            event.consume();
             return true;
         }
 
