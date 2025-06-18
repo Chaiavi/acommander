@@ -33,7 +33,7 @@ public class CommandsAdvancedImpl extends ACommands {
             log.debug("Renamed: {} to {}", currentFile.getName(), newFile.getName());
         } else {
             List<String> command = new ArrayList<>();
-            command.add(APP_PATH + "AntRenamer\\Renamer.exe");
+            command.add(APP_PATH + "multi_rename\\Renamer.exe");
             command.add("-af");
             command.add(selectedItems.stream().map(f -> "\"" + f.getFullPath() + "\"").collect(Collectors.joining(" ")));
             runExecutable(command, true);
@@ -49,7 +49,7 @@ public class CommandsAdvancedImpl extends ACommands {
         QuickLook (best, 236mb)
         */
         List<String> command = new ArrayList<>();
-        command.add(APP_PATH + "QuickLook\\QuickLook.exe");
+        command.add(APP_PATH + "view\\QuickLook.exe");
         command.add(fileItem.getFile().toString());
         runExecutable(command, false);
         log.debug("Viewed: {}", fileItem.getName());
@@ -59,7 +59,7 @@ public class CommandsAdvancedImpl extends ACommands {
     public void edit(FileItem fileItem) throws Exception {
         List<String> command = new ArrayList<>();
 //          command.add(APP_PATH + "TedNPad.exe");
-        command.add(APP_PATH + "Notepad4.exe");
+        command.add(APP_PATH + "edit\\Notepad4.exe");
         command.add(fileItem.getFile().toString());
         runExecutable(command, false);
         log.debug("Edited: {}", fileItem.getName());
@@ -68,7 +68,7 @@ public class CommandsAdvancedImpl extends ACommands {
     @Override
     public void copy(FileItem sourceFile, String targetFolder) throws Exception {
         List<String> command = new ArrayList<>();
-        command.add(APP_PATH + "fastcopy\\FastCopy.exe");
+        command.add(APP_PATH + "copy\\FastCopy.exe");
         command.add("/cmd=diff");
         command.add("/auto_close");
 //        command.add("/verify");
@@ -84,7 +84,7 @@ public class CommandsAdvancedImpl extends ACommands {
             commandsSimpleImpl.move(sourceFile, targetFolder);
         else {
             List<String> command = new ArrayList<>();
-            command.add(APP_PATH + "fastcopy\\FastCopy.exe");
+            command.add(APP_PATH + "copy\\FastCopy.exe");
             command.add("/cmd=move");
             command.add("/auto_close");
 //        command.add("/verify");
@@ -167,7 +167,7 @@ public class CommandsAdvancedImpl extends ACommands {
     @Override
     public void searchFiles(String sourcePath, String filenameWildcard) throws Exception {
 //        List<String> command = new ArrayList<>();
-//        command.add(APP_PATH + "SearchMyFiles.exe");
+//        command.add(APP_PATH + "search\\SearchMyFiles.exe");
 //        command.add("/StartSearch");
 //        command.add("/scomma \"%TEMP%\\1.csv\"");
 //        command.add("/BaseFolder \"" + sourcePath + "\"");
@@ -180,7 +180,7 @@ public class CommandsAdvancedImpl extends ACommands {
     @Override
     public void pack(List<FileItem> sources, String archiveFilename, String destinationPath) throws Exception {
         List<String> command = new ArrayList<>();
-        command.add(APP_PATH + "7zG.exe");
+        command.add(APP_PATH + "pack_unpack\\7zG.exe");
         command.add("a");
         command.add(destinationPath + "\\" + archiveFilename);
         command.add(sources.stream()
@@ -193,7 +193,7 @@ public class CommandsAdvancedImpl extends ACommands {
     @Override
     public void unpack(FileItem fileItem, String destinationPath) throws Exception {
         List<String> command = new ArrayList<>();
-        command.add(APP_PATH + "7zG.exe");
+        command.add(APP_PATH + "pack_unpack\\7zG.exe");
         command.add("x");
         command.add("-o" + destinationPath);
         command.add(fileItem.getFile().toString());
