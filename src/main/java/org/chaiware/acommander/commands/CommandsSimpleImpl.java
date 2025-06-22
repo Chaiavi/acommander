@@ -158,4 +158,9 @@ public class CommandsSimpleImpl extends ACommands {
     public void unpack(FileItem selectedItem, String destinationPath) throws Exception {
 
     }
+
+    @Override
+    public void extractAll(FileItem selectedItem, String destinationPath) throws Exception {
+
+    }
 }

@@ -412,6 +412,17 @@ public class Commander {
         }
     }
 
+    public void extractAll() {
+        logger.info("Extract All (ALT+F12)");
+        try {
+            List<FileItem> selectedItems = new ArrayList<>(filesPanesHelper.getSelectedItems());
+            for (FileItem selectedItem : selectedItems)
+                commands.extractAll(selectedItem, filesPanesHelper.getUnfocusedPath());
+        } catch (Exception e) {
+            error("Failed UNPacking file", e);
+        }
+    }
+
     /** Opens a dialog with the title asking the requested question returning the optional user's input */
     private Optional<String> getUserFeedback(String defaultValue, String title, String question) {
         TextInputDialog dialog = new TextInputDialog(defaultValue);
@@ -437,6 +448,7 @@ public class Commander {
             btnF2.setText("ALT+F2 Right Folder");
             btnF4.setText("ALT+F4 Exit");
             btnF7.setText("ALT+F7 MkFile");
+            btnF12.setText("ALT+F12 Extract All");
         } else {
             btnF1.setText("F1 Help");
             btnF2.setText("F2 Rename");

@@ -47,6 +47,7 @@ public class CommandsAdvancedImpl extends ACommands {
         UniversalViewer (least features, 10mb),
         FileViewerLite (quite good, 98mb),
         QuickLook (best, 236mb)
+        1 File Viewer (200mb)
         */
         List<String> command = new ArrayList<>();
         command.add(APP_PATH + "view\\QuickLook.exe");
@@ -199,5 +200,16 @@ public class CommandsAdvancedImpl extends ACommands {
         command.add(fileItem.getFile().toString());
         runExecutable(command, true);
         log.debug("UnPacked Archive: {} to: {}", fileItem.getName(), destinationPath);
+    }
+
+    @Override
+    public void extractAll(FileItem selectedItem, String destinationPath) throws Exception {
+        List<String> command = new ArrayList<>();
+        command.add(APP_PATH + "extract_all\\UniExtract\\UniExtract.exe");
+//        command.add("/remove");
+        command.add(selectedItem.getFile().toString());
+        command.add(destinationPath);
+        runExecutable(command, true);
+        log.debug("Extracted File: {} to: {}", selectedItem.getName(), destinationPath);
     }
 }

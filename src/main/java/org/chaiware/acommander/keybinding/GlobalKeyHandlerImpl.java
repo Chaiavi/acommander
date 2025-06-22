@@ -37,6 +37,10 @@ public class GlobalKeyHandlerImpl implements IKeyHandler {
             commander.makeFile();
             return true;
         }
+        if (ALT_F12.match(event)) {
+            commander.extractAll();
+            return true;
+        }
 
         return switch (event.getCode()) {
             case F1 -> {
