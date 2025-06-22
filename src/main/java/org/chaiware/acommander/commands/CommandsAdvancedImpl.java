@@ -43,14 +43,8 @@ public class CommandsAdvancedImpl extends ACommands {
 
     @Override
     public void view(FileItem fileItem) throws Exception {
-        /*
-        UniversalViewer (least features, 10mb),
-        FileViewerLite (quite good, 98mb),
-        QuickLook (best, 236mb)
-        1 File Viewer (200mb)
-        */
         List<String> command = new ArrayList<>();
-        command.add(APP_PATH + "view\\QuickLook.exe");
+        command.add(APP_PATH + "view\\UniversalViewer\\Viewer.exe");
         command.add(fileItem.getFile().toString());
         runExecutable(command, false);
         log.debug("Viewed: {}", fileItem.getName());
