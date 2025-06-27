@@ -27,6 +27,7 @@ public abstract class ACommands {
     public abstract void delete(List<FileItem> selectedItems) throws Exception;
     public abstract void unlockDelete(List<FileItem> selectedItems) throws Exception;
     public abstract void openTerminal(String openHerePath) throws Exception;
+    public abstract void openExplorer(String openHerePath) throws Exception;
     public abstract void searchFiles(String sourcePath, String filenameWildcard) throws Exception;
     public abstract void pack(List<FileItem> selectedItem, String archiveFilename, String destinationPath) throws Exception;
     public abstract void unpack(FileItem selectedItem, String destinationPath) throws Exception;

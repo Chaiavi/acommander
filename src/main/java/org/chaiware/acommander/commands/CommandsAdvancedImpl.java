@@ -160,6 +160,13 @@ public class CommandsAdvancedImpl extends ACommands {
     }
 
     @Override
+    public void openExplorer(String openHerePath) throws Exception {
+        List<String> command = Arrays.asList("explorer.exe", openHerePath);
+        runExecutable(command, false);
+        log.debug("Opened Explorer Here: {}", openHerePath);
+    }
+
+    @Override
     public void searchFiles(String sourcePath, String filenameWildcard) throws Exception {
 //        List<String> command = new ArrayList<>();
 //        command.add(APP_PATH + "search\\SearchMyFiles.exe");

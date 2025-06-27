@@ -366,6 +366,16 @@ public class Commander {
         }
     }
 
+    public void explorerHere() {
+        logger.info("Open Explorer Here (ALT+F9)");
+        String openHerePath = filesPanesHelper.getFocusedPath();
+        try {
+            commands.openExplorer(openHerePath);
+        } catch (Exception ex) {
+            error("Failed opening explorer here: " + openHerePath, ex);
+        }
+    }
+
     @FXML
     public void search() {
         logger.info("Search Files (F10)");
@@ -448,6 +458,7 @@ public class Commander {
             btnF2.setText("ALT+F2 Right Folder");
             btnF4.setText("ALT+F4 Exit");
             btnF7.setText("ALT+F7 MkFile");
+            btnF9.setText("ALT+F9 Explorer");
             btnF12.setText("ALT+F12 Extract All");
         } else {
             btnF1.setText("F1 Help");

@@ -83,6 +83,11 @@ public class CommandsSimpleImpl extends ACommands {
     }
 
     @Override
+    public void openExplorer(String openHerePath) throws Exception {
+
+    }
+
+    @Override
     public void searchFiles(String sourcePath, String filenameWildcard) throws Exception {
         log.info("Searching for: {} from: {}", filenameWildcard, sourcePath);
         List<String> command = List.of(
