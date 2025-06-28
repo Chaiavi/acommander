@@ -213,4 +213,30 @@ public class CommandsAdvancedImpl extends ACommands {
         runExecutable(command, true);
         log.debug("Extracted File: {} to: {}", selectedItem.getName(), destinationPath);
     }
+
+    @Override
+    public void mergePDFs(List<FileItem> sources, String newPdfFilename, String destinationPath) throws Exception {
+        List<String> command = new ArrayList<>();
+        command.add(APP_PATH + "pdf\\pdftk.exe");
+        command.add(sources.stream()
+                .map(f -> "\"" + f.getFullPath() + "\"")
+                .collect(Collectors.joining(" ")));
+        command.add("cat");
+        command.add("output");
+        command.add(destinationPath + "\\" + newPdfFilename);
+        runExecutable(command, true);
+        log.debug("The new Merged (pdf): {} was created in: {}", newPdfFilename, destinationPath);
+    }
+
+    @Override
+    public void extractPDFPages(FileItem fileItem, String destinationPath) throws Exception {
+        List<String> command = new ArrayList<>();
+        command.add(APP_PATH + "pdf\\pdftk.exe");
+        command.add(fileItem.getFullPath());
+        command.add("burst");
+        command.add("output");
+        command.add(destinationPath + "\\" + fileItem.getName().replaceFirst("\\.pdf$", "") + "_%04d.pdf");
+        runExecutable(command, true);
+        log.debug("Extracted PDF pages from: {} to: {}", fileItem.getName(), destinationPath);
+    }
 }

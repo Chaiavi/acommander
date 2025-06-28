@@ -15,7 +15,7 @@ public class FilePaneKeyHandlerImpl implements IKeyHandler {
 
     @Override
     public boolean handle(KeyEvent event) {
-        if (event.isAltDown()) { return false; }
+        if (event.isAltDown() || event.isShiftDown()) { return false; }
 
         switch (event.getCode()) {
             case F2 -> { commander.renameFile(); return true; }

@@ -5,6 +5,7 @@ import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
+import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
@@ -85,7 +86,7 @@ public class Commander {
         configListViewLookAndBehavior(rightFileList);
         configFileListsFocus();
 
-        updateBottomButtons(false);
+        updateBottomButtons(null);
         filesPanesHelper.refreshFileListViews();
     }
 
@@ -433,6 +434,35 @@ public class Commander {
         }
     }
 
+    public void mergePDFFiles() {
+        logger.info("Merge PDF Files (SHIFT+F1)");
+        try {
+            List<FileItem> selectedItems = filesPanesHelper.getSelectedItems();
+            String firstFilename = selectedItems.get(0).getName();
+            String zipFilename = firstFilename.contains(".")
+                    ? firstFilename.substring(0, firstFilename.lastIndexOf('.')) + ".pdf"
+                    : firstFilename + ".pdf";
+            Optional<String> result = getUserFeedback(zipFilename, "Merge PDF Files", "PDF filename");
+            if (result.isPresent())
+                commands.mergePDFs(selectedItems, result.get(), filesPanesHelper.getUnfocusedPath());
+            else
+                logger.info("User cancelled the packing");
+        } catch (Exception e) {
+            error("Failed Packing file", e);
+        }
+    }
+
+    public void extractPDFPages() {
+        logger.info("Extract PDF Pages (SHIFT+F2)");
+        try {
+            List<FileItem> selectedItems = new ArrayList<>(filesPanesHelper.getSelectedItems());
+            for (FileItem selectedItem : selectedItems)
+                commands.extractPDFPages(selectedItem, filesPanesHelper.getUnfocusedPath());
+        } catch (Exception e) {
+            error("Failed Extracting Pages from PDF file", e);
+        }
+    }
+
     /** Opens a dialog with the title asking the requested question returning the optional user's input */
     private Optional<String> getUserFeedback(String defaultValue, String title, String question) {
         TextInputDialog dialog = new TextInputDialog(defaultValue);
@@ -452,27 +482,36 @@ public class Commander {
         alert.showAndWait();
     }
 
-    public void updateBottomButtons(boolean isAltPressed) {
-        if (isAltPressed) {
-            btnF1.setText("ALT+F1 Left Folder");
-            btnF2.setText("ALT+F2 Right Folder");
-            btnF4.setText("ALT+F4 Exit");
-            btnF7.setText("ALT+F7 MkFile");
-            btnF9.setText("ALT+F9 Explorer");
-            btnF12.setText("ALT+F12 Extract All");
-        } else {
-            btnF1.setText("F1 Help");
-            btnF2.setText("F2 Rename");
-            btnF3.setText("F3 View");
-            btnF4.setText("F4 Edit");
-            btnF5.setText("F5 Copy");
-            btnF6.setText("F6 Move");
-            btnF7.setText("F7 MkDir");
-            btnF8.setText("F8 Delete");
-            btnF9.setText("F9 Terminal");
-            btnF10.setText("F10 Search");
-            btnF11.setText("F11 Pack");
-            btnF12.setText("F12 UnPack");
+    public void updateBottomButtons(KeyCode whichKeyWasPressed) {
+        switch (whichKeyWasPressed) {
+            case null -> {
+                btnF1.setText("F1 Help");
+                btnF2.setText("F2 Rename");
+                btnF3.setText("F3 View");
+                btnF4.setText("F4 Edit");
+                btnF5.setText("F5 Copy");
+                btnF6.setText("F6 Move");
+                btnF7.setText("F7 MkDir");
+                btnF8.setText("F8 Delete");
+                btnF9.setText("F9 Terminal");
+                btnF10.setText("F10 Search");
+                btnF11.setText("F11 Pack");
+                btnF12.setText("F12 UnPack");
+            }
+            case ALT -> {
+                btnF1.setText("ALT+F1 Left Folder");
+                btnF2.setText("ALT+F2 Right Folder");
+                btnF4.setText("ALT+F4 Exit");
+                btnF7.setText("ALT+F7 MkFile");
+                btnF9.setText("ALT+F9 Explorer");
+                btnF12.setText("ALT+F12 Extract All");
+            }
+            case SHIFT -> {
+                btnF1.setText("SHIFT+F1 Extract PDF");
+                btnF2.setText("SHIFT+F2 Merge PDF");
+            }
+
+            default -> throw new IllegalStateException("Which key was pressed?: " + whichKeyWasPressed);
         }
     }
 }

@@ -168,4 +168,14 @@ public class CommandsSimpleImpl extends ACommands {
     public void extractAll(FileItem selectedItem, String destinationPath) throws Exception {
 
     }
+
+    @Override
+    public void mergePDFs(List<FileItem> selectedItem, String newPdfFilename, String destinationPath) throws Exception {
+
+    }
+
+    @Override
+    public void extractPDFPages(FileItem selectedItem, String destinationPath) throws Exception {
+
+    }
 }
