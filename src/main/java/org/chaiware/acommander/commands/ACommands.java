@@ -29,10 +29,10 @@ public abstract class ACommands {
     public abstract void openTerminal(String openHerePath) throws Exception;
     public abstract void openExplorer(String openHerePath) throws Exception;
     public abstract void searchFiles(String sourcePath, String filenameWildcard) throws Exception;
-    public abstract void pack(List<FileItem> selectedItem, String archiveFilename, String destinationPath) throws Exception;
+    public abstract void pack(List<FileItem> selectedItem, String archiveFilenameWithPath) throws Exception;
     public abstract void unpack(FileItem selectedItem, String destinationPath) throws Exception;
     public abstract void extractAll(FileItem selectedItem, String destinationPath) throws Exception;
-    public abstract void mergePDFs(List<FileItem> selectedItem, String newPdfFilename, String destinationPath) throws Exception;
+    public abstract void mergePDFs(List<FileItem> selectedItem, String newPdfFilenameWithPath) throws Exception;
     public abstract void extractPDFPages(FileItem selectedItem, String destinationPath) throws Exception;
 
 
@@ -56,7 +56,11 @@ public abstract class ACommands {
 
         if (isWaitFor) {
             process.waitFor();
+            FileItem focusedSelectedItem = fileListsLoader.getFileList(true).getSelectionModel().getSelectedItem();
+            FileItem nonFocusedSelectedItem = fileListsLoader.getFileList(false).getSelectionModel().getSelectedItem();
             fileListsLoader.refreshFileListViews();
+            fileListsLoader.selectFileItem(true, focusedSelectedItem);
+            fileListsLoader.selectFileItem(false, nonFocusedSelectedItem);
         }
 
         return output;

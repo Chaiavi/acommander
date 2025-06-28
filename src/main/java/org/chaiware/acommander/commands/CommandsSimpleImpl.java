@@ -107,7 +107,7 @@ public class CommandsSimpleImpl extends ACommands {
             if (selectedFile != null) {
                 log.info("From the search, the selected file is: {}", selectedFile.getFullPath());
                 fileListsLoader.setFocusedFileListPath(selectedFile.getFile().getParent());
-                fileListsLoader.getFocusedFileList().getSelectionModel().select(selectedFile);
+                fileListsLoader.selectFileItem(true, selectedFile);
             } else
                 log.info("User didn't select any file from the search results");
         } else {
@@ -155,7 +155,7 @@ public class CommandsSimpleImpl extends ACommands {
     }
 
     @Override
-    public void pack(List<FileItem> selectedItem, String archiveFilename, String destinationPath) throws Exception {
+    public void pack(List<FileItem> selectedItem, String archiveFilenameWithPath) throws Exception {
 
     }
 
@@ -170,7 +170,7 @@ public class CommandsSimpleImpl extends ACommands {
     }
 
     @Override
-    public void mergePDFs(List<FileItem> selectedItem, String newPdfFilename, String destinationPath) throws Exception {
+    public void mergePDFs(List<FileItem> selectedItem, String newPdfFilenameWithPath) throws Exception {
 
     }
 

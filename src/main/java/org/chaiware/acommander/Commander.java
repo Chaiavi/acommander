@@ -1,5 +1,6 @@
 package org.chaiware.acommander;
 
+import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
@@ -10,6 +11,7 @@ import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
+import javafx.scene.layout.Region;
 import javafx.stage.Window;
 import org.chaiware.acommander.commands.ACommands;
 import org.chaiware.acommander.commands.CommandsAdvancedImpl;
@@ -252,8 +254,13 @@ public class Commander {
             if (selectedItems.size() == 1) {
                 FileItem selectedItem = selectedItems.get(0);
                 Optional<String> result = getUserFeedback(selectedItem.getFile().getName(), "File Rename", "New name");
-                if (result.isPresent()) // if user dismisses the dialog it won't rename...
+                if (result.isPresent()) { // if user dismisses the dialog it won't rename...
+                    FileItem nonSelectedFI = filesPanesHelper.getFileList(false).getSelectionModel().getSelectedItem();
                     commands.rename(Collections.singletonList(selectedItem), result.get());
+                    FileItem renamedFileItem = new FileItem(new File(filesPanesHelper.getFocusedPath() + "\\" + result.get()));
+                    filesPanesHelper.selectFileItem(true, renamedFileItem);
+                    filesPanesHelper.selectFileItem(false, nonSelectedFI);
+                }
             } else // Multi files selected (multi rename)
                 commands.rename(selectedItems, "");
         } catch (Exception e) {
@@ -298,6 +305,13 @@ public class Commander {
                 if (selectedItem.isDirectory())
                     targetFolder += "\\" + selectedItem.getName();
                 commands.copy(selectedItem, targetFolder);
+
+                // taking care of the selected files
+                filesPanesHelper.selectFileItem(true, selectedItem);
+                File target = selectedItem.isDirectory()
+                        ? new File(targetFolder)
+                        : new File(targetFolder, selectedItem.getName());
+                filesPanesHelper.selectFileItem(false, new FileItem(target));
             }
         } catch (Exception e) {
             error("Failed Copying file", e);
@@ -315,6 +329,15 @@ public class Commander {
                 if (selectedItem.isDirectory())
                     targetFolder += "\\" + selectedItem.getName();
                 commands.move(selectedItem, targetFolder);
+
+                // taking care of the selected files
+                filesPanesHelper.getFileList(true)
+                        .getSelectionModel()
+                        .selectFirst();
+                File target = selectedItem.isDirectory()
+                        ? new File(targetFolder)
+                        : new File(targetFolder, selectedItem.getName());
+                filesPanesHelper.selectFileItem(false, new FileItem(target));
             }
         } catch (Exception ex) {
             error("Failed Moving file", ex);
@@ -327,8 +350,13 @@ public class Commander {
 
         try {
             Optional<String> result = getUserFeedback("", "Make Directory", "New Directory Name");
-            if (result.isPresent()) // if user dismisses the dialog it won't create a directory...
+            if (result.isPresent()) { // if user dismisses the dialog it won't create a directory...
+                FileItem selectedItem = filesPanesHelper.getFileList(false).getSelectionModel().getSelectedItem();
                 commands.mkdir((filesPanesHelper.getFocusedPath()), result.get());
+                FileItem newFolder = new FileItem(new File(filesPanesHelper.getFocusedPath() + "\\" + result.get()));
+                filesPanesHelper.selectFileItem(true, newFolder);
+                filesPanesHelper.selectFileItem(false, selectedItem);
+            }
         } catch (Exception e) {
             error("Failed Creating Directory", e);
         }
@@ -339,8 +367,13 @@ public class Commander {
 
         try {
             Optional<String> result = getUserFeedback("", "Make File", "New File Name");
-            if (result.isPresent()) // if user dismisses the dialog it won't create a file...
+            if (result.isPresent()) {// if user dismisses the dialog it won't create a file...
+                FileItem selectedItem = filesPanesHelper.getFileList(false).getSelectionModel().getSelectedItem();
                 commands.mkFile((filesPanesHelper.getFocusedPath()), result.get());
+                FileItem newFile = new FileItem(new File(filesPanesHelper.getFocusedPath() + "\\" + result.get()));
+                filesPanesHelper.selectFileItem(true, newFile);
+                filesPanesHelper.selectFileItem(false, selectedItem);
+            }
         } catch (Exception e) {
             error("Failed Creating File", e);
         }
@@ -350,7 +383,10 @@ public class Commander {
     public void deleteFile() {
         logger.info("Delete (F8/DEL)");
         try {
+            FileItem selectedItem = filesPanesHelper.getFileList(false).getSelectionModel().getSelectedItem();
             commands.delete(new ArrayList<>(filesPanesHelper.getSelectedItems()));
+            filesPanesHelper.getFileList(true).getSelectionModel().selectFirst();
+            filesPanesHelper.selectFileItem(false, selectedItem);
         } catch (Exception ex) {
             error("Failed to delete", ex);
         }
@@ -402,9 +438,12 @@ public class Commander {
                     ? firstFilename.substring(0, firstFilename.lastIndexOf('.')) + ".zip"
                     : firstFilename + ".zip";
             Optional<String> result = getUserFeedback(zipFilename, "Pack to zip", "Zip filename");
-            if (result.isPresent())
-                commands.pack(selectedItems, result.get(), filesPanesHelper.getUnfocusedPath());
-            else
+            if (result.isPresent()) {
+                String filenameWithPath = filesPanesHelper.getUnfocusedPath() + "\\" + result.get();
+                commands.pack(selectedItems, filenameWithPath);
+                FileItem packedFile = new FileItem(new File(filenameWithPath));
+                filesPanesHelper.selectFileItem(false, packedFile);
+            } else
                 logger.info("User cancelled the packing");
         } catch (Exception e) {
             error("Failed Packing file", e);
@@ -443,9 +482,11 @@ public class Commander {
                     ? firstFilename.substring(0, firstFilename.lastIndexOf('.')) + ".pdf"
                     : firstFilename + ".pdf";
             Optional<String> result = getUserFeedback(zipFilename, "Merge PDF Files", "PDF filename");
-            if (result.isPresent())
-                commands.mergePDFs(selectedItems, result.get(), filesPanesHelper.getUnfocusedPath());
-            else
+            if (result.isPresent()) {
+                FileItem mergedFile = new FileItem(new File(filesPanesHelper.getUnfocusedPath() + "\\" + result.get()));
+                commands.mergePDFs(selectedItems, mergedFile.getFullPath());
+                filesPanesHelper.selectFileItem(false, mergedFile);
+            } else
                 logger.info("User cancelled the packing");
         } catch (Exception e) {
             error("Failed Packing file", e);
@@ -463,6 +504,16 @@ public class Commander {
         }
     }
 
+    public void filterByChar(char selectedChar) {
+        ObservableList<FileItem> fileItems = filesPanesHelper.getFileList(true).getItems();
+        FileItem match = fileItems.stream()
+                .filter(f -> f.getName().toLowerCase().startsWith(String.valueOf(selectedChar)))
+                .findFirst()
+                .orElse(null);
+        if (match != null)
+            filesPanesHelper.selectFileItem(true, match);
+    }
+
     /** Opens a dialog with the title asking the requested question returning the optional user's input */
     private Optional<String> getUserFeedback(String defaultValue, String title, String question) {
         TextInputDialog dialog = new TextInputDialog(defaultValue);
@@ -477,8 +528,12 @@ public class Commander {
     /** Alerts of an error and logs it */
     private void error(String error, Exception ex) {
         logger.error(error, ex);
-        Alert alert = new Alert(Alert.AlertType.ERROR, error + " (" + ex.getMessage() + ")");
-        alert.setHeaderText("Oops, error occurred");
+
+        Alert alert = new Alert(Alert.AlertType.ERROR);
+        alert.setTitle("Error");
+        alert.setContentText(error + " (" + ex.getMessage() + ")");
+        alert.setResizable(true);
+        alert.getDialogPane().setMinHeight(Region.USE_PREF_SIZE);
         alert.showAndWait();
     }
 

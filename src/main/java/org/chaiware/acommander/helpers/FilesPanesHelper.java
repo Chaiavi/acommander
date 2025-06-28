@@ -39,6 +39,11 @@ public class FilesPanesHelper {
         this.focusedSide = focusSide;
     }
 
+    public void selectFileItem(boolean isFocused, FileItem fileItem) {
+        getFileList(isFocused).getSelectionModel().clearSelection();
+        getFileList(isFocused).getSelectionModel().select(fileItem);
+    }
+
     /** Sets the current file list's path */
     public void setFileListPath(FocusSide focusSide, String path) {
         ComboBox<Folder> pathComboBox = filePanes.get(focusSide).getPathComboBox();
@@ -50,8 +55,11 @@ public class FilesPanesHelper {
         setFileListPath(focusedSide, path);
     }
 
-    public ListView<FileItem> getFocusedFileList() {
-        return filePanes.get(focusedSide).getFileListView();
+    public ListView<FileItem> getFileList(boolean isFocused) {
+        if (isFocused)
+            return filePanes.get(focusedSide).getFileListView();
+        else
+            return filePanes.get(focusedSide == FocusSide.LEFT ? FocusSide.RIGHT : FocusSide.LEFT).getFileListView();
     }
 
     /* Refreshes both of the file views */
@@ -86,11 +94,11 @@ public class FilesPanesHelper {
     }
 
     public FileItem getSelectedItem() {
-        return getFocusedFileList().getSelectionModel().getSelectedItem();
+        return getFileList(true).getSelectionModel().getSelectedItem();
     }
 
     public List<FileItem> getSelectedItems() {
-        return getFocusedFileList().getSelectionModel().getSelectedItems();
+        return getFileList(true).getSelectionModel().getSelectedItems();
     }
 
     @Data

@@ -15,26 +15,62 @@ public class FilePaneKeyHandlerImpl implements IKeyHandler {
 
     @Override
     public boolean handle(KeyEvent event) {
-        if (event.isAltDown() || event.isShiftDown()) { return false; }
+        if (event.isAltDown() || event.isShiftDown()) {
+            return false;
+        }
 
         switch (event.getCode()) {
-            case F2 -> { commander.renameFile(); return true; }
-            case F3 -> { commander.viewFile(); return true; }
-            case F4 -> { commander.editFile(); return true; }
-            case F5 -> { commander.copyFile(); return true; }
-            case F6 -> { commander.moveFile(); return true; }
-            case F7 -> { commander.makeDirectory(); return true; }
-            case F8, DELETE -> { commander.deleteFile(); return true; }
-            case F11 -> { commander.pack(); return true; }
-            case F12 -> { commander.unpackFile(); return true; }
-            case BACK_SPACE -> { goUpOneFolder(); return true; }
-            case ENTER -> { commander.enterSelectedItem(); event.consume(); return true; }
+            case F2 -> {
+                commander.renameFile();
+                return true;
+            }
+            case F3 -> {
+                commander.viewFile();
+                return true;
+            }
+            case F4 -> {
+                commander.editFile();
+                return true;
+            }
+            case F5 -> {
+                commander.copyFile();
+                return true;
+            }
+            case F6 -> {
+                commander.moveFile();
+                return true;
+            }
+            case F7 -> {
+                commander.makeDirectory();
+                return true;
+            }
+            case F8, DELETE -> {
+                commander.deleteFile();
+                return true;
+            }
+            case F11 -> {
+                commander.pack();
+                return true;
+            }
+            case F12 -> {
+                commander.unpackFile();
+                return true;
+            }
+            case BACK_SPACE -> {
+                goUpOneFolder();
+                return true;
+            }
+            case ENTER -> {
+                commander.enterSelectedItem();
+                event.consume();
+                return true;
+            }
             default -> {
-                // Check for filename filtering (alphanumeric chars)
-//                if (isFilenameChar(event)) {
-//                    startFilenameFilter(event.getText());
-//                    return true;
-//                }
+                String keyText = event.getText();
+                if (keyText.matches("[a-zA-Z0-9]")) {
+                    commander.filterByChar(keyText.charAt(0));
+                    return true;
+                }
                 return false;
             }
         }

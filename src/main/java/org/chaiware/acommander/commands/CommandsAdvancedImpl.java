@@ -180,16 +180,16 @@ public class CommandsAdvancedImpl extends ACommands {
     }
 
     @Override
-    public void pack(List<FileItem> sources, String archiveFilename, String destinationPath) throws Exception {
+    public void pack(List<FileItem> sources, String archiveFilenameWithPath) throws Exception {
         List<String> command = new ArrayList<>();
         command.add(APP_PATH + "pack_unpack\\7zG.exe");
         command.add("a");
-        command.add(destinationPath + "\\" + archiveFilename);
+        command.add(archiveFilenameWithPath);
         command.add(sources.stream()
                 .map(f -> "\"" + f.getFullPath() + "\"")
                 .collect(Collectors.joining(" ")));
         runExecutable(command, true);
-        log.debug("Archived (zip): {} to: {}", archiveFilename, destinationPath);
+        log.debug("Archived (zip): {}", archiveFilenameWithPath);
     }
 
     @Override
@@ -215,7 +215,7 @@ public class CommandsAdvancedImpl extends ACommands {
     }
 
     @Override
-    public void mergePDFs(List<FileItem> sources, String newPdfFilename, String destinationPath) throws Exception {
+    public void mergePDFs(List<FileItem> sources, String newPdfFilenameWithPath) throws Exception {
         List<String> command = new ArrayList<>();
         command.add(APP_PATH + "pdf\\pdftk.exe");
         command.add(sources.stream()
@@ -223,9 +223,9 @@ public class CommandsAdvancedImpl extends ACommands {
                 .collect(Collectors.joining(" ")));
         command.add("cat");
         command.add("output");
-        command.add(destinationPath + "\\" + newPdfFilename);
+        command.add(newPdfFilenameWithPath);
         runExecutable(command, true);
-        log.debug("The new Merged (pdf): {} was created in: {}", newPdfFilename, destinationPath);
+        log.debug("The new Merged (pdf): {}", newPdfFilenameWithPath);
     }
 
     @Override
