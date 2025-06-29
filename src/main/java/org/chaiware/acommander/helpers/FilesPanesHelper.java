@@ -64,8 +64,12 @@ public class FilesPanesHelper {
 
     /* Refreshes both of the file views */
     public void refreshFileListViews() {
+        FileItem focusedSelectedItem = getFileList(true).getSelectionModel().getSelectedItem();
+        FileItem nonFocusedSelectedItem = getFileList(false).getSelectionModel().getSelectedItem();
         refreshFileListView(LEFT);
         refreshFileListView(RIGHT);
+        selectFileItem(true, focusedSelectedItem);
+        selectFileItem(false, nonFocusedSelectedItem);
     }
 
     /**

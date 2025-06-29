@@ -255,11 +255,9 @@ public class Commander {
                 FileItem selectedItem = selectedItems.get(0);
                 Optional<String> result = getUserFeedback(selectedItem.getFile().getName(), "File Rename", "New name");
                 if (result.isPresent()) { // if user dismisses the dialog it won't rename...
-                    FileItem nonSelectedFI = filesPanesHelper.getFileList(false).getSelectionModel().getSelectedItem();
                     commands.rename(Collections.singletonList(selectedItem), result.get());
                     FileItem renamedFileItem = new FileItem(new File(filesPanesHelper.getFocusedPath() + "\\" + result.get()));
                     filesPanesHelper.selectFileItem(true, renamedFileItem);
-                    filesPanesHelper.selectFileItem(false, nonSelectedFI);
                 }
             } else // Multi files selected (multi rename)
                 commands.rename(selectedItems, "");
@@ -307,7 +305,6 @@ public class Commander {
                 commands.copy(selectedItem, targetFolder);
 
                 // taking care of the selected files
-                filesPanesHelper.selectFileItem(true, selectedItem);
                 File target = selectedItem.isDirectory()
                         ? new File(targetFolder)
                         : new File(targetFolder, selectedItem.getName());
@@ -351,11 +348,9 @@ public class Commander {
         try {
             Optional<String> result = getUserFeedback("", "Make Directory", "New Directory Name");
             if (result.isPresent()) { // if user dismisses the dialog it won't create a directory...
-                FileItem selectedItem = filesPanesHelper.getFileList(false).getSelectionModel().getSelectedItem();
                 commands.mkdir((filesPanesHelper.getFocusedPath()), result.get());
                 FileItem newFolder = new FileItem(new File(filesPanesHelper.getFocusedPath() + "\\" + result.get()));
                 filesPanesHelper.selectFileItem(true, newFolder);
-                filesPanesHelper.selectFileItem(false, selectedItem);
             }
         } catch (Exception e) {
             error("Failed Creating Directory", e);
@@ -368,11 +363,9 @@ public class Commander {
         try {
             Optional<String> result = getUserFeedback("", "Make File", "New File Name");
             if (result.isPresent()) {// if user dismisses the dialog it won't create a file...
-                FileItem selectedItem = filesPanesHelper.getFileList(false).getSelectionModel().getSelectedItem();
                 commands.mkFile((filesPanesHelper.getFocusedPath()), result.get());
                 FileItem newFile = new FileItem(new File(filesPanesHelper.getFocusedPath() + "\\" + result.get()));
                 filesPanesHelper.selectFileItem(true, newFile);
-                filesPanesHelper.selectFileItem(false, selectedItem);
             }
         } catch (Exception e) {
             error("Failed Creating File", e);
@@ -383,10 +376,8 @@ public class Commander {
     public void deleteFile() {
         logger.info("Delete (F8/DEL)");
         try {
-            FileItem selectedItem = filesPanesHelper.getFileList(false).getSelectionModel().getSelectedItem();
             commands.delete(new ArrayList<>(filesPanesHelper.getSelectedItems()));
             filesPanesHelper.getFileList(true).getSelectionModel().selectFirst();
-            filesPanesHelper.selectFileItem(false, selectedItem);
         } catch (Exception ex) {
             error("Failed to delete", ex);
         }

@@ -56,11 +56,7 @@ public abstract class ACommands {
 
         if (isWaitFor) {
             process.waitFor();
-            FileItem focusedSelectedItem = fileListsLoader.getFileList(true).getSelectionModel().getSelectedItem();
-            FileItem nonFocusedSelectedItem = fileListsLoader.getFileList(false).getSelectionModel().getSelectedItem();
             fileListsLoader.refreshFileListViews();
-            fileListsLoader.selectFileItem(true, focusedSelectedItem);
-            fileListsLoader.selectFileItem(false, nonFocusedSelectedItem);
         }
 
         return output;

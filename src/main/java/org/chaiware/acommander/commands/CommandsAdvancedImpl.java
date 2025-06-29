@@ -142,7 +142,6 @@ public class CommandsAdvancedImpl extends ACommands {
         command.add(APP_PATH + "unlock_delete\\ThisIsMyFile.exe");
         command.add(fullPaths);
         runExecutable(command, true);
-        fileListsLoader.refreshFileListViews();
         log.debug("Unlocked & Deleted: {}", selectedItems.stream().map(FileItem::getName).collect(Collectors.joining(", ")));
     }
 
