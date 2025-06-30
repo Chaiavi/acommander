@@ -1,9 +1,13 @@
 package org.chaiware.acommander.keybinding;
 
+import javafx.scene.input.KeyCombination;
 import javafx.scene.input.KeyEvent;
 import org.chaiware.acommander.Commander;
 
 import java.io.File;
+import java.util.Map;
+
+import static javafx.scene.input.KeyCode.*;
 
 
 public class FilePaneKeyHandlerImpl implements IKeyHandler {
@@ -15,65 +19,81 @@ public class FilePaneKeyHandlerImpl implements IKeyHandler {
 
     @Override
     public boolean handle(KeyEvent event) {
+        Map<KeyCombination, Runnable> comboActions = Map.of(
+                SHIFT_F8, commander::deleteFile
+        );
+        for (var entry : comboActions.entrySet()) {
+            if (entry.getKey().match(event)) {
+                entry.getValue().run();
+                return true;
+            }
+        }
+
         if (event.isAltDown() || event.isShiftDown() || event.isControlDown()) {
             return false;
         }
 
-        switch (event.getCode()) {
+        // ALT or SHIFT for bottom buttons
+        if (event.getCode() == ALT || event.getCode() == SHIFT || event.getCode() == CONTROL) {
+            commander.updateBottomButtons(event.getCode());
+            return false;
+        }
+
+        return switch (event.getCode()) {
             case F2 -> {
                 commander.renameFile();
-                return true;
+                yield true;
             }
             case F3 -> {
                 commander.viewFile();
-                return true;
+                yield true;
             }
             case F4 -> {
                 commander.editFile();
-                return true;
+                yield true;
             }
             case F5 -> {
                 commander.copyFile();
-                return true;
+                yield true;
             }
             case F6 -> {
                 commander.moveFile();
-                return true;
+                yield true;
             }
             case F7 -> {
                 commander.makeDirectory();
-                return true;
+                yield true;
             }
             case F8, DELETE -> {
                 commander.deleteFile();
-                return true;
+                yield true;
             }
             case F11 -> {
                 commander.pack();
-                return true;
+                yield true;
             }
             case F12 -> {
                 commander.unpackFile();
-                return true;
+                yield true;
             }
             case BACK_SPACE -> {
                 goUpOneFolder();
-                return true;
+                yield true;
             }
             case ENTER -> {
                 commander.enterSelectedItem();
                 event.consume();
-                return true;
+                yield true;
             }
             default -> {
                 String keyText = event.getText();
                 if (keyText.matches("[a-zA-Z0-9]")) {
                     commander.filterByChar(keyText.charAt(0));
-                    return true;
+                    yield true;
                 }
-                return false;
+                yield false;
             }
-        }
+        };
     }
 
     private void goUpOneFolder() {

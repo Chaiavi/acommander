@@ -22,12 +22,6 @@ public class GlobalKeyHandlerImpl implements IKeyHandler {
         logger.trace("Event target: {}", event.getTarget());
         logger.trace("Event source: {}", event.getSource());
 
-        // ALT or SHIFT for bottom buttons
-        if (event.getCode() == ALT || event.getCode() == SHIFT || event.getCode() == CONTROL) {
-            commander.updateBottomButtons(event.getCode());
-            return false;
-        }
-
         Map<KeyCombination, Runnable> comboActions = Map.of(
                 ALT_F1, () -> commander.leftPathComboBox.show(),
                 ALT_F2, () -> commander.rightPathComboBox.show(),
@@ -40,11 +34,18 @@ public class GlobalKeyHandlerImpl implements IKeyHandler {
                 CONTROL_R, commander.filesPanesHelper::refreshFileListViews
         );
 
+
+
         for (var entry : comboActions.entrySet()) {
             if (entry.getKey().match(event)) {
                 entry.getValue().run();
                 return true;
             }
+        }
+        // ALT or SHIFT for bottom buttons
+        if (event.getCode() == ALT || event.getCode() == SHIFT || event.getCode() == CONTROL) {
+            commander.updateBottomButtons(event.getCode());
+            return false;
         }
 
         return switch (event.getCode()) {
