@@ -7,8 +7,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static javafx.scene.input.KeyCode.*;
-import static javafx.scene.input.KeyCombination.ALT_DOWN;
-import static javafx.scene.input.KeyCombination.SHIFT_DOWN;
+import static javafx.scene.input.KeyCombination.*;
 
 
 public interface IKeyHandler {
@@ -39,6 +38,9 @@ public interface IKeyHandler {
     KeyCombination SHIFT_F10 = new KeyCodeCombination(F10, SHIFT_DOWN);
     KeyCombination SHIFT_F11 = new KeyCodeCombination(F11, SHIFT_DOWN);
     KeyCombination SHIFT_F12 = new KeyCodeCombination(F12, SHIFT_DOWN);
+
+    KeyCombination CONTROL_F = new KeyCodeCombination(F, CONTROL_DOWN);
+    KeyCombination CONTROL_R = new KeyCodeCombination(R, CONTROL_DOWN);
 
     boolean handle(KeyEvent event);
 }

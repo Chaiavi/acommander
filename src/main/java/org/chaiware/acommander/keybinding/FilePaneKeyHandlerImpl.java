@@ -15,7 +15,7 @@ public class FilePaneKeyHandlerImpl implements IKeyHandler {
 
     @Override
     public boolean handle(KeyEvent event) {
-        if (event.isAltDown() || event.isShiftDown()) {
+        if (event.isAltDown() || event.isShiftDown() || event.isControlDown()) {
             return false;
         }
 

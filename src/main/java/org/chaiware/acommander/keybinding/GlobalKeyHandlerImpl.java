@@ -6,8 +6,7 @@ import org.chaiware.acommander.Commander;
 
 import java.util.Map;
 
-import static javafx.scene.input.KeyCode.ALT;
-import static javafx.scene.input.KeyCode.SHIFT;
+import static javafx.scene.input.KeyCode.*;
 import static org.chaiware.acommander.helpers.FilesPanesHelper.FocusSide.LEFT;
 
 public class GlobalKeyHandlerImpl implements IKeyHandler {
@@ -24,7 +23,7 @@ public class GlobalKeyHandlerImpl implements IKeyHandler {
         logger.trace("Event source: {}", event.getSource());
 
         // ALT or SHIFT for bottom buttons
-        if (event.getCode() == ALT || event.getCode() == SHIFT) {
+        if (event.getCode() == ALT || event.getCode() == SHIFT || event.getCode() == CONTROL) {
             commander.updateBottomButtons(event.getCode());
             return false;
         }
@@ -36,7 +35,8 @@ public class GlobalKeyHandlerImpl implements IKeyHandler {
                 ALT_F9, commander::explorerHere,
                 ALT_F12, commander::extractAll,
                 SHIFT_F1, commander::extractPDFPages,
-                SHIFT_F2, commander::mergePDFFiles
+                SHIFT_F2, commander::mergePDFFiles,
+                CONTROL_F, commander::search
         );
 
         for (var entry : comboActions.entrySet()) {

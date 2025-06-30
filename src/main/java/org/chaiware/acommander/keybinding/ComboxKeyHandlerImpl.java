@@ -13,7 +13,7 @@ public class ComboxKeyHandlerImpl implements IKeyHandler {
 
     @Override
     public boolean handle(KeyEvent event) {
-        if (event.isAltDown() || event.isShiftDown()) { return false; }
+        if (event.isAltDown() || event.isShiftDown() || event.isControlDown()) { return false; }
 
         return switch (event.getCode()) {
             case ENTER -> {

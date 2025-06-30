@@ -556,6 +556,8 @@ public class Commander {
                 btnF1.setText("SHIFT+F1 Extract PDF");
                 btnF2.setText("SHIFT+F2 Merge PDF");
             }
+            case CONTROL -> {
+            }
 
             default -> throw new IllegalStateException("Which key was pressed?: " + whichKeyWasPressed);
         }
