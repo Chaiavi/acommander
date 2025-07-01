@@ -26,6 +26,8 @@ import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
@@ -33,6 +35,7 @@ import java.util.*;
 import static java.awt.Desktop.getDesktop;
 import static org.chaiware.acommander.helpers.FilesPanesHelper.FocusSide.LEFT;
 import static org.chaiware.acommander.helpers.FilesPanesHelper.FocusSide.RIGHT;
+
 
 public class Commander {
 
@@ -276,6 +279,35 @@ public class Commander {
                 commands.view(selectedItem);
         } catch (Exception ex) {
             error("Failed Viewing file", ex);
+        }
+    }
+
+    public void calculateDirSpace() {
+        logger.info("calculateDirSpace (F3 (on folder))");
+
+        try {
+            FileItem selectedItem = filesPanesHelper.getSelectedItem();
+            if (!selectedItem.isDirectory()) {
+                logger.error("Error: Trying to calculate size of a file and not a folder ??");
+                return;
+            }
+
+            long sizeOfFolder = Files.walk(selectedItem.getFile().toPath())
+                    .parallel()
+                    .filter(Files::isRegularFile)
+                    .mapToLong(path -> {
+                        try {
+                            return Files.size(path);
+                        } catch (IOException e) {
+                            return 0L;
+                        }
+                    })
+                    .sum();
+
+            selectedItem.setSize(sizeOfFolder);
+            filesPanesHelper.getFileList(true).refresh();
+        } catch (Exception ex) {
+            error("Failed calculating folder size", ex);
         }
     }
 

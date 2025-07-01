@@ -17,6 +17,7 @@ import java.time.format.DateTimeFormatter;
 public class FileItem {
     private final File file;
     private String presentableFilename;
+    private long size = 0;
 
     public FileItem(File file) {
         this.file = file;
@@ -37,16 +38,27 @@ public class FileItem {
     }
 
     public String getHumanReadableSize() {
-        if (isDirectory()) return "";
-        long bytes = file.length();
+        long sizeInBytes = getSizeInBytes();
+        if (sizeInBytes == 0) return "";
 
-        if (bytes < 1024) return bytes + " B";
-        int exp = (int) (Math.log(bytes) / Math.log(1024));
+        if (sizeInBytes < 1024) return sizeInBytes + " B";
+        int exp = (int) (Math.log(sizeInBytes) / Math.log(1024));
         String unit = "KMGTPE".charAt(exp - 1) + "B";
-        double value = bytes / Math.pow(1024, exp);
+        double value = sizeInBytes / Math.pow(1024, exp);
         return (Double.parseDouble(String.format("%.1f", value)) % 1 == 0)
                 ? String.format("%.0f %s", value, unit)
                 : String.format("%.1f %s", value, unit);
+    }
+
+    public void setSize(long sizeInBytes) {
+        this.size = sizeInBytes;
+    }
+
+    private long getSizeInBytes() {
+        if (!isDirectory())
+            return file.length();
+
+        return size;
     }
 
     public String getDate() {

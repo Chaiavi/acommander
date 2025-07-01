@@ -47,7 +47,11 @@ public class FilePaneKeyHandlerImpl implements IKeyHandler {
                 yield true;
             }
             case F3 -> {
-                commander.viewFile();
+                if(commander.filesPanesHelper.getSelectedItem().isDirectory())
+                    commander.calculateDirSpace();
+                else
+                    commander.viewFile();
+
                 yield true;
             }
             case F4 -> {
