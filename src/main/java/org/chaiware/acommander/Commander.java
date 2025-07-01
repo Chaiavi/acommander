@@ -383,6 +383,16 @@ public class Commander {
         }
     }
 
+    public void deleteWipe() {
+        logger.info("Delete & Wipe (Shift+F8/DEL)");
+        try {
+            commands.wipeDelete(new ArrayList<>(filesPanesHelper.getSelectedItems()));
+            filesPanesHelper.getFileList(true).getSelectionModel().selectFirst();
+        } catch (Exception ex) {
+            error("Failed to delete", ex);
+        }
+    }
+
     @FXML
     public void terminalHere() {
         logger.info("Open Terminal Here (F9)");
@@ -556,6 +566,7 @@ public class Commander {
                 btnF1.setText("SHIFT+F1 Merge PDF");
                 btnF2.setText("SHIFT+F2 Extract PDF");
                 btnF6.setText("SHIFT+F6 Rename");
+                btnF8.setText("SHIFT+F8 Delete & Wipe");
             }
             case CONTROL -> {
             }

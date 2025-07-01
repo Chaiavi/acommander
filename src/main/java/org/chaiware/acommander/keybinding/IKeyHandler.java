@@ -38,6 +38,7 @@ public interface IKeyHandler {
     KeyCombination SHIFT_F10 = new KeyCodeCombination(F10, SHIFT_DOWN);
     KeyCombination SHIFT_F11 = new KeyCodeCombination(F11, SHIFT_DOWN);
     KeyCombination SHIFT_F12 = new KeyCodeCombination(F12, SHIFT_DOWN);
+    KeyCombination SHIFT_DEL = new KeyCodeCombination(DELETE, SHIFT_DOWN);
 
     KeyCombination CONTROL_F = new KeyCodeCombination(F, CONTROL_DOWN);
     KeyCombination CONTROL_R = new KeyCodeCombination(R, CONTROL_DOWN);

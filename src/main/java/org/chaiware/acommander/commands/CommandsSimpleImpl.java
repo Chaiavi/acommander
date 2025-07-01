@@ -78,6 +78,11 @@ public class CommandsSimpleImpl extends ACommands {
     }
 
     @Override
+    public void wipeDelete(List<FileItem> selectedItems) throws Exception {
+
+    }
+
+    @Override
     public void openTerminal(String openHerePath) throws Exception {
 
     }

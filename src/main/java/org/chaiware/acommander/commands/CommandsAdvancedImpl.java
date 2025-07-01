@@ -139,10 +139,22 @@ public class CommandsAdvancedImpl extends ACommands {
                 .collect(Collectors.joining(" "));
 
         List<String> command = new ArrayList<>();
-        command.add(APP_PATH + "unlock_delete\\ThisIsMyFile.exe");
+        command.add(APP_PATH + "delete\\unlock_delete\\ThisIsMyFile.exe");
         command.add(fullPaths);
         runExecutable(command, true);
         log.debug("Unlocked & Deleted: {}", selectedItems.stream().map(FileItem::getName).collect(Collectors.joining(", ")));
+    }
+
+    public void wipeDelete(List<FileItem> selectedItems) throws Exception {
+        String fullPaths = selectedItems.stream()
+                .map(f -> "\"" + f.getFullPath() + "\"")
+                .collect(Collectors.joining(" "));
+
+        List<String> command = new ArrayList<>();
+        command.add(APP_PATH + "delete\\wipe\\sdelete64.exe");
+        command.add(fullPaths);
+        runExecutable(command, true);
+        log.debug("Deleted & Wiped: {}", selectedItems.stream().map(FileItem::getName).collect(Collectors.joining(", ")));
     }
 
     @Override

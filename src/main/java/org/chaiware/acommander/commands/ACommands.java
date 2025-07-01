@@ -25,6 +25,7 @@ public abstract class ACommands {
     public abstract void mkdir(String parentDir, String newDirName) throws IOException;
     public abstract void mkFile(String focusedPath, String newFileName) throws Exception;
     public abstract void delete(List<FileItem> selectedItems) throws Exception;
+    public abstract void wipeDelete(List<FileItem> selectedItems) throws Exception;
     public abstract void unlockDelete(List<FileItem> selectedItems) throws Exception;
     public abstract void openTerminal(String openHerePath) throws Exception;
     public abstract void openExplorer(String openHerePath) throws Exception;
