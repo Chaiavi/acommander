@@ -28,13 +28,11 @@ public class GlobalKeyHandlerImpl implements IKeyHandler {
                 ALT_F7, commander::makeFile,
                 ALT_F9, commander::explorerHere,
                 ALT_F12, commander::extractAll,
-                SHIFT_F1, commander::extractPDFPages,
-                SHIFT_F2, commander::mergePDFFiles,
+                SHIFT_F1, commander::mergePDFFiles,
+                SHIFT_F2, commander::extractPDFPages,
                 CONTROL_F, commander::search,
                 CONTROL_R, commander.filesPanesHelper::refreshFileListViews
         );
-
-
 
         for (var entry : comboActions.entrySet()) {
             if (entry.getKey().match(event)) {

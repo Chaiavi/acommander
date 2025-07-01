@@ -553,8 +553,9 @@ public class Commander {
                 btnF12.setText("ALT+F12 Extract All");
             }
             case SHIFT -> {
-                btnF1.setText("SHIFT+F1 Extract PDF");
-                btnF2.setText("SHIFT+F2 Merge PDF");
+                btnF1.setText("SHIFT+F1 Merge PDF");
+                btnF2.setText("SHIFT+F2 Extract PDF");
+                btnF6.setText("SHIFT+F6 Rename");
             }
             case CONTROL -> {
             }

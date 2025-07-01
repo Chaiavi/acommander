@@ -20,7 +20,8 @@ public class FilePaneKeyHandlerImpl implements IKeyHandler {
     @Override
     public boolean handle(KeyEvent event) {
         Map<KeyCombination, Runnable> comboActions = Map.of(
-                SHIFT_F8, commander::deleteFile
+                SHIFT_F8, commander::deleteFile,
+                SHIFT_F6, commander::renameFile
         );
         for (var entry : comboActions.entrySet()) {
             if (entry.getKey().match(event)) {
