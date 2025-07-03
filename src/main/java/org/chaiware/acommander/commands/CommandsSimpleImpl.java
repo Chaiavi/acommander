@@ -12,9 +12,10 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
+import java.util.Arrays;
 import java.util.List;
 
-/** Not sure if this class will be needed */
+/** Simple implementation using Java code and Powershell (Not 3rd party executables) */
 public class CommandsSimpleImpl extends ACommands {
     public CommandsSimpleImpl(FilesPanesHelper fileListsLoader) {
         super(fileListsLoader);
@@ -26,23 +27,26 @@ public class CommandsSimpleImpl extends ACommands {
             throw new Exception("No nice way to rename more than a single file using the simplest method");
 
         FileItem selectedItem = selectedItems.get(0);
-        selectedItem.getFile().renameTo(new File(selectedItem.getFile().getParent(), newFilename));
-        log.debug("Renamed: {} to {}", selectedItem.getName(), newFilename);
+        File currentFile = selectedItem.getFile();
+        File newFile = new File(currentFile.getParent(), newFilename);
+        Files.move(currentFile.toPath(), newFile.toPath());
+        fileListsLoader.refreshFileListViews();
+        log.debug("Renamed: {} to {}", currentFile.getName(), newFile.getName());
     }
 
     @Override
     public void edit(FileItem fileItem) throws Exception {
-
+        throw new Exception("Not implemented yet");
     }
 
     @Override
     public void view(FileItem fileItem) throws Exception {
-
+        throw new Exception("Not implemented yet");
     }
 
     @Override
     public void copy(FileItem sourceFile, String targetFolder) throws Exception {
-
+        throw new Exception("Not implemented yet");
     }
 
     @Override
@@ -59,37 +63,53 @@ public class CommandsSimpleImpl extends ACommands {
 
     @Override
     public void mkdir(String parentDir, String newDirName) throws IOException {
-
+        Path path = Paths.get(parentDir, newDirName);
+        Files.createDirectories(path);
+        fileListsLoader.refreshFileListViews();
+        log.debug("Created Directory: {}", newDirName);
     }
 
     @Override
-    public void mkFile(String focusedPath, String newFileName) throws Exception {
-
+    public void mkFile(String parentDir, String newFileName) throws Exception {
+        Path path = Paths.get(parentDir, newFileName);
+        Files.createFile(path);
+        fileListsLoader.refreshFileListViews();
+        log.debug("Created File: {}", newFileName);
     }
 
     @Override
     public void delete(List<FileItem> selectedItems) throws Exception {
-
+        throw new Exception("Not implemented yet");
     }
 
     @Override
     public void unlockDelete(List<FileItem> selectedItems) throws Exception {
-
+        throw new Exception("Not implemented yet");
     }
 
     @Override
     public void wipeDelete(List<FileItem> selectedItems) throws Exception {
-
+        throw new Exception("Not implemented yet");
     }
 
     @Override
     public void openTerminal(String openHerePath) throws Exception {
-
+        try {
+            List<String> command = Arrays.asList("cmd", "/c", "start", "powershell", "-NoExit", "-Command", "cd '" + openHerePath + "'");
+            runExecutable(command, false);
+            log.debug("Opened Powershell Here: {}", openHerePath);
+        } catch (IOException e) {
+            List<String> command = Arrays.asList("cmd", "/c", "start", "cmd", "/k", "cd /d " + openHerePath);
+            runExecutable(command, false);
+            log.debug("Opened Command Shell Here: {}", openHerePath);
+        }
     }
 
     @Override
     public void openExplorer(String openHerePath) throws Exception {
-
+        List<String> command = Arrays.asList("explorer.exe", openHerePath);
+        runExecutable(command, false);
+        log.debug("Opened Explorer Here: {}", openHerePath);
     }
 
     @Override
@@ -161,26 +181,26 @@ public class CommandsSimpleImpl extends ACommands {
 
     @Override
     public void pack(List<FileItem> selectedItem, String archiveFilenameWithPath) throws Exception {
-
+        throw new Exception("Not implemented yet");
     }
 
     @Override
     public void unpack(FileItem selectedItem, String destinationPath) throws Exception {
-
+        throw new Exception("Not implemented yet");
     }
 
     @Override
     public void extractAll(FileItem selectedItem, String destinationPath) throws Exception {
-
+        throw new Exception("Not implemented yet");
     }
 
     @Override
     public void mergePDFs(List<FileItem> selectedItem, String newPdfFilenameWithPath) throws Exception {
-
+        throw new Exception("Not implemented yet");
     }
 
     @Override
     public void extractPDFPages(FileItem selectedItem, String destinationPath) throws Exception {
-
+        throw new Exception("Not implemented yet");
     }
 }

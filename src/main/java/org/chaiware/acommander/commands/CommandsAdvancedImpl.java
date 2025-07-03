@@ -3,13 +3,11 @@ package org.chaiware.acommander.commands;
 import org.chaiware.acommander.helpers.FilesPanesHelper;
 import org.chaiware.acommander.model.FileItem;
 
-import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -25,12 +23,7 @@ public class CommandsAdvancedImpl extends ACommands {
     @Override
     public void rename(List<FileItem> selectedItems, String newFilename) throws Exception {
         if (selectedItems.size() == 1) {
-            FileItem selectedItem = selectedItems.get(0);
-            File currentFile = selectedItem.getFile();
-            File newFile = new File(currentFile.getParent(), newFilename);
-            Files.move(currentFile.toPath(), newFile.toPath());
-            fileListsLoader.refreshFileListViews();
-            log.debug("Renamed: {} to {}", currentFile.getName(), newFile.getName());
+            commandsSimpleImpl.rename(selectedItems, newFilename);
         } else {
             List<String> command = new ArrayList<>();
             command.add(APP_PATH + "multi_rename\\Renamer.exe");
@@ -92,18 +85,12 @@ public class CommandsAdvancedImpl extends ACommands {
 
     @Override
     public void mkdir(String parentDir, String newDirName) throws IOException {
-        Path path = Paths.get(parentDir, newDirName);
-        Files.createDirectories(path);
-        fileListsLoader.refreshFileListViews();
-        log.debug("Created Directory: {}", newDirName);
+        commandsSimpleImpl.mkdir(parentDir, newDirName);
     }
 
     @Override
     public void mkFile(String parentDir, String newFileName) throws Exception {
-        Path path = Paths.get(parentDir, newFileName);
-        Files.createFile(path);
-        fileListsLoader.refreshFileListViews();
-        log.debug("Created File: {}", newFileName);
+        commandsSimpleImpl.mkFile(parentDir, newFileName);
     }
 
     @Override
@@ -125,7 +112,7 @@ public class CommandsAdvancedImpl extends ACommands {
         }
 
         if (!failedDeletes.isEmpty()) {
-            log.info("Failed to delete {} files, attempting to unlock then delete them all", failedDeletes.size());
+            log.info("Failed to delete {} files, attempting to unlock them so you can delete them all", failedDeletes.size());
             unlockDelete(failedDeletes);
         }
 
@@ -159,22 +146,12 @@ public class CommandsAdvancedImpl extends ACommands {
 
     @Override
     public void openTerminal(String openHerePath) throws Exception {
-        try {
-            List<String> command = Arrays.asList("cmd", "/c", "start", "powershell", "-NoExit", "-Command", "cd '" + openHerePath + "'");
-            runExecutable(command, false);
-            log.debug("Opened Powershell Here: {}", openHerePath);
-        } catch (IOException e) {
-            List<String> command = Arrays.asList("cmd", "/c", "start", "cmd", "/k", "cd /d " + openHerePath);
-            runExecutable(command, false);
-            log.debug("Opened Command Shell Here: {}", openHerePath);
-        }
+        commandsSimpleImpl.openTerminal(openHerePath);
     }
 
     @Override
     public void openExplorer(String openHerePath) throws Exception {
-        List<String> command = Arrays.asList("explorer.exe", openHerePath);
-        runExecutable(command, false);
-        log.debug("Opened Explorer Here: {}", openHerePath);
+        commandsSimpleImpl.openExplorer(openHerePath);
     }
 
     @Override
