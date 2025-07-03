@@ -21,21 +21,21 @@ public class CommandsAdvancedImpl extends ACommands {
     }
 
     @Override
-    public void rename(List<FileItem> selectedItems, String newFilename) throws Exception {
-        if (selectedItems.size() == 1) {
-            commandsSimpleImpl.rename(selectedItems, newFilename);
+    protected void doRename(List<FileItem> validItems, String newFilename) throws Exception {
+        if (validItems.size() == 1) {
+            commandsSimpleImpl.doRename(validItems, newFilename);
         } else {
             List<String> command = new ArrayList<>();
             command.add(APP_PATH + "multi_rename\\Renamer.exe");
             command.add("-af");
-            command.add(selectedItems.stream().map(f -> "\"" + f.getFullPath() + "\"").collect(Collectors.joining(" ")));
+            command.add(validItems.stream().map(f -> "\"" + f.getFullPath() + "\"").collect(Collectors.joining(" ")));
             runExecutable(command, true);
             log.debug("Finished Multi File Rename Process");
         }
     }
 
     @Override
-    public void view(FileItem fileItem) throws Exception {
+    protected void doView(FileItem fileItem) throws Exception {
         List<String> command = new ArrayList<>();
         command.add(APP_PATH + "view\\UniversalViewer\\Viewer.exe");
         command.add(fileItem.getFile().toString());
@@ -44,7 +44,7 @@ public class CommandsAdvancedImpl extends ACommands {
     }
 
     @Override
-    public void edit(FileItem fileItem) throws Exception {
+    protected void doEdit(FileItem fileItem) throws Exception {
         List<String> command = new ArrayList<>();
 //          command.add(APP_PATH + "TedNPad.exe");
         command.add(APP_PATH + "edit\\Notepad4.exe");
@@ -54,7 +54,7 @@ public class CommandsAdvancedImpl extends ACommands {
     }
 
     @Override
-    public void copy(FileItem sourceFile, String targetFolder) throws Exception {
+    protected void doCopy(FileItem sourceFile, String targetFolder) throws Exception {
         List<String> command = new ArrayList<>();
         command.add(APP_PATH + "copy\\FastCopy.exe");
         command.add("/cmd=diff");
@@ -67,9 +67,9 @@ public class CommandsAdvancedImpl extends ACommands {
     }
 
     @Override
-    public void move(FileItem sourceFile, String targetFolder) throws Exception {
+    protected void doMove(FileItem sourceFile, String targetFolder) throws Exception {
         if (sourceFile.getFile().toPath().getRoot().toString().equalsIgnoreCase(Paths.get(targetFolder).getRoot().toString())) // Use FASTEST move in the case of moving file over same drive
-            commandsSimpleImpl.move(sourceFile, targetFolder);
+            commandsSimpleImpl.doMove(sourceFile, targetFolder);
         else {
             List<String> command = new ArrayList<>();
             command.add(APP_PATH + "copy\\FastCopy.exe");
@@ -94,9 +94,9 @@ public class CommandsAdvancedImpl extends ACommands {
     }
 
     @Override
-    public void delete(List<FileItem> selectedItems) throws Exception {
+    protected void doDelete(List<FileItem> validItems) throws Exception {
         List<FileItem> failedDeletes = new ArrayList<>();
-        for (FileItem selectedItem : selectedItems) {
+        for (FileItem selectedItem : validItems) {
             Path path = selectedItem.getFile().toPath();
             Files.walk(path) // This is done for deleting folders recursively
                     .sorted(Comparator.reverseOrder())
@@ -120,8 +120,8 @@ public class CommandsAdvancedImpl extends ACommands {
     }
 
     @Override
-    public void unlockDelete(List<FileItem> selectedItems) throws Exception {
-        String fullPaths = selectedItems.stream()
+    protected void doUnlockDelete(List<FileItem> validItems) throws Exception {
+        String fullPaths = validItems.stream()
                 .map(f -> "\"" + f.getFullPath() + "\"")
                 .collect(Collectors.joining(" "));
 
@@ -129,11 +129,12 @@ public class CommandsAdvancedImpl extends ACommands {
         command.add(APP_PATH + "delete\\unlock_delete\\ThisIsMyFile.exe");
         command.add(fullPaths);
         runExecutable(command, true);
-        log.debug("Unlocked & Deleted: {}", selectedItems.stream().map(FileItem::getName).collect(Collectors.joining(", ")));
+        log.debug("Unlocked & Deleted: {}", validItems.stream().map(FileItem::getName).collect(Collectors.joining(", ")));
     }
 
-    public void wipeDelete(List<FileItem> selectedItems) throws Exception {
-        String fullPaths = selectedItems.stream()
+    @Override
+    protected void doWipeDelete(List<FileItem> validItems) throws Exception {
+        String fullPaths = validItems.stream()
                 .map(f -> "\"" + f.getFullPath() + "\"")
                 .collect(Collectors.joining(" "));
 
@@ -141,7 +142,7 @@ public class CommandsAdvancedImpl extends ACommands {
         command.add(APP_PATH + "delete\\wipe\\sdelete64.exe");
         command.add(fullPaths);
         runExecutable(command, true);
-        log.debug("Deleted & Wiped: {}", selectedItems.stream().map(FileItem::getName).collect(Collectors.joining(", ")));
+        log.debug("Deleted & Wiped: {}", validItems.stream().map(FileItem::getName).collect(Collectors.joining(", ")));
     }
 
     @Override
@@ -168,12 +169,12 @@ public class CommandsAdvancedImpl extends ACommands {
     }
 
     @Override
-    public void pack(List<FileItem> sources, String archiveFilenameWithPath) throws Exception {
+    protected void doPack(List<FileItem> validItems, String archiveFilenameWithPath) throws Exception {
         List<String> command = new ArrayList<>();
         command.add(APP_PATH + "pack_unpack\\7zG.exe");
         command.add("a");
         command.add(archiveFilenameWithPath);
-        command.add(sources.stream()
+        command.add(validItems.stream()
                 .map(f -> "\"" + f.getFullPath() + "\"")
                 .collect(Collectors.joining(" ")));
         runExecutable(command, true);
@@ -181,18 +182,18 @@ public class CommandsAdvancedImpl extends ACommands {
     }
 
     @Override
-    public void unpack(FileItem fileItem, String destinationPath) throws Exception {
+    protected void doUnpack(FileItem selectedItem, String destinationPath) throws Exception {
         List<String> command = new ArrayList<>();
         command.add(APP_PATH + "pack_unpack\\7zG.exe");
         command.add("x");
         command.add("-o" + destinationPath);
-        command.add(fileItem.getFile().toString());
+        command.add(selectedItem.getFile().toString());
         runExecutable(command, true);
-        log.debug("UnPacked Archive: {} to: {}", fileItem.getName(), destinationPath);
+        log.debug("UnPacked Archive: {} to: {}", selectedItem.getName(), destinationPath);
     }
 
     @Override
-    public void extractAll(FileItem selectedItem, String destinationPath) throws Exception {
+    protected void doExtractAll(FileItem selectedItem, String destinationPath) throws Exception {
         List<String> command = new ArrayList<>();
         command.add(APP_PATH + "extract_all\\UniExtract\\UniExtract.exe");
 //        command.add("/remove");
@@ -203,10 +204,10 @@ public class CommandsAdvancedImpl extends ACommands {
     }
 
     @Override
-    public void mergePDFs(List<FileItem> sources, String newPdfFilenameWithPath) throws Exception {
+    protected void doMergePDFs(List<FileItem> validItems, String newPdfFilenameWithPath) throws Exception {
         List<String> command = new ArrayList<>();
         command.add(APP_PATH + "pdf\\pdftk.exe");
-        command.add(sources.stream()
+        command.add(validItems.stream()
                 .map(f -> "\"" + f.getFullPath() + "\"")
                 .collect(Collectors.joining(" ")));
         command.add("cat");
@@ -217,7 +218,7 @@ public class CommandsAdvancedImpl extends ACommands {
     }
 
     @Override
-    public void extractPDFPages(FileItem fileItem, String destinationPath) throws Exception {
+    protected void doExtractPDFPages(FileItem fileItem, String destinationPath) throws Exception {
         List<String> command = new ArrayList<>();
         command.add(APP_PATH + "pdf\\pdftk.exe");
         command.add(fileItem.getFullPath());

@@ -11,40 +11,142 @@ import java.io.InputStreamReader;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 public abstract class ACommands {
     protected final String APP_PATH = Paths.get(System.getProperty("user.dir"), "apps") + "\\";
     protected FilesPanesHelper fileListsLoader;
     final Logger log = LoggerFactory.getLogger(ACommands.class);
 
-    public abstract void rename(List<FileItem> selectedItem, String newFilename) throws Exception;
-    public abstract void edit(FileItem fileItem) throws Exception;
-    public abstract void view(FileItem fileItem) throws Exception;
-    public abstract void copy(FileItem sourceFile, String targetFolder) throws Exception;
-    public abstract void move(FileItem sourceFile, String targetFolder) throws Exception;
-    public abstract void mkdir(String parentDir, String newDirName) throws IOException;
-    public abstract void mkFile(String focusedPath, String newFileName) throws Exception;
-    public abstract void delete(List<FileItem> selectedItems) throws Exception;
-    public abstract void wipeDelete(List<FileItem> selectedItems) throws Exception;
-    public abstract void unlockDelete(List<FileItem> selectedItems) throws Exception;
-    public abstract void openTerminal(String openHerePath) throws Exception;
-    public abstract void openExplorer(String openHerePath) throws Exception;
-    public abstract void searchFiles(String sourcePath, String filenameWildcard) throws Exception;
-    public abstract void pack(List<FileItem> selectedItem, String archiveFilenameWithPath) throws Exception;
-    public abstract void unpack(FileItem selectedItem, String destinationPath) throws Exception;
-    public abstract void extractAll(FileItem selectedItem, String destinationPath) throws Exception;
-    public abstract void mergePDFs(List<FileItem> selectedItem, String newPdfFilenameWithPath) throws Exception;
-    public abstract void extractPDFPages(FileItem selectedItem, String destinationPath) throws Exception;
-
-
     public ACommands(FilesPanesHelper filesPanesHelper) {
         this.fileListsLoader = filesPanesHelper;
     }
 
+    // helper methods for filtering
+    public List<FileItem> filterValidItems(List<FileItem> items) {
+        return items.stream()
+                .filter(item -> !isParentFolder(item))
+                .collect(Collectors.toList());
+    }
+
+    private boolean isParentFolder(FileItem item) {
+        return "..".equals(item.getPresentableFilename());
+    }
+
+    private boolean isValidSingleItem(FileItem item) {
+        return !isParentFolder(item);
+    }
+
+    // PUBLIC METHODS - These handle filtering automatically
+    public final void rename(List<FileItem> selectedItems, String newFilename) throws Exception {
+        List<FileItem> validItems = filterValidItems(selectedItems);
+        if (!validItems.isEmpty()) {
+            doRename(validItems, newFilename);
+        }
+    }
+
+    public final void edit(FileItem fileItem) throws Exception {
+        if (isValidSingleItem(fileItem)) {
+            doEdit(fileItem);
+        }
+    }
+
+    public final void view(FileItem fileItem) throws Exception {
+        if (isValidSingleItem(fileItem)) {
+            doView(fileItem);
+        }
+    }
+
+    public final void copy(FileItem sourceFile, String targetFolder) throws Exception {
+        if (isValidSingleItem(sourceFile)) {
+            doCopy(sourceFile, targetFolder);
+        }
+    }
+
+    public final void move(FileItem sourceFile, String targetFolder) throws Exception {
+        if (isValidSingleItem(sourceFile)) {
+            doMove(sourceFile, targetFolder);
+        }
+    }
+
+    public final void delete(List<FileItem> selectedItems) throws Exception {
+        List<FileItem> validItems = filterValidItems(selectedItems);
+        if (!validItems.isEmpty()) {
+            doDelete(validItems);
+        }
+    }
+
+    public final void wipeDelete(List<FileItem> selectedItems) throws Exception {
+        List<FileItem> validItems = filterValidItems(selectedItems);
+        if (!validItems.isEmpty()) {
+            doWipeDelete(validItems);
+        }
+    }
+
+    public final void unlockDelete(List<FileItem> selectedItems) throws Exception {
+        List<FileItem> validItems = filterValidItems(selectedItems);
+        if (!validItems.isEmpty()) {
+            doUnlockDelete(validItems);
+        }
+    }
+
+    public final void pack(List<FileItem> selectedItems, String archiveFilenameWithPath) throws Exception {
+        List<FileItem> validItems = filterValidItems(selectedItems);
+        if (!validItems.isEmpty()) {
+            doPack(validItems, archiveFilenameWithPath);
+        }
+    }
+
+    public final void unpack(FileItem selectedItem, String destinationPath) throws Exception {
+        if (isValidSingleItem(selectedItem)) {
+            doUnpack(selectedItem, destinationPath);
+        }
+    }
+
+    public final void extractAll(FileItem selectedItem, String destinationPath) throws Exception {
+        if (isValidSingleItem(selectedItem)) {
+            doExtractAll(selectedItem, destinationPath);
+        }
+    }
+
+    public final void mergePDFs(List<FileItem> selectedItems, String newPdfFilenameWithPath) throws Exception {
+        List<FileItem> validItems = filterValidItems(selectedItems);
+        if (!validItems.isEmpty()) {
+            doMergePDFs(validItems, newPdfFilenameWithPath);
+        }
+    }
+
+    public final void extractPDFPages(FileItem selectedItem, String destinationPath) throws Exception {
+        if (isValidSingleItem(selectedItem)) {
+            doExtractPDFPages(selectedItem, destinationPath);
+        }
+    }
+
+    // These methods don't need filtering as they don't operate on selected files
+    public abstract void mkdir(String parentDir, String newDirName) throws IOException;
+    public abstract void mkFile(String focusedPath, String newFileName) throws Exception;
+    public abstract void openTerminal(String openHerePath) throws Exception;
+    public abstract void openExplorer(String openHerePath) throws Exception;
+    public abstract void searchFiles(String sourcePath, String filenameWildcard) throws Exception;
+
+    // ABSTRACT METHODS - Subclasses implement these (they receive pre-filtered items)
+    protected abstract void doRename(List<FileItem> validItems, String newFilename) throws Exception;
+    protected abstract void doEdit(FileItem fileItem) throws Exception;
+    protected abstract void doView(FileItem fileItem) throws Exception;
+    protected abstract void doCopy(FileItem sourceFile, String targetFolder) throws Exception;
+    protected abstract void doMove(FileItem sourceFile, String targetFolder) throws Exception;
+    protected abstract void doDelete(List<FileItem> validItems) throws Exception;
+    protected abstract void doWipeDelete(List<FileItem> validItems) throws Exception;
+    protected abstract void doUnlockDelete(List<FileItem> validItems) throws Exception;
+    protected abstract void doPack(List<FileItem> validItems, String archiveFilenameWithPath) throws Exception;
+    protected abstract void doUnpack(FileItem selectedItem, String destinationPath) throws Exception;
+    protected abstract void doExtractAll(FileItem selectedItem, String destinationPath) throws Exception;
+    protected abstract void doMergePDFs(List<FileItem> validItems, String newPdfFilenameWithPath) throws Exception;
+    protected abstract void doExtractPDFPages(FileItem selectedItem, String destinationPath) throws Exception;
+
     protected List<String> runExecutable(List<String> params, boolean isWaitFor) throws IOException, InterruptedException {
         ProcessBuilder pb = new ProcessBuilder(params);
         pb.redirectErrorStream(true); // merges stderr into stdout
-//        pb.directory(new File("C:\\Users\\Hayun\\IdeaProjects\\acommander\\apps"));
         log.debug("Running: {}", String.join(" ", pb.command()));
         Process process = pb.start();
         List<String> output = new ArrayList<>();

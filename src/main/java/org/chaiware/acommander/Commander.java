@@ -253,7 +253,9 @@ public class Commander {
         logger.info("Rename (F2)");
 
         try {
-            List<FileItem> selectedItems = filesPanesHelper.getSelectedItems();
+            List<FileItem> selectedItems = commands.filterValidItems(filesPanesHelper.getSelectedItems());
+            if (selectedItems.isEmpty())
+                return;
             if (selectedItems.size() == 1) {
                 FileItem selectedItem = selectedItems.get(0);
                 Optional<String> result = getUserFeedback(selectedItem.getFile().getName(), "File Rename", "New name");
@@ -539,12 +541,9 @@ public class Commander {
 
     public void filterByChar(char selectedChar) {
         ObservableList<FileItem> fileItems = filesPanesHelper.getFileList(true).getItems();
-        FileItem match = fileItems.stream()
+        fileItems.stream()
                 .filter(f -> f.getName().toLowerCase().startsWith(String.valueOf(selectedChar)))
-                .findFirst()
-                .orElse(null);
-        if (match != null)
-            filesPanesHelper.selectFileItem(true, match);
+                .findFirst().ifPresent(match -> filesPanesHelper.selectFileItem(true, match));
     }
 
     /** Opens a dialog with the title asking the requested question returning the optional user's input */

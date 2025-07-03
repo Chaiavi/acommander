@@ -22,11 +22,11 @@ public class CommandsSimpleImpl extends ACommands {
     }
 
     @Override
-    public void rename(List<FileItem> selectedItems, String newFilename) throws Exception {
-        if (selectedItems.size() > 1)
+    protected void doRename(List<FileItem> validItems, String newFilename) throws Exception {
+        if (validItems.size() > 1)
             throw new Exception("No nice way to rename more than a single file using the simplest method");
 
-        FileItem selectedItem = selectedItems.get(0);
+        FileItem selectedItem = validItems.get(0);
         File currentFile = selectedItem.getFile();
         File newFile = new File(currentFile.getParent(), newFilename);
         Files.move(currentFile.toPath(), newFile.toPath());
@@ -35,22 +35,22 @@ public class CommandsSimpleImpl extends ACommands {
     }
 
     @Override
-    public void edit(FileItem fileItem) throws Exception {
+    protected void doEdit(FileItem fileItem) throws Exception {
         throw new Exception("Not implemented yet");
     }
 
     @Override
-    public void view(FileItem fileItem) throws Exception {
+    protected void doView(FileItem fileItem) throws Exception {
         throw new Exception("Not implemented yet");
     }
 
     @Override
-    public void copy(FileItem sourceFile, String targetFolder) throws Exception {
+    protected void doCopy(FileItem sourceFile, String targetFolder) throws Exception {
         throw new Exception("Not implemented yet");
     }
 
     @Override
-    public void move(FileItem sourceFile, String targetFolder) throws Exception {
+    protected void doMove(FileItem sourceFile, String targetFolder) throws Exception {
         Path source = Paths.get(sourceFile.getFullPath());
         Path target = Paths.get(targetFolder + "\\" + sourceFile.getName());
         if (sourceFile.isDirectory())
@@ -78,17 +78,17 @@ public class CommandsSimpleImpl extends ACommands {
     }
 
     @Override
-    public void delete(List<FileItem> selectedItems) throws Exception {
+    protected void doDelete(List<FileItem> validItems) throws Exception {
         throw new Exception("Not implemented yet");
     }
 
     @Override
-    public void unlockDelete(List<FileItem> selectedItems) throws Exception {
+    protected void doUnlockDelete(List<FileItem> validItems) throws Exception {
         throw new Exception("Not implemented yet");
     }
 
     @Override
-    public void wipeDelete(List<FileItem> selectedItems) throws Exception {
+    protected void doWipeDelete(List<FileItem> validItems) throws Exception {
         throw new Exception("Not implemented yet");
     }
 
@@ -180,27 +180,27 @@ public class CommandsSimpleImpl extends ACommands {
     }
 
     @Override
-    public void pack(List<FileItem> selectedItem, String archiveFilenameWithPath) throws Exception {
+    protected void doPack(List<FileItem> validItems, String archiveFilenameWithPath) throws Exception {
         throw new Exception("Not implemented yet");
     }
 
     @Override
-    public void unpack(FileItem selectedItem, String destinationPath) throws Exception {
+    protected void doUnpack(FileItem selectedItem, String destinationPath) throws Exception {
         throw new Exception("Not implemented yet");
     }
 
     @Override
-    public void extractAll(FileItem selectedItem, String destinationPath) throws Exception {
+    protected void doExtractAll(FileItem selectedItem, String destinationPath) throws Exception {
         throw new Exception("Not implemented yet");
     }
 
     @Override
-    public void mergePDFs(List<FileItem> selectedItem, String newPdfFilenameWithPath) throws Exception {
+    protected void doMergePDFs(List<FileItem> validItems, String newPdfFilenameWithPath) throws Exception {
         throw new Exception("Not implemented yet");
     }
 
     @Override
-    public void extractPDFPages(FileItem selectedItem, String destinationPath) throws Exception {
+    protected void doExtractPDFPages(FileItem selectedItem, String destinationPath) throws Exception {
         throw new Exception("Not implemented yet");
     }
 }
