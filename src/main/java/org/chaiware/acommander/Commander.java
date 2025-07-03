@@ -1,5 +1,6 @@
 package org.chaiware.acommander;
 
+import javafx.application.Platform;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
 import javafx.geometry.Pos;
@@ -93,6 +94,8 @@ public class Commander {
 
         updateBottomButtons(null);
         filesPanesHelper.refreshFileListViews();
+        filesPanesHelper.getFileList(true).getSelectionModel().selectFirst();
+        Platform.runLater(() -> leftFileList.requestFocus());
     }
 
     /** Setup all of the keyboard bindings */
