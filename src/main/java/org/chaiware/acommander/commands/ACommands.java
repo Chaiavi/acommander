@@ -1,5 +1,6 @@
 package org.chaiware.acommander.commands;
 
+import javafx.application.Platform;
 import org.chaiware.acommander.model.FileItem;
 import org.chaiware.acommander.helpers.FilesPanesHelper;
 import org.slf4j.Logger;
@@ -11,6 +12,7 @@ import java.io.InputStreamReader;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
 public abstract class ACommands {
@@ -144,24 +146,32 @@ public abstract class ACommands {
     protected abstract void doMergePDFs(List<FileItem> validItems, String newPdfFilenameWithPath) throws Exception;
     protected abstract void doExtractPDFPages(FileItem selectedItem, String destinationPath) throws Exception;
 
-    protected List<String> runExecutable(List<String> params, boolean isWaitFor) throws IOException, InterruptedException {
-        ProcessBuilder pb = new ProcessBuilder(params);
-        pb.redirectErrorStream(true); // merges stderr into stdout
-        log.debug("Running: {}", String.join(" ", pb.command()));
-        Process process = pb.start();
-        List<String> output = new ArrayList<>();
-        try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
-            String line;
-            while ((line = reader.readLine()) != null) {
-                output.add(line);
+    protected CompletableFuture<List<String>> runExecutable(List<String> params, boolean shouldUpdateUI) {
+        return CompletableFuture.supplyAsync(() -> {
+            try {
+                ProcessBuilder pb = new ProcessBuilder(params);
+                pb.redirectErrorStream(true); // merges stderr into stdout
+                log.debug("Running: {}", String.join(" ", pb.command()));
+                Process process = pb.start();
+
+                List<String> output = new ArrayList<>();
+                try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
+                    String line;
+                    while ((line = reader.readLine()) != null) {
+                        output.add(line);
+                    }
+                }
+
+                int exitCode = process.waitFor();
+                log.debug("Process completed with exit code: {}", exitCode);
+
+                if (shouldUpdateUI) Platform.runLater(() -> fileListsLoader.refreshFileListViews());
+                return output;
+
+            } catch (IOException | InterruptedException e) {
+                log.error("Error running external process", e);
+                throw new RuntimeException(e);
             }
-        }
-
-        if (isWaitFor) {
-            process.waitFor();
-            fileListsLoader.refreshFileListViews();
-        }
-
-        return output;
+        });
     }
 }

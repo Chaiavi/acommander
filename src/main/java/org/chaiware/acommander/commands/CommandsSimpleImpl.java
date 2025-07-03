@@ -1,8 +1,8 @@
 package org.chaiware.acommander.commands;
 
 import javafx.scene.control.Alert;
-import org.chaiware.acommander.model.FileItem;
 import org.chaiware.acommander.helpers.FilesPanesHelper;
+import org.chaiware.acommander.model.FileItem;
 
 import javax.swing.*;
 import java.awt.*;
@@ -94,15 +94,27 @@ public class CommandsSimpleImpl extends ACommands {
 
     @Override
     public void openTerminal(String openHerePath) throws Exception {
-        try {
-            List<String> command = Arrays.asList("cmd", "/c", "start", "powershell", "-NoExit", "-Command", "cd '" + openHerePath + "'");
-            runExecutable(command, false);
-            log.debug("Opened Powershell Here: {}", openHerePath);
-        } catch (IOException e) {
-            List<String> command = Arrays.asList("cmd", "/c", "start", "cmd", "/k", "cd /d " + openHerePath);
-            runExecutable(command, false);
-            log.debug("Opened Command Shell Here: {}", openHerePath);
-        }
+        List<String> command = Arrays.asList("cmd", "/c", "start", "powershell", "-NoExit", "-Command", "cd '" + openHerePath + "'");
+        runExecutable(command, false)
+                .thenAccept(output -> {
+                    log.debug("Opened Powershell Here: {}", openHerePath);
+                })
+                .exceptionally(throwable -> {
+                    log.warn("PowerShell failed, trying Command Prompt: {}", throwable.getMessage());
+
+                    // Fallback to Command Prompt
+                    List<String> fallbackCommand = Arrays.asList("cmd", "/c", "start", "cmd", "/k", "cd /d " + openHerePath);
+                    runExecutable(fallbackCommand, false)
+                            .thenAccept(output -> {
+                                log.debug("Opened Command Shell Here: {}", openHerePath);
+                            })
+                            .exceptionally(fallbackThrowable -> {
+                                log.error("Both PowerShell and Command Prompt failed", fallbackThrowable);
+                                return null;
+                            });
+
+                    return null;
+                });
     }
 
     @Override
@@ -121,30 +133,34 @@ public class CommandsSimpleImpl extends ACommands {
                 "Get-ChildItem -Path '" + sourcePath + "' -Recurse -File | Where-Object { $_.Name -like '" + filenameWildcard + "' } | Select-Object -ExpandProperty FullName"
         );
 
-        List<String> files = runExecutable(command, true);
-        if (!files.isEmpty()) {
-            log.debug("Files found in the search are:");
-            files.forEach(log::debug);
+        runExecutable(command, true)
+                .thenAccept(output -> {
+                    if (!output.isEmpty()) {
+                        log.debug("Files found in the search are:");
+                        output.forEach(log::debug);
 
-            log.debug("Showing the found files to the user so he could select which he wants");
-            FileItem selectedFile = getSelectedFileByUser(files);
+                        log.debug("Showing the found files to the user so he could select which he wants");
+                        FileItem selectedFile = getSelectedFileByUser(output);
 
-            if (selectedFile != null) {
-                log.info("From the search, the selected file is: {}", selectedFile.getFullPath());
-                fileListsLoader.setFocusedFileListPath(selectedFile.getFile().getParent());
-                fileListsLoader.selectFileItem(true, selectedFile);
-            } else
-                log.info("User didn't select any file from the search results");
-        } else {
-            log.info("No files were found in the search results");
-            Alert alert = new Alert(Alert.AlertType.INFORMATION, "No files found :-(");
-            alert.setHeaderText(null);
-            alert.showAndWait();
-        }
+                        if (selectedFile != null) {
+                            log.info("From the search, the selected file is: {}", selectedFile.getFullPath());
+                            fileListsLoader.setFocusedFileListPath(selectedFile.getFile().getParent());
+                            fileListsLoader.selectFileItem(true, selectedFile);
+                        } else
+                            log.info("User didn't select any file from the search results");
+                    } else {
+                        log.info("No files were found in the search results");
+                        Alert alert = new Alert(Alert.AlertType.INFORMATION, "No files found :-(");
+                        alert.setHeaderText(null);
+                        alert.showAndWait();
+                    }
+                });
     }
 
-    /** From a list of files, it shows the user a dialog and when he chooses a file, it returns the selected-by-user FileItem
-     * or Null in the case of canceling... */
+    /**
+     * From a list of files, it shows the user a dialog and when he chooses a file, it returns the selected-by-user FileItem
+     * or Null in the case of canceling...
+     */
     private FileItem getSelectedFileByUser(List<String> files) {
         List<FileItem> fileItems = files.stream().map(filename -> new FileItem(new File(filename))).toList();
         JList<FileItem> fileList = new JList<>(fileItems.toArray(new FileItem[0]));
