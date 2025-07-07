@@ -1,6 +1,6 @@
 package org.chaiware.acommander.helpers;
 
-/** Simplest Stopwatch, it is created started, and toSting shows the current elapsed time */
+/** Simplest Stopwatch, it is created started, and toString shows the current elapsed time */
 public class Stopwatch {
     private final long startTime;
 
