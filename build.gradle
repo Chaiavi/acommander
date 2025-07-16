@@ -1,7 +1,11 @@
 plugins {
     id 'application'
     id 'com.github.johnrengelman.shadow' version '8.1.1'
+    id 'edu.sc.seis.launch4j' version '3.0.5'
 }
+
+// Version configuration - change this for new releases
+def appVersion = '2.0'
 
 repositories {
     mavenCentral()
@@ -29,6 +33,14 @@ shadowDistZip.enabled = false
 shadowDistTar.enabled = false
 startShadowScripts.enabled = false
 
+// Configure clean task to also delete dist folder and ZIP file
+clean {
+    delete 'dist'
+    delete fileTree('.') {
+        include 'acommander-v*.zip'
+    }
+}
+
 // Task to copy config and apps folders to build/libs
 task copyResources(type: Copy) {
     from('config') {
@@ -40,5 +52,58 @@ task copyResources(type: Copy) {
     destinationDir = file('build/libs')
 }
 
-// Make shadowJar depend on copyResources so it runs automatically
+// Launch4j configuration - simplified
+launch4j {
+    mainClassName = 'org.chaiware.acommander.Main'
+    icon = "${projectDir}/acommander.ico"
+    outfile = 'acommander.exe'
+    jarTask = project.tasks.shadowJar
+    headerType = "gui"
+    copyConfigurable = []
+
+    // Version info using the variable
+    version = appVersion
+    textVersion = appVersion
+    copyright = 'Your Name'
+    companyName = 'Your Company'
+    fileDescription = 'ACommander Application'
+    productName = 'ACommander'
+
+    // JVM options
+    jvmOptions = ['--enable-native-access=javafx.graphics']
+}
+
+// Create distribution task - puts files in dist folder at project root
+task copyDist(type: Copy) {
+    dependsOn createExe
+    from 'build/launch4j'  // Default location for launch4j output
+    into 'dist'
+    include '*.exe'
+
+    // Also copy from build/libs for config and apps
+    from('build/libs') {
+        include 'config/**'
+        include 'apps/**'
+        into '.'
+    }
+}
+
+// Zip the distribution folder
+task zipDist(type: Zip) {
+    dependsOn copyDist
+    from 'dist'
+    archiveFileName = "acommander-v${appVersion}.zip"
+    destinationDirectory = file('.')
+}
+
+// Make dist task run both copy and zip
+task dist {
+    dependsOn zipDist
+    group = 'distribution'
+    description = 'Creates distribution folder and ZIP file'
+}
+
+// Fix task dependencies
 shadowJar.finalizedBy copyResources
+createExe.dependsOn shadowJar
+createExe.mustRunAfter copyResources
