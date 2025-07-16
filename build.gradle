@@ -1,0 +1,44 @@
+plugins {
+    id 'application'
+    id 'com.github.johnrengelman.shadow' version '8.1.1'
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    compileOnly 'org.projectlombok:lombok:1.18.38'
+    annotationProcessor 'org.projectlombok:lombok:1.18.38'
+    implementation 'org.slf4j:slf4j-api:2.0.17'
+    implementation 'ch.qos.logback:logback-classic:1.5.18'
+}
+
+application {
+    mainClass = 'org.chaiware.acommander.Main'
+}
+
+shadowJar {
+    archiveBaseName = 'acommander'
+    archiveClassifier = ''
+    archiveVersion = ''
+}
+
+// Disable the problematic distribution tasks
+shadowDistZip.enabled = false
+shadowDistTar.enabled = false
+startShadowScripts.enabled = false
+
+// Task to copy config and apps folders to build/libs
+task copyResources(type: Copy) {
+    from('config') {
+        into 'config'
+    }
+    from('apps') {
+        into 'apps'
+    }
+    destinationDir = file('build/libs')
+}
+
+// Make shadowJar depend on copyResources so it runs automatically
+shadowJar.finalizedBy copyResources
