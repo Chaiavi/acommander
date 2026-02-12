@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.ListView?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.layout.VBox?>
+
+<VBox fx:id="paletteRoot"
+      alignment="TOP_CENTER"
+      managed="false"
+      maxHeight="-Infinity"
+      maxWidth="520.0"
+      prefWidth="520.0"
+      spacing="8.0"
+      style="-fx-background-color: #1D2430; -fx-border-color: #5A6A80; -fx-border-width: 1; -fx-padding: 10;"
+      visible="false"
+      xmlns="http://javafx.com/javafx/22"
+      xmlns:fx="http://javafx.com/fxml/1"
+      fx:controller="org.chaiware.acommander.palette.CommandPaletteController">
+    <padding>
+        <Insets bottom="6.0" left="6.0" right="6.0" top="6.0"/>
+    </padding>
+    <TextField fx:id="queryField"
+               promptText="Type a command..."
+               style="-fx-font-size: 14px; -fx-background-color: #11161F; -fx-text-fill: #F8F8F8; -fx-prompt-text-fill: #92A0B3;"/>
+    <ListView fx:id="resultsList"
+              style="-fx-background-color: #11161F; -fx-control-inner-background: #11161F; -fx-text-fill: #F8F8F8;"/>
+</VBox>

@@ -41,6 +41,7 @@ public interface IKeyHandler {
     KeyCombination SHIFT_DEL = new KeyCodeCombination(DELETE, SHIFT_DOWN);
 
     KeyCombination CONTROL_F = new KeyCodeCombination(F, CONTROL_DOWN);
+    KeyCombination CONTROL_SHIFT_P = new KeyCodeCombination(P, CONTROL_DOWN, SHIFT_DOWN);
     KeyCombination CONTROL_R = new KeyCodeCombination(R, CONTROL_DOWN);
 
     boolean handle(KeyEvent event);

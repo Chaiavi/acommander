@@ -26,6 +26,7 @@ public class KeyBindingManager {
         contextHandlers.put(GLOBAL, new GlobalKeyHandlerImpl(commander));
         contextHandlers.put(PATH_COMBO_BOX, new ComboxKeyHandlerImpl(commander));
         contextHandlers.put(FILE_PANE, new FilePaneKeyHandlerImpl(commander));
+        contextHandlers.put(COMMAND_PALETTE, new CommandPaletteKeyHandlerImpl(commander));
     }
 
     public void handleKeyEvent(KeyEvent event) {

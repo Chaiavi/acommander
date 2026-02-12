@@ -8,10 +8,12 @@
 <?import javafx.scene.layout.ColumnConstraints?>
 <?import javafx.scene.layout.GridPane?>
 <?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.StackPane?>
 <?import javafx.scene.layout.RowConstraints?>
 <?import javafx.scene.layout.VBox?>
 
-<BorderPane fx:id="rootPane" prefHeight="600.0" prefWidth="900.0" style="-fx-background-color: #0000AA;" xmlns="http://javafx.com/javafx/22" xmlns:fx="http://javafx.com/fxml/1" fx:controller="org.chaiware.acommander.Commander">
+<StackPane xmlns="http://javafx.com/javafx/22" xmlns:fx="http://javafx.com/fxml/1" fx:controller="org.chaiware.acommander.Commander">
+<BorderPane fx:id="rootPane" prefHeight="600.0" prefWidth="900.0" style="-fx-background-color: #0000AA;">
     <center>
         <GridPane hgap="2" style="-fx-background-color: #0000AA;" vgap="2">
             <columnConstraints>
@@ -108,3 +110,9 @@
         </VBox>
     </bottom>
 </BorderPane>
+    <fx:include fx:id="commandPalette" source="CommandPalette.fxml" StackPane.alignment="TOP_CENTER">
+        <StackPane.margin>
+            <Insets top="42.0"/>
+        </StackPane.margin>
+    </fx:include>
+</StackPane>

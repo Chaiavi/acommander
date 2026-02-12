@@ -14,6 +14,8 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
 import javafx.stage.Window;
+import org.chaiware.acommander.actions.ActionContext;
+import org.chaiware.acommander.actions.ActionRegistry;
 import org.chaiware.acommander.commands.ACommands;
 import org.chaiware.acommander.commands.CommandsAdvancedImpl;
 import org.chaiware.acommander.helpers.ComboBoxSetup;
@@ -22,6 +24,7 @@ import org.chaiware.acommander.keybinding.KeyBindingManager;
 import org.chaiware.acommander.keybinding.KeyBindingManager.KeyContext;
 import org.chaiware.acommander.model.FileItem;
 import org.chaiware.acommander.model.Folder;
+import org.chaiware.acommander.palette.CommandPaletteController;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -52,6 +55,8 @@ public class Commander {
     public ListView<FileItem> rightFileList;
     @FXML
     Button btnF1, btnF2, btnF3, btnF4, btnF5, btnF6, btnF7, btnF8, btnF9, btnF10, btnF11, btnF12;
+    @FXML
+    private CommandPaletteController commandPaletteController;
 
     Properties properties = new Properties();
     ACommands commands;
@@ -91,6 +96,7 @@ public class Commander {
         configListViewLookAndBehavior(leftFileList);
         configListViewLookAndBehavior(rightFileList);
         configFileListsFocus();
+        commandPaletteController.configure(new ActionRegistry(), new ActionContext(this));
 
         updateBottomButtons(null);
         filesPanesHelper.refreshFileListViews();
@@ -113,6 +119,9 @@ public class Commander {
     }
 
     public KeyContext determineCurrentContext(Scene scene) {
+        if (isCommandPaletteOpen())
+            return KeyContext.COMMAND_PALETTE;
+
         Node focused = scene.getFocusOwner();
 
         // Check if we're in a JavaFX Dialog
@@ -126,6 +135,34 @@ public class Commander {
         if (focused == leftFileList || focused == rightFileList) return KeyContext.FILE_PANE;
         if (focused == leftPathComboBox || focused == rightPathComboBox) return KeyContext.PATH_COMBO_BOX;
         return KeyContext.GLOBAL;
+    }
+
+    public void openCommandPalette() {
+        commandPaletteController.open();
+    }
+
+    public void closeCommandPalette() {
+        commandPaletteController.close();
+        if (filesPanesHelper.getFocusedSide() == LEFT)
+            leftFileList.requestFocus();
+        else
+            rightFileList.requestFocus();
+    }
+
+    public boolean isCommandPaletteOpen() {
+        return commandPaletteController != null && commandPaletteController.isOpen();
+    }
+
+    public void executeCommandPaletteSelection() {
+        commandPaletteController.executeSelected();
+    }
+
+    public void selectNextCommandPaletteAction() {
+        commandPaletteController.selectNext();
+    }
+
+    public void selectPreviousCommandPaletteAction() {
+        commandPaletteController.selectPrevious();
     }
 
     private void loadConfigFile() {
@@ -260,7 +297,7 @@ public class Commander {
             if (selectedItems.isEmpty())
                 return;
             if (selectedItems.size() == 1) {
-                FileItem selectedItem = selectedItems.get(0);
+                FileItem selectedItem = selectedItems.getFirst();
                 Optional<String> result = getUserFeedback(selectedItem.getFile().getName(), "File Rename", "New name");
                 if (result.isPresent()) { // if user dismisses the dialog it won't rename...
                     commands.rename(Collections.singletonList(selectedItem), result.get());
@@ -471,7 +508,7 @@ public class Commander {
         logger.info("Pack (F11)");
         try {
             List<FileItem> selectedItems = filesPanesHelper.getSelectedItems();
-            String firstFilename = selectedItems.get(0).getName();
+            String firstFilename = selectedItems.getFirst().getName();
             String zipFilename = firstFilename.contains(".")
                     ? firstFilename.substring(0, firstFilename.lastIndexOf('.')) + ".zip"
                     : firstFilename + ".zip";
@@ -515,7 +552,7 @@ public class Commander {
         logger.info("Merge PDF Files (SHIFT+F1)");
         try {
             List<FileItem> selectedItems = filesPanesHelper.getSelectedItems();
-            String firstFilename = selectedItems.get(0).getName();
+            String firstFilename = selectedItems.getFirst().getName();
             String zipFilename = firstFilename.contains(".")
                     ? firstFilename.substring(0, firstFilename.lastIndexOf('.')) + ".pdf"
                     : firstFilename + ".pdf";

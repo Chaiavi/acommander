@@ -31,6 +31,7 @@ public class GlobalKeyHandlerImpl implements IKeyHandler {
                 SHIFT_F1, commander::mergePDFFiles,
                 SHIFT_F2, commander::extractPDFPages,
                 CONTROL_F, commander::search,
+                CONTROL_SHIFT_P, commander::openCommandPalette,
                 CONTROL_R, commander.filesPanesHelper::refreshFileListViews
         );
 
