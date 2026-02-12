@@ -34,12 +34,12 @@ shadowJar {
 }
 
 // Disable the problematic distribution tasks
-shadowDistZip.enabled = false
-shadowDistTar.enabled = false
-startShadowScripts.enabled = false
+tasks.named('shadowDistZip') { enabled = false }
+tasks.named('shadowDistTar') { enabled = false }
+tasks.named('startShadowScripts') { enabled = false }
 
 // Configure clean task to also delete dist folder and ZIP file
-clean {
+tasks.named('clean') {
     delete 'dist'
     delete fileTree('.') {
         include 'acommander-v*.zip'
@@ -47,14 +47,14 @@ clean {
 }
 
 // Task to copy config and apps folders to build/libs
-task copyResources(type: Copy) {
+def copyResources = tasks.register('copyResources', Copy) {
     from('config') {
         into 'config'
     }
     from('apps') {
         into 'apps'
     }
-    destinationDir = file('build/libs')
+    into layout.buildDirectory.dir('libs')
 }
 
 // Launch4j configuration - simplified
@@ -79,8 +79,8 @@ launch4j {
 }
 
 // Create distribution task - puts files in dist folder at project root
-task copyDist(type: Copy) {
-    dependsOn createExe
+def copyDist = tasks.register('copyDist', Copy) {
+    dependsOn tasks.named('createExe')
     from 'build/launch4j'  // Default location for launch4j output
     into 'dist'
     include '*.exe'
@@ -94,7 +94,7 @@ task copyDist(type: Copy) {
 }
 
 // Zip the distribution folder
-task zipDist(type: Zip) {
+def zipDist = tasks.register('zipDist', Zip) {
     dependsOn copyDist
     from 'dist'
     archiveFileName = "acommander-v${appVersion}.zip"
@@ -102,13 +102,15 @@ task zipDist(type: Zip) {
 }
 
 // Make dist task run both copy and zip
-task dist {
+tasks.register('dist') {
     dependsOn zipDist
     group = 'distribution'
     description = 'Creates distribution folder and ZIP file'
 }
 
 // Fix task dependencies
-shadowJar.finalizedBy copyResources
-createExe.dependsOn shadowJar
-createExe.mustRunAfter copyResources
+tasks.named('shadowJar') { finalizedBy copyResources }
+tasks.named('createExe') {
+    dependsOn tasks.named('shadowJar')
+    mustRunAfter copyResources
+}
