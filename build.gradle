@@ -24,7 +24,7 @@ dependencies {
 }
 
 application {
-    mainClass = 'org.chaiware.acommander.Main'
+    mainClass = 'org.chaiware.acommander.Launcher'
 }
 
 shadowJar {
@@ -59,7 +59,8 @@ def copyResources = tasks.register('copyResources', Copy) {
 
 // Launch4j configuration - simplified
 launch4j {
-    mainClassName = 'org.chaiware.acommander.Main'
+    mainClassName = 'org.chaiware.acommander.Launcher'
+    classpath = ['acommander.jar']
     icon = "${projectDir}/acommander.ico"
     outfile = 'acommander.exe'
     jarTask = project.tasks.shadowJar
@@ -87,6 +88,7 @@ def copyDist = tasks.register('copyDist', Copy) {
 
     // Also copy from build/libs for config and apps
     from('build/libs') {
+        include '*.jar'
         include 'config/**'
         include 'apps/**'
         into '.'
@@ -97,6 +99,7 @@ def copyDist = tasks.register('copyDist', Copy) {
 def zipDist = tasks.register('zipDist', Zip) {
     dependsOn copyDist
     from 'dist'
+    exclude '*.zip'
     archiveFileName = "acommander-v${appVersion}.zip"
     destinationDirectory = file('dist')
 }
