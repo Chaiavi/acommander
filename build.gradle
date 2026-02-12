@@ -6,6 +6,7 @@ plugins {
 
 // Version configuration - change this for new releases
 def appVersion = '2.0'
+def javafxVersion = '21.0.7'
 
 repositories {
     mavenCentral()
@@ -16,6 +17,10 @@ dependencies {
     annotationProcessor 'org.projectlombok:lombok:1.18.38'
     implementation 'org.slf4j:slf4j-api:2.0.17'
     implementation 'ch.qos.logback:logback-classic:1.5.18'
+    implementation "org.openjfx:javafx-base:${javafxVersion}:win"
+    implementation "org.openjfx:javafx-graphics:${javafxVersion}:win"
+    implementation "org.openjfx:javafx-controls:${javafxVersion}:win"
+    implementation "org.openjfx:javafx-fxml:${javafxVersion}:win"
 }
 
 application {
@@ -93,7 +98,7 @@ task zipDist(type: Zip) {
     dependsOn copyDist
     from 'dist'
     archiveFileName = "acommander-v${appVersion}.zip"
-    destinationDirectory = file('.')
+    destinationDirectory = file('dist')
 }
 
 // Make dist task run both copy and zip
