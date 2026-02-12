@@ -61,6 +61,7 @@ def copyResources = tasks.register('copyResources', Copy) {
 launch4j {
     mainClassName = 'org.chaiware.acommander.Launcher'
     classpath = ['acommander.jar']
+    bundledJrePath = 'runtime'
     icon = "${projectDir}/acommander.ico"
     outfile = 'acommander.exe'
     jarTask = project.tasks.shadowJar
@@ -79,12 +80,23 @@ launch4j {
     jvmOptions = ['--enable-native-access=javafx.graphics']
 }
 
+def copyRuntime = tasks.register('copyRuntime', Copy) {
+    def javaHome = System.getenv('JAVA_HOME')
+    if (!javaHome) {
+        throw new GradleException('JAVA_HOME is not set. It is required to bundle a runtime for distribution.')
+    }
+    from(javaHome)
+    into(layout.buildDirectory.dir('runtime'))
+}
+
 // Create distribution task - puts files in dist folder at project root
 def copyDist = tasks.register('copyDist', Copy) {
     dependsOn tasks.named('createExe')
-    from 'build/launch4j'  // Default location for launch4j output
+    dependsOn copyRuntime
+    from('build/launch4j') {  // Default location for launch4j output
+        include '*.exe'
+    }
     into 'dist'
-    include '*.exe'
 
     // Also copy from build/libs for config and apps
     from('build/libs') {
@@ -92,6 +104,10 @@ def copyDist = tasks.register('copyDist', Copy) {
         include 'config/**'
         include 'apps/**'
         into '.'
+    }
+
+    from(layout.buildDirectory.dir('runtime')) {
+        into 'runtime'
     }
 }
 
