@@ -5,6 +5,8 @@ import java.util.Map;
 import javafx.scene.input.KeyEvent;
 import lombok.Setter;
 import org.chaiware.acommander.Commander;
+import org.chaiware.acommander.actions.ActionExecutor;
+import org.chaiware.acommander.config.AppRegistry;
 
 import static org.chaiware.acommander.keybinding.KeyBindingManager.KeyContext.*;
 
@@ -22,10 +24,10 @@ public class KeyBindingManager {
     @Setter
     private KeyContext currentContext;
 
-    public KeyBindingManager(Commander commander) {
-        contextHandlers.put(GLOBAL, new GlobalKeyHandlerImpl(commander));
+    public KeyBindingManager(Commander commander, AppRegistry appRegistry, ActionExecutor actionExecutor) {
+        contextHandlers.put(GLOBAL, new GlobalKeyHandlerImpl(commander, appRegistry, actionExecutor));
         contextHandlers.put(PATH_COMBO_BOX, new ComboxKeyHandlerImpl(commander));
-        contextHandlers.put(FILE_PANE, new FilePaneKeyHandlerImpl(commander));
+        contextHandlers.put(FILE_PANE, new FilePaneKeyHandlerImpl(commander, appRegistry, actionExecutor));
         contextHandlers.put(COMMAND_PALETTE, new CommandPaletteKeyHandlerImpl(commander));
     }
 

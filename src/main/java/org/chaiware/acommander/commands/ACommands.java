@@ -174,4 +174,8 @@ public abstract class ACommands {
             }
         });
     }
+
+    public CompletableFuture<List<String>> runExternal(List<String> params, boolean shouldUpdateUI) {
+        return runExecutable(params, shouldUpdateUI);
+    }
 }

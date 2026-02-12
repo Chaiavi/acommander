@@ -15,9 +15,13 @@ import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
 import javafx.stage.Window;
 import org.chaiware.acommander.actions.ActionContext;
+import org.chaiware.acommander.actions.ActionExecutor;
 import org.chaiware.acommander.actions.ActionRegistry;
 import org.chaiware.acommander.commands.ACommands;
 import org.chaiware.acommander.commands.CommandsAdvancedImpl;
+import org.chaiware.acommander.config.AppConfig;
+import org.chaiware.acommander.config.AppConfigLoader;
+import org.chaiware.acommander.config.AppRegistry;
 import org.chaiware.acommander.helpers.ComboBoxSetup;
 import org.chaiware.acommander.helpers.FilesPanesHelper;
 import org.chaiware.acommander.keybinding.KeyBindingManager;
@@ -60,6 +64,8 @@ public class Commander {
 
     Properties properties = new Properties();
     ACommands commands;
+    private AppRegistry appRegistry;
+    private ActionExecutor actionExecutor;
 
     private static final Logger logger = LoggerFactory.getLogger(Commander.class);
     public FilesPanesHelper filesPanesHelper;
@@ -69,10 +75,11 @@ public class Commander {
     public void initialize() {
         logger.debug("Loading Properties");
         loadConfigFile();
+        loadAppRegistry();
 
         // Configure left & right defaults
         filesPanesHelper = new FilesPanesHelper(leftFileList, leftPathComboBox, rightFileList, rightPathComboBox);
-        commands = new CommandsAdvancedImpl(filesPanesHelper);
+        commands = new CommandsAdvancedImpl(filesPanesHelper, appRegistry);
         configMouseDoubleClick();
 
         logger.debug("Loading file lists into the double panes file views");
@@ -96,7 +103,7 @@ public class Commander {
         configListViewLookAndBehavior(leftFileList);
         configListViewLookAndBehavior(rightFileList);
         configFileListsFocus();
-        commandPaletteController.configure(new ActionRegistry(), new ActionContext(this));
+        commandPaletteController.configure(new ActionRegistry(appRegistry, actionExecutor), new ActionContext(this));
 
         updateBottomButtons(null);
         filesPanesHelper.refreshFileListViews();
@@ -107,7 +114,7 @@ public class Commander {
     /** Setup all of the keyboard bindings */
     public void setupBindings() {
         Scene scene = rootPane.getScene();
-        KeyBindingManager keyBindingManager = new KeyBindingManager(this);
+        KeyBindingManager keyBindingManager = new KeyBindingManager(this, appRegistry, actionExecutor);
         scene.addEventFilter(KeyEvent.KEY_PRESSED, event -> {
             keyBindingManager.setCurrentContext(determineCurrentContext(scene));
             keyBindingManager.handleKeyEvent(event);
@@ -171,6 +178,18 @@ public class Commander {
             properties.load(input);
         } catch (Exception e) {
             throw new RuntimeException(e);
+        }
+    }
+
+    private void loadAppRegistry() {
+        Path configFile = Paths.get(System.getProperty("user.dir"), "config", "apps.json");
+        try {
+            AppConfigLoader loader = new AppConfigLoader();
+            AppConfig appConfig = loader.load(configFile);
+            appRegistry = new AppRegistry(appConfig);
+            actionExecutor = new ActionExecutor(this, appRegistry);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed loading apps configuration", e);
         }
     }
 
@@ -597,6 +616,10 @@ public class Commander {
         return dialog.showAndWait();
     }
 
+    public Optional<String> promptUser(String defaultValue, String title, String question) {
+        return getUserFeedback(defaultValue, title, question);
+    }
+
     /** Alerts of an error and logs it */
     private void error(String error, Exception ex) {
         logger.error(error, ex);
@@ -644,5 +667,9 @@ public class Commander {
 
             default -> throw new IllegalStateException("Which key was pressed?: " + whichKeyWasPressed);
         }
+    }
+
+    public void runExternal(List<String> command, boolean shouldUpdateUI) {
+        commands.runExternal(command, shouldUpdateUI);
     }
 }

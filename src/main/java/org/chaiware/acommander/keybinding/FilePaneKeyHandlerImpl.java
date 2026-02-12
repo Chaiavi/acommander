@@ -1,34 +1,43 @@
 package org.chaiware.acommander.keybinding;
 
-import javafx.scene.input.KeyCombination;
 import javafx.scene.input.KeyEvent;
 import org.chaiware.acommander.Commander;
+import org.chaiware.acommander.actions.ActionExecutor;
+import org.chaiware.acommander.actions.SelectionRule;
+import org.chaiware.acommander.config.ActionDefinition;
+import org.chaiware.acommander.config.ActionScope;
+import org.chaiware.acommander.config.AppRegistry;
 
 import java.io.File;
-import java.util.Map;
 
 import static javafx.scene.input.KeyCode.*;
 
 
 public class FilePaneKeyHandlerImpl implements IKeyHandler {
     private final Commander commander;
+    private final AppRegistry appRegistry;
+    private final ActionExecutor actionExecutor;
 
-    public FilePaneKeyHandlerImpl(Commander commander) {
+    public FilePaneKeyHandlerImpl(Commander commander, AppRegistry appRegistry, ActionExecutor actionExecutor) {
         this.commander = commander;
+        this.appRegistry = appRegistry;
+        this.actionExecutor = actionExecutor;
     }
 
     @Override
     public boolean handle(KeyEvent event) {
-        Map<KeyCombination, Runnable> comboActions = Map.of(
-                SHIFT_F6, commander::renameFile,
-                SHIFT_DEL, commander::deleteWipe,
-                SHIFT_F8, commander::deleteWipe
-        );
-        for (var entry : comboActions.entrySet()) {
-            if (entry.getKey().match(event)) {
-                entry.getValue().run();
-                return true;
+        ActionDefinition action = appRegistry.matchShortcut(ActionScope.FILE_PANE, event).orElse(null);
+        if (action != null) {
+            SelectionRule rule = SelectionRule.fromString(action.getSelection());
+            if (rule.isSatisfied(commander.filesPanesHelper.getSelectedItems())) {
+                String builtin = action.getBuiltin() == null ? action.getId() : action.getBuiltin();
+                if ("view".equals(builtin) && commander.filesPanesHelper.getSelectedItem().isDirectory()) {
+                    commander.calculateDirSpace();
+                } else {
+                    actionExecutor.execute(action);
+                }
             }
+            return true;
         }
 
         if (event.isAltDown() || event.isShiftDown() || event.isControlDown()) {
@@ -42,46 +51,6 @@ public class FilePaneKeyHandlerImpl implements IKeyHandler {
         }
 
         return switch (event.getCode()) {
-            case F2 -> {
-                commander.renameFile();
-                yield true;
-            }
-            case F3 -> {
-                if(commander.filesPanesHelper.getSelectedItem().isDirectory())
-                    commander.calculateDirSpace();
-                else
-                    commander.viewFile();
-
-                yield true;
-            }
-            case F4 -> {
-                commander.editFile();
-                yield true;
-            }
-            case F5 -> {
-                commander.copyFile();
-                yield true;
-            }
-            case F6 -> {
-                commander.moveFile();
-                yield true;
-            }
-            case F7 -> {
-                commander.makeDirectory();
-                yield true;
-            }
-            case F8, DELETE -> {
-                commander.deleteFile();
-                yield true;
-            }
-            case F11 -> {
-                commander.pack();
-                yield true;
-            }
-            case F12 -> {
-                commander.unpackFile();
-                yield true;
-            }
             case BACK_SPACE -> {
                 goUpOneFolder();
                 yield true;

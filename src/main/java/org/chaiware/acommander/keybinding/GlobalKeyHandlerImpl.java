@@ -1,19 +1,25 @@
 package org.chaiware.acommander.keybinding;
 
-import javafx.scene.input.KeyCombination;
 import javafx.scene.input.KeyEvent;
 import org.chaiware.acommander.Commander;
-
-import java.util.Map;
+import org.chaiware.acommander.actions.ActionExecutor;
+import org.chaiware.acommander.actions.SelectionRule;
+import org.chaiware.acommander.config.ActionDefinition;
+import org.chaiware.acommander.config.ActionScope;
+import org.chaiware.acommander.config.AppRegistry;
 
 import static javafx.scene.input.KeyCode.*;
 import static org.chaiware.acommander.helpers.FilesPanesHelper.FocusSide.LEFT;
 
 public class GlobalKeyHandlerImpl implements IKeyHandler {
     private final Commander commander;
+    private final AppRegistry appRegistry;
+    private final ActionExecutor actionExecutor;
 
-    public GlobalKeyHandlerImpl(Commander commander) {
+    public GlobalKeyHandlerImpl(Commander commander, AppRegistry appRegistry, ActionExecutor actionExecutor) {
         this.commander = commander;
+        this.appRegistry = appRegistry;
+        this.actionExecutor = actionExecutor;
     }
 
     @Override
@@ -22,24 +28,13 @@ public class GlobalKeyHandlerImpl implements IKeyHandler {
         logger.trace("Event target: {}", event.getTarget());
         logger.trace("Event source: {}", event.getSource());
 
-        Map<KeyCombination, Runnable> comboActions = Map.of(
-                ALT_F1, () -> commander.leftPathComboBox.show(),
-                ALT_F2, () -> commander.rightPathComboBox.show(),
-                ALT_F7, commander::makeFile,
-                ALT_F9, commander::explorerHere,
-                ALT_F12, commander::extractAll,
-                SHIFT_F1, commander::mergePDFFiles,
-                SHIFT_F2, commander::extractPDFPages,
-                CONTROL_F, commander::search,
-                CONTROL_SHIFT_P, commander::openCommandPalette,
-                CONTROL_R, commander.filesPanesHelper::refreshFileListViews
-        );
-
-        for (var entry : comboActions.entrySet()) {
-            if (entry.getKey().match(event)) {
-                entry.getValue().run();
-                return true;
+        ActionDefinition action = appRegistry.matchShortcut(ActionScope.GLOBAL, event).orElse(null);
+        if (action != null) {
+            SelectionRule rule = SelectionRule.fromString(action.getSelection());
+            if (rule.isSatisfied(commander.filesPanesHelper.getSelectedItems())) {
+                actionExecutor.execute(action);
             }
+            return true;
         }
         // ALT or SHIFT for bottom buttons
         if (event.getCode() == ALT || event.getCode() == SHIFT || event.getCode() == CONTROL) {
@@ -48,9 +43,6 @@ public class GlobalKeyHandlerImpl implements IKeyHandler {
         }
 
         return switch (event.getCode()) {
-            case F1 -> { commander.help(); yield true; }
-            case F9 -> { commander.terminalHere(); yield true; }
-            case F10 -> { commander.search(); event.consume(); yield true; }
             case TAB -> { clickTab(); event.consume(); yield true; }
             default -> false;
         };
