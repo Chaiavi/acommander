@@ -282,6 +282,15 @@
       "selection": "none",
       "type": "builtin",
       "builtin": "rightPathCombo"
+    },
+    {
+      "id": "syncToOtherPane",
+      "label": "Show Other Pane Folder",
+      "aliases": ["sync panes", "mirror pane", "same folder"],
+      "contexts": ["commandPalette"],
+      "selection": "none",
+      "type": "builtin",
+      "builtin": "syncOtherPane"
     }
   ]
 }

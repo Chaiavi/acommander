@@ -672,4 +672,11 @@ public class Commander {
     public void runExternal(List<String> command, boolean shouldUpdateUI) {
         commands.runExternal(command, shouldUpdateUI);
     }
+
+    public void syncToOtherPane() {
+        String targetPath = filesPanesHelper.getFocusedSide() == LEFT
+                ? rightPathComboBox.getValue().getPath()
+                : leftPathComboBox.getValue().getPath();
+        filesPanesHelper.setFocusedFileListPath(targetPath);
+    }
 }
