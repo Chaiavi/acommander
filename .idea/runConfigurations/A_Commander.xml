@@ -2,9 +2,8 @@
   <configuration default="false" name="A Commander" type="Application" factoryName="Application">
     <option name="ALTERNATIVE_JRE_PATH" value="openjdk-25" />
     <option name="ALTERNATIVE_JRE_PATH_ENABLED" value="true" />
-    <option name="MAIN_CLASS_NAME" value="org.chaiware.acommander.Main" />
-    <module name="acommander.main" />
-    <option name="VM_PARAMETERS" value="--add-modules javafx.controls,javafx.fxml" />
+    <option name="MAIN_CLASS_NAME" value="org.chaiware.acommander.Launcher" />
+    <module name="acommander" />
     <extension name="coverage">
       <pattern>
         <option name="PATTERN" value="org.chaiware.acommander.commands.*" />
