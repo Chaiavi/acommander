@@ -24,5 +24,5 @@
                promptText="Type a command..."
                style="-fx-font-size: 14px; -fx-background-color: #11161F; -fx-text-fill: #F8F8F8; -fx-prompt-text-fill: #92A0B3;"/>
     <ListView fx:id="resultsList"
-              style="-fx-background-color: #11161F; -fx-control-inner-background: #11161F; -fx-text-fill: #F8F8F8;"/>
+              style="-fx-background-color: #11161F; -fx-control-inner-background: #11161F; -fx-text-fill: #F8F8F8; -fx-selection-bar: #2A84D2; -fx-selection-bar-non-focused: #2A84D2; -fx-selection-bar-text: #FFFFFF; -fx-cell-hover-color: #1D2B3D;"/>
 </VBox>
