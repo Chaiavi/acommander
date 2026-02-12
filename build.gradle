@@ -5,18 +5,20 @@ plugins {
 }
 
 // Version configuration - change this for new releases
-def appVersion = '2.0'
+def appVersion = '2.5'
 def javafxVersion = '21.0.7'
+def logbackVersion = '1.5.29'
 
 repositories {
     mavenCentral()
 }
 
 dependencies {
-    compileOnly 'org.projectlombok:lombok:1.18.38'
-    annotationProcessor 'org.projectlombok:lombok:1.18.38'
+    compileOnly 'org.projectlombok:lombok:1.18.42'
+    annotationProcessor 'org.projectlombok:lombok:1.18.42'
     implementation 'org.slf4j:slf4j-api:2.0.17'
-    implementation 'ch.qos.logback:logback-classic:1.5.18'
+    implementation "ch.qos.logback:logback-classic:${logbackVersion}"
+    implementation "ch.qos.logback:logback-core:${logbackVersion}"
     implementation "org.openjfx:javafx-base:${javafxVersion}:win"
     implementation "org.openjfx:javafx-graphics:${javafxVersion}:win"
     implementation "org.openjfx:javafx-controls:${javafxVersion}:win"
@@ -71,9 +73,9 @@ launch4j {
     // Version info using the variable
     version = appVersion
     textVersion = appVersion
-    copyright = 'Your Name'
-    companyName = 'Your Company'
-    fileDescription = 'ACommander Application'
+    copyright = 'Chaiware.org'
+    companyName = 'Chaiware.org'
+    fileDescription = 'ACommander - NC Clone'
     productName = 'ACommander'
 
     // JVM options
