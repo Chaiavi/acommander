@@ -10,6 +10,13 @@ A modern take on Norton Commander for Windows — streamlined, opinionated, and 
 [![Release](https://img.shields.io/github/v/release/Chaiavi/acommander?include_prereleases)](https://github.com/Chaiavi/acommander/releases)
 
 ---
+# Out of the box, open ACommander
+<img width="3826" height="2054" alt="image" src="https://github.com/user-attachments/assets/5880e5c6-c1f4-4450-b169-b8bf8079a350" />
+
+# A Commander workstation with multiple associated apps running (View Text File, View Image, Edit and Terminal)
+<img width="3840" height="2060" alt="image" src="https://github.com/user-attachments/assets/345ee06a-8edc-4302-9b1c-2f76124177d3" />
+
+---
 
 ## 🎯 Philosophy
 
@@ -299,3 +306,4 @@ A Commander stands on the shoulders of giants:
 ---
 
 **[⭐ Star this repo](https://github.com/Chaiavi/acommander)** if you find it useful!
+
