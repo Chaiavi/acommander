@@ -15,9 +15,12 @@ import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
 import javafx.stage.Window;
 import org.chaiware.acommander.actions.ActionContext;
+import org.chaiware.acommander.actions.ActionExecutor;
 import org.chaiware.acommander.actions.ActionRegistry;
 import org.chaiware.acommander.commands.ACommands;
 import org.chaiware.acommander.commands.CommandsAdvancedImpl;
+import org.chaiware.acommander.config.AppConfigLoader;
+import org.chaiware.acommander.config.AppRegistry;
 import org.chaiware.acommander.helpers.ComboBoxSetup;
 import org.chaiware.acommander.helpers.FilesPanesHelper;
 import org.chaiware.acommander.keybinding.KeyBindingManager;
@@ -29,12 +32,14 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
+import java.io.ByteArrayOutputStream;
 import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.concurrent.CompletableFuture;
 import java.util.*;
 
 import static java.awt.Desktop.getDesktop;
@@ -63,6 +68,8 @@ public class Commander {
 
     Properties properties = new Properties();
     ACommands commands;
+    private AppRegistry appRegistry;
+    private ActionExecutor actionExecutor;
 
     private static final Logger logger = LoggerFactory.getLogger(Commander.class);
     public FilesPanesHelper filesPanesHelper;
@@ -75,7 +82,9 @@ public class Commander {
 
         // Configure left & right defaults
         filesPanesHelper = new FilesPanesHelper(leftFileList, leftPathComboBox, rightFileList, rightPathComboBox);
-        commands = new CommandsAdvancedImpl(filesPanesHelper);
+        appRegistry = loadAppRegistry();
+        actionExecutor = new ActionExecutor(this, appRegistry);
+        commands = new CommandsAdvancedImpl(filesPanesHelper, appRegistry);
         configMouseDoubleClick();
 
         logger.debug("Loading file lists into the double panes file views");
@@ -103,7 +112,7 @@ public class Commander {
         configListViewLookAndBehavior(leftFileList);
         configListViewLookAndBehavior(rightFileList);
         configFileListsFocus();
-        commandPaletteController.configure(new ActionRegistry(), new ActionContext(this));
+        commandPaletteController.configure(new ActionRegistry(appRegistry, actionExecutor), new ActionContext(this));
 
         updateBottomButtons(null);
         filesPanesHelper.refreshFileListViews();
@@ -114,7 +123,7 @@ public class Commander {
     /** Setup all of the keyboard bindings */
     public void setupBindings() {
         Scene scene = rootPane.getScene();
-        KeyBindingManager keyBindingManager = new KeyBindingManager(this);
+        KeyBindingManager keyBindingManager = new KeyBindingManager(this, appRegistry, actionExecutor);
         scene.addEventFilter(KeyEvent.KEY_PRESSED, event -> {
             keyBindingManager.setCurrentContext(determineCurrentContext(scene));
             keyBindingManager.handleKeyEvent(event);
@@ -195,6 +204,15 @@ public class Commander {
         return getDefaultRootPath();
     }
 
+    private AppRegistry loadAppRegistry() {
+        Path appConfig = Paths.get(System.getProperty("user.dir"), "config", "apps.json");
+        try {
+            return new AppRegistry(new AppConfigLoader().load(appConfig));
+        } catch (IOException ex) {
+            throw new IllegalStateException("Failed loading actions config from: " + appConfig, ex);
+        }
+    }
+
     private String getDefaultRootPath() {
         File[] roots = File.listRoots();
         if (roots != null && roots.length > 0)
@@ -206,8 +224,12 @@ public class Commander {
         Path configFile = getConfigFilePath();
         try {
             Files.createDirectories(configFile.getParent());
-            try (FileOutputStream output = new FileOutputStream(configFile.toFile())) {
-                properties.store(output, "aCommander settings");
+            try (ByteArrayOutputStream output = new ByteArrayOutputStream()) {
+                properties.store(output, null);
+                String raw = output.toString(StandardCharsets.ISO_8859_1);
+                int firstLineEnd = raw.indexOf('\n');
+                String withoutTimestamp = firstLineEnd >= 0 ? raw.substring(firstLineEnd + 1) : "";
+                Files.writeString(configFile, withoutTimestamp, StandardCharsets.ISO_8859_1);
             }
         } catch (Exception ex) {
             logger.error("Failed saving config file {}", configFile, ex);
@@ -628,6 +650,14 @@ public class Commander {
         }
     }
 
+    public void syncToOtherPane() {
+        String focusedPath = filesPanesHelper.getFocusedPath();
+        if (filesPanesHelper.getFocusedSide() == LEFT)
+            filesPanesHelper.setFileListPath(RIGHT, focusedPath);
+        else
+            filesPanesHelper.setFileListPath(LEFT, focusedPath);
+    }
+
     public void filterByChar(char selectedChar) {
         ObservableList<FileItem> fileItems = filesPanesHelper.getFileList(true).getItems();
         fileItems.stream()
@@ -644,6 +674,14 @@ public class Commander {
         dialog.getEditor().setPrefWidth(300);
 
         return dialog.showAndWait();
+    }
+
+    public Optional<String> promptUser(String defaultValue, String title, String question) {
+        return getUserFeedback(defaultValue, title, question);
+    }
+
+    public CompletableFuture<List<String>> runExternal(List<String> command, boolean refreshAfter) {
+        return commands.runExternal(command, refreshAfter);
     }
 
     /** Alerts of an error and logs it */

@@ -23,6 +23,12 @@ apply plugin: 'application'
 apply plugin: 'com.gradleup.shadow'
 apply plugin: 'edu.sc.seis.launch4j'
 
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+}
+
 repositories {
     mavenCentral()
 }
@@ -98,14 +104,10 @@ launch4j {
 }
 
 def copyRuntime = tasks.register('copyRuntime', Copy) {
-    def javaHome = System.getenv('JAVA_HOME')
-    if (!javaHome) {
-        javaHome = project.findProperty('org.gradle.java.home')
-    }
-    if (!javaHome) {
-        throw new GradleException('JAVA_HOME is not set. It is required to bundle a runtime for distribution.')
-    }
-    from(javaHome)
+    def runtimeHome = javaToolchains.launcherFor {
+        languageVersion = JavaLanguageVersion.of(21)
+    }.map { it.metadata.installationPath.asFile }
+    from(runtimeHome)
     into(layout.buildDirectory.dir('runtime'))
 }
 
