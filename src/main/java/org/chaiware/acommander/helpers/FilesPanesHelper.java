@@ -120,7 +120,14 @@ public class FilesPanesHelper {
         }
 
         String getPath() {
-            return String.valueOf(pathComboBox.getValue());
+            Folder value = pathComboBox.getValue();
+            if (value == null || value.getPath() == null) {
+                return "";
+            }
+            String path = value.getPath().trim();
+            path = path.replaceFirst("\\s*\\(\\s*[\\d.,]+\\s*[KMGTPE]?B\\s*/\\s*[\\d.,]+\\s*[KMGTPE]?B\\s*\\)\\s*$", "");
+            path = path.replaceFirst("\\s*\\([^)]*free\\)\\s*$", "");
+            return path.trim();
         }
     }
 }

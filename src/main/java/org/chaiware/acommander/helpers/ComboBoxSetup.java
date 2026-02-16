@@ -12,8 +12,7 @@ import java.io.File;
 public class ComboBoxSetup {
     public void setupComboBox(ComboBox<Folder> comboBox) {
         comboBox.setCellFactory(param -> new FolderComboBoxCell());
-
-        comboBox.setButtonCell(new FolderComboBoxCell());
+        comboBox.setButtonCell(new FolderComboBoxCell(true));
         populateComboBox(comboBox);
         setStringInput(comboBox);
         comboBox.getSelectionModel().selectLast();
@@ -24,14 +23,45 @@ public class ComboBoxSetup {
         comboBox.setConverter(new StringConverter<>() {
             @Override
             public String toString(Folder folder) {
-                return folder != null ? folder.getPath() : "";
+                if (folder == null) {
+                    return "";
+                }
+
+                if (folder instanceof Drive drive) {
+                    return drive.getPath() + " (" + formatBytes(drive.getAvailableSpace()) + " / " + formatBytes(drive.getTotalSpace()) + ")";
+                }
+
+                File pathFile = new File(folder.getPath());
+                if (pathFile.exists() && pathFile.getParentFile() == null) {
+                    return folder.getPath() + " (" + formatBytes(pathFile.getUsableSpace()) + " / " + formatBytes(pathFile.getTotalSpace()) + ")";
+                }
+
+                return folder.getPath();
             }
 
             @Override
             public Folder fromString(String string) {
-                return new Folder(string); // or null if not valid
+                return new Folder(normalizePath(string));
             }
         });
+    }
+
+    private String formatBytes(long bytes) {
+        if (bytes < 1024) return bytes + " B";
+        int exp = (int) (Math.log(bytes) / Math.log(1024));
+        String pre = "KMGTPE".charAt(exp - 1) + "";
+        return String.format("%.1f %sB", bytes / Math.pow(1024, exp), pre);
+    }
+
+    private String normalizePath(String value) {
+        if (value == null) {
+            return "";
+        }
+        String trimmed = value.trim();
+        // Strip display suffixes like "(120.3 GB / 476.9 GB)" or "(120.3 GB free)" from editable ComboBox text.
+        trimmed = trimmed.replaceFirst("\\s*\\(\\s*[\\d.,]+\\s*[KMGTPE]?B\\s*/\\s*[\\d.,]+\\s*[KMGTPE]?B\\s*\\)\\s*$", "");
+        trimmed = trimmed.replaceFirst("\\s*\\([^)]*free\\)\\s*$", "");
+        return trimmed.trim();
     }
 
     private void populateComboBox(ComboBox<Folder> comboBox) {

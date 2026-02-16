@@ -9,8 +9,20 @@ import org.chaiware.acommander.model.Drive;
 import org.chaiware.acommander.model.Folder;
 import org.chaiware.acommander.model.WindowsFolder;
 
+import java.io.File;
+
 /** The ComboBox rows look&feel */
 public class FolderComboBoxCell extends ListCell<Folder> {
+    private final boolean compact;
+
+    public FolderComboBoxCell() {
+        this(false);
+    }
+
+    public FolderComboBoxCell(boolean compact) {
+        this.compact = compact;
+    }
+
     @Override
     protected void updateItem(Folder item, boolean empty) {
         super.updateItem(item, empty);
@@ -19,13 +31,32 @@ public class FolderComboBoxCell extends ListCell<Folder> {
             setGraphic(null);
             setText(null);
         } else {
-            setGraphic(createCellContent(item));
-            setText(null); // We use graphic instead of text for better layout
+            setGraphic(compact ? createCompactCellContent(item) : createCellContent(item));
+            setText(null);
         }
     }
 
+    private HBox createCompactCellContent(Folder folder) {
+        HBox container = new HBox();
+        container.setPadding(new Insets(2, 4, 2, 4));
+
+        String text;
+        if (folder instanceof Drive drive) {
+            text = drive.getLetter() + ": (" + formatBytes(drive.getAvailableSpace()) + " free)";
+        } else if (folder instanceof WindowsFolder winFolder) {
+            text = winFolder.getName() + " (" + winFolder.getPath() + ") " + formatFreeForPath(winFolder.getPath());
+        } else {
+            text = folder.getPath() + " " + formatFreeForPath(folder.getPath());
+        }
+
+        Label label = new Label(text);
+        label.setStyle("-fx-font-size: 12px;");
+        container.getChildren().add(label);
+        return container;
+    }
+
     private HBox createCellContent(Folder folder) {
-        HBox container = new HBox(8); // 8px spacing
+        HBox container = new HBox(8);
         container.setPadding(new Insets(4, 8, 4, 8));
 
         if (folder instanceof Drive) {
@@ -39,10 +70,10 @@ public class FolderComboBoxCell extends ListCell<Folder> {
 
     /** Drive info in the combox dropdown */
     private HBox createDriveContent(Drive drive, HBox container) {
-        Label icon = new Label("💾");
-        icon.setStyle("-fx-font-size: 16px;");
+        Label icon = new Label("[D]");
+        icon.setStyle("-fx-font-size: 12px;");
         VBox driveInfo = new VBox(2);
-        Label driveLabel = new Label(drive.getLetter() + ": (" + drive.getStoreType() + ")");
+        Label driveLabel = new Label(drive.getLetter() + ": (" + drive.getStoreType() + ", " + formatBytes(drive.getAvailableSpace()) + " free)");
         driveLabel.setStyle("-fx-font-weight: bold; -fx-font-size: 13px;");
 
         String spaceInfo = formatBytes(drive.getAvailableSpace()) + " / " + formatBytes(drive.getTotalSpace());
@@ -57,8 +88,8 @@ public class FolderComboBoxCell extends ListCell<Folder> {
 
     /** Folder info in the combox dropdown */
     private HBox createFolderContent(WindowsFolder folder, HBox container) {
-        Label icon = new Label("📁");
-        icon.setStyle("-fx-font-size: 16px;");
+        Label icon = new Label("[W]");
+        icon.setStyle("-fx-font-size: 12px;");
         VBox folderInfo = new VBox(2);
         Label nameLabel = new Label(folder.getName());
         nameLabel.setStyle("-fx-font-weight: bold; -fx-font-size: 13px;");
@@ -73,8 +104,8 @@ public class FolderComboBoxCell extends ListCell<Folder> {
 
     /** Generic Folder info in the combox dropdown */
     private HBox createGenericFolderContent(Folder folder, HBox container) {
-        Label icon = new Label("📂");
-        icon.setStyle("-fx-font-size: 16px;");
+        Label icon = new Label("[F]");
+        icon.setStyle("-fx-font-size: 12px;");
         Label pathLabel = new Label(folder.getPath());
         pathLabel.setStyle("-fx-font-size: 13px;");
         container.getChildren().addAll(icon, pathLabel);
@@ -86,5 +117,22 @@ public class FolderComboBoxCell extends ListCell<Folder> {
         int exp = (int) (Math.log(bytes) / Math.log(1024));
         String pre = "KMGTPE".charAt(exp - 1) + "";
         return String.format("%.1f %sB", bytes / Math.pow(1024, exp), pre);
+    }
+
+    private String formatFreeForPath(String path) {
+        if (path == null || path.isBlank()) {
+            return "(free: -)";
+        }
+
+        File root = new File(path);
+        while (root.getParentFile() != null) {
+            root = root.getParentFile();
+        }
+
+        if (!root.exists()) {
+            return "(free: -)";
+        }
+
+        return "(" + formatBytes(root.getUsableSpace()) + " free)";
     }
 }

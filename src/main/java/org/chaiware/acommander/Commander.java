@@ -93,21 +93,8 @@ public class Commander {
         setup.setupComboBox(rightPathComboBox);
         filesPanesHelper.setFileListPath(LEFT, resolveInitialPath(LEFT_FOLDER_KEY));
         filesPanesHelper.setFileListPath(RIGHT, resolveInitialPath(RIGHT_FOLDER_KEY));
-
-        leftPathComboBox.getSelectionModel().selectedItemProperty().addListener((observable, oldValue, newValue) -> {
-            if (newValue != null) {
-                properties.setProperty(LEFT_FOLDER_KEY, newValue.getPath());
-                saveConfigFile();
-                filesPanesHelper.refreshFileListView(LEFT);
-            }
-        });
-        rightPathComboBox.getSelectionModel().selectedItemProperty().addListener((observable, oldValue, newValue) -> {
-            if (newValue != null) {
-                properties.setProperty(RIGHT_FOLDER_KEY, newValue.getPath());
-                saveConfigFile();
-                filesPanesHelper.refreshFileListView(RIGHT);
-            }
-        });
+        leftPathComboBox.valueProperty().addListener((observable, oldValue, newValue) -> onPathChanged(LEFT, newValue));
+        rightPathComboBox.valueProperty().addListener((observable, oldValue, newValue) -> onPathChanged(RIGHT, newValue));
 
         configListViewLookAndBehavior(leftFileList);
         configListViewLookAndBehavior(rightFileList);
@@ -118,6 +105,16 @@ public class Commander {
         filesPanesHelper.refreshFileListViews();
         filesPanesHelper.getFileList(true).getSelectionModel().selectFirst();
         Platform.runLater(() -> leftFileList.requestFocus());
+    }
+
+    private void onPathChanged(FilesPanesHelper.FocusSide side, Folder newValue) {
+        if (newValue == null) {
+            return;
+        }
+
+        properties.setProperty(side == LEFT ? LEFT_FOLDER_KEY : RIGHT_FOLDER_KEY, newValue.getPath());
+        saveConfigFile();
+        filesPanesHelper.refreshFileListView(side);
     }
 
     /** Setup all of the keyboard bindings */
