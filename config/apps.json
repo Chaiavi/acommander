@@ -248,6 +248,15 @@
       "refreshAfter": true
     },
     {
+      "id": "changeAttributes",
+      "label": "Change Attributes",
+      "shortcut": "Alt+Enter",
+      "aliases": ["attributes", "attrib", "set attributes"],
+      "contexts": ["filePane", "commandPalette"],
+      "selection": "any",
+      "type": "builtin"
+    },
+    {
       "id": "refresh",
       "label": "Refresh Panels",
       "shortcut": "Ctrl+R",

@@ -3,6 +3,7 @@ package org.chaiware.acommander;
 import javafx.application.Platform;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
+import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.Scene;
@@ -10,9 +11,11 @@ import javafx.scene.control.*;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.BorderPane;
+import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
+import javafx.scene.layout.VBox;
 import javafx.stage.Window;
 import org.chaiware.acommander.actions.ActionContext;
 import org.chaiware.acommander.actions.ActionExecutor;
@@ -39,6 +42,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.attribute.DosFileAttributeView;
 import java.util.concurrent.CompletableFuture;
 import java.util.*;
 
@@ -647,6 +651,50 @@ public class Commander {
         }
     }
 
+    public void changeAttributes() {
+        logger.info("Change Attributes");
+
+        try {
+            List<FileItem> selectedItems = commands.filterValidItems(new ArrayList<>(filesPanesHelper.getSelectedItems()));
+            if (selectedItems.isEmpty()) {
+                return;
+            }
+
+            Optional<AttributeChangeRequest> request = promptAttributes(selectedItems);
+            if (request.isEmpty()) {
+                return;
+            }
+
+            List<String> failures = new ArrayList<>();
+            for (FileItem selectedItem : selectedItems) {
+                try {
+                    applyAttributesWithFallback(selectedItem.getFile().toPath(), request.get());
+                } catch (Exception ex) {
+                    logger.warn("Failed changing attributes for {}", selectedItem.getFullPath(), ex);
+                    failures.add(selectedItem.getName() + ": " + ex.getMessage());
+                }
+            }
+
+            filesPanesHelper.refreshFileListViews();
+            if (!failures.isEmpty()) {
+                Alert alert = new Alert(Alert.AlertType.WARNING);
+                alert.setTitle("Change Attributes");
+                alert.setHeaderText("Some items failed to update");
+                int max = Math.min(8, failures.size());
+                String msg = String.join("\n", failures.subList(0, max));
+                if (failures.size() > max) {
+                    msg += "\n... and " + (failures.size() - max) + " more";
+                }
+                alert.setContentText(msg);
+                alert.setResizable(true);
+                alert.getDialogPane().setMinHeight(Region.USE_PREF_SIZE);
+                alert.showAndWait();
+            }
+        } catch (Exception ex) {
+            error("Failed changing attributes", ex);
+        }
+    }
+
     public void syncToOtherPane() {
         String focusedPath = filesPanesHelper.getFocusedPath();
         if (filesPanesHelper.getFocusedSide() == LEFT)
@@ -679,6 +727,157 @@ public class Commander {
 
     public CompletableFuture<List<String>> runExternal(List<String> command, boolean refreshAfter) {
         return commands.runExternal(command, refreshAfter);
+    }
+
+    private Optional<AttributeChangeRequest> promptAttributes(List<FileItem> selectedItems) {
+        Dialog<AttributeChangeRequest> dialog = new Dialog<>();
+        dialog.setTitle("Change Attributes");
+        dialog.setHeaderText(null);
+
+        ButtonType applyType = new ButtonType("Ok", ButtonBar.ButtonData.OK_DONE);
+        dialog.getDialogPane().getButtonTypes().addAll(applyType, ButtonType.CANCEL);
+
+        Label title = new Label("Change Attributes");
+        title.setStyle("-fx-font-size: 16px; -fx-font-weight: bold;");
+        Label subtitle = new Label("Selected items: " + selectedItems.size() + " | Checked = set, unchecked = clear");
+        subtitle.setStyle("-fx-text-fill: #666666;");
+
+        CheckBox readOnly = new CheckBox("Read-only");
+        CheckBox hidden = new CheckBox("Hidden");
+        CheckBox system = new CheckBox("System");
+        CheckBox archive = new CheckBox("Archive");
+        readOnly.setStyle("-fx-font-size: 13px;");
+        hidden.setStyle("-fx-font-size: 13px;");
+        system.setStyle("-fx-font-size: 13px;");
+        archive.setStyle("-fx-font-size: 13px;");
+
+        FileItem firstSelected = selectedItems.getFirst();
+        ExistingAttributes current = readExistingAttributes(firstSelected.getFile().toPath());
+        readOnly.setSelected(current.readOnly());
+        hidden.setSelected(current.hidden());
+        system.setSelected(current.system());
+        archive.setSelected(current.archive());
+
+        GridPane grid = new GridPane();
+        grid.setHgap(16);
+        grid.setVgap(10);
+        grid.add(readOnly, 0, 0);
+        grid.add(hidden, 1, 0);
+        grid.add(system, 0, 1);
+        grid.add(archive, 1, 1);
+
+        VBox content = new VBox(12, title, subtitle, new Separator(), grid);
+        content.setPadding(new Insets(14));
+        content.setStyle("-fx-background-color: white; -fx-background-radius: 8; -fx-border-color: #d5d9e0; -fx-border-radius: 8;");
+        dialog.getDialogPane().setContent(content);
+        dialog.getDialogPane().setStyle("-fx-background-color: #f3f5f8;");
+
+        dialog.setResultConverter(button -> {
+            if (button == applyType) {
+                return new AttributeChangeRequest(
+                        readOnly.isSelected(),
+                        hidden.isSelected(),
+                        system.isSelected(),
+                        archive.isSelected()
+                );
+            }
+            return null;
+        });
+        return dialog.showAndWait();
+    }
+
+    private ExistingAttributes readExistingAttributes(Path path) {
+        try {
+            DosFileAttributeView view = Files.getFileAttributeView(path, DosFileAttributeView.class);
+            if (view != null) {
+                java.nio.file.attribute.DosFileAttributes attrs = view.readAttributes();
+                return new ExistingAttributes(attrs.isReadOnly(), attrs.isHidden(), attrs.isSystem(), attrs.isArchive());
+            }
+        } catch (Exception ex) {
+            logger.debug("Failed reading DOS attributes for {}, using basic fallbacks", path, ex);
+        }
+
+        File file = path.toFile();
+        return new ExistingAttributes(!file.canWrite(), file.isHidden(), false, false);
+    }
+
+    private void applyAttributesWithFallback(Path path, AttributeChangeRequest request) throws Exception {
+        IOException javaError = null;
+        try {
+            applyWithJava(path, request);
+            return;
+        } catch (IOException ex) {
+            javaError = ex;
+            logger.debug("Java DOS attributes failed for {}, trying attrib fallback", path, ex);
+        }
+
+        if (applyWithAttrib(path, request)) {
+            return;
+        }
+
+        if (javaError != null) {
+            throw javaError;
+        }
+        throw new IOException("attrib fallback failed");
+    }
+
+    private void applyWithJava(Path path, AttributeChangeRequest request) throws IOException {
+        DosFileAttributeView view = Files.getFileAttributeView(path, DosFileAttributeView.class);
+        if (view == null) {
+            throw new IOException("DOS attributes are not supported for this item");
+        }
+        applyAttr(view::setReadOnly, request.readOnly());
+        applyAttr(view::setHidden, request.hidden());
+        applyAttr(view::setSystem, request.system());
+        applyAttr(view::setArchive, request.archive());
+    }
+
+    private boolean applyWithAttrib(Path path, AttributeChangeRequest request) throws IOException, InterruptedException {
+        List<String> flags = request.toAttribFlags();
+        if (flags.isEmpty()) {
+            return true;
+        }
+
+        List<String> command = new ArrayList<>();
+        command.add("attrib");
+        command.addAll(flags);
+        command.add(path.toString());
+
+        ProcessBuilder pb = new ProcessBuilder(command);
+        pb.redirectErrorStream(true);
+        Process process = pb.start();
+        int exit = process.waitFor();
+        return exit == 0;
+    }
+
+    private void applyAttr(AttributeSetter setter, boolean value) throws IOException {
+        setter.set(value);
+    }
+
+    private interface AttributeSetter {
+        void set(boolean value) throws IOException;
+    }
+
+    private record AttributeChangeRequest(boolean readOnly, boolean hidden, boolean system, boolean archive) {
+        List<String> toAttribFlags() {
+            List<String> flags = new ArrayList<>();
+            addFlag(flags, readOnly, "R");
+            addFlag(flags, hidden, "H");
+            addFlag(flags, system, "S");
+            addFlag(flags, archive, "A");
+            return flags;
+        }
+
+        private void addFlag(List<String> flags, boolean enabled, String code) {
+            if (enabled) {
+                flags.add("+" + code);
+            } else {
+                flags.add("-" + code);
+            }
+        }
+    }
+
+    private record ExistingAttributes(boolean readOnly, boolean hidden, boolean system, boolean archive) {
     }
 
     /** Alerts of an error and logs it */
