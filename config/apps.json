@@ -1,0 +1,296 @@
+{
+  "actions": [
+    {
+      "id": "multiRename",
+      "label": "Ant Renamer",
+      "type": "external",
+      "path": "apps/multi_rename/Renamer.exe",
+      "args": ["-af", "${selectedFilesJoined}"],
+      "refreshAfter": true
+    },
+    {
+      "id": "unlockDelete",
+      "label": "ThisIsMyFile",
+      "type": "external",
+      "path": "apps/delete/unlock_delete/ThisIsMyFile.exe",
+      "args": ["${selectedFilesJoined}"],
+      "refreshAfter": true
+    },
+    {
+      "id": "wipeDelete",
+      "label": "SDelete",
+      "type": "external",
+      "path": "apps/delete/wipe/sdelete64.exe",
+      "args": ["/accepteula", "${selectedFilesJoined}"],
+      "refreshAfter": true
+    },
+    {
+      "id": "help",
+      "label": "Help",
+      "shortcut": "F1",
+      "aliases": ["manual", "docs"],
+      "contexts": ["global", "commandPalette"],
+      "selection": "none",
+      "type": "builtin"
+    },
+    {
+      "id": "rename",
+      "label": "Rename",
+      "shortcut": "F2",
+      "aliases": ["mvname"],
+      "contexts": ["filePane", "commandPalette"],
+      "selection": "single",
+      "type": "builtin"
+    },
+    {
+      "id": "renameShift",
+      "label": "Rename",
+      "shortcut": "Shift+F6",
+      "contexts": ["filePane"],
+      "selection": "single",
+      "type": "builtin",
+      "builtin": "rename"
+    },
+    {
+      "id": "view",
+      "label": "View",
+      "shortcut": "F3",
+      "aliases": ["preview"],
+      "contexts": ["filePane", "commandPalette"],
+      "selection": "single",
+      "type": "builtin",
+      "path": "apps/view/UniversalViewer/Viewer.exe",
+      "args": ["${selectedFile}"]
+    },
+    {
+      "id": "edit",
+      "label": "Edit",
+      "shortcut": "F4",
+      "aliases": ["notepad"],
+      "contexts": ["filePane", "commandPalette"],
+      "selection": "single",
+      "type": "builtin",
+      "path": "apps/edit/Notepad4.exe",
+      "args": ["${selectedFile}"]
+    },
+    {
+      "id": "copy",
+      "label": "Copy",
+      "shortcut": "F5",
+      "aliases": ["cp"],
+      "contexts": ["filePane", "commandPalette"],
+      "selection": "single",
+      "type": "builtin",
+      "path": "apps/copy/FastCopy.exe",
+      "args": ["/cmd=diff", "/auto_close", "${selectedFile}", "/to=${targetFolder}"],
+      "refreshAfter": true
+    },
+    {
+      "id": "move",
+      "label": "Move",
+      "shortcut": "F6",
+      "aliases": ["mv"],
+      "contexts": ["filePane", "commandPalette"],
+      "selection": "single",
+      "type": "builtin",
+      "path": "apps/copy/FastCopy.exe",
+      "args": ["/cmd=move", "/auto_close", "${selectedFile}", "/to=${targetFolder}"],
+      "refreshAfter": true
+    },
+    {
+      "id": "mkdir",
+      "label": "Create Directory",
+      "shortcut": "F7",
+      "aliases": ["new folder", "md"],
+      "contexts": ["filePane", "commandPalette"],
+      "selection": "none",
+      "type": "builtin"
+    },
+    {
+      "id": "mkfile",
+      "label": "Create File",
+      "shortcut": "Alt+F7",
+      "aliases": ["new file", "touch"],
+      "contexts": ["global", "commandPalette"],
+      "selection": "none",
+      "type": "builtin"
+    },
+    {
+      "id": "delete",
+      "label": "Delete",
+      "shortcut": "F8",
+      "aliases": ["remove", "rm", "del"],
+      "contexts": ["filePane", "commandPalette"],
+      "selection": "any",
+      "type": "builtin"
+    },
+    {
+      "id": "deleteKey",
+      "label": "Delete",
+      "shortcut": "Delete",
+      "contexts": ["filePane"],
+      "selection": "any",
+      "type": "builtin",
+      "builtin": "delete"
+    },
+    {
+      "id": "deleteWipe",
+      "label": "Delete & Wipe",
+      "shortcut": "Shift+F8",
+      "contexts": ["filePane"],
+      "selection": "any",
+      "type": "builtin",
+      "builtin": "deleteWipe"
+    },
+    {
+      "id": "deleteWipeKey",
+      "label": "Delete & Wipe",
+      "shortcut": "Shift+Delete",
+      "contexts": ["filePane"],
+      "selection": "any",
+      "type": "builtin",
+      "builtin": "deleteWipe"
+    },
+    {
+      "id": "terminal",
+      "label": "Open Terminal Here",
+      "shortcut": "F9",
+      "aliases": ["shell", "cmd", "powershell"],
+      "contexts": ["global", "commandPalette"],
+      "selection": "none",
+      "type": "builtin"
+    },
+    {
+      "id": "explorer",
+      "label": "Open Explorer Here",
+      "shortcut": "Alt+F9",
+      "aliases": ["open folder"],
+      "contexts": ["global", "commandPalette"],
+      "selection": "none",
+      "type": "builtin"
+    },
+    {
+      "id": "search",
+      "label": "Search Files",
+      "shortcut": "F10",
+      "aliases": ["find", "grep"],
+      "contexts": ["global", "commandPalette"],
+      "selection": "none",
+      "type": "builtin"
+    },
+    {
+      "id": "searchAlt",
+      "label": "Search Files",
+      "shortcut": "Ctrl+F",
+      "contexts": ["global"],
+      "selection": "none",
+      "type": "builtin",
+      "builtin": "search"
+    },
+    {
+      "id": "pack",
+      "label": "Pack to Zip",
+      "shortcut": "F11",
+      "aliases": ["zip", "archive"],
+      "contexts": ["filePane", "commandPalette"],
+      "selection": "any",
+      "type": "builtin",
+      "path": "apps/pack_unpack/7zG.exe",
+      "args": ["a", "${archiveFile}", "${selectedFilesJoined}"],
+      "refreshAfter": true
+    },
+    {
+      "id": "unpack",
+      "label": "Unpack",
+      "shortcut": "F12",
+      "aliases": ["extract", "unzip"],
+      "contexts": ["filePane", "commandPalette"],
+      "selection": "any",
+      "type": "builtin",
+      "path": "apps/pack_unpack/7zG.exe",
+      "args": ["x", "-o${destinationPath}", "${selectedFile}"],
+      "refreshAfter": true
+    },
+    {
+      "id": "extractAll",
+      "label": "Extract All",
+      "shortcut": "Alt+F12",
+      "aliases": ["force extract"],
+      "contexts": ["global", "commandPalette"],
+      "selection": "any",
+      "type": "builtin",
+      "path": "apps/extract_all/UniExtract/UniExtract.exe",
+      "args": ["${selectedFile}", "${destinationPath}"],
+      "refreshAfter": true
+    },
+    {
+      "id": "mergePdf",
+      "label": "Merge PDF Files",
+      "shortcut": "Shift+F1",
+      "aliases": ["pdf merge"],
+      "contexts": ["global", "commandPalette"],
+      "selection": "multi",
+      "type": "builtin",
+      "path": "apps/pdf/pdftk.exe",
+      "args": ["${selectedFilesJoined}", "cat", "output", "${outputPdf}"],
+      "refreshAfter": true
+    },
+    {
+      "id": "extractPdfPages",
+      "label": "Extract PDF Pages",
+      "shortcut": "Shift+F2",
+      "aliases": ["pdf split"],
+      "contexts": ["global", "commandPalette"],
+      "selection": "singleFile",
+      "type": "builtin",
+      "path": "apps/pdf/pdftk.exe",
+      "args": ["${selectedFile}", "burst", "output", "${outputPattern}"],
+      "refreshAfter": true
+    },
+    {
+      "id": "refresh",
+      "label": "Refresh Panels",
+      "shortcut": "Ctrl+R",
+      "aliases": ["reload"],
+      "contexts": ["global", "commandPalette"],
+      "selection": "none",
+      "type": "builtin"
+    },
+    {
+      "id": "openCommandPalette",
+      "label": "Command Palette",
+      "shortcut": "Ctrl+Shift+P",
+      "contexts": ["global"],
+      "selection": "none",
+      "type": "builtin",
+      "builtin": "openCommandPalette"
+    },
+    {
+      "id": "leftPathCombo",
+      "label": "Left Path",
+      "shortcut": "Alt+F1",
+      "contexts": ["global"],
+      "selection": "none",
+      "type": "builtin",
+      "builtin": "leftPathCombo"
+    },
+    {
+      "id": "rightPathCombo",
+      "label": "Right Path",
+      "shortcut": "Alt+F2",
+      "contexts": ["global"],
+      "selection": "none",
+      "type": "builtin",
+      "builtin": "rightPathCombo"
+    },
+    {
+      "id": "syncToOtherPane",
+      "label": "Show Other Pane Folder",
+      "aliases": ["sync panes", "mirror pane", "same folder"],
+      "contexts": ["commandPalette"],
+      "selection": "none",
+      "type": "builtin",
+      "builtin": "syncOtherPane"
+    }
+  ]
+}

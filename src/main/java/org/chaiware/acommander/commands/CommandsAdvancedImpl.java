@@ -1,7 +1,10 @@
 package org.chaiware.acommander.commands;
 
+import org.chaiware.acommander.config.ActionDefinition;
+import org.chaiware.acommander.config.AppRegistry;
 import org.chaiware.acommander.helpers.FilesPanesHelper;
 import org.chaiware.acommander.model.FileItem;
+import org.chaiware.acommander.tools.ToolCommandBuilder;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -10,14 +13,17 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 public class CommandsAdvancedImpl extends ACommands {
     ACommands commandsSimpleImpl;
+    private final AppRegistry appRegistry;
 
-    public CommandsAdvancedImpl(FilesPanesHelper fileListsLoader) {
+    public CommandsAdvancedImpl(FilesPanesHelper fileListsLoader, AppRegistry appRegistry) {
         super(fileListsLoader);
         commandsSimpleImpl = new CommandsSimpleImpl(fileListsLoader);
+        this.appRegistry = appRegistry;
     }
 
     @Override
@@ -25,10 +31,17 @@ public class CommandsAdvancedImpl extends ACommands {
         if (validItems.size() == 1) {
             commandsSimpleImpl.doRename(validItems, newFilename);
         } else {
-            List<String> command = new ArrayList<>();
-            command.add(APP_PATH + "multi_rename\\Renamer.exe");
-            command.add("-af");
-            command.add(validItems.stream().map(f -> "\"" + f.getFullPath() + "\"").collect(Collectors.joining(" ")));
+            ActionDefinition action = requireAction("multiRename");
+            List<String> selectedFiles = validItems.stream()
+                    .map(FileItem::getFullPath)
+                    .collect(Collectors.toList());
+            List<String> command = ToolCommandBuilder.buildCommand(
+                    action.getPath(),
+                    action.getArgs(),
+                    fileListsLoader,
+                    Map.of(),
+                    selectedFiles
+            );
             runExecutable(command, true);
             log.debug("Finished Multi File Rename Process");
         }
@@ -36,32 +49,45 @@ public class CommandsAdvancedImpl extends ACommands {
 
     @Override
     protected void doView(FileItem fileItem) throws Exception {
-        List<String> command = new ArrayList<>();
-        command.add(APP_PATH + "view\\UniversalViewer\\Viewer.exe");
-        command.add(fileItem.getFile().toString());
+        ActionDefinition action = requireAction("view");
+        List<String> selectedFiles = List.of(fileItem.getFullPath());
+        List<String> command = ToolCommandBuilder.buildCommand(
+                action.getPath(),
+                action.getArgs(),
+                fileListsLoader,
+                Map.of(),
+                selectedFiles
+        );
         runExecutable(command, false);
         log.debug("Viewed: {}", fileItem.getName());
     }
 
     @Override
     protected void doEdit(FileItem fileItem) throws Exception {
-        List<String> command = new ArrayList<>();
-//          command.add(APP_PATH + "TedNPad.exe");
-        command.add(APP_PATH + "edit\\Notepad4.exe");
-        command.add(fileItem.getFile().toString());
+        ActionDefinition action = requireAction("edit");
+        List<String> selectedFiles = List.of(fileItem.getFullPath());
+        List<String> command = ToolCommandBuilder.buildCommand(
+                action.getPath(),
+                action.getArgs(),
+                fileListsLoader,
+                Map.of(),
+                selectedFiles
+        );
         runExecutable(command, false);
         log.debug("Edited: {}", fileItem.getName());
     }
 
     @Override
     protected void doCopy(FileItem sourceFile, String targetFolder) throws Exception {
-        List<String> command = new ArrayList<>();
-        command.add(APP_PATH + "copy\\FastCopy.exe");
-        command.add("/cmd=diff");
-        command.add("/auto_close");
-//        command.add("/verify");
-        command.add(sourceFile.getFile().toString());
-        command.add("/to=" + targetFolder);
+        ActionDefinition action = requireAction("copy");
+        List<String> selectedFiles = List.of(sourceFile.getFullPath());
+        List<String> command = ToolCommandBuilder.buildCommand(
+                action.getPath(),
+                action.getArgs(),
+                fileListsLoader,
+                Map.of("${targetFolder}", targetFolder),
+                selectedFiles
+        );
         runExecutable(command, true);
         log.debug("Copied: {} To: {}", sourceFile, targetFolder);
     }
@@ -71,13 +97,15 @@ public class CommandsAdvancedImpl extends ACommands {
         if (sourceFile.getFile().toPath().getRoot().toString().equalsIgnoreCase(Paths.get(targetFolder).getRoot().toString())) // Use FASTEST move in the case of moving file over same drive
             commandsSimpleImpl.doMove(sourceFile, targetFolder);
         else {
-            List<String> command = new ArrayList<>();
-            command.add(APP_PATH + "copy\\FastCopy.exe");
-            command.add("/cmd=move");
-            command.add("/auto_close");
-//        command.add("/verify");
-            command.add(sourceFile.getFile().toString());
-            command.add("/to=" + targetFolder);
+            ActionDefinition action = requireAction("move");
+            List<String> selectedFiles = List.of(sourceFile.getFullPath());
+            List<String> command = ToolCommandBuilder.buildCommand(
+                    action.getPath(),
+                    action.getArgs(),
+                    fileListsLoader,
+                    Map.of("${targetFolder}", targetFolder),
+                    selectedFiles
+            );
             runExecutable(command, true);
             log.debug("Moved: {} To: {}", sourceFile, targetFolder);
         }
@@ -121,26 +149,34 @@ public class CommandsAdvancedImpl extends ACommands {
 
     @Override
     protected void doUnlockDelete(List<FileItem> validItems) throws Exception {
-        String fullPaths = validItems.stream()
-                .map(f -> "\"" + f.getFullPath() + "\"")
-                .collect(Collectors.joining(" "));
-
-        List<String> command = new ArrayList<>();
-        command.add(APP_PATH + "delete\\unlock_delete\\ThisIsMyFile.exe");
-        command.add(fullPaths);
+        ActionDefinition action = requireAction("unlockDelete");
+        List<String> selectedFiles = validItems.stream()
+                .map(FileItem::getFullPath)
+                .collect(Collectors.toList());
+        List<String> command = ToolCommandBuilder.buildCommand(
+                action.getPath(),
+                action.getArgs(),
+                fileListsLoader,
+                Map.of(),
+                selectedFiles
+        );
         runExecutable(command, true);
         log.debug("Unlocked & Deleted: {}", validItems.stream().map(FileItem::getName).collect(Collectors.joining(", ")));
     }
 
     @Override
     protected void doWipeDelete(List<FileItem> validItems) throws Exception {
-        String fullPaths = validItems.stream()
-                .map(f -> "\"" + f.getFullPath() + "\"")
-                .collect(Collectors.joining(" "));
-
-        List<String> command = new ArrayList<>();
-        command.add(APP_PATH + "delete\\wipe\\sdelete64.exe");
-        command.add(fullPaths);
+        ActionDefinition action = requireAction("wipeDelete");
+        List<String> selectedFiles = validItems.stream()
+                .map(FileItem::getFullPath)
+                .collect(Collectors.toList());
+        List<String> command = ToolCommandBuilder.buildCommand(
+                action.getPath(),
+                action.getArgs(),
+                fileListsLoader,
+                Map.of(),
+                selectedFiles
+        );
         runExecutable(command, true);
         log.debug("Deleted & Wiped: {}", validItems.stream().map(FileItem::getName).collect(Collectors.joining(", ")));
     }
@@ -170,62 +206,90 @@ public class CommandsAdvancedImpl extends ACommands {
 
     @Override
     protected void doPack(List<FileItem> validItems, String archiveFilenameWithPath) throws Exception {
-        List<String> command = new ArrayList<>();
-        command.add(APP_PATH + "pack_unpack\\7zG.exe");
-        command.add("a");
-        command.add(archiveFilenameWithPath);
-        command.add(validItems.stream()
-                .map(f -> "\"" + f.getFullPath() + "\"")
-                .collect(Collectors.joining(" ")));
+        ActionDefinition action = requireAction("pack");
+        List<String> selectedFiles = validItems.stream()
+                .map(FileItem::getFullPath)
+                .collect(Collectors.toList());
+        List<String> command = ToolCommandBuilder.buildCommand(
+                action.getPath(),
+                action.getArgs(),
+                fileListsLoader,
+                Map.of("${archiveFile}", archiveFilenameWithPath),
+                selectedFiles
+        );
         runExecutable(command, true);
         log.debug("Archived (zip): {}", archiveFilenameWithPath);
     }
 
     @Override
     protected void doUnpack(FileItem selectedItem, String destinationPath) throws Exception {
-        List<String> command = new ArrayList<>();
-        command.add(APP_PATH + "pack_unpack\\7zG.exe");
-        command.add("x");
-        command.add("-o" + destinationPath);
-        command.add(selectedItem.getFile().toString());
+        ActionDefinition action = requireAction("unpack");
+        List<String> selectedFiles = List.of(selectedItem.getFullPath());
+        List<String> command = ToolCommandBuilder.buildCommand(
+                action.getPath(),
+                action.getArgs(),
+                fileListsLoader,
+                Map.of("${destinationPath}", destinationPath),
+                selectedFiles
+        );
         runExecutable(command, true);
         log.debug("UnPacked Archive: {} to: {}", selectedItem.getName(), destinationPath);
     }
 
     @Override
     protected void doExtractAll(FileItem selectedItem, String destinationPath) throws Exception {
-        List<String> command = new ArrayList<>();
-        command.add(APP_PATH + "extract_all\\UniExtract\\UniExtract.exe");
-//        command.add("/remove");
-        command.add(selectedItem.getFile().toString());
-        command.add(destinationPath);
+        ActionDefinition action = requireAction("extractAll");
+        List<String> selectedFiles = List.of(selectedItem.getFullPath());
+        List<String> command = ToolCommandBuilder.buildCommand(
+                action.getPath(),
+                action.getArgs(),
+                fileListsLoader,
+                Map.of("${destinationPath}", destinationPath),
+                selectedFiles
+        );
         runExecutable(command, true);
         log.debug("Extracted File: {} to: {}", selectedItem.getName(), destinationPath);
     }
 
     @Override
     protected void doMergePDFs(List<FileItem> validItems, String newPdfFilenameWithPath) throws Exception {
-        List<String> command = new ArrayList<>();
-        command.add(APP_PATH + "pdf\\pdftk.exe");
-        command.add(validItems.stream()
-                .map(f -> "\"" + f.getFullPath() + "\"")
-                .collect(Collectors.joining(" ")));
-        command.add("cat");
-        command.add("output");
-        command.add(newPdfFilenameWithPath);
+        ActionDefinition action = requireAction("mergePdf");
+        List<String> selectedFiles = validItems.stream()
+                .map(FileItem::getFullPath)
+                .collect(Collectors.toList());
+        List<String> command = ToolCommandBuilder.buildCommand(
+                action.getPath(),
+                action.getArgs(),
+                fileListsLoader,
+                Map.of("${outputPdf}", newPdfFilenameWithPath),
+                selectedFiles
+        );
         runExecutable(command, true);
         log.debug("The new Merged (pdf): {}", newPdfFilenameWithPath);
     }
 
     @Override
     protected void doExtractPDFPages(FileItem fileItem, String destinationPath) throws Exception {
-        List<String> command = new ArrayList<>();
-        command.add(APP_PATH + "pdf\\pdftk.exe");
-        command.add(fileItem.getFullPath());
-        command.add("burst");
-        command.add("output");
-        command.add(destinationPath + "\\" + fileItem.getName().replaceFirst("\\.pdf$", "") + "_%04d.pdf");
+        ActionDefinition action = requireAction("extractPdfPages");
+        List<String> selectedFiles = List.of(fileItem.getFullPath());
+        String outputPattern = destinationPath + "\\" + fileItem.getName().replaceFirst("\\.pdf$", "") + "_%04d.pdf";
+        List<String> command = ToolCommandBuilder.buildCommand(
+                action.getPath(),
+                action.getArgs(),
+                fileListsLoader,
+                Map.of("${outputPattern}", outputPattern),
+                selectedFiles
+        );
         runExecutable(command, true);
         log.debug("Extracted PDF pages from: {} to: {}", fileItem.getName(), destinationPath);
+    }
+
+    private ActionDefinition requireAction(String id) {
+        ActionDefinition action = appRegistry.findAction(id)
+                .orElseThrow(() -> new IllegalStateException("Missing action config: " + id));
+        if (action.getPath() == null || action.getPath().isBlank()) {
+            throw new IllegalStateException("Missing action path: " + id);
+        }
+        return action;
     }
 }

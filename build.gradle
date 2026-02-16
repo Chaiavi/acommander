@@ -33,6 +33,7 @@ dependencies {
     implementation "org.slf4j:slf4j-api:${slf4jVersion}"
     implementation "ch.qos.logback:logback-classic:${logbackVersion}"
     implementation "ch.qos.logback:logback-core:${logbackVersion}"
+    implementation "com.fasterxml.jackson.core:jackson-databind:2.17.2"
     implementation "org.openjfx:javafx-base:${javafxVersion}:win"
     implementation "org.openjfx:javafx-graphics:${javafxVersion}:win"
     implementation "org.openjfx:javafx-controls:${javafxVersion}:win"
@@ -99,6 +100,9 @@ launch4j {
 def copyRuntime = tasks.register('copyRuntime', Copy) {
     def javaHome = System.getenv('JAVA_HOME')
     if (!javaHome) {
+        javaHome = project.findProperty('org.gradle.java.home')
+    }
+    if (!javaHome) {
         throw new GradleException('JAVA_HOME is not set. It is required to bundle a runtime for distribution.')
     }
     from(javaHome)
@@ -148,4 +152,8 @@ tasks.named('shadowJar') { finalizedBy copyResources }
 tasks.named('createExe') {
     dependsOn tasks.named('shadowJar')
     mustRunAfter copyResources
+}
+tasks.named('startScripts') {
+    dependsOn tasks.named('shadowJar')
+    dependsOn copyResources
 }
