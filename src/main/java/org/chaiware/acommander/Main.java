@@ -24,6 +24,7 @@ public class Main extends Application {
         stage.show();
 
         Commander commander = loader.getController();
+        stage.setOnCloseRequest(event -> commander.persistCurrentPaths());
         commander.setupBindings();
     }
 

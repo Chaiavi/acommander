@@ -30,6 +30,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -42,6 +43,8 @@ import static org.chaiware.acommander.helpers.FilesPanesHelper.FocusSide.RIGHT;
 
 
 public class Commander {
+    private static final String LEFT_FOLDER_KEY = "left_folder";
+    private static final String RIGHT_FOLDER_KEY = "right_folder";
 
     @FXML
     public BorderPane rootPane;
@@ -79,16 +82,20 @@ public class Commander {
         ComboBoxSetup setup = new ComboBoxSetup();
         setup.setupComboBox(leftPathComboBox);
         setup.setupComboBox(rightPathComboBox);
-        filesPanesHelper.setFileListPath(LEFT, new File(properties.getProperty("left_folder")).getPath());
-        filesPanesHelper.setFileListPath(RIGHT, new File(properties.getProperty("right_folder")).getPath());
+        filesPanesHelper.setFileListPath(LEFT, resolveInitialPath(LEFT_FOLDER_KEY));
+        filesPanesHelper.setFileListPath(RIGHT, resolveInitialPath(RIGHT_FOLDER_KEY));
 
         leftPathComboBox.getSelectionModel().selectedItemProperty().addListener((observable, oldValue, newValue) -> {
             if (newValue != null) {
+                properties.setProperty(LEFT_FOLDER_KEY, newValue.getPath());
+                saveConfigFile();
                 filesPanesHelper.refreshFileListView(LEFT);
             }
         });
         rightPathComboBox.getSelectionModel().selectedItemProperty().addListener((observable, oldValue, newValue) -> {
             if (newValue != null) {
+                properties.setProperty(RIGHT_FOLDER_KEY, newValue.getPath());
+                saveConfigFile();
                 filesPanesHelper.refreshFileListView(RIGHT);
             }
         });
@@ -166,12 +173,54 @@ public class Commander {
     }
 
     private void loadConfigFile() {
-        Path configFile = Paths.get(System.getProperty("user.dir"), "config", "acommander.properties");
+        Path configFile = getConfigFilePath();
+        if (!Files.exists(configFile))
+            return;
+
         try (FileInputStream input = new FileInputStream(configFile.toFile())) {
             properties.load(input);
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
+    }
+
+    private Path getConfigFilePath() {
+        return Paths.get(System.getProperty("user.dir"), "config", "acommander.properties");
+    }
+
+    private String resolveInitialPath(String key) {
+        String configuredPath = properties.getProperty(key);
+        if (configuredPath != null && new File(configuredPath).exists())
+            return configuredPath;
+        return getDefaultRootPath();
+    }
+
+    private String getDefaultRootPath() {
+        File[] roots = File.listRoots();
+        if (roots != null && roots.length > 0)
+            return roots[0].getPath();
+        return System.getProperty("user.home");
+    }
+
+    private void saveConfigFile() {
+        Path configFile = getConfigFilePath();
+        try {
+            Files.createDirectories(configFile.getParent());
+            try (FileOutputStream output = new FileOutputStream(configFile.toFile())) {
+                properties.store(output, "aCommander settings");
+            }
+        } catch (Exception ex) {
+            logger.error("Failed saving config file {}", configFile, ex);
+        }
+    }
+
+    public void persistCurrentPaths() {
+        if (filesPanesHelper == null)
+            return;
+
+        properties.setProperty(LEFT_FOLDER_KEY, filesPanesHelper.getPath(LEFT));
+        properties.setProperty(RIGHT_FOLDER_KEY, filesPanesHelper.getPath(RIGHT));
+        saveConfigFile();
     }
 
     private void configMouseDoubleClick() {

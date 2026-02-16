@@ -92,6 +92,10 @@ public class FilesPanesHelper {
         return filePanes.get(focusedSide).getPath();
     }
 
+    public String getPath(FocusSide focusSide) {
+        return filePanes.get(focusSide).getPath();
+    }
+
     public String getUnfocusedPath() {
         if (focusedSide == LEFT) return filePanes.get(RIGHT).getPath();
         return filePanes.get(LEFT).getPath();
