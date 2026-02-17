@@ -44,6 +44,8 @@ dependencies {
     implementation "org.openjfx:javafx-graphics:${javafxVersion}:win"
     implementation "org.openjfx:javafx-controls:${javafxVersion}:win"
     implementation "org.openjfx:javafx-fxml:${javafxVersion}:win"
+    testImplementation "org.junit.jupiter:junit-jupiter:6.0.3"
+    testImplementation "org.assertj:assertj-core:3.27.7"
 }
 
 application {
@@ -158,4 +160,8 @@ tasks.named('createExe') {
 tasks.named('startScripts') {
     dependsOn tasks.named('shadowJar')
     dependsOn copyResources
+}
+
+tasks.named('test') {
+    useJUnitPlatform()
 }
