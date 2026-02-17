@@ -56,12 +56,22 @@ public class GlobalKeyHandlerImpl implements IKeyHandler {
     /** Changes focus between file lists */
     private void clickTab() {
         if (commander.determineCurrentContext(commander.rootPane.getScene()) == KeyBindingManager.KeyContext.FILE_PANE) {
-            if (commander.filesPanesHelper.getFocusedSide() == LEFT)
+            if (commander.filesPanesHelper.getFocusedSide() == LEFT) {
+                ensureSelection(commander.rightFileList);
                 commander.rightFileList.requestFocus();
-            else
+            } else {
+                ensureSelection(commander.leftFileList);
                 commander.leftFileList.requestFocus();
+            }
         } else {
+            ensureSelection(commander.leftFileList);
             commander.leftFileList.requestFocus();
+        }
+    }
+
+    private void ensureSelection(javafx.scene.control.ListView<?> listView) {
+        if (!listView.getItems().isEmpty() && listView.getSelectionModel().getSelectedIndex() < 0) {
+            listView.getSelectionModel().selectFirst();
         }
     }
 }

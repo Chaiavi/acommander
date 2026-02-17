@@ -3,6 +3,7 @@ package org.chaiware.acommander;
 import javafx.application.Platform;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
+import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.Scene;
@@ -10,16 +11,17 @@ import javafx.scene.control.*;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.BorderPane;
+import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
+import javafx.scene.layout.VBox;
 import javafx.stage.Window;
 import org.chaiware.acommander.actions.ActionContext;
 import org.chaiware.acommander.actions.ActionExecutor;
 import org.chaiware.acommander.actions.ActionRegistry;
 import org.chaiware.acommander.commands.ACommands;
 import org.chaiware.acommander.commands.CommandsAdvancedImpl;
-import org.chaiware.acommander.config.AppConfig;
 import org.chaiware.acommander.config.AppConfigLoader;
 import org.chaiware.acommander.config.AppRegistry;
 import org.chaiware.acommander.helpers.ComboBoxSetup;
@@ -33,11 +35,15 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
+import java.io.ByteArrayOutputStream;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.attribute.DosFileAttributeView;
+import java.util.concurrent.CompletableFuture;
 import java.util.*;
 
 import static java.awt.Desktop.getDesktop;
@@ -46,6 +52,8 @@ import static org.chaiware.acommander.helpers.FilesPanesHelper.FocusSide.RIGHT;
 
 
 public class Commander {
+    private static final String LEFT_FOLDER_KEY = "left_folder";
+    private static final String RIGHT_FOLDER_KEY = "right_folder";
 
     @FXML
     public BorderPane rootPane;
@@ -75,10 +83,11 @@ public class Commander {
     public void initialize() {
         logger.debug("Loading Properties");
         loadConfigFile();
-        loadAppRegistry();
 
         // Configure left & right defaults
         filesPanesHelper = new FilesPanesHelper(leftFileList, leftPathComboBox, rightFileList, rightPathComboBox);
+        appRegistry = loadAppRegistry();
+        actionExecutor = new ActionExecutor(this, appRegistry);
         commands = new CommandsAdvancedImpl(filesPanesHelper, appRegistry);
         configMouseDoubleClick();
 
@@ -86,19 +95,10 @@ public class Commander {
         ComboBoxSetup setup = new ComboBoxSetup();
         setup.setupComboBox(leftPathComboBox);
         setup.setupComboBox(rightPathComboBox);
-        filesPanesHelper.setFileListPath(LEFT, new File(properties.getProperty("left_folder")).getPath());
-        filesPanesHelper.setFileListPath(RIGHT, new File(properties.getProperty("right_folder")).getPath());
-
-        leftPathComboBox.getSelectionModel().selectedItemProperty().addListener((observable, oldValue, newValue) -> {
-            if (newValue != null) {
-                filesPanesHelper.refreshFileListView(LEFT);
-            }
-        });
-        rightPathComboBox.getSelectionModel().selectedItemProperty().addListener((observable, oldValue, newValue) -> {
-            if (newValue != null) {
-                filesPanesHelper.refreshFileListView(RIGHT);
-            }
-        });
+        filesPanesHelper.setFileListPath(LEFT, resolveInitialPath(LEFT_FOLDER_KEY));
+        filesPanesHelper.setFileListPath(RIGHT, resolveInitialPath(RIGHT_FOLDER_KEY));
+        leftPathComboBox.valueProperty().addListener((observable, oldValue, newValue) -> onPathChanged(LEFT, newValue));
+        rightPathComboBox.valueProperty().addListener((observable, oldValue, newValue) -> onPathChanged(RIGHT, newValue));
 
         configListViewLookAndBehavior(leftFileList);
         configListViewLookAndBehavior(rightFileList);
@@ -109,6 +109,16 @@ public class Commander {
         filesPanesHelper.refreshFileListViews();
         filesPanesHelper.getFileList(true).getSelectionModel().selectFirst();
         Platform.runLater(() -> leftFileList.requestFocus());
+    }
+
+    private void onPathChanged(FilesPanesHelper.FocusSide side, Folder newValue) {
+        if (newValue == null) {
+            return;
+        }
+
+        properties.setProperty(side == LEFT ? LEFT_FOLDER_KEY : RIGHT_FOLDER_KEY, newValue.getPath());
+        saveConfigFile();
+        filesPanesHelper.refreshFileListView(side);
     }
 
     /** Setup all of the keyboard bindings */
@@ -173,7 +183,10 @@ public class Commander {
     }
 
     private void loadConfigFile() {
-        Path configFile = Paths.get(System.getProperty("user.dir"), "config", "acommander.properties");
+        Path configFile = getConfigFilePath();
+        if (!Files.exists(configFile))
+            return;
+
         try (FileInputStream input = new FileInputStream(configFile.toFile())) {
             properties.load(input);
         } catch (Exception e) {
@@ -181,16 +194,56 @@ public class Commander {
         }
     }
 
-    private void loadAppRegistry() {
-        Path configFile = Paths.get(System.getProperty("user.dir"), "config", "apps.json");
+    private Path getConfigFilePath() {
+        return Paths.get(System.getProperty("user.dir"), "config", "acommander.properties");
+    }
+
+    private String resolveInitialPath(String key) {
+        String configuredPath = properties.getProperty(key);
+        if (configuredPath != null && new File(configuredPath).exists())
+            return configuredPath;
+        return getDefaultRootPath();
+    }
+
+    private AppRegistry loadAppRegistry() {
+        Path appConfig = Paths.get(System.getProperty("user.dir"), "config", "apps.json");
         try {
-            AppConfigLoader loader = new AppConfigLoader();
-            AppConfig appConfig = loader.load(configFile);
-            appRegistry = new AppRegistry(appConfig);
-            actionExecutor = new ActionExecutor(this, appRegistry);
-        } catch (Exception e) {
-            throw new RuntimeException("Failed loading apps configuration", e);
+            return new AppRegistry(new AppConfigLoader().load(appConfig));
+        } catch (IOException ex) {
+            throw new IllegalStateException("Failed loading actions config from: " + appConfig, ex);
         }
+    }
+
+    private String getDefaultRootPath() {
+        File[] roots = File.listRoots();
+        if (roots != null && roots.length > 0)
+            return roots[0].getPath();
+        return System.getProperty("user.home");
+    }
+
+    private void saveConfigFile() {
+        Path configFile = getConfigFilePath();
+        try {
+            Files.createDirectories(configFile.getParent());
+            try (ByteArrayOutputStream output = new ByteArrayOutputStream()) {
+                properties.store(output, null);
+                String raw = output.toString(StandardCharsets.ISO_8859_1);
+                int firstLineEnd = raw.indexOf('\n');
+                String withoutTimestamp = firstLineEnd >= 0 ? raw.substring(firstLineEnd + 1) : "";
+                Files.writeString(configFile, withoutTimestamp, StandardCharsets.ISO_8859_1);
+            }
+        } catch (Exception ex) {
+            logger.error("Failed saving config file {}", configFile, ex);
+        }
+    }
+
+    public void persistCurrentPaths() {
+        if (filesPanesHelper == null)
+            return;
+
+        properties.setProperty(LEFT_FOLDER_KEY, filesPanesHelper.getPath(LEFT));
+        properties.setProperty(RIGHT_FOLDER_KEY, filesPanesHelper.getPath(RIGHT));
+        saveConfigFile();
     }
 
     private void configMouseDoubleClick() {
@@ -598,6 +651,58 @@ public class Commander {
         }
     }
 
+    public void changeAttributes() {
+        logger.info("Change Attributes");
+
+        try {
+            List<FileItem> selectedItems = commands.filterValidItems(new ArrayList<>(filesPanesHelper.getSelectedItems()));
+            if (selectedItems.isEmpty()) {
+                return;
+            }
+
+            Optional<AttributeChangeRequest> request = promptAttributes(selectedItems);
+            if (request.isEmpty()) {
+                return;
+            }
+
+            List<String> failures = new ArrayList<>();
+            for (FileItem selectedItem : selectedItems) {
+                try {
+                    applyAttributesWithFallback(selectedItem.getFile().toPath(), request.get());
+                } catch (Exception ex) {
+                    logger.warn("Failed changing attributes for {}", selectedItem.getFullPath(), ex);
+                    failures.add(selectedItem.getName() + ": " + ex.getMessage());
+                }
+            }
+
+            filesPanesHelper.refreshFileListViews();
+            if (!failures.isEmpty()) {
+                Alert alert = new Alert(Alert.AlertType.WARNING);
+                alert.setTitle("Change Attributes");
+                alert.setHeaderText("Some items failed to update");
+                int max = Math.min(8, failures.size());
+                String msg = String.join("\n", failures.subList(0, max));
+                if (failures.size() > max) {
+                    msg += "\n... and " + (failures.size() - max) + " more";
+                }
+                alert.setContentText(msg);
+                alert.setResizable(true);
+                alert.getDialogPane().setMinHeight(Region.USE_PREF_SIZE);
+                alert.showAndWait();
+            }
+        } catch (Exception ex) {
+            error("Failed changing attributes", ex);
+        }
+    }
+
+    public void syncToOtherPane() {
+        String focusedPath = filesPanesHelper.getFocusedPath();
+        if (filesPanesHelper.getFocusedSide() == LEFT)
+            filesPanesHelper.setFileListPath(RIGHT, focusedPath);
+        else
+            filesPanesHelper.setFileListPath(LEFT, focusedPath);
+    }
+
     public void filterByChar(char selectedChar) {
         ObservableList<FileItem> fileItems = filesPanesHelper.getFileList(true).getItems();
         fileItems.stream()
@@ -618,6 +723,161 @@ public class Commander {
 
     public Optional<String> promptUser(String defaultValue, String title, String question) {
         return getUserFeedback(defaultValue, title, question);
+    }
+
+    public CompletableFuture<List<String>> runExternal(List<String> command, boolean refreshAfter) {
+        return commands.runExternal(command, refreshAfter);
+    }
+
+    private Optional<AttributeChangeRequest> promptAttributes(List<FileItem> selectedItems) {
+        Dialog<AttributeChangeRequest> dialog = new Dialog<>();
+        dialog.setTitle("Change Attributes");
+        dialog.setHeaderText(null);
+
+        ButtonType applyType = new ButtonType("Ok", ButtonBar.ButtonData.OK_DONE);
+        dialog.getDialogPane().getButtonTypes().addAll(applyType, ButtonType.CANCEL);
+
+        Label title = new Label("Change Attributes");
+        title.setStyle("-fx-font-size: 16px; -fx-font-weight: bold;");
+        Label subtitle = new Label("Selected items: " + selectedItems.size() + " | Checked = set, unchecked = clear");
+        subtitle.setStyle("-fx-text-fill: #666666;");
+
+        CheckBox readOnly = new CheckBox("Read-only");
+        CheckBox hidden = new CheckBox("Hidden");
+        CheckBox system = new CheckBox("System");
+        CheckBox archive = new CheckBox("Archive");
+        readOnly.setStyle("-fx-font-size: 13px;");
+        hidden.setStyle("-fx-font-size: 13px;");
+        system.setStyle("-fx-font-size: 13px;");
+        archive.setStyle("-fx-font-size: 13px;");
+
+        FileItem firstSelected = selectedItems.getFirst();
+        ExistingAttributes current = readExistingAttributes(firstSelected.getFile().toPath());
+        readOnly.setSelected(current.readOnly());
+        hidden.setSelected(current.hidden());
+        system.setSelected(current.system());
+        archive.setSelected(current.archive());
+
+        GridPane grid = new GridPane();
+        grid.setHgap(16);
+        grid.setVgap(10);
+        grid.add(readOnly, 0, 0);
+        grid.add(hidden, 1, 0);
+        grid.add(system, 0, 1);
+        grid.add(archive, 1, 1);
+
+        VBox content = new VBox(12, title, subtitle, new Separator(), grid);
+        content.setPadding(new Insets(14));
+        content.setStyle("-fx-background-color: white; -fx-background-radius: 8; -fx-border-color: #d5d9e0; -fx-border-radius: 8;");
+        dialog.getDialogPane().setContent(content);
+        dialog.getDialogPane().setStyle("-fx-background-color: #f3f5f8;");
+
+        dialog.setResultConverter(button -> {
+            if (button == applyType) {
+                return new AttributeChangeRequest(
+                        readOnly.isSelected(),
+                        hidden.isSelected(),
+                        system.isSelected(),
+                        archive.isSelected()
+                );
+            }
+            return null;
+        });
+        return dialog.showAndWait();
+    }
+
+    private ExistingAttributes readExistingAttributes(Path path) {
+        try {
+            DosFileAttributeView view = Files.getFileAttributeView(path, DosFileAttributeView.class);
+            if (view != null) {
+                java.nio.file.attribute.DosFileAttributes attrs = view.readAttributes();
+                return new ExistingAttributes(attrs.isReadOnly(), attrs.isHidden(), attrs.isSystem(), attrs.isArchive());
+            }
+        } catch (Exception ex) {
+            logger.debug("Failed reading DOS attributes for {}, using basic fallbacks", path, ex);
+        }
+
+        File file = path.toFile();
+        return new ExistingAttributes(!file.canWrite(), file.isHidden(), false, false);
+    }
+
+    private void applyAttributesWithFallback(Path path, AttributeChangeRequest request) throws Exception {
+        IOException javaError = null;
+        try {
+            applyWithJava(path, request);
+            return;
+        } catch (IOException ex) {
+            javaError = ex;
+            logger.debug("Java DOS attributes failed for {}, trying attrib fallback", path, ex);
+        }
+
+        if (applyWithAttrib(path, request)) {
+            return;
+        }
+
+        if (javaError != null) {
+            throw javaError;
+        }
+        throw new IOException("attrib fallback failed");
+    }
+
+    private void applyWithJava(Path path, AttributeChangeRequest request) throws IOException {
+        DosFileAttributeView view = Files.getFileAttributeView(path, DosFileAttributeView.class);
+        if (view == null) {
+            throw new IOException("DOS attributes are not supported for this item");
+        }
+        applyAttr(view::setReadOnly, request.readOnly());
+        applyAttr(view::setHidden, request.hidden());
+        applyAttr(view::setSystem, request.system());
+        applyAttr(view::setArchive, request.archive());
+    }
+
+    private boolean applyWithAttrib(Path path, AttributeChangeRequest request) throws IOException, InterruptedException {
+        List<String> flags = request.toAttribFlags();
+        if (flags.isEmpty()) {
+            return true;
+        }
+
+        List<String> command = new ArrayList<>();
+        command.add("attrib");
+        command.addAll(flags);
+        command.add(path.toString());
+
+        ProcessBuilder pb = new ProcessBuilder(command);
+        pb.redirectErrorStream(true);
+        Process process = pb.start();
+        int exit = process.waitFor();
+        return exit == 0;
+    }
+
+    private void applyAttr(AttributeSetter setter, boolean value) throws IOException {
+        setter.set(value);
+    }
+
+    private interface AttributeSetter {
+        void set(boolean value) throws IOException;
+    }
+
+    private record AttributeChangeRequest(boolean readOnly, boolean hidden, boolean system, boolean archive) {
+        List<String> toAttribFlags() {
+            List<String> flags = new ArrayList<>();
+            addFlag(flags, readOnly, "R");
+            addFlag(flags, hidden, "H");
+            addFlag(flags, system, "S");
+            addFlag(flags, archive, "A");
+            return flags;
+        }
+
+        private void addFlag(List<String> flags, boolean enabled, String code) {
+            if (enabled) {
+                flags.add("+" + code);
+            } else {
+                flags.add("-" + code);
+            }
+        }
+    }
+
+    private record ExistingAttributes(boolean readOnly, boolean hidden, boolean system, boolean archive) {
     }
 
     /** Alerts of an error and logs it */
@@ -667,16 +927,5 @@ public class Commander {
 
             default -> throw new IllegalStateException("Which key was pressed?: " + whichKeyWasPressed);
         }
-    }
-
-    public void runExternal(List<String> command, boolean shouldUpdateUI) {
-        commands.runExternal(command, shouldUpdateUI);
-    }
-
-    public void syncToOtherPane() {
-        String targetPath = filesPanesHelper.getFocusedSide() == LEFT
-                ? rightPathComboBox.getValue().getPath()
-                : leftPathComboBox.getValue().getPath();
-        filesPanesHelper.setFocusedFileListPath(targetPath);
     }
 }

@@ -110,9 +110,7 @@
         </VBox>
     </bottom>
 </BorderPane>
-    <fx:include fx:id="commandPalette" source="CommandPalette.fxml" StackPane.alignment="TOP_CENTER">
-        <StackPane.margin>
-            <Insets top="42.0"/>
-        </StackPane.margin>
-    </fx:include>
+    <StackPane alignment="TOP_CENTER" pickOnBounds="false" style="-fx-padding: 42 0 0 0;">
+        <fx:include fx:id="commandPalette" source="CommandPalette.fxml" />
+    </StackPane>
 </StackPane>
