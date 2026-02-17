@@ -8,6 +8,10 @@ buildscript {
         lombokVersion = '1.18.42'
         logbackVersion = '1.5.29'
         slf4jVersion = '2.0.17'
+        jacksonVersion = '2.17.2'
+        junitBomVersion = '5.11.4'
+        assertjVersion = '3.27.7'
+        mockitoVersion = '5.14.2'
     }
     repositories {
         mavenCentral()
@@ -39,13 +43,17 @@ dependencies {
     implementation "org.slf4j:slf4j-api:${slf4jVersion}"
     implementation "ch.qos.logback:logback-classic:${logbackVersion}"
     implementation "ch.qos.logback:logback-core:${logbackVersion}"
-    implementation "com.fasterxml.jackson.core:jackson-databind:2.17.2"
+    implementation "com.fasterxml.jackson.core:jackson-databind:${jacksonVersion}"
     implementation "org.openjfx:javafx-base:${javafxVersion}:win"
     implementation "org.openjfx:javafx-graphics:${javafxVersion}:win"
     implementation "org.openjfx:javafx-controls:${javafxVersion}:win"
     implementation "org.openjfx:javafx-fxml:${javafxVersion}:win"
-    testImplementation "org.junit.jupiter:junit-jupiter:6.0.3"
-    testImplementation "org.assertj:assertj-core:3.27.7"
+    testImplementation platform("org.junit:junit-bom:${junitBomVersion}")
+    testImplementation "org.junit.jupiter:junit-jupiter"
+    testRuntimeOnly "org.junit.platform:junit-platform-launcher"
+    testImplementation "org.assertj:assertj-core:${assertjVersion}"
+    testImplementation "org.mockito:mockito-core:${mockitoVersion}"
+    testImplementation "org.mockito:mockito-junit-jupiter:${mockitoVersion}"
 }
 
 application {

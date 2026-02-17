@@ -27,7 +27,7 @@ public class CommandsSimpleImpl extends ACommands {
         if (validItems.size() > 1)
             throw new Exception("No nice way to rename more than a single file using the simplest method");
 
-        FileItem selectedItem = validItems.get(0);
+        FileItem selectedItem = validItems.getFirst();
         File currentFile = selectedItem.getFile();
         File newFile = new File(currentFile.getParent(), newFilename);
         Files.move(currentFile.toPath(), newFile.toPath());
@@ -47,7 +47,16 @@ public class CommandsSimpleImpl extends ACommands {
 
     @Override
     protected void doCopy(FileItem sourceFile, String targetFolder) throws Exception {
-        throw new Exception("Not implemented yet");
+        Path source = Paths.get(sourceFile.getFullPath());
+        if (sourceFile.isDirectory()) {
+            Path targetDir = Paths.get(targetFolder);
+            copyDirectory(source, targetDir);
+        } else {
+            Path target = Paths.get(targetFolder, sourceFile.getName());
+            Files.copy(source, target, StandardCopyOption.REPLACE_EXISTING);
+        }
+        fileListsLoader.refreshFileListViews();
+        log.debug("Copied: {} to {}", sourceFile.getName(), targetFolder);
     }
 
     @Override
@@ -60,6 +69,22 @@ public class CommandsSimpleImpl extends ACommands {
         Files.move(source, target, StandardCopyOption.REPLACE_EXISTING);
         fileListsLoader.refreshFileListViews();
         log.debug("Moved: {} to {}", sourceFile.getName(), targetFolder);
+    }
+
+    private void copyDirectory(Path sourceDir, Path targetDir) throws IOException {
+        Files.walk(sourceDir).forEach(path -> {
+            try {
+                Path relative = sourceDir.relativize(path);
+                Path target = targetDir.resolve(relative);
+                if (Files.isDirectory(path)) {
+                    Files.createDirectories(target);
+                } else {
+                    Files.copy(path, target, StandardCopyOption.REPLACE_EXISTING);
+                }
+            } catch (IOException ex) {
+                throw new RuntimeException(ex);
+            }
+        });
     }
 
     @Override
@@ -94,21 +119,17 @@ public class CommandsSimpleImpl extends ACommands {
     }
 
     @Override
-    public void openTerminal(String openHerePath) throws Exception {
+    public void openTerminal(String openHerePath) {
         List<String> command = Arrays.asList("cmd", "/c", "start", "powershell", "-NoExit", "-Command", "cd '" + openHerePath + "'");
         runExecutable(command, false)
-                .thenAccept(output -> {
-                    log.debug("Opened Powershell Here: {}", openHerePath);
-                })
+                .thenAccept(output -> log.debug("Opened Powershell Here: {}", openHerePath))
                 .exceptionally(throwable -> {
                     log.warn("PowerShell failed, trying Command Prompt: {}", throwable.getMessage());
 
                     // Fallback to Command Prompt
                     List<String> fallbackCommand = Arrays.asList("cmd", "/c", "start", "cmd", "/k", "cd /d " + openHerePath);
                     runExecutable(fallbackCommand, false)
-                            .thenAccept(output -> {
-                                log.debug("Opened Command Shell Here: {}", openHerePath);
-                            })
+                            .thenAccept(output -> log.debug("Opened Command Shell Here: {}", openHerePath))
                             .exceptionally(fallbackThrowable -> {
                                 log.error("Both PowerShell and Command Prompt failed", fallbackThrowable);
                                 return null;
@@ -119,14 +140,14 @@ public class CommandsSimpleImpl extends ACommands {
     }
 
     @Override
-    public void openExplorer(String openHerePath) throws Exception {
+    public void openExplorer(String openHerePath) {
         List<String> command = Arrays.asList("explorer.exe", openHerePath);
         runExecutable(command, false);
         log.debug("Opened Explorer Here: {}", openHerePath);
     }
 
     @Override
-    public void searchFiles(String sourcePath, String filenameWildcard) throws Exception {
+    public void searchFiles(String sourcePath, String filenameWildcard) {
         log.info("Searching for: {} from: {}", filenameWildcard, sourcePath);
         List<String> command = List.of(
                 "powershell",

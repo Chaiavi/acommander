@@ -25,6 +25,7 @@ import org.chaiware.acommander.commands.CommandsAdvancedImpl;
 import org.chaiware.acommander.config.AppConfigLoader;
 import org.chaiware.acommander.config.AppRegistry;
 import org.chaiware.acommander.helpers.ComboBoxSetup;
+import org.chaiware.acommander.helpers.FileAttributesHelper;
 import org.chaiware.acommander.helpers.FilesPanesHelper;
 import org.chaiware.acommander.keybinding.KeyBindingManager;
 import org.chaiware.acommander.keybinding.KeyBindingManager.KeyContext;
@@ -42,7 +43,6 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.nio.file.attribute.DosFileAttributeView;
 import java.util.concurrent.CompletableFuture;
 import java.util.*;
 
@@ -77,6 +77,7 @@ public class Commander {
 
     private static final Logger logger = LoggerFactory.getLogger(Commander.class);
     public FilesPanesHelper filesPanesHelper;
+    private final FileAttributesHelper attributesHelper = new FileAttributesHelper();
 
 
     @FXML
@@ -660,7 +661,7 @@ public class Commander {
                 return;
             }
 
-            Optional<AttributeChangeRequest> request = promptAttributes(selectedItems);
+            Optional<FileAttributesHelper.AttributeChangeRequest> request = promptAttributes(selectedItems);
             if (request.isEmpty()) {
                 return;
             }
@@ -668,7 +669,7 @@ public class Commander {
             List<String> failures = new ArrayList<>();
             for (FileItem selectedItem : selectedItems) {
                 try {
-                    applyAttributesWithFallback(selectedItem.getFile().toPath(), request.get());
+                    attributesHelper.applyAttributesWithFallback(selectedItem.getFile().toPath(), request.get());
                 } catch (Exception ex) {
                     logger.warn("Failed changing attributes for {}", selectedItem.getFullPath(), ex);
                     failures.add(selectedItem.getName() + ": " + ex.getMessage());
@@ -729,8 +730,8 @@ public class Commander {
         return commands.runExternal(command, refreshAfter);
     }
 
-    private Optional<AttributeChangeRequest> promptAttributes(List<FileItem> selectedItems) {
-        Dialog<AttributeChangeRequest> dialog = new Dialog<>();
+    private Optional<FileAttributesHelper.AttributeChangeRequest> promptAttributes(List<FileItem> selectedItems) {
+        Dialog<FileAttributesHelper.AttributeChangeRequest> dialog = new Dialog<>();
         dialog.setTitle("Change Attributes");
         dialog.setHeaderText(null);
 
@@ -752,7 +753,8 @@ public class Commander {
         archive.setStyle("-fx-font-size: 13px;");
 
         FileItem firstSelected = selectedItems.getFirst();
-        ExistingAttributes current = readExistingAttributes(firstSelected.getFile().toPath());
+        FileAttributesHelper.ExistingAttributes current =
+                attributesHelper.readExistingAttributes(firstSelected.getFile().toPath());
         readOnly.setSelected(current.readOnly());
         hidden.setSelected(current.hidden());
         system.setSelected(current.system());
@@ -774,7 +776,7 @@ public class Commander {
 
         dialog.setResultConverter(button -> {
             if (button == applyType) {
-                return new AttributeChangeRequest(
+                return new FileAttributesHelper.AttributeChangeRequest(
                         readOnly.isSelected(),
                         hidden.isSelected(),
                         system.isSelected(),
@@ -784,100 +786,6 @@ public class Commander {
             return null;
         });
         return dialog.showAndWait();
-    }
-
-    private ExistingAttributes readExistingAttributes(Path path) {
-        try {
-            DosFileAttributeView view = Files.getFileAttributeView(path, DosFileAttributeView.class);
-            if (view != null) {
-                java.nio.file.attribute.DosFileAttributes attrs = view.readAttributes();
-                return new ExistingAttributes(attrs.isReadOnly(), attrs.isHidden(), attrs.isSystem(), attrs.isArchive());
-            }
-        } catch (Exception ex) {
-            logger.debug("Failed reading DOS attributes for {}, using basic fallbacks", path, ex);
-        }
-
-        File file = path.toFile();
-        return new ExistingAttributes(!file.canWrite(), file.isHidden(), false, false);
-    }
-
-    private void applyAttributesWithFallback(Path path, AttributeChangeRequest request) throws Exception {
-        IOException javaError = null;
-        try {
-            applyWithJava(path, request);
-            return;
-        } catch (IOException ex) {
-            javaError = ex;
-            logger.debug("Java DOS attributes failed for {}, trying attrib fallback", path, ex);
-        }
-
-        if (applyWithAttrib(path, request)) {
-            return;
-        }
-
-        if (javaError != null) {
-            throw javaError;
-        }
-        throw new IOException("attrib fallback failed");
-    }
-
-    private void applyWithJava(Path path, AttributeChangeRequest request) throws IOException {
-        DosFileAttributeView view = Files.getFileAttributeView(path, DosFileAttributeView.class);
-        if (view == null) {
-            throw new IOException("DOS attributes are not supported for this item");
-        }
-        applyAttr(view::setReadOnly, request.readOnly());
-        applyAttr(view::setHidden, request.hidden());
-        applyAttr(view::setSystem, request.system());
-        applyAttr(view::setArchive, request.archive());
-    }
-
-    private boolean applyWithAttrib(Path path, AttributeChangeRequest request) throws IOException, InterruptedException {
-        List<String> flags = request.toAttribFlags();
-        if (flags.isEmpty()) {
-            return true;
-        }
-
-        List<String> command = new ArrayList<>();
-        command.add("attrib");
-        command.addAll(flags);
-        command.add(path.toString());
-
-        ProcessBuilder pb = new ProcessBuilder(command);
-        pb.redirectErrorStream(true);
-        Process process = pb.start();
-        int exit = process.waitFor();
-        return exit == 0;
-    }
-
-    private void applyAttr(AttributeSetter setter, boolean value) throws IOException {
-        setter.set(value);
-    }
-
-    private interface AttributeSetter {
-        void set(boolean value) throws IOException;
-    }
-
-    private record AttributeChangeRequest(boolean readOnly, boolean hidden, boolean system, boolean archive) {
-        List<String> toAttribFlags() {
-            List<String> flags = new ArrayList<>();
-            addFlag(flags, readOnly, "R");
-            addFlag(flags, hidden, "H");
-            addFlag(flags, system, "S");
-            addFlag(flags, archive, "A");
-            return flags;
-        }
-
-        private void addFlag(List<String> flags, boolean enabled, String code) {
-            if (enabled) {
-                flags.add("+" + code);
-            } else {
-                flags.add("-" + code);
-            }
-        }
-    }
-
-    private record ExistingAttributes(boolean readOnly, boolean hidden, boolean system, boolean archive) {
     }
 
     /** Alerts of an error and logs it */

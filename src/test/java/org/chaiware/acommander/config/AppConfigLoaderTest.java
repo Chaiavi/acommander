@@ -51,4 +51,40 @@ class AppConfigLoaderTest {
                 .isInstanceOf(IOException.class)
                 .hasMessageContaining("Missing config file:");
     }
+
+    @Test
+    void missingActionsDefaultsToEmptyList() throws Exception {
+        String json = """
+                {
+                  "extraTopLevel": "ignored"
+                }
+                """;
+        Path config = tempDir.resolve("config.json");
+        Files.writeString(config, json);
+
+        AppConfigLoader loader = new AppConfigLoader();
+        AppConfig loaded = loader.load(config);
+
+        Assertions.assertThat(loaded.getActions())
+                .isNotNull()
+                .isEmpty();
+    }
+
+    @Test
+    void invalidJsonProducesIOException() throws Exception {
+        String json = """
+                {
+                  "actions": [
+                    { "id": "open", "label": "Open"
+                  ]
+                }
+                """;
+        Path config = tempDir.resolve("config.json");
+        Files.writeString(config, json);
+
+        AppConfigLoader loader = new AppConfigLoader();
+
+        Assertions.assertThatThrownBy(() -> loader.load(config))
+                .isInstanceOf(IOException.class);
+    }
 }

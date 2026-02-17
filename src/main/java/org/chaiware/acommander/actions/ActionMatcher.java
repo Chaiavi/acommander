@@ -39,6 +39,12 @@ public class ActionMatcher {
         if (title.equals(query)) {
             return 1000;
         }
+        for (String alias : action.aliases()) {
+            String a = alias.toLowerCase(Locale.ROOT);
+            if (a.equals(query)) {
+                return 900;
+            }
+        }
         if (title.startsWith(query)) {
             return 700;
         }
@@ -47,11 +53,8 @@ public class ActionMatcher {
         }
         for (String alias : action.aliases()) {
             String a = alias.toLowerCase(Locale.ROOT);
-            if (a.equals(query)) {
-                return 650;
-            }
             if (a.startsWith(query)) {
-                return 500;
+                return 800;
             }
             if (a.contains(query)) {
                 return 300;

@@ -72,6 +72,9 @@ public class ToolCommandBuilder {
         if (path == null || path.isBlank()) {
             return path;
         }
+        if (isBuiltinCommand(path)) {
+            return path;
+        }
         Path resolved = Paths.get(path);
         if (resolved.isAbsolute()) {
             return resolved.toString();
@@ -94,11 +97,11 @@ public class ToolCommandBuilder {
     ) {
         List<String> selectedFiles = resolveSelectedFiles(filesPanesHelper, overrideSelectedFiles);
         String selectedFile = selectedFiles.isEmpty() ? "" : selectedFiles.getFirst();
-        String focusedPath = filesPanesHelper.getFocusedPath();
-        String targetFolder = filesPanesHelper.getUnfocusedPath();
+        String focusedPath = filesPanesHelper == null ? "" : nullToEmpty(filesPanesHelper.getFocusedPath());
+        String targetFolder = filesPanesHelper == null ? "" : nullToEmpty(filesPanesHelper.getUnfocusedPath());
         String selectedFilesJoined = selectedFiles.stream()
                 .map(filePath -> "\"" + filePath + "\"")
-                .collect(Collectors.joining(" "));
+                .collect(Collectors.joining(","));
         String selectedName = resolveSelectedName(filesPanesHelper, selectedFile);
 
         Map<String, String> values = new HashMap<>();
@@ -120,7 +123,9 @@ public class ToolCommandBuilder {
         if (overrideSelectedFiles != null) {
             return overrideSelectedFiles;
         }
-        List<FileItem> selectedItems = filesPanesHelper.getSelectedItems();
+        List<FileItem> selectedItems = filesPanesHelper == null
+                ? List.of()
+                : nullToEmptyList(filesPanesHelper.getSelectedItems());
         return selectedItems.stream()
                 .filter(item -> !isParentFolder(item))
                 .map(FileItem::getFullPath)
@@ -128,7 +133,9 @@ public class ToolCommandBuilder {
     }
 
     private static String resolveSelectedName(FilesPanesHelper filesPanesHelper, String selectedFile) {
-        List<FileItem> selectedItems = filesPanesHelper.getSelectedItems();
+        List<FileItem> selectedItems = filesPanesHelper == null
+                ? List.of()
+                : nullToEmptyList(filesPanesHelper.getSelectedItems());
         if (!selectedItems.isEmpty()) {
             return selectedItems.getFirst().getName();
         }
@@ -136,6 +143,26 @@ public class ToolCommandBuilder {
             return "";
         }
         return Paths.get(selectedFile).getFileName().toString();
+    }
+
+    private static boolean isBuiltinCommand(String path) {
+        if (path.contains("\\") || path.contains("/")) {
+            return false;
+        }
+        if (path.matches("^[A-Za-z]:.*")) {
+            return false;
+        }
+        return "powershell".equalsIgnoreCase(path)
+                || "pwsh".equalsIgnoreCase(path)
+                || "cmd".equalsIgnoreCase(path);
+    }
+
+    private static String nullToEmpty(String value) {
+        return value == null ? "" : value;
+    }
+
+    private static List<FileItem> nullToEmptyList(List<FileItem> value) {
+        return value == null ? List.of() : value;
     }
 
     private static boolean isParentFolder(FileItem item) {
