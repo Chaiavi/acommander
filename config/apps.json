@@ -274,6 +274,30 @@
       "type": "builtin"
     },
     {
+      "id": "sortByName",
+      "label": "Sort by Name",
+      "aliases": ["sort name", "name sort"],
+      "contexts": ["global", "commandPalette"],
+      "selection": "none",
+      "type": "builtin"
+    },
+    {
+      "id": "sortBySize",
+      "label": "Sort by Size",
+      "aliases": ["sort size", "size sort"],
+      "contexts": ["global", "commandPalette"],
+      "selection": "none",
+      "type": "builtin"
+    },
+    {
+      "id": "sortByDate",
+      "label": "Sort by Date",
+      "aliases": ["sort date", "sort modified", "date sort"],
+      "contexts": ["global", "commandPalette"],
+      "selection": "none",
+      "type": "builtin"
+    },
+    {
       "id": "openCommandPalette",
       "label": "Command Palette",
       "shortcut": "Ctrl+Shift+P",

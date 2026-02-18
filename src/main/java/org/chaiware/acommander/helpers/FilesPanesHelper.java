@@ -105,6 +105,11 @@ public class FilesPanesHelper {
         applySort(focusSide);
     }
 
+    public void setSort(FocusSide focusSide, SortColumn column, boolean ascending) {
+        sortStates.put(focusSide, new SortState(column, ascending));
+        applySort(focusSide);
+    }
+
     public SortColumn getSortColumn(FocusSide focusSide) {
         return sortStates.getOrDefault(focusSide, new SortState(SortColumn.NAME, true)).column;
     }

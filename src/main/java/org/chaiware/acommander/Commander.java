@@ -184,6 +184,24 @@ public class Commander {
         updateSortHeaderTexts(side);
     }
 
+    public void sortByName() {
+        applySortFromPalette(FilesPanesHelper.SortColumn.NAME);
+    }
+
+    public void sortBySize() {
+        applySortFromPalette(FilesPanesHelper.SortColumn.SIZE);
+    }
+
+    public void sortByDate() {
+        applySortFromPalette(FilesPanesHelper.SortColumn.MODIFIED);
+    }
+
+    private void applySortFromPalette(FilesPanesHelper.SortColumn column) {
+        FilesPanesHelper.FocusSide side = filesPanesHelper.getFocusedSide();
+        filesPanesHelper.setSort(side, column, true);
+        updateSortHeaderTexts(side);
+    }
+
     private void updateSortHeaderTexts(FilesPanesHelper.FocusSide side) {
         FilesPanesHelper.SortColumn activeColumn = filesPanesHelper.getSortColumn(side);
         boolean ascending = filesPanesHelper.isSortAscending(side);

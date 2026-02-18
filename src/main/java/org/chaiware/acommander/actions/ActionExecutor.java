@@ -63,6 +63,9 @@ public class ActionExecutor {
             case "setLightMode" -> commander.setLightMode();
             case "setRegularMode" -> commander.setRegularMode();
             case "toggleDarkMode" -> commander.toggleDarkMode();
+            case "sortByName" -> commander.sortByName();
+            case "sortBySize" -> commander.sortBySize();
+            case "sortByDate" -> commander.sortByDate();
             default -> logger.warn("Unknown builtin action id: {}", builtin);
         }
     }
