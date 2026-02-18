@@ -6,6 +6,7 @@ import javafx.fxml.FXML;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
+import javafx.scene.Cursor;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.input.KeyCode;
@@ -66,6 +67,12 @@ public class Commander {
     @FXML
     public ListView<FileItem> rightFileList;
     @FXML
+    Label leftNameHeader, leftSizeHeader, leftModifiedHeader, rightNameHeader, rightSizeHeader, rightModifiedHeader;
+    @FXML
+    HBox leftHeaderBox, rightHeaderBox;
+    @FXML
+    Region leftIconHeaderSpacer, rightIconHeaderSpacer;
+    @FXML
     Button btnF1, btnF2, btnF3, btnF4, btnF5, btnF6, btnF7, btnF8, btnF9, btnF10, btnF11, btnF12;
     @FXML
     private CommandPaletteController commandPaletteController;
@@ -103,6 +110,7 @@ public class Commander {
 
         configListViewLookAndBehavior(leftFileList);
         configListViewLookAndBehavior(rightFileList);
+        configSortHeaders();
         configFileListsFocus();
         commandPaletteController.configure(new ActionRegistry(appRegistry, actionExecutor), new ActionContext(this));
 
@@ -110,6 +118,86 @@ public class Commander {
         filesPanesHelper.refreshFileListViews();
         filesPanesHelper.getFileList(true).getSelectionModel().selectFirst();
         Platform.runLater(() -> leftFileList.requestFocus());
+    }
+
+    private void configSortHeaders() {
+        leftNameHeader.setMaxWidth(Double.MAX_VALUE);
+        rightNameHeader.setMaxWidth(Double.MAX_VALUE);
+        HBox.setHgrow(leftNameHeader, Priority.ALWAYS);
+        HBox.setHgrow(rightNameHeader, Priority.ALWAYS);
+
+        leftSizeHeader.setMinWidth(100);
+        leftSizeHeader.setPrefWidth(100);
+        leftSizeHeader.setMaxWidth(100);
+        leftModifiedHeader.setMinWidth(120);
+        leftModifiedHeader.setPrefWidth(120);
+        leftModifiedHeader.setMaxWidth(120);
+        rightSizeHeader.setMinWidth(100);
+        rightSizeHeader.setPrefWidth(100);
+        rightSizeHeader.setMaxWidth(100);
+        rightModifiedHeader.setMinWidth(120);
+        rightModifiedHeader.setPrefWidth(120);
+        rightModifiedHeader.setMaxWidth(120);
+
+        leftIconHeaderSpacer.setMinWidth(36);
+        leftIconHeaderSpacer.setPrefWidth(36);
+        leftIconHeaderSpacer.setMaxWidth(36);
+        rightIconHeaderSpacer.setMinWidth(36);
+        rightIconHeaderSpacer.setPrefWidth(36);
+        rightIconHeaderSpacer.setMaxWidth(36);
+
+        leftFileList.widthProperty().addListener((obs, oldVal, newVal) -> alignHeaderToList(leftHeaderBox, newVal.doubleValue()));
+        rightFileList.widthProperty().addListener((obs, oldVal, newVal) -> alignHeaderToList(rightHeaderBox, newVal.doubleValue()));
+        alignHeaderToList(leftHeaderBox, leftFileList.getWidth());
+        alignHeaderToList(rightHeaderBox, rightFileList.getWidth());
+
+        configureSortableHeader(leftNameHeader, () -> onSortHeaderClicked(LEFT, FilesPanesHelper.SortColumn.NAME));
+        configureSortableHeader(leftSizeHeader, () -> onSortHeaderClicked(LEFT, FilesPanesHelper.SortColumn.SIZE));
+        configureSortableHeader(leftModifiedHeader, () -> onSortHeaderClicked(LEFT, FilesPanesHelper.SortColumn.MODIFIED));
+
+        configureSortableHeader(rightNameHeader, () -> onSortHeaderClicked(RIGHT, FilesPanesHelper.SortColumn.NAME));
+        configureSortableHeader(rightSizeHeader, () -> onSortHeaderClicked(RIGHT, FilesPanesHelper.SortColumn.SIZE));
+        configureSortableHeader(rightModifiedHeader, () -> onSortHeaderClicked(RIGHT, FilesPanesHelper.SortColumn.MODIFIED));
+
+        updateSortHeaderTexts(LEFT);
+        updateSortHeaderTexts(RIGHT);
+    }
+
+    private void configureSortableHeader(Label label, Runnable action) {
+        label.setCursor(Cursor.HAND);
+        label.setOnMouseClicked(event -> action.run());
+    }
+
+    private void alignHeaderToList(HBox headerBox, double listWidth) {
+        double contentWidth = Math.max(0, listWidth - 20);
+        headerBox.setMinWidth(contentWidth);
+        headerBox.setPrefWidth(contentWidth);
+        headerBox.setMaxWidth(contentWidth);
+    }
+
+    private void onSortHeaderClicked(FilesPanesHelper.FocusSide side, FilesPanesHelper.SortColumn column) {
+        filesPanesHelper.toggleSort(side, column);
+        updateSortHeaderTexts(side);
+    }
+
+    private void updateSortHeaderTexts(FilesPanesHelper.FocusSide side) {
+        FilesPanesHelper.SortColumn activeColumn = filesPanesHelper.getSortColumn(side);
+        boolean ascending = filesPanesHelper.isSortAscending(side);
+
+        Label nameHeader = side == LEFT ? leftNameHeader : rightNameHeader;
+        Label sizeHeader = side == LEFT ? leftSizeHeader : rightSizeHeader;
+        Label modifiedHeader = side == LEFT ? leftModifiedHeader : rightModifiedHeader;
+
+        nameHeader.setText("Name" + sortIndicator(activeColumn == FilesPanesHelper.SortColumn.NAME, ascending));
+        sizeHeader.setText("Size" + sortIndicator(activeColumn == FilesPanesHelper.SortColumn.SIZE, ascending));
+        modifiedHeader.setText("Modified" + sortIndicator(activeColumn == FilesPanesHelper.SortColumn.MODIFIED, ascending));
+    }
+
+    private String sortIndicator(boolean active, boolean ascending) {
+        if (!active) {
+            return "";
+        }
+        return ascending ? " ▲" : " ▼";
     }
 
     private void onPathChanged(FilesPanesHelper.FocusSide side, Folder newValue) {

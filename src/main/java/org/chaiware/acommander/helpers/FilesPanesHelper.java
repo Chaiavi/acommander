@@ -11,19 +11,23 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Locale;
 
 import static org.chaiware.acommander.helpers.FilesPanesHelper.FocusSide.LEFT;
 import static org.chaiware.acommander.helpers.FilesPanesHelper.FocusSide.RIGHT;
 
 public class FilesPanesHelper {
     public enum FocusSide {LEFT, RIGHT}
+    public enum SortColumn {NAME, SIZE, MODIFIED}
 
     private static final Logger logger = LoggerFactory.getLogger(FilesPanesHelper.class);
 
     Map<FocusSide, FilePane> filePanes = new HashMap<>();
+    private final Map<FocusSide, SortState> sortStates = new HashMap<>();
     @Getter
     private FocusSide focusedSide;
 
@@ -33,6 +37,8 @@ public class FilesPanesHelper {
 
         filePanes.put(LEFT, new FilePane(leftFileList, leftPathComboBox));
         filePanes.put(RIGHT, new FilePane(rightFileList, rightPathComboBox));
+        sortStates.put(LEFT, new SortState(SortColumn.NAME, true));
+        sortStates.put(RIGHT, new SortState(SortColumn.NAME, true));
     }
 
     public void setFocusedFileList(FocusSide focusSide) {
@@ -86,6 +92,80 @@ public class FilesPanesHelper {
         if (files != null)
             for (File f : files)
                 items.add(new FileItem(f));
+
+        applySort(focusSide);
+    }
+
+    public void toggleSort(FocusSide focusSide, SortColumn column) {
+        SortState current = sortStates.getOrDefault(focusSide, new SortState(SortColumn.NAME, true));
+        SortState updated = current.column == column
+                ? new SortState(column, !current.ascending)
+                : new SortState(column, true);
+        sortStates.put(focusSide, updated);
+        applySort(focusSide);
+    }
+
+    public SortColumn getSortColumn(FocusSide focusSide) {
+        return sortStates.getOrDefault(focusSide, new SortState(SortColumn.NAME, true)).column;
+    }
+
+    public boolean isSortAscending(FocusSide focusSide) {
+        return sortStates.getOrDefault(focusSide, new SortState(SortColumn.NAME, true)).ascending;
+    }
+
+    private void applySort(FocusSide focusSide) {
+        ObservableList<FileItem> items = filePanes.get(focusSide).getFileListView().getItems();
+        FileItem parent = items.stream()
+                .filter(this::isParentFolder)
+                .findFirst()
+                .orElse(null);
+
+        List<FileItem> sortable = items.stream()
+                .filter(item -> !isParentFolder(item))
+                .toList();
+
+        SortState sortState = sortStates.getOrDefault(focusSide, new SortState(SortColumn.NAME, true));
+        Comparator<FileItem> comparator = buildComparator(sortState);
+        List<FileItem> sorted = sortable.stream().sorted(comparator).toList();
+
+        items.clear();
+        if (parent != null) {
+            items.add(parent);
+        }
+        items.addAll(sorted);
+    }
+
+    private Comparator<FileItem> buildComparator(SortState state) {
+        Comparator<FileItem> directoriesFirst = Comparator.comparing(FileItem::isDirectory).reversed();
+
+        Comparator<FileItem> byColumn = switch (state.column) {
+            case NAME -> Comparator.comparing(this::normalizedName, String.CASE_INSENSITIVE_ORDER);
+            case SIZE -> Comparator.comparingLong(this::sizeForSort);
+            case MODIFIED -> Comparator.comparingLong(this::modifiedForSort);
+        };
+
+        if (!state.ascending) {
+            byColumn = byColumn.reversed();
+        }
+
+        Comparator<FileItem> byName = Comparator.comparing(this::normalizedName, String.CASE_INSENSITIVE_ORDER);
+        return directoriesFirst.thenComparing(byColumn).thenComparing(byName);
+    }
+
+    private String normalizedName(FileItem item) {
+        return item.getPresentableFilename().toLowerCase(Locale.ROOT);
+    }
+
+    private long sizeForSort(FileItem item) {
+        return item.isDirectory() ? 0L : item.getFile().length();
+    }
+
+    private long modifiedForSort(FileItem item) {
+        return item.getFile().lastModified();
+    }
+
+    private boolean isParentFolder(FileItem item) {
+        return "..".equals(item.getPresentableFilename());
     }
 
     public String getFocusedPath() {
@@ -130,4 +210,6 @@ public class FilesPanesHelper {
             return path.trim();
         }
     }
+
+    private record SortState(SortColumn column, boolean ascending) {}
 }
