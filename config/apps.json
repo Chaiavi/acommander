@@ -13,7 +13,7 @@
       "label": "ThisIsMyFile",
       "type": "external",
       "path": "apps/delete/unlock_delete/ThisIsMyFile.exe",
-      "args": ["${selectedFilesJoined}"],
+      "args": ["${selectedFiles}"],
       "refreshAfter": true
     },
     {
@@ -21,7 +21,7 @@
       "label": "SDelete",
       "type": "external",
       "path": "apps/delete/wipe/sdelete64.exe",
-      "args": ["/accepteula", "${selectedFilesJoined}"],
+      "args": ["/accepteula", "${selectedFiles}"],
       "refreshAfter": true
     },
     {
@@ -196,7 +196,7 @@
       "selection": "any",
       "type": "builtin",
       "path": "apps/pack_unpack/7zG.exe",
-      "args": ["a", "${archiveFile}", "${selectedFilesJoined}"],
+      "args": ["a", "${archiveFile}", "${selectedFiles}"],
       "refreshAfter": true
     },
     {
@@ -232,7 +232,7 @@
       "selection": "multi",
       "type": "builtin",
       "path": "apps/pdf/pdftk.exe",
-      "args": ["${selectedFilesJoined}", "cat", "output", "${outputPdf}"],
+      "args": ["${selectedFiles}", "cat", "output", "${outputPdf}"],
       "refreshAfter": true
     },
     {
