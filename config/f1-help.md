@@ -19,6 +19,7 @@ A modern Norton Commander-style file manager for power users.
 | **F10**     | Exit the application                                    |
 | **F11**     | Pack the selected file as a `.zip` into the other panel |
 | **F12**     | Unpack the selected file to the other panel             |
+| **ALT+F11** | Split a large file into `.7z` parts                     |
 
 ---
 

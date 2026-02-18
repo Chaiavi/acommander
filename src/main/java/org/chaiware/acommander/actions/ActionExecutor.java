@@ -49,6 +49,7 @@ public class ActionExecutor {
             case "explorer" -> commander.explorerHere();
             case "search" -> commander.search();
             case "pack" -> commander.pack();
+            case "splitLargeFile" -> commander.splitLargeFile();
             case "unpack" -> commander.unpackFile();
             case "extractAll" -> commander.extractAll();
             case "mergePdf" -> commander.mergePDFFiles();

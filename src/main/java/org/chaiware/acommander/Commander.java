@@ -833,6 +833,59 @@ public class Commander {
         }
     }
 
+    public void splitLargeFile() {
+        logger.info("Split Large File (ALT+F11)");
+        try {
+            List<FileItem> selectedItems = commands.filterValidItems(new ArrayList<>(filesPanesHelper.getSelectedItems()));
+            if (selectedItems.size() != 1) {
+                showError(
+                        "Split a Large File",
+                        "Select exactly one file to split. Multiple selection is not supported."
+                );
+                return;
+            }
+
+            FileItem selectedItem = selectedItems.getFirst();
+            if (selectedItem.isDirectory()) {
+                showError("Split a Large File", "The selected item is a folder. Please select a single file.");
+                return;
+            }
+
+            long originalFileSize = selectedItem.getFile().length();
+            Optional<String> splitArg = promptSplitSize(selectedItem, originalFileSize);
+            if (splitArg.isEmpty()) {
+                logger.info("User cancelled split");
+                return;
+            }
+
+            String outputFilename = buildSplitArchiveName(selectedItem.getName());
+            String outputArchivePath = filesPanesHelper.getUnfocusedPath() + "\\" + outputFilename;
+            String sevenZipPath = Paths.get(
+                    System.getProperty("user.dir"),
+                    "apps",
+                    "extract_all",
+                    "UniExtract",
+                    "bin",
+                    "x64",
+                    "7z.exe"
+            ).toString();
+
+            List<String> command = List.of(
+                    sevenZipPath,
+                    "a",
+                    outputArchivePath,
+                    selectedItem.getFullPath(),
+                    "-mx0",
+                    "-v" + splitArg.get()
+            );
+
+            runExternal(command, true);
+            filesPanesHelper.selectFileItem(false, new FileItem(new File(outputArchivePath)));
+        } catch (Exception ex) {
+            error("Failed splitting large file", ex);
+        }
+    }
+
     @FXML
     public void unpackFile() {
         logger.info("UnPack (F12)");
@@ -967,6 +1020,167 @@ public class Commander {
         return commands.runExternal(command, refreshAfter);
     }
 
+    private Optional<String> promptSplitSize(FileItem selectedItem, long originalFileSize) {
+        Dialog<String> dialog = new Dialog<>();
+        dialog.setTitle("Split a Large File");
+        dialog.setHeaderText(null);
+
+        ButtonType splitType = new ButtonType("Split", ButtonBar.ButtonData.OK_DONE);
+        dialog.getDialogPane().getButtonTypes().addAll(splitType, ButtonType.CANCEL);
+
+        Label title = new Label("Split a Large File");
+        title.setStyle("-fx-font-size: 16px; -fx-font-weight: bold;");
+
+        Label details = new Label(
+                "File: " + selectedItem.getName() + " (" + humanSize(originalFileSize) + ")"
+        );
+        TextField sizeField = new TextField("16m");
+        sizeField.setPromptText("Chunk size (examples: 16m, 64k, 1g, 16mb)");
+
+        Label validationLabel = new Label();
+        validationLabel.setWrapText(true);
+
+        VBox content = new VBox(10,
+                title,
+                details,
+                new Label("Size per split file:"),
+                sizeField,
+                validationLabel
+        );
+        content.setPadding(new Insets(12));
+        dialog.getDialogPane().setContent(content);
+        applyThemeToDialog(dialog);
+
+        Button splitButton = (Button) dialog.getDialogPane().lookupButton(splitType);
+        final SplitSize[] parsed = new SplitSize[1];
+        Runnable validate = () -> {
+            parsed[0] = parseSplitSize(sizeField.getText());
+            if (!parsed[0].valid()) {
+                validationLabel.setText(parsed[0].message());
+                splitButton.setDisable(true);
+                return;
+            }
+
+            long chunkBytes = parsed[0].bytes();
+            if (chunkBytes > originalFileSize) {
+                validationLabel.setText(
+                        "Requested split size (" + humanSize(chunkBytes) + ") is larger than the original file ("
+                                + humanSize(originalFileSize) + "). Splitting does not make sense."
+                );
+                splitButton.setDisable(true);
+                return;
+            }
+
+            long filesCount = (originalFileSize + chunkBytes - 1) / chunkBytes;
+            validationLabel.setText("This will create " + filesCount + " file(s).");
+            splitButton.setDisable(false);
+        };
+
+        sizeField.textProperty().addListener((obs, oldValue, newValue) -> validate.run());
+        validate.run();
+
+        dialog.setResultConverter(buttonType -> {
+            if (buttonType == splitType && parsed[0] != null && parsed[0].valid()) {
+                return parsed[0].sevenZipArg();
+            }
+            return null;
+        });
+
+        return dialog.showAndWait();
+    }
+
+    private SplitSize parseSplitSize(String rawInput) {
+        String input = rawInput == null ? "" : rawInput.trim().toLowerCase(Locale.ROOT);
+        if (input.isEmpty()) {
+            return new SplitSize(false, 0L, "", "Please enter a split size.");
+        }
+
+        String unit = "";
+        String digits = input;
+        if (input.endsWith("kb")) {
+            unit = "k";
+            digits = input.substring(0, input.length() - 2);
+        } else if (input.endsWith("mb")) {
+            unit = "m";
+            digits = input.substring(0, input.length() - 2);
+        } else if (input.endsWith("gb")) {
+            unit = "g";
+            digits = input.substring(0, input.length() - 2);
+        } else if (input.endsWith("k") || input.endsWith("m") || input.endsWith("g") || input.endsWith("b")) {
+            unit = input.substring(input.length() - 1);
+            digits = input.substring(0, input.length() - 1);
+        }
+
+        if (digits.isBlank() || !digits.chars().allMatch(Character::isDigit)) {
+            return new SplitSize(false, 0L, "", "Use a positive size like 16m, 64k, 1g, or 16777216.");
+        }
+
+        long amount;
+        try {
+            amount = Long.parseLong(digits);
+        } catch (NumberFormatException ex) {
+            return new SplitSize(false, 0L, "", "Split size is too large.");
+        }
+        if (amount <= 0) {
+            return new SplitSize(false, 0L, "", "Split size must be greater than zero.");
+        }
+
+        long bytes;
+        switch (unit) {
+            case "", "b" -> bytes = amount;
+            case "k" -> bytes = amount * 1024L;
+            case "m" -> bytes = amount * 1024L * 1024L;
+            case "g" -> bytes = amount * 1024L * 1024L * 1024L;
+            default -> {
+                return new SplitSize(false, 0L, "", "Unsupported unit. Use k, m, g, or bytes.");
+            }
+        }
+
+        if (bytes <= 0) {
+            return new SplitSize(false, 0L, "", "Split size is too large.");
+        }
+
+        String sevenZipArg = amount + unit;
+        return new SplitSize(true, bytes, sevenZipArg, "");
+    }
+
+    private String buildSplitArchiveName(String sourceFilename) {
+        int dotIndex = sourceFilename.lastIndexOf('.');
+        if (dotIndex > 0) {
+            return sourceFilename.substring(0, dotIndex) + ".7z";
+        }
+        return sourceFilename + ".7z";
+    }
+
+    private String humanSize(long bytes) {
+        if (bytes < 1024) {
+            return bytes + " B";
+        }
+        double kb = bytes / 1024.0;
+        if (kb < 1024) {
+            return String.format(Locale.ROOT, "%.2f KB", kb);
+        }
+        double mb = kb / 1024.0;
+        if (mb < 1024) {
+            return String.format(Locale.ROOT, "%.2f MB", mb);
+        }
+        double gb = mb / 1024.0;
+        return String.format(Locale.ROOT, "%.2f GB", gb);
+    }
+
+    private void showError(String title, String message) {
+        Alert alert = new Alert(Alert.AlertType.ERROR);
+        alert.setTitle(title);
+        alert.setHeaderText(null);
+        alert.setContentText(message);
+        alert.setResizable(true);
+        alert.getDialogPane().setMinHeight(Region.USE_PREF_SIZE);
+        applyThemeToDialog(alert);
+        alert.showAndWait();
+    }
+
+    private record SplitSize(boolean valid, long bytes, String sevenZipArg, String message) {}
+
     private Optional<FileAttributesHelper.AttributeChangeRequest> promptAttributes(List<FileItem> selectedItems) {
         Dialog<FileAttributesHelper.AttributeChangeRequest> dialog = new Dialog<>();
         dialog.setTitle("Change Attributes");
@@ -1066,6 +1280,7 @@ public class Commander {
                 btnF4.setText("ALT+F4 Exit");
                 btnF7.setText("ALT+F7 MkFile");
                 btnF9.setText("ALT+F9 Explorer");
+                btnF11.setText("ALT+F11 Split");
                 btnF12.setText("ALT+F12 Extract All");
             }
             case SHIFT -> {

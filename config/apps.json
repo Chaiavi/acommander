@@ -200,6 +200,15 @@
       "refreshAfter": true
     },
     {
+      "id": "splitLargeFile",
+      "label": "Split a Large File",
+      "shortcut": "Alt+F11",
+      "aliases": ["split file", "7z split", "split archive"],
+      "contexts": ["filePane", "commandPalette"],
+      "selection": "any",
+      "type": "builtin"
+    },
+    {
       "id": "unpack",
       "label": "Unpack",
       "shortcut": "F12",
