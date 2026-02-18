@@ -37,6 +37,10 @@ public class CommandPaletteController {
     public void initialize() {
         resultsList.setFixedCellSize(34);
         resultsList.setCellFactory(listView -> new ListCell<>() {
+            {
+                getStyleClass().add("palette-item-cell");
+            }
+
             @Override
             protected void updateItem(AppAction item, boolean empty) {
                 super.updateItem(item, empty);
@@ -47,15 +51,16 @@ public class CommandPaletteController {
                 }
 
                 Label title = new Label(item.title());
-                title.setStyle("-fx-text-fill: #F8F8F8; -fx-font-size: 14px;");
+                title.getStyleClass().add("palette-item-title");
                 HBox.setHgrow(title, Priority.ALWAYS);
                 title.setMaxWidth(Double.MAX_VALUE);
 
                 Label shortcut = new Label(item.shortcut());
-                shortcut.setStyle("-fx-text-fill: #BBBBBB; -fx-font-size: 12px;");
+                shortcut.getStyleClass().add("palette-item-shortcut");
 
                 HBox row = new HBox(title, shortcut);
                 row.setSpacing(12);
+                row.getStyleClass().add("palette-item-row");
                 setGraphic(row);
             }
         });

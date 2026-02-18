@@ -1,0 +1,250 @@
+.theme-dark {
+    -ac-bg: #121212;
+    -ac-panel-bg: #1b1b1b;
+    -ac-subtle-bg: #171717;
+    -ac-header-bg: #202020;
+    -ac-border: #2d2d2d;
+    -ac-text-primary: #e8e8e8;
+    -ac-text-secondary: #a8a8a8;
+    -ac-accent: #3f8cff;
+    -ac-hover: #262626;
+    -ac-list-text: #e8e8e8;
+    -ac-input-bg: #202020;
+    -ac-input-text: #f2f2f2;
+    -ac-input-border: #3a3a3a;
+    -ac-button-bg: #262626;
+    -ac-button-text: #f0f0f0;
+    -ac-button-border: #3a3a3a;
+    -ac-select-active-bg: #3f8cff;
+    -ac-select-active-text: #ffffff;
+    -ac-select-inactive-bg: #3a3a3a;
+    -ac-select-inactive-text: #e8e8e8;
+    -ac-palette-bg: #171717;
+    -ac-palette-list-bg: #1b1b1b;
+    -ac-palette-text: #e8e8e8;
+    -ac-palette-select-bg: #3f8cff;
+    -ac-palette-select-text: #ffffff;
+}
+
+.theme-light {
+    -ac-bg: #0000aa;
+    -ac-panel-bg: #0000aa;
+    -ac-subtle-bg: #c0c0c0;
+    -ac-header-bg: #0033cc;
+    -ac-border: #ffffff;
+    -ac-text-primary: #ffffff;
+    -ac-text-secondary: #4a4a4a;
+    -ac-accent: #2a84d2;
+    -ac-hover: #1a3fa6;
+    -ac-list-text: #ffff00;
+    -ac-input-bg: #ffffff;
+    -ac-input-text: #000000;
+    -ac-input-border: #000000;
+    -ac-button-bg: #e0e0e0;
+    -ac-button-text: #000000;
+    -ac-button-border: #808080;
+    -ac-select-active-bg: #2a84d2;
+    -ac-select-active-text: #ffffff;
+    -ac-select-inactive-bg: #9c9c9c;
+    -ac-select-inactive-text: #000000;
+    -ac-palette-bg: #c0c0c0;
+    -ac-palette-list-bg: #ffffff;
+    -ac-palette-text: #000000;
+    -ac-palette-select-bg: #2a84d2;
+    -ac-palette-select-text: #ffffff;
+}
+
+.commander-root,
+.panes-grid {
+    -fx-background-color: -ac-bg;
+}
+
+.path-combo {
+    -fx-background-color: -ac-input-bg;
+    -fx-border-color: -ac-input-border;
+    -fx-border-width: 1;
+}
+
+.path-combo .text-field {
+    -fx-background-color: -ac-input-bg;
+    -fx-text-fill: -ac-input-text;
+    -fx-prompt-text-fill: -ac-text-secondary;
+}
+
+.path-combo .list-cell {
+    -fx-background-color: -ac-input-bg;
+    -fx-text-fill: -ac-input-text;
+}
+
+.pane-header {
+    -fx-background-color: -ac-header-bg;
+    -fx-border-color: -ac-border;
+    -fx-border-width: 1 1 0 1;
+    -fx-padding: 0;
+}
+
+.pane-header-label {
+    -fx-text-fill: -ac-text-primary;
+    -fx-font-weight: bold;
+    -fx-padding: 0 2 0 2;
+}
+
+.file-pane {
+    -fx-background-color: -ac-panel-bg;
+    -fx-control-inner-background: -ac-panel-bg;
+    -fx-border-color: -ac-border;
+    -fx-border-width: 1;
+    -fx-font-family: "JetBrains Mono";
+    -fx-font-size: 14px;
+}
+
+.file-pane .list-cell {
+    -fx-background-color: transparent;
+    -fx-text-fill: -ac-list-text;
+}
+
+.file-pane .list-cell:selected {
+    -fx-background-color: -ac-select-inactive-bg;
+}
+
+.file-pane .list-cell:selected .label {
+    -fx-text-fill: -ac-select-inactive-text;
+}
+
+.file-pane:focused .list-cell:selected {
+    -fx-background-color: -ac-select-active-bg;
+}
+
+.file-pane:focused .list-cell:selected .label {
+    -fx-text-fill: -ac-select-active-text;
+}
+
+.file-pane .list-cell:filled:hover {
+    -fx-background-color: -ac-hover;
+}
+
+.file-cell-row {
+    -fx-font-family: "JetBrains Mono";
+    -fx-font-size: 14px;
+}
+
+.file-cell-name,
+.file-cell-size,
+.file-cell-date {
+    -fx-text-fill: -ac-list-text;
+}
+
+.file-cell-icon {
+    -fx-font-family: "Segoe UI Emoji", "Segoe UI Symbol";
+    -fx-font-size: 14px;
+}
+
+.function-bar-shell,
+.function-bar-row {
+    -fx-background-color: -ac-subtle-bg;
+}
+
+.function-bar-shell {
+    -fx-border-color: -ac-border;
+    -fx-border-width: 1 0 0 0;
+}
+
+.function-bar-row {
+    -fx-padding: 3;
+}
+
+.function-button {
+    -fx-background-color: -ac-button-bg;
+    -fx-text-fill: -ac-button-text;
+    -fx-font-size: 10px;
+    -fx-font-weight: bold;
+    -fx-border-color: -ac-button-border;
+    -fx-border-width: 1;
+    -fx-background-radius: 3;
+    -fx-border-radius: 3;
+}
+
+.function-button:hover {
+    -fx-background-color: -ac-hover;
+}
+
+.palette-host {
+    -fx-padding: 42 0 0 0;
+}
+
+.palette-root {
+    -fx-background-color: -ac-palette-bg;
+    -fx-border-color: -ac-border;
+    -fx-border-width: 1;
+    -fx-padding: 10;
+}
+
+.palette-query {
+    -fx-font-size: 14px;
+    -fx-background-color: -ac-input-bg;
+    -fx-text-fill: -ac-input-text;
+    -fx-prompt-text-fill: -ac-text-secondary;
+}
+
+.palette-results {
+    -fx-background-color: -ac-palette-list-bg;
+    -fx-control-inner-background: -ac-palette-list-bg;
+    -fx-selection-bar: -ac-palette-select-bg;
+    -fx-selection-bar-non-focused: -ac-palette-select-bg;
+}
+
+.palette-results .list-cell:filled {
+    -fx-background-color: transparent;
+}
+
+.palette-results .list-cell:filled:hover {
+    -fx-background-color: -ac-hover;
+}
+
+.palette-results .list-cell:filled:selected,
+.palette-results .list-cell:filled:selected:focused {
+    -fx-background-color: -ac-palette-select-bg;
+}
+
+.palette-results .list-cell:selected .palette-item-title,
+.palette-results .list-cell:selected .palette-item-shortcut {
+    -fx-text-fill: -ac-palette-select-text;
+}
+
+.palette-item-title {
+    -fx-text-fill: -ac-palette-text;
+    -fx-font-size: 14px;
+}
+
+.palette-item-shortcut {
+    -fx-text-fill: -ac-text-secondary;
+    -fx-font-size: 12px;
+}
+
+.dialog-pane.theme-dark {
+    -fx-background-color: #1f2733;
+}
+
+.dialog-pane.theme-dark .label {
+    -fx-text-fill: #f3f7ff;
+}
+
+.dialog-pane.theme-dark .text-field {
+    -fx-background-color: #2a3443;
+    -fx-text-fill: #f3f7ff;
+    -fx-prompt-text-fill: #bcc8db;
+}
+
+.dialog-pane.theme-dark .button {
+    -fx-background-color: #2a3443;
+    -fx-text-fill: #f3f7ff;
+    -fx-border-color: #6f89aa;
+}
+
+.dialog-pane.theme-dark .button:hover {
+    -fx-background-color: #344356;
+}
+
+.dialog-pane.theme-light {
+    -fx-background-color: #c0c0c0;
+}

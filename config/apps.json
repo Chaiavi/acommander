@@ -266,6 +266,14 @@
       "type": "builtin"
     },
     {
+      "id": "toggleDarkMode",
+      "label": "Toggle Dark Mode",
+      "aliases": ["toggle theme", "switch theme"],
+      "contexts": ["global", "commandPalette"],
+      "selection": "none",
+      "type": "builtin"
+    },
+    {
       "id": "openCommandPalette",
       "label": "Command Palette",
       "shortcut": "Ctrl+Shift+P",

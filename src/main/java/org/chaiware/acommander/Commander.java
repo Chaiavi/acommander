@@ -55,6 +55,9 @@ import static org.chaiware.acommander.helpers.FilesPanesHelper.FocusSide.RIGHT;
 public class Commander {
     private static final String LEFT_FOLDER_KEY = "left_folder";
     private static final String RIGHT_FOLDER_KEY = "right_folder";
+    private static final String THEME_MODE_KEY = "theme_mode";
+    private static final String THEME_DARK_CLASS = "theme-dark";
+    private static final String THEME_LIGHT_CLASS = "theme-light";
 
     @FXML
     public BorderPane rootPane;
@@ -85,6 +88,7 @@ public class Commander {
     private static final Logger logger = LoggerFactory.getLogger(Commander.class);
     public FilesPanesHelper filesPanesHelper;
     private final FileAttributesHelper attributesHelper = new FileAttributesHelper();
+    private ThemeMode currentThemeMode = ThemeMode.REGULAR;
 
 
     @FXML
@@ -271,6 +275,30 @@ public class Commander {
         commandPaletteController.selectPrevious();
     }
 
+    public void initializeTheme(Scene scene) {
+        applyTheme(scene, ThemeMode.from(properties.getProperty(THEME_MODE_KEY)), false);
+    }
+
+    public void setDarkMode() {
+        applyTheme(rootPane.getScene(), ThemeMode.DARK, true);
+    }
+
+    public void setLightMode() {
+        setRegularMode();
+    }
+
+    public void setRegularMode() {
+        applyTheme(rootPane.getScene(), ThemeMode.REGULAR, true);
+    }
+
+    public void toggleDarkMode() {
+        if (currentThemeMode == ThemeMode.DARK) {
+            setRegularMode();
+        } else {
+            setDarkMode();
+        }
+    }
+
     private void loadConfigFile() {
         Path configFile = getConfigFilePath();
         if (!Files.exists(configFile))
@@ -332,6 +360,7 @@ public class Commander {
 
         properties.setProperty(LEFT_FOLDER_KEY, filesPanesHelper.getPath(LEFT));
         properties.setProperty(RIGHT_FOLDER_KEY, filesPanesHelper.getPath(RIGHT));
+        properties.setProperty(THEME_MODE_KEY, currentThemeMode.configValue);
         saveConfigFile();
     }
 
@@ -363,24 +392,27 @@ public class Commander {
                 iconLabel.setMinWidth(36);
                 iconLabel.setMaxWidth(36);
                 iconLabel.setAlignment(Pos.CENTER);
-                iconLabel.setStyle("-fx-font-family: 'Segoe UI Emoji', 'Segoe UI Symbol'; -fx-font-size: 14px;");
+                iconLabel.getStyleClass().add("file-cell-icon");
 
                 HBox.setHgrow(nameLabel, Priority.ALWAYS);
                 nameLabel.setMaxWidth(Double.MAX_VALUE);
                 nameLabel.setEllipsisString("...");
                 nameLabel.setTextOverrun(OverrunStyle.ELLIPSIS);
                 HBox.setHgrow(nameLabel, Priority.ALWAYS);
+                nameLabel.getStyleClass().add("file-cell-name");
 
                 sizeLabel.setMinWidth(100);
                 sizeLabel.setMaxWidth(100);
                 sizeLabel.setAlignment(Pos.CENTER_RIGHT);
+                sizeLabel.getStyleClass().add("file-cell-size");
 
                 dateLabel.setMinWidth(120);
                 dateLabel.setMaxWidth(120);
                 dateLabel.setAlignment(Pos.CENTER_RIGHT);
+                dateLabel.getStyleClass().add("file-cell-date");
 
                 hbox.setSpacing(8);
-                hbox.setStyle("-fx-font-family: 'JetBrains Mono'; -fx-font-size: 14px; -fx-hbar-policy: never;");
+                hbox.getStyleClass().add("file-cell-row");
 
                 listView.widthProperty().addListener((obs, oldVal, newVal) -> {
                     double width = newVal.doubleValue() - 20;
@@ -397,10 +429,7 @@ public class Commander {
                 } else {
                     IconSpec iconSpec = resolveIconSpec(item);
                     iconLabel.setText(iconSpec.glyph());
-                    iconLabel.setStyle(String.format(
-                            "-fx-font-family: 'Segoe UI Emoji', 'Segoe UI Symbol'; -fx-font-size: 14px; -fx-text-fill: %s;",
-                            iconSpec.textColor()
-                    ));
+                    iconLabel.setStyle("-fx-text-fill: " + iconSpec.textColor() + ";");
                     nameLabel.setText(item.getPresentableFilename());
                     sizeLabel.setText(String.format("%s", item.getHumanReadableSize()));
                     dateLabel.setText(item.getDate());
@@ -877,6 +906,7 @@ public class Commander {
                 alert.setContentText(msg);
                 alert.setResizable(true);
                 alert.getDialogPane().setMinHeight(Region.USE_PREF_SIZE);
+                applyThemeToDialog(alert);
                 alert.showAndWait();
             }
         } catch (Exception ex) {
@@ -906,6 +936,7 @@ public class Commander {
         dialog.setTitle(title);
         dialog.setContentText(question);
         dialog.getEditor().setPrefWidth(300);
+        applyThemeToDialog(dialog);
 
         return dialog.showAndWait();
     }
@@ -922,6 +953,7 @@ public class Commander {
         Dialog<FileAttributesHelper.AttributeChangeRequest> dialog = new Dialog<>();
         dialog.setTitle("Change Attributes");
         dialog.setHeaderText(null);
+        boolean darkTheme = currentThemeMode == ThemeMode.DARK;
 
         ButtonType applyType = new ButtonType("Ok", ButtonBar.ButtonData.OK_DONE);
         dialog.getDialogPane().getButtonTypes().addAll(applyType, ButtonType.CANCEL);
@@ -929,7 +961,7 @@ public class Commander {
         Label title = new Label("Change Attributes");
         title.setStyle("-fx-font-size: 16px; -fx-font-weight: bold;");
         Label subtitle = new Label("Selected items: " + selectedItems.size() + " | Checked = set, unchecked = clear");
-        subtitle.setStyle("-fx-text-fill: #666666;");
+        subtitle.setStyle("-fx-text-fill: " + (darkTheme ? "#A9B7CF" : "#666666") + ";");
 
         CheckBox readOnly = new CheckBox("Read-only");
         CheckBox hidden = new CheckBox("Hidden");
@@ -958,9 +990,13 @@ public class Commander {
 
         VBox content = new VBox(12, title, subtitle, new Separator(), grid);
         content.setPadding(new Insets(14));
-        content.setStyle("-fx-background-color: white; -fx-background-radius: 8; -fx-border-color: #d5d9e0; -fx-border-radius: 8;");
+        content.setStyle(
+                darkTheme
+                        ? "-fx-background-color: #2a3443; -fx-background-radius: 8; -fx-border-color: #6f89aa; -fx-border-radius: 8; -fx-text-fill: #f3f7ff;"
+                        : "-fx-background-color: white; -fx-background-radius: 8; -fx-border-color: #d5d9e0; -fx-border-radius: 8;"
+        );
         dialog.getDialogPane().setContent(content);
-        dialog.getDialogPane().setStyle("-fx-background-color: #f3f5f8;");
+        dialog.getDialogPane().setStyle(darkTheme ? "-fx-background-color: #1f2733;" : "-fx-background-color: #f3f5f8;");
 
         dialog.setResultConverter(button -> {
             if (button == applyType) {
@@ -973,6 +1009,7 @@ public class Commander {
             }
             return null;
         });
+        applyThemeToDialog(dialog);
         return dialog.showAndWait();
     }
 
@@ -985,6 +1022,7 @@ public class Commander {
         alert.setContentText(error + " (" + ex.getMessage() + ")");
         alert.setResizable(true);
         alert.getDialogPane().setMinHeight(Region.USE_PREF_SIZE);
+        applyThemeToDialog(alert);
         alert.showAndWait();
     }
 
@@ -1022,6 +1060,56 @@ public class Commander {
             }
 
             default -> throw new IllegalStateException("Which key was pressed?: " + whichKeyWasPressed);
+        }
+    }
+
+    private void applyTheme(Scene scene, ThemeMode themeMode, boolean persist) {
+        if (scene == null || scene.getRoot() == null) {
+            return;
+        }
+        scene.getRoot().getStyleClass().removeAll(THEME_DARK_CLASS, THEME_LIGHT_CLASS);
+        scene.getRoot().getStyleClass().add(themeMode.styleClass);
+        currentThemeMode = themeMode;
+        if (persist) {
+            properties.setProperty(THEME_MODE_KEY, themeMode.configValue);
+            saveConfigFile();
+        }
+    }
+
+    private void applyThemeToDialog(Dialog<?> dialog) {
+        if (dialog == null || rootPane == null || rootPane.getScene() == null) {
+            return;
+        }
+        DialogPane pane = dialog.getDialogPane();
+        pane.getStyleClass().removeAll(THEME_DARK_CLASS, THEME_LIGHT_CLASS);
+        pane.getStyleClass().add(currentThemeMode.styleClass);
+        for (String stylesheet : rootPane.getScene().getStylesheets()) {
+            if (!pane.getStylesheets().contains(stylesheet)) {
+                pane.getStylesheets().add(stylesheet);
+            }
+        }
+    }
+
+    private enum ThemeMode {
+        DARK("dark", THEME_DARK_CLASS),
+        REGULAR("regular", THEME_LIGHT_CLASS);
+
+        private final String configValue;
+        private final String styleClass;
+
+        ThemeMode(String configValue, String styleClass) {
+            this.configValue = configValue;
+            this.styleClass = styleClass;
+        }
+
+        private static ThemeMode from(String value) {
+            if ("dark".equalsIgnoreCase(value)) {
+                return DARK;
+            }
+            if ("light".equalsIgnoreCase(value) || "regular".equalsIgnoreCase(value)) {
+                return REGULAR;
+            }
+            return REGULAR;
         }
     }
 }

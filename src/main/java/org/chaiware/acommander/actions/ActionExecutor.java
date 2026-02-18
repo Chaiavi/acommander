@@ -59,6 +59,10 @@ public class ActionExecutor {
             case "leftPathCombo" -> commander.leftPathComboBox.show();
             case "rightPathCombo" -> commander.rightPathComboBox.show();
             case "syncOtherPane" -> commander.syncToOtherPane();
+            case "setDarkMode" -> commander.setDarkMode();
+            case "setLightMode" -> commander.setLightMode();
+            case "setRegularMode" -> commander.setRegularMode();
+            case "toggleDarkMode" -> commander.toggleDarkMode();
             default -> logger.warn("Unknown builtin action id: {}", builtin);
         }
     }

@@ -15,9 +15,9 @@
 <?import javafx.scene.layout.VBox?>
 
 <StackPane xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1" fx:controller="org.chaiware.acommander.Commander">
-<BorderPane fx:id="rootPane" prefHeight="600.0" prefWidth="900.0" style="-fx-background-color: #0000AA;">
+<BorderPane fx:id="rootPane" prefHeight="600.0" prefWidth="900.0" styleClass="commander-root">
     <center>
-        <GridPane hgap="2" style="-fx-background-color: #0000AA;" vgap="2">
+        <GridPane hgap="2" styleClass="panes-grid" vgap="2">
             <columnConstraints>
                 <ColumnConstraints percentWidth="50.0" />
                 <ColumnConstraints percentWidth="50.0" />
@@ -29,47 +29,47 @@
             </rowConstraints>
 
             <!-- Drive/Path ComboBoxes -->
-            <ComboBox fx:id="leftPathComboBox" editable="true" maxWidth="Infinity" prefHeight="30.0" style="-fx-background-color: #FFFFFF; -fx-text-fill: #000000; -fx-border-color: #000000;" GridPane.columnIndex="0" GridPane.hgrow="ALWAYS" GridPane.rowIndex="0">
+            <ComboBox fx:id="leftPathComboBox" editable="true" maxWidth="Infinity" prefHeight="30.0" styleClass="path-combo" GridPane.columnIndex="0" GridPane.hgrow="ALWAYS" GridPane.rowIndex="0">
                 <GridPane.margin>
                     <Insets left="3.0" right="1.0" top="3.0" />
                 </GridPane.margin>
             </ComboBox>
 
-            <ComboBox fx:id="rightPathComboBox" editable="true" maxWidth="Infinity" prefHeight="30.0" style="-fx-background-color: #FFFFFF; -fx-text-fill: #000000; -fx-border-color: #000000;" GridPane.columnIndex="1" GridPane.hgrow="ALWAYS" GridPane.rowIndex="0">
+            <ComboBox fx:id="rightPathComboBox" editable="true" maxWidth="Infinity" prefHeight="30.0" styleClass="path-combo" GridPane.columnIndex="1" GridPane.hgrow="ALWAYS" GridPane.rowIndex="0">
                 <GridPane.margin>
                     <Insets left="1.0" right="3.0" top="3.0" />
                 </GridPane.margin>
             </ComboBox>
 
             <!-- Column headers -->
-            <HBox fx:id="leftHeaderBox" alignment="CENTER_LEFT" spacing="8.0" style="-fx-background-color: #0033CC; -fx-border-color: #FFFFFF; -fx-border-width: 1 1 0 1; -fx-padding: 0;" GridPane.columnIndex="0" GridPane.rowIndex="1">
+            <HBox fx:id="leftHeaderBox" alignment="CENTER_LEFT" spacing="8.0" styleClass="pane-header" GridPane.columnIndex="0" GridPane.rowIndex="1">
                 <GridPane.margin>
                     <Insets left="3.0" right="1.0" />
                 </GridPane.margin>
                 <Region fx:id="leftIconHeaderSpacer" minWidth="36.0" prefWidth="36.0" />
-                <Label fx:id="leftNameHeader" style="-fx-text-fill: #FFFFFF; -fx-font-weight: bold; -fx-padding: 0 2 0 2; -fx-alignment: CENTER-LEFT;" text="Name" HBox.hgrow="ALWAYS" />
-                <Label fx:id="leftSizeHeader" prefWidth="100.0" style="-fx-text-fill: #FFFFFF; -fx-font-weight: bold; -fx-padding: 0 2 0 2; -fx-alignment: CENTER-RIGHT;" text="Size" />
-                <Label fx:id="leftModifiedHeader" prefWidth="120.0" style="-fx-text-fill: #FFFFFF; -fx-font-weight: bold; -fx-padding: 0 2 0 2; -fx-alignment: CENTER-RIGHT;" text="Modified" />
+                <Label fx:id="leftNameHeader" alignment="CENTER_LEFT" styleClass="pane-header-label" text="Name" HBox.hgrow="ALWAYS" />
+                <Label fx:id="leftSizeHeader" alignment="CENTER_RIGHT" prefWidth="100.0" styleClass="pane-header-label" text="Size" />
+                <Label fx:id="leftModifiedHeader" alignment="CENTER_RIGHT" prefWidth="120.0" styleClass="pane-header-label" text="Modified" />
             </HBox>
 
-            <HBox fx:id="rightHeaderBox" alignment="CENTER_LEFT" spacing="8.0" style="-fx-background-color: #0033CC; -fx-border-color: #FFFFFF; -fx-border-width: 1 1 0 1; -fx-padding: 0;" GridPane.columnIndex="1" GridPane.rowIndex="1">
+            <HBox fx:id="rightHeaderBox" alignment="CENTER_LEFT" spacing="8.0" styleClass="pane-header" GridPane.columnIndex="1" GridPane.rowIndex="1">
                 <GridPane.margin>
                     <Insets left="1.0" right="3.0" />
                 </GridPane.margin>
                 <Region fx:id="rightIconHeaderSpacer" minWidth="36.0" prefWidth="36.0" />
-                <Label fx:id="rightNameHeader" style="-fx-text-fill: #FFFFFF; -fx-font-weight: bold; -fx-padding: 0 2 0 2; -fx-alignment: CENTER-LEFT;" text="Name" HBox.hgrow="ALWAYS" />
-                <Label fx:id="rightSizeHeader" prefWidth="100.0" style="-fx-text-fill: #FFFFFF; -fx-font-weight: bold; -fx-padding: 0 2 0 2; -fx-alignment: CENTER-RIGHT;" text="Size" />
-                <Label fx:id="rightModifiedHeader" prefWidth="120.0" style="-fx-text-fill: #FFFFFF; -fx-font-weight: bold; -fx-padding: 0 2 0 2; -fx-alignment: CENTER-RIGHT;" text="Modified" />
+                <Label fx:id="rightNameHeader" alignment="CENTER_LEFT" styleClass="pane-header-label" text="Name" HBox.hgrow="ALWAYS" />
+                <Label fx:id="rightSizeHeader" alignment="CENTER_RIGHT" prefWidth="100.0" styleClass="pane-header-label" text="Size" />
+                <Label fx:id="rightModifiedHeader" alignment="CENTER_RIGHT" prefWidth="120.0" styleClass="pane-header-label" text="Modified" />
             </HBox>
 
             <!-- File Lists -->
-            <ListView fx:id="leftFileList" prefHeight="200.0" style="-fx-background-color: #0000AA; -fx-control-inner-background: #0000AA; -fx-text-fill: #FFFF00; -fx-border-color: #FFFFFF; -fx-border-width: 1; -fx-font-family: 'Courier New', monospace; -fx-font-size: 12px;" GridPane.columnIndex="0" GridPane.rowIndex="2">
+            <ListView fx:id="leftFileList" prefHeight="200.0" styleClass="file-pane" GridPane.columnIndex="0" GridPane.rowIndex="2">
                 <GridPane.margin>
                     <Insets bottom="2.0" left="3.0" right="1.0" />
                 </GridPane.margin>
             </ListView>
 
-            <ListView fx:id="rightFileList" prefHeight="200.0" style="-fx-background-color: #0000AA; -fx-control-inner-background: #0000AA; -fx-text-fill: #FFFF00; -fx-border-color: #FFFFFF; -fx-border-width: 1; -fx-font-family: 'Courier New', monospace; -fx-font-size: 12px;" GridPane.columnIndex="1" GridPane.rowIndex="2">
+            <ListView fx:id="rightFileList" prefHeight="200.0" styleClass="file-pane" GridPane.columnIndex="1" GridPane.rowIndex="2">
                 <GridPane.margin>
                     <Insets bottom="2.0" left="1.0" right="3.0" />
                 </GridPane.margin>
@@ -79,53 +79,53 @@
 
     <bottom>
         <!-- Function keys bar -->
-        <VBox style="-fx-background-color: #C0C0C0; -fx-border-color: #808080; -fx-border-width: 1 0 0 0;">
-            <HBox alignment="CENTER" prefHeight="40.0" spacing="1" style="-fx-background-color: #C0C0C0; -fx-padding: 3;">
-                <Button fx:id="btnF1" maxWidth="Infinity" onAction="#help" prefHeight="32.0" style="-fx-background-color: #E0E0E0; -fx-text-fill: #000000; -fx-font-size: 10px; -fx-font-weight: bold; -fx-border-color: #808080; -fx-border-width: 1; -fx-background-radius: 3; -fx-border-radius: 3;" HBox.hgrow="ALWAYS">
+        <VBox styleClass="function-bar-shell">
+            <HBox fx:id="functionBar" alignment="CENTER" prefHeight="40.0" spacing="1" styleClass="function-bar-row">
+                <Button fx:id="btnF1" maxWidth="Infinity" onAction="#help" prefHeight="32.0" styleClass="function-button" HBox.hgrow="ALWAYS">
                     <HBox.margin>
                         <Insets left="5.0" />
                     </HBox.margin></Button>
-                <Button fx:id="btnF2" maxWidth="Infinity" onAction="#renameFile" prefHeight="32.0" style="-fx-background-color: #E0E0E0; -fx-text-fill: #000000; -fx-font-size: 10px; -fx-font-weight: bold; -fx-border-color: #808080; -fx-border-width: 1; -fx-background-radius: 3; -fx-border-radius: 3;" HBox.hgrow="ALWAYS">
+                <Button fx:id="btnF2" maxWidth="Infinity" onAction="#renameFile" prefHeight="32.0" styleClass="function-button" HBox.hgrow="ALWAYS">
                     <HBox.margin>
                         <Insets left="5.0" />
                     </HBox.margin></Button>
-                <Button fx:id="btnF3" maxWidth="Infinity" onAction="#viewFile" prefHeight="32.0" style="-fx-background-color: #E0E0E0; -fx-text-fill: #000000; -fx-font-size: 10px; -fx-font-weight: bold; -fx-border-color: #808080; -fx-border-width: 1; -fx-background-radius: 3; -fx-border-radius: 3;" HBox.hgrow="ALWAYS">
+                <Button fx:id="btnF3" maxWidth="Infinity" onAction="#viewFile" prefHeight="32.0" styleClass="function-button" HBox.hgrow="ALWAYS">
                     <HBox.margin>
                         <Insets left="5.0" />
                     </HBox.margin></Button>
-                <Button fx:id="btnF4" maxWidth="Infinity" onAction="#editFile" prefHeight="32.0" style="-fx-background-color: #E0E0E0; -fx-text-fill: #000000; -fx-font-size: 10px; -fx-font-weight: bold; -fx-border-color: #808080; -fx-border-width: 1; -fx-background-radius: 3; -fx-border-radius: 3;" HBox.hgrow="ALWAYS">
+                <Button fx:id="btnF4" maxWidth="Infinity" onAction="#editFile" prefHeight="32.0" styleClass="function-button" HBox.hgrow="ALWAYS">
                     <HBox.margin>
                         <Insets left="5.0" />
                     </HBox.margin></Button>
-                <Button fx:id="btnF5" maxWidth="Infinity" onAction="#copyFile" prefHeight="32.0" style="-fx-background-color: #E0E0E0; -fx-text-fill: #000000; -fx-font-size: 10px; -fx-font-weight: bold; -fx-border-color: #808080; -fx-border-width: 1; -fx-background-radius: 3; -fx-border-radius: 3;" HBox.hgrow="ALWAYS">
+                <Button fx:id="btnF5" maxWidth="Infinity" onAction="#copyFile" prefHeight="32.0" styleClass="function-button" HBox.hgrow="ALWAYS">
                     <HBox.margin>
                         <Insets left="5.0" />
                     </HBox.margin></Button>
-                <Button fx:id="btnF6" maxWidth="Infinity" onAction="#moveFile" prefHeight="32.0" style="-fx-background-color: #E0E0E0; -fx-text-fill: #000000; -fx-font-size: 10px; -fx-font-weight: bold; -fx-border-color: #808080; -fx-border-width: 1; -fx-background-radius: 3; -fx-border-radius: 3;" HBox.hgrow="ALWAYS">
+                <Button fx:id="btnF6" maxWidth="Infinity" onAction="#moveFile" prefHeight="32.0" styleClass="function-button" HBox.hgrow="ALWAYS">
                     <HBox.margin>
                         <Insets left="5.0" />
                     </HBox.margin></Button>
-                <Button fx:id="btnF7" maxWidth="Infinity" onAction="#makeDirectory" prefHeight="32.0" style="-fx-background-color: #E0E0E0; -fx-text-fill: #000000; -fx-font-size: 10px; -fx-font-weight: bold; -fx-border-color: #808080; -fx-border-width: 1; -fx-background-radius: 3; -fx-border-radius: 3;" HBox.hgrow="ALWAYS">
+                <Button fx:id="btnF7" maxWidth="Infinity" onAction="#makeDirectory" prefHeight="32.0" styleClass="function-button" HBox.hgrow="ALWAYS">
                     <HBox.margin>
                         <Insets left="5.0" />
                     </HBox.margin></Button>
-                <Button fx:id="btnF8" maxWidth="Infinity" onAction="#deleteFile" prefHeight="32.0" style="-fx-background-color: #E0E0E0; -fx-text-fill: #000000; -fx-font-size: 10px; -fx-font-weight: bold; -fx-border-color: #808080; -fx-border-width: 1; -fx-background-radius: 3; -fx-border-radius: 3;" HBox.hgrow="ALWAYS">
+                <Button fx:id="btnF8" maxWidth="Infinity" onAction="#deleteFile" prefHeight="32.0" styleClass="function-button" HBox.hgrow="ALWAYS">
                     <HBox.margin>
                         <Insets left="5.0" />
                     </HBox.margin></Button>
-                <Button fx:id="btnF9" maxWidth="Infinity" onAction="#terminalHere" prefHeight="32.0" style="-fx-background-color: #E0E0E0; -fx-text-fill: #000000; -fx-font-size: 10px; -fx-font-weight: bold; -fx-border-color: #808080; -fx-border-width: 1; -fx-background-radius: 3; -fx-border-radius: 3;" HBox.hgrow="ALWAYS">
+                <Button fx:id="btnF9" maxWidth="Infinity" onAction="#terminalHere" prefHeight="32.0" styleClass="function-button" HBox.hgrow="ALWAYS">
                     <HBox.margin>
                         <Insets left="5.0" />
                     </HBox.margin></Button>
-                <Button fx:id="btnF10" maxWidth="Infinity" onAction="#search" prefHeight="32.0" style="-fx-background-color: #E0E0E0; -fx-text-fill: #000000; -fx-font-size: 10px; -fx-font-weight: bold; -fx-border-color: #808080; -fx-border-width: 1; -fx-background-radius: 3; -fx-border-radius: 3;" HBox.hgrow="ALWAYS">
+                <Button fx:id="btnF10" maxWidth="Infinity" onAction="#search" prefHeight="32.0" styleClass="function-button" HBox.hgrow="ALWAYS">
                     <HBox.margin>
                         <Insets left="5.0" />
                     </HBox.margin></Button>
-                <Button fx:id="btnF11" maxWidth="Infinity" onAction="#pack" prefHeight="32.0" style="-fx-background-color: #E0E0E0; -fx-text-fill: #000000; -fx-font-size: 10px; -fx-font-weight: bold; -fx-border-color: #808080; -fx-border-width: 1; -fx-background-radius: 3; -fx-border-radius: 3;" HBox.hgrow="ALWAYS">
+                <Button fx:id="btnF11" maxWidth="Infinity" onAction="#pack" prefHeight="32.0" styleClass="function-button" HBox.hgrow="ALWAYS">
                     <HBox.margin>
                         <Insets left="5.0" />
                     </HBox.margin></Button>
-                <Button fx:id="btnF12" maxWidth="Infinity" onAction="#unpackFile" prefHeight="32.0" style="-fx-background-color: #E0E0E0; -fx-text-fill: #000000; -fx-font-size: 10px; -fx-font-weight: bold; -fx-border-color: #808080; -fx-border-width: 1; -fx-background-radius: 3; -fx-border-radius: 3;" HBox.hgrow="ALWAYS">
+                <Button fx:id="btnF12" maxWidth="Infinity" onAction="#unpackFile" prefHeight="32.0" styleClass="function-button" HBox.hgrow="ALWAYS">
                     <HBox.margin>
                         <Insets left="5.0" right="5.0" />
                     </HBox.margin></Button>
@@ -133,7 +133,7 @@
         </VBox>
     </bottom>
 </BorderPane>
-    <StackPane alignment="TOP_CENTER" pickOnBounds="false" style="-fx-padding: 42 0 0 0;">
+    <StackPane alignment="TOP_CENTER" pickOnBounds="false" styleClass="palette-host">
         <fx:include fx:id="commandPalette" source="CommandPalette.fxml" />
     </StackPane>
 </StackPane>
