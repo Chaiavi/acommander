@@ -1,12 +1,12 @@
 package org.chaiware.acommander.commands;
 
 import javafx.application.Platform;
-import javafx.scene.control.Alert;
+import javafx.scene.control.*;
+import javafx.scene.input.KeyCode;
+import javafx.scene.input.KeyEvent;
 import org.chaiware.acommander.helpers.FilesPanesHelper;
 import org.chaiware.acommander.model.FileItem;
 
-import javax.swing.*;
-import java.awt.*;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -161,22 +161,24 @@ public class CommandsSimpleImpl extends ACommands {
                         log.debug("Files found in the search are:");
                         output.forEach(log::debug);
 
-                        log.debug("Showing the found files to the user so he could select which he wants");
-                        FileItem selectedFile = getSelectedFileByUser(output);
-
-                        if (selectedFile != null) {
-                            log.info("From the search, the selected file is: {}", selectedFile.getFullPath());
-                            Platform.runLater(() -> {
+                        Platform.runLater(() -> {
+                            log.debug("Showing the found files to the user so they can select one");
+                            FileItem selectedFile = getSelectedFileByUser(output);
+                            if (selectedFile != null) {
+                                log.info("From the search, the selected file is: {}", selectedFile.getFullPath());
                                 fileListsLoader.setFocusedFileListPath(selectedFile.getFile().getParent());
                                 fileListsLoader.selectFileItem(true, selectedFile);
-                            });
-                        } else
-                            log.info("User didn't select any file from the search results");
+                            } else {
+                                log.info("User didn't select any file from the search results");
+                            }
+                        });
                     } else {
-                        log.info("No files were found in the search results");
-                        Alert alert = new Alert(Alert.AlertType.INFORMATION, "No files found :-(");
-                        alert.setHeaderText(null);
-                        alert.showAndWait();
+                        Platform.runLater(() -> {
+                            log.info("No files were found in the search results");
+                            Alert alert = new Alert(Alert.AlertType.INFORMATION, "No files found :-(");
+                            alert.setHeaderText(null);
+                            alert.showAndWait();
+                        });
                     }
                 });
     }
@@ -187,36 +189,49 @@ public class CommandsSimpleImpl extends ACommands {
      */
     private FileItem getSelectedFileByUser(List<String> files) {
         List<FileItem> fileItems = files.stream().map(filename -> new FileItem(new File(filename))).toList();
-        JList<FileItem> fileList = new JList<>(fileItems.toArray(new FileItem[0]));
-        fileList.setCellRenderer(new DefaultListCellRenderer() {
+        ListView<FileItem> fileList = new ListView<>();
+        fileList.getItems().setAll(fileItems);
+        fileList.setCellFactory(list -> new ListCell<>() {
             @Override
-            public Component getListCellRendererComponent(JList<?> list, Object value,
-                                                          int index, boolean isSelected, boolean cellHasFocus) {
-                super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
-                if (value instanceof FileItem) {
-                    setText(((FileItem) value).getFullPath());
-                }
-                return this;
+            protected void updateItem(FileItem item, boolean empty) {
+                super.updateItem(item, empty);
+                setText(empty || item == null ? null : item.getFullPath());
             }
         });
-        fileList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        fileList.getSelectionModel().selectFirst();
+        fileList.getFocusModel().focus(0);
+        fileList.setPrefSize(980, 420);
 
-        JScrollPane scrollPane = new JScrollPane(fileList);
-        scrollPane.setPreferredSize(new Dimension(300, 200));
+        Dialog<FileItem> dialog = new Dialog<>();
+        dialog.setTitle("Files Found");
+        DialogPane pane = dialog.getDialogPane();
+        pane.setContent(fileList);
+        ButtonType goToFileButton = new ButtonType("Go to File", ButtonBar.ButtonData.OK_DONE);
+        pane.getButtonTypes().addAll(goToFileButton, ButtonType.CANCEL);
+        pane.setPrefSize(1020, 480);
+        dialog.setResizable(true);
+        dialog.setResultConverter(buttonType -> buttonType == goToFileButton ? fileList.getSelectionModel().getSelectedItem() : null);
+        dialog.setOnShown(event -> Platform.runLater(() -> {
+            fileList.requestFocus();
+            fileList.getSelectionModel().selectFirst();
+            fileList.getFocusModel().focus(0);
+        }));
 
-        int result = JOptionPane.showConfirmDialog(
-                null,
-                scrollPane,
-                "Files Found, Select if you wish to browse to one",
-                JOptionPane.OK_CANCEL_OPTION,
-                JOptionPane.PLAIN_MESSAGE
-        );
+        pane.addEventFilter(KeyEvent.KEY_PRESSED, event -> {
+            if (event.getCode() == KeyCode.ESCAPE) {
+                dialog.setResult(null);
+                dialog.close();
+                event.consume();
+                return;
+            }
+            if (event.getCode() == KeyCode.ENTER) {
+                dialog.setResult(fileList.getSelectionModel().getSelectedItem());
+                dialog.close();
+                event.consume();
+            }
+        });
 
-        FileItem selectedFile = null;
-        if (result == JOptionPane.OK_OPTION)
-            selectedFile = fileList.getSelectedValue();
-
-        return selectedFile;
+        return dialog.showAndWait().orElse(null);
     }
 
     @Override
