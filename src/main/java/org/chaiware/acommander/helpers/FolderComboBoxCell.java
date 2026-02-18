@@ -50,7 +50,7 @@ public class FolderComboBoxCell extends ListCell<Folder> {
         }
 
         Label label = new Label(text);
-        label.setStyle("-fx-font-size: 12px;");
+        label.setStyle("-fx-font-size: 12px; -fx-text-fill: -ac-input-text;");
         container.getChildren().add(label);
         return container;
     }
@@ -70,26 +70,23 @@ public class FolderComboBoxCell extends ListCell<Folder> {
 
     /** Drive info in the combox dropdown */
     private HBox createDriveContent(Drive drive, HBox container) {
-        Label icon = new Label("[D]");
-        icon.setStyle("-fx-font-size: 12px;");
         VBox driveInfo = new VBox(2);
         Label driveLabel = new Label(drive.getLetter() + ": (" + drive.getStoreType() + ", " + formatBytes(drive.getAvailableSpace()) + " free)");
         driveLabel.setStyle("-fx-font-weight: bold; -fx-font-size: 13px;");
 
         String spaceInfo = formatBytes(drive.getAvailableSpace()) + " / " + formatBytes(drive.getTotalSpace());
         Label spaceLabel = new Label(spaceInfo);
-        spaceLabel.setStyle("-fx-font-size: 11px; -fx-text-fill: #666666;");
+        spaceLabel.setStyle("-fx-font-size: 11px;");
+        spaceLabel.getStyleClass().add("drive-space-label");
 
         driveInfo.getChildren().addAll(driveLabel, spaceLabel);
-        container.getChildren().addAll(icon, driveInfo);
+        container.getChildren().add(driveInfo);
 
         return container;
     }
 
     /** Folder info in the combox dropdown */
     private HBox createFolderContent(WindowsFolder folder, HBox container) {
-        Label icon = new Label("[W]");
-        icon.setStyle("-fx-font-size: 12px;");
         VBox folderInfo = new VBox(2);
         Label nameLabel = new Label(folder.getName());
         nameLabel.setStyle("-fx-font-weight: bold; -fx-font-size: 13px;");
@@ -97,7 +94,7 @@ public class FolderComboBoxCell extends ListCell<Folder> {
         pathLabel.setStyle("-fx-font-size: 11px; -fx-text-fill: #666666;");
 
         folderInfo.getChildren().addAll(nameLabel, pathLabel);
-        container.getChildren().addAll(icon, folderInfo);
+        container.getChildren().add(folderInfo);
 
         return container;
     }

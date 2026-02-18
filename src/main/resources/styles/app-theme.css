@@ -76,6 +76,39 @@
     -fx-text-fill: -ac-input-text;
 }
 
+/* Keep selected path text readable in both the closed combo and popup list */
+.path-combo > .list-cell:selected {
+    -fx-background-color: -ac-input-bg;
+    -fx-text-fill: -ac-input-text;
+}
+
+.path-combo .list-view .list-cell:filled:selected,
+.path-combo .list-view .list-cell:filled:selected:focused {
+    -fx-background-color: -ac-select-active-bg;
+}
+
+.path-combo .list-view .list-cell:filled:selected .label,
+.path-combo .list-view .list-cell:filled:selected:focused .label {
+    -fx-text-fill: -ac-select-active-text;
+}
+
+.path-combo .drive-space-label {
+    -fx-text-fill: #666666;
+}
+
+.path-combo .list-view .list-cell:filled:selected .drive-space-label,
+.path-combo .list-view .list-cell:filled:selected:focused .drive-space-label {
+    -fx-text-fill: #000000;
+}
+
+.path-combo .list-view .list-cell:filled:hover {
+    -fx-text-fill: #000000;
+}
+
+.path-combo .list-view .list-cell:filled:hover .label {
+    -fx-text-fill: #000000;
+}
+
 .pane-header {
     -fx-background-color: -ac-header-bg;
     -fx-border-color: -ac-border;
