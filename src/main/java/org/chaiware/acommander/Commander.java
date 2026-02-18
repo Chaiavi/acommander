@@ -56,6 +56,7 @@ public class Commander {
     private static final String LEFT_FOLDER_KEY = "left_folder";
     private static final String RIGHT_FOLDER_KEY = "right_folder";
     private static final String THEME_MODE_KEY = "theme_mode";
+    private static final String BOOKMARK_KEY_PREFIX = "bookmark.";
     private static final String THEME_DARK_CLASS = "theme-dark";
     private static final String THEME_LIGHT_CLASS = "theme-light";
 
@@ -84,6 +85,7 @@ public class Commander {
     ACommands commands;
     private AppRegistry appRegistry;
     private ActionExecutor actionExecutor;
+    private final Map<String, String> bookmarks = new LinkedHashMap<>();
 
     private static final Logger logger = LoggerFactory.getLogger(Commander.class);
     public FilesPanesHelper filesPanesHelper;
@@ -319,11 +321,14 @@ public class Commander {
 
     private void loadConfigFile() {
         Path configFile = getConfigFilePath();
-        if (!Files.exists(configFile))
+        if (!Files.exists(configFile)) {
+            bookmarks.clear();
             return;
+        }
 
         try (FileInputStream input = new FileInputStream(configFile.toFile())) {
             properties.load(input);
+            loadBookmarksFromProperties();
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
@@ -359,6 +364,7 @@ public class Commander {
     private void saveConfigFile() {
         Path configFile = getConfigFilePath();
         try {
+            syncBookmarksToProperties();
             Files.createDirectories(configFile.getParent());
             try (ByteArrayOutputStream output = new ByteArrayOutputStream()) {
                 properties.store(output, null);
@@ -1012,6 +1018,61 @@ public class Commander {
             filesPanesHelper.setFileListPath(LEFT, focusedPath);
     }
 
+    public void bookmarkCurrentPath() {
+        String focusedPath = filesPanesHelper.getFocusedPath();
+        if (focusedPath == null || focusedPath.isBlank()) {
+            showError("Bookmark this path", "Current path is empty.");
+            return;
+        }
+
+        String suggestedName = suggestBookmarkName(focusedPath);
+        Optional<String> input = getUserFeedback(suggestedName, "Bookmark this path", "Bookmark name");
+        if (input.isEmpty()) {
+            return;
+        }
+
+        String name = input.get().trim();
+        if (name.isBlank()) {
+            showError("Bookmark this path", "Bookmark name cannot be empty.");
+            return;
+        }
+
+        bookmarks.put(name, focusedPath);
+        saveConfigFile();
+    }
+
+    public void gotoBookmark() {
+        try {
+            Optional<String> selected = promptBookmarkSelection("Goto Bookmark", "Go to selected bookmark", "Go");
+            if (selected.isEmpty()) {
+                return;
+            }
+
+            String path = bookmarks.get(selected.get());
+            if (path == null || path.isBlank()) {
+                showError("Goto Bookmark", "Bookmark path is missing.");
+                return;
+            }
+            if (!Files.isDirectory(Path.of(path))) {
+                showError("Goto Bookmark", "Bookmark path does not exist: " + path);
+                return;
+            }
+
+            filesPanesHelper.setFocusedFileListPath(path);
+        } finally {
+            requestFocusedFileListFocus();
+        }
+    }
+
+    public void removeBookmark() {
+        Optional<String> selected = promptBookmarkSelection("Remove Bookmark", "Select bookmark to remove", "Remove");
+        if (selected.isEmpty()) {
+            return;
+        }
+        bookmarks.remove(selected.get());
+        saveConfigFile();
+    }
+
     public void filterByChar(char selectedChar) {
         ObservableList<FileItem> fileItems = filesPanesHelper.getFileList(true).getItems();
         fileItems.stream()
@@ -1031,8 +1092,192 @@ public class Commander {
         return dialog.showAndWait();
     }
 
+    private void requestFocusedFileListFocus() {
+        Platform.runLater(() -> {
+            if (filesPanesHelper.getFocusedSide() == LEFT) {
+                leftFileList.requestFocus();
+            } else {
+                rightFileList.requestFocus();
+            }
+        });
+    }
+
     public Optional<String> promptUser(String defaultValue, String title, String question) {
         return getUserFeedback(defaultValue, title, question);
+    }
+
+    private Optional<String> promptBookmarkSelection(String title, String hint, String actionButtonLabel) {
+        if (bookmarks.isEmpty()) {
+            Alert alert = new Alert(Alert.AlertType.INFORMATION);
+            alert.setTitle(title);
+            alert.setHeaderText(null);
+            alert.setContentText("No bookmarks found.");
+            applyThemeToDialog(alert);
+            alert.showAndWait();
+            return Optional.empty();
+        }
+
+        List<String> names = bookmarks.keySet().stream()
+                .sorted(String.CASE_INSENSITIVE_ORDER)
+                .toList();
+
+        Dialog<String> dialog = new Dialog<>();
+        dialog.setTitle(title);
+        dialog.setHeaderText(null);
+
+        ButtonType actionType = new ButtonType(actionButtonLabel, ButtonBar.ButtonData.OK_DONE);
+        dialog.getDialogPane().getButtonTypes().addAll(actionType, ButtonType.CANCEL);
+
+        ListView<String> listView = new ListView<>();
+        listView.getItems().setAll(names);
+        listView.getSelectionModel().selectFirst();
+        listView.setPrefWidth(460);
+        listView.setPrefHeight(Math.min(320, Math.max(140, names.size() * 34)));
+        listView.setCellFactory(unused -> new ListCell<>() {
+            @Override
+            protected void updateItem(String name, boolean empty) {
+                super.updateItem(name, empty);
+                if (empty || name == null) {
+                    setGraphic(null);
+                    setText(null);
+                    return;
+                }
+
+                Label nameLabel = new Label(name);
+                nameLabel.setStyle("-fx-font-weight: bold;");
+                Label pathLabel = new Label(bookmarks.getOrDefault(name, ""));
+                pathLabel.setStyle("-fx-opacity: 0.8;");
+                VBox row = new VBox(2, nameLabel, pathLabel);
+                setGraphic(row);
+            }
+        });
+
+        listView.setOnMouseClicked(event -> {
+            if (event.getClickCount() == 2) {
+                String selected = listView.getSelectionModel().getSelectedItem();
+                if (selected != null) {
+                    dialog.setResult(selected);
+                    dialog.close();
+                }
+            }
+        });
+
+        Label hintLabel = new Label(hint);
+        VBox content = new VBox(10, hintLabel, listView);
+        content.setPadding(new Insets(10));
+        dialog.getDialogPane().setContent(content);
+
+        Button actionButton = (Button) dialog.getDialogPane().lookupButton(actionType);
+        Button cancelButton = (Button) dialog.getDialogPane().lookupButton(ButtonType.CANCEL);
+        actionButton.setDefaultButton(true);
+        cancelButton.setCancelButton(true);
+        Runnable syncActionButton = () -> actionButton.setDisable(listView.getSelectionModel().getSelectedItem() == null);
+        listView.getSelectionModel().selectedItemProperty().addListener((obs, oldValue, newValue) -> syncActionButton.run());
+        syncActionButton.run();
+
+        listView.setOnKeyPressed(event -> {
+            if (event.getCode() == KeyCode.ENTER) {
+                if (!actionButton.isDisabled()) {
+                    actionButton.fire();
+                }
+                event.consume();
+            } else if (event.getCode() == KeyCode.ESCAPE) {
+                cancelButton.fire();
+                event.consume();
+            }
+        });
+
+        dialog.getDialogPane().addEventFilter(KeyEvent.KEY_PRESSED, event -> {
+            if (event.getCode() != KeyCode.UP && event.getCode() != KeyCode.DOWN) {
+                return;
+            }
+            int size = listView.getItems().size();
+            if (size == 0) {
+                return;
+            }
+            int index = listView.getSelectionModel().getSelectedIndex();
+            if (index < 0) {
+                index = 0;
+            } else if (event.getCode() == KeyCode.DOWN) {
+                index = Math.min(index + 1, size - 1);
+            } else {
+                index = Math.max(index - 1, 0);
+            }
+            listView.getSelectionModel().select(index);
+            listView.scrollTo(index);
+            listView.requestFocus();
+            event.consume();
+        });
+
+        dialog.setOnShown(event -> {
+            if (!listView.getItems().isEmpty() && listView.getSelectionModel().getSelectedIndex() < 0) {
+                listView.getSelectionModel().selectFirst();
+            }
+            Platform.runLater(listView::requestFocus);
+        });
+
+        dialog.setResultConverter(button -> {
+            if (button == actionType) {
+                return listView.getSelectionModel().getSelectedItem();
+            }
+            return null;
+        });
+        applyThemeToDialog(dialog);
+        return dialog.showAndWait();
+    }
+
+    private String suggestBookmarkName(String path) {
+        if (path == null || path.isBlank()) {
+            return "bookmark";
+        }
+        try {
+            Path normalized = Path.of(path.trim()).normalize();
+            Path fileName = normalized.getFileName();
+            if (fileName != null) {
+                String candidate = fileName.toString().trim();
+                if (!candidate.isEmpty()) {
+                    return candidate;
+                }
+            }
+        } catch (Exception ignored) {
+            // Fall back to a simple string-based extraction below.
+        }
+
+        String normalizedText = path.trim().replace('\\', '/');
+        while (normalizedText.endsWith("/") && normalizedText.length() > 1) {
+            normalizedText = normalizedText.substring(0, normalizedText.length() - 1);
+        }
+        int lastSlash = normalizedText.lastIndexOf('/');
+        if (lastSlash >= 0 && lastSlash < normalizedText.length() - 1) {
+            return normalizedText.substring(lastSlash + 1);
+        }
+        return normalizedText.isEmpty() ? "bookmark" : normalizedText;
+    }
+
+    private void loadBookmarksFromProperties() {
+        bookmarks.clear();
+        List<String> bookmarkKeys = properties.stringPropertyNames().stream()
+                .filter(key -> key.startsWith(BOOKMARK_KEY_PREFIX))
+                .toList();
+        for (String key : bookmarkKeys) {
+            String name = key.substring(BOOKMARK_KEY_PREFIX.length()).trim();
+            String path = properties.getProperty(key, "").trim();
+            if (!name.isEmpty() && !path.isEmpty()) {
+                bookmarks.put(name, path);
+            }
+        }
+    }
+
+    private void syncBookmarksToProperties() {
+        List<String> keysToRemove = properties.stringPropertyNames().stream()
+                .filter(key -> key.startsWith(BOOKMARK_KEY_PREFIX))
+                .toList();
+        for (String key : keysToRemove) {
+            properties.remove(key);
+        }
+        for (Map.Entry<String, String> entry : bookmarks.entrySet()) {
+            properties.setProperty(BOOKMARK_KEY_PREFIX + entry.getKey(), entry.getValue());
+        }
     }
 
     public CompletableFuture<List<String>> runExternal(List<String> command, boolean refreshAfter) {

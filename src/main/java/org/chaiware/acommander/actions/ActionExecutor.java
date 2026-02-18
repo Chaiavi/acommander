@@ -67,6 +67,9 @@ public class ActionExecutor {
             case "sortByName" -> commander.sortByName();
             case "sortBySize" -> commander.sortBySize();
             case "sortByDate" -> commander.sortByDate();
+            case "bookmarkThisPath" -> commander.bookmarkCurrentPath();
+            case "gotoBookmark" -> commander.gotoBookmark();
+            case "removeBookmark" -> commander.removeBookmark();
             default -> logger.warn("Unknown builtin action id: {}", builtin);
         }
     }

@@ -307,6 +307,30 @@
       "type": "builtin"
     },
     {
+      "id": "bookmarkThisPath",
+      "label": "Bookmark this path",
+      "aliases": ["save bookmark", "bookmark folder"],
+      "contexts": ["global", "commandPalette"],
+      "selection": "none",
+      "type": "builtin"
+    },
+    {
+      "id": "gotoBookmark",
+      "label": "Goto Bookmark",
+      "aliases": ["go to bookmark", "jump bookmark"],
+      "contexts": ["global", "commandPalette"],
+      "selection": "none",
+      "type": "builtin"
+    },
+    {
+      "id": "removeBookmark",
+      "label": "Remove Bookmark",
+      "aliases": ["delete bookmark"],
+      "contexts": ["global", "commandPalette"],
+      "selection": "none",
+      "type": "builtin"
+    },
+    {
       "id": "openCommandPalette",
       "label": "Command Palette",
       "shortcut": "Ctrl+Shift+P",
