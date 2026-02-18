@@ -265,12 +265,18 @@ public class Commander {
         logger.debug("Configuring the ListViews look and experience");
         listView.getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE);
         listView.setCellFactory(lv -> new ListCell<>() {
+            final Label iconLabel = new Label();
             final Label nameLabel = new Label();
             final Label sizeLabel = new Label();
             final Label dateLabel = new Label();
-            final HBox hbox = new HBox(nameLabel, sizeLabel, dateLabel);
+            final HBox hbox = new HBox(iconLabel, nameLabel, sizeLabel, dateLabel);
 
             {
+                iconLabel.setMinWidth(36);
+                iconLabel.setMaxWidth(36);
+                iconLabel.setAlignment(Pos.CENTER);
+                iconLabel.setStyle("-fx-font-family: 'Segoe UI Emoji', 'Segoe UI Symbol'; -fx-font-size: 14px;");
+
                 HBox.setHgrow(nameLabel, Priority.ALWAYS);
                 nameLabel.setMaxWidth(Double.MAX_VALUE);
                 nameLabel.setEllipsisString("...");
@@ -285,8 +291,14 @@ public class Commander {
                 dateLabel.setMaxWidth(120);
                 dateLabel.setAlignment(Pos.CENTER_RIGHT);
 
-                hbox.setSpacing(10);
+                hbox.setSpacing(8);
                 hbox.setStyle("-fx-font-family: 'JetBrains Mono'; -fx-font-size: 14px; -fx-hbar-policy: never;");
+
+                listView.widthProperty().addListener((obs, oldVal, newVal) -> {
+                    double width = newVal.doubleValue() - 20;
+                    hbox.setMaxWidth(width);
+                    hbox.setPrefWidth(width);
+                });
             }
 
             @Override
@@ -295,22 +307,110 @@ public class Commander {
                 if (empty || item == null) {
                     setGraphic(null);
                 } else {
+                    IconSpec iconSpec = resolveIconSpec(item);
+                    iconLabel.setText(iconSpec.glyph());
+                    iconLabel.setStyle(String.format(
+                            "-fx-font-family: 'Segoe UI Emoji', 'Segoe UI Symbol'; -fx-font-size: 14px; -fx-text-fill: %s;",
+                            iconSpec.textColor()
+                    ));
                     nameLabel.setText(item.getPresentableFilename());
                     sizeLabel.setText(String.format("%s", item.getHumanReadableSize()));
                     dateLabel.setText(item.getDate());
 
                     // Constrain width to ListView cell
-                    hbox.setMaxWidth(rightFileList.getWidth() - 20); // leave margin for scrollbar
-                    hbox.setPrefWidth(rightFileList.getWidth() - 20);
-                    listView.widthProperty().addListener((obs, oldVal, newVal) -> {
-                        hbox.setMaxWidth(newVal.doubleValue() - 20);
-                        hbox.setPrefWidth(newVal.doubleValue() - 20);
-                    });
+                    double width = listView.getWidth() - 20; // leave margin for scrollbar
+                    hbox.setMaxWidth(width);
+                    hbox.setPrefWidth(width);
 
                     setGraphic(hbox);
                 }
             }
         });
+    }
+
+    private record IconSpec(String glyph, String textColor) {}
+
+    private IconSpec resolveIconSpec(FileItem item) {
+        if ("..".equals(item.getPresentableFilename())) {
+            return new IconSpec("↩", "#E0E0E0");
+        }
+        if (item.isDirectory()) {
+            return new IconSpec("📁", "#FFD54F");
+        }
+
+        String name = item.getName();
+        String extension = "";
+        int lastDot = name.lastIndexOf('.');
+        if (lastDot >= 0 && lastDot < name.length() - 1) {
+            extension = name.substring(lastDot + 1).toLowerCase(Locale.ROOT);
+        }
+
+        if (isArchiveExtension(extension)) {
+            return new IconSpec("📦", "#FFB74D");
+        }
+        if ("pdf".equals(extension)) {
+            return new IconSpec("📕", "#EF9A9A");
+        }
+        if (isTextExtension(extension)) {
+            return new IconSpec("📄", "#C8E6C9");
+        }
+        if (isImageExtension(extension)) {
+            return new IconSpec("🖼", "#B2EBF2");
+        }
+        if (isAudioExtension(extension)) {
+            return new IconSpec("🎵", "#FFE0B2");
+        }
+        if (isVideoExtension(extension)) {
+            return new IconSpec("🎬", "#F8BBD0");
+        }
+        if (isExecutableExtension(extension)) {
+            return new IconSpec("⚙", "#CFD8DC");
+        }
+
+        return new IconSpec("📃", "#E0E0E0");
+    }
+
+    private boolean isArchiveExtension(String extension) {
+        return switch (extension) {
+            case "zip", "rar", "7z", "tar", "gz", "tgz", "bz2", "xz" -> true;
+            default -> false;
+        };
+    }
+
+    private boolean isTextExtension(String extension) {
+        return switch (extension) {
+            case "txt", "md", "log", "json", "xml", "yml", "yaml", "csv", "ini", "conf", "properties",
+                 "gradle", "kts", "java", "kt", "js", "ts", "html", "css" -> true;
+            default -> false;
+        };
+    }
+
+    private boolean isImageExtension(String extension) {
+        return switch (extension) {
+            case "png", "jpg", "jpeg", "gif", "bmp", "svg", "webp", "ico" -> true;
+            default -> false;
+        };
+    }
+
+    private boolean isAudioExtension(String extension) {
+        return switch (extension) {
+            case "mp3", "wav", "flac", "aac", "ogg", "opus", "m4a" -> true;
+            default -> false;
+        };
+    }
+
+    private boolean isVideoExtension(String extension) {
+        return switch (extension) {
+            case "mp4", "mkv", "avi", "mov", "wmv", "webm", "m4v" -> true;
+            default -> false;
+        };
+    }
+
+    private boolean isExecutableExtension(String extension) {
+        return switch (extension) {
+            case "exe", "msi", "bat", "cmd", "ps1", "sh" -> true;
+            default -> false;
+        };
     }
 
     private void configFileListsFocus() {
