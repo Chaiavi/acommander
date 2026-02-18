@@ -137,7 +137,7 @@
       "id": "deleteWipe",
       "label": "Delete & Wipe",
       "shortcut": "Shift+F8",
-      "contexts": ["filePane"],
+      "contexts": ["filePane", "commandPalette"],
       "selection": "any",
       "type": "builtin",
       "builtin": "deleteWipe"
