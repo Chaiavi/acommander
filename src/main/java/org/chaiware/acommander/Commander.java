@@ -576,7 +576,26 @@ public class Commander {
             filesPanesHelper.setFocusedFileListPath(selectedItem.getFullPath());
         else {
             try {
-                getDesktop().open(selectedItem.getFile());
+                String extension = "";
+                String name = selectedItem.getName();
+                int lastDot = name.lastIndexOf('.');
+                if (lastDot >= 0 && lastDot < name.length() - 1) {
+                    extension = name.substring(lastDot + 1).toLowerCase(Locale.ROOT);
+                }
+
+                if (isExecutableExtension(extension)) {
+                    List<String> command = switch (extension) {
+                        case "bat", "cmd" -> List.of("cmd.exe", "/c", selectedItem.getFullPath());
+                        case "ps1" -> List.of("powershell.exe", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", selectedItem.getFullPath());
+                        default -> List.of(selectedItem.getFullPath());
+                    };
+                    runExternal(command, false).exceptionally(ex -> {
+                        logger.error("Failed running executable: {}", selectedItem.getName(), ex);
+                        return Collections.emptyList();
+                    });
+                } else {
+                    getDesktop().open(selectedItem.getFile());
+                }
             } catch (Exception ex) {
                 logger.error("Failed opening: {}", selectedItem.getName(), ex);
             }
