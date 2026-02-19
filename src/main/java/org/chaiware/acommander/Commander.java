@@ -1082,6 +1082,7 @@ public class Commander {
                     }
                     filesPanesHelper.setFocusedFileListPath(selectedFile.getFile().getParent());
                     filesPanesHelper.selectFileItem(true, selectedFile);
+                    requestFocusedFileListFocus();
                 }))
                 .exceptionally(throwable -> {
                     Platform.runLater(() -> showError("Find in Files", "Failed running ripgrep: " + throwable.getMessage()));
@@ -1920,3 +1921,4 @@ public class Commander {
         }
     }
 }
+

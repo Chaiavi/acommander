@@ -168,6 +168,12 @@ public class CommandsSimpleImpl extends ACommands {
                                 log.info("From the search, the selected file is: {}", selectedFile.getFullPath());
                                 fileListsLoader.setFocusedFileListPath(selectedFile.getFile().getParent());
                                 fileListsLoader.selectFileItem(true, selectedFile);
+                                ListView<FileItem> focusedList = fileListsLoader.getFileList(true);
+                                focusedList.requestFocus();
+                                int selectedIndex = focusedList.getSelectionModel().getSelectedIndex();
+                                if (selectedIndex >= 0) {
+                                    focusedList.getFocusModel().focus(selectedIndex);
+                                }
                             } else {
                                 log.info("User didn't select any file from the search results");
                             }
@@ -259,3 +265,4 @@ public class CommandsSimpleImpl extends ACommands {
         throw new Exception("Not implemented yet");
     }
 }
+
