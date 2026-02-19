@@ -1843,7 +1843,7 @@ public class Commander {
                 btnF7.setText("F7 MkDir");
                 btnF8.setText("F8 Delete");
                 btnF9.setText("F9 Terminal");
-                btnF10.setText("F10 Search");
+                btnF10.setText("F10 Search for Files");
                 btnF11.setText("F11 Pack");
                 btnF12.setText("F12 UnPack");
             }
