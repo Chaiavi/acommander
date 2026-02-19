@@ -98,6 +98,7 @@ public class Commander {
     private ThemeMode currentThemeMode = ThemeMode.REGULAR;
     private KeyCode bottomButtonModifier;
     private final AtomicInteger runningExternalCommands = new AtomicInteger(0);
+    private volatile boolean restoreFileListFocusAfterSettingsEdit = false;
 
 
     @FXML
@@ -163,7 +164,14 @@ public class Commander {
             @Override
             public void onCommandFinished(List<String> command, int exitCode, Throwable error) {
                 int active = runningExternalCommands.updateAndGet(current -> Math.max(0, current - 1));
-                Platform.runLater(() -> hideOrUpdateExternalProgress(active));
+                boolean finishedSettingsEditor = isSettingsEditCommand(command);
+                Platform.runLater(() -> {
+                    hideOrUpdateExternalProgress(active);
+                    if (finishedSettingsEditor && restoreFileListFocusAfterSettingsEdit) {
+                        restoreFileListFocusAfterSettingsEdit = false;
+                        focusCurrentFileList();
+                    }
+                });
             }
         };
     }
@@ -723,6 +731,53 @@ public class Commander {
         } catch (Exception ex) {
             error("Failed Viewing file", ex);
         }
+    }
+
+    public void openSettings() {
+        logger.info("Open Settings");
+        try {
+            Path configFile = getConfigFilePath();
+            if (configFile.getParent() != null) {
+                Files.createDirectories(configFile.getParent());
+            }
+            if (!Files.exists(configFile)) {
+                Files.createFile(configFile);
+            }
+            FileItem selectedItem = new FileItem(configFile.toFile(), configFile.getFileName().toString());
+            restoreFileListFocusAfterSettingsEdit = true;
+            commands.edit(selectedItem);
+        } catch (Exception ex) {
+            restoreFileListFocusAfterSettingsEdit = false;
+            error("Failed Opening settings", ex);
+        }
+    }
+
+    private boolean isSettingsEditCommand(List<String> command) {
+        if (command == null || command.isEmpty()) {
+            return false;
+        }
+        String settingsPath = getConfigFilePath().toAbsolutePath().normalize().toString();
+        for (String arg : command) {
+            if (arg == null || arg.isBlank()) {
+                continue;
+            }
+            try {
+                if (settingsPath.equalsIgnoreCase(Paths.get(arg).toAbsolutePath().normalize().toString())) {
+                    return true;
+                }
+            } catch (Exception ignored) {
+                // Some command args are flags, not paths.
+            }
+        }
+        return false;
+    }
+
+    private void focusCurrentFileList() {
+        if (filesPanesHelper.getFocusedSide() == LEFT) {
+            leftFileList.requestFocus();
+            return;
+        }
+        rightFileList.requestFocus();
     }
 
     @FXML

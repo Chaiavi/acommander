@@ -34,6 +34,14 @@
       "type": "builtin"
     },
     {
+      "id": "settings",
+      "label": "Settings",
+      "aliases": ["preferences", "options", "settings"],
+      "contexts": ["global", "commandPalette"],
+      "selection": "none",
+      "type": "builtin"
+    },
+    {
       "id": "rename",
       "label": "Rename",
       "shortcut": "F2",

@@ -36,6 +36,7 @@ public class ActionExecutor {
         String builtin = action.getBuiltin() == null ? action.getId() : action.getBuiltin();
         switch (builtin) {
             case "help" -> commander.help();
+            case "settings" -> commander.openSettings();
             case "rename" -> commander.renameFile();
             case "view" -> commander.viewFile();
             case "edit" -> commander.editFile();
