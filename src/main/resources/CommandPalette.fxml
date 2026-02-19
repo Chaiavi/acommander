@@ -15,7 +15,7 @@
       styleClass="palette-root"
       visible="false"
       xmlns="http://javafx.com/javafx/21"
-      xmlns:fx="http://javafx.com/fxml/1"
+      xmlns:fx="http://javafx.com/fxml"
       fx:controller="org.chaiware.acommander.palette.CommandPaletteController">
     <padding>
         <Insets bottom="6.0" left="6.0" right="6.0" top="6.0"/>
