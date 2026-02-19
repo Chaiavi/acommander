@@ -1,8 +1,8 @@
 package org.chaiware.acommander.commands;
 
 import javafx.application.Platform;
-import org.chaiware.acommander.model.FileItem;
 import org.chaiware.acommander.helpers.FilesPanesHelper;
+import org.chaiware.acommander.model.FileItem;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -12,16 +12,24 @@ import java.io.InputStreamReader;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 public abstract class ACommands {
     protected final String APP_PATH = Paths.get(System.getProperty("user.dir"), "apps") + "\\";
     protected FilesPanesHelper fileListsLoader;
+    protected ExternalCommandListener externalCommandListener;
+    private final Set<Process> runningProcesses = ConcurrentHashMap.newKeySet();
     final Logger log = LoggerFactory.getLogger(ACommands.class);
 
     public ACommands(FilesPanesHelper filesPanesHelper) {
         this.fileListsLoader = filesPanesHelper;
+    }
+
+    public void setExternalCommandListener(ExternalCommandListener externalCommandListener) {
+        this.externalCommandListener = externalCommandListener;
     }
 
     // helper methods for filtering
@@ -147,12 +155,18 @@ public abstract class ACommands {
     protected abstract void doExtractPDFPages(FileItem selectedItem, String destinationPath) throws Exception;
 
     protected CompletableFuture<List<String>> runExecutable(List<String> params, boolean shouldUpdateUI) {
+        List<String> commandSnapshot = List.copyOf(params);
+        notifyCommandStarted(commandSnapshot);
         return CompletableFuture.supplyAsync(() -> {
+            int exitCode = -1;
+            Throwable failure = null;
+            Process process = null;
             try {
                 ProcessBuilder pb = new ProcessBuilder(params);
                 pb.redirectErrorStream(true); // merges stderr into stdout
                 log.debug("Running: {}", String.join(" ", pb.command()));
-                Process process = pb.start();
+                process = pb.start();
+                runningProcesses.add(process);
 
                 List<String> output = new ArrayList<>();
                 try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
@@ -162,20 +176,68 @@ public abstract class ACommands {
                     }
                 }
 
-                int exitCode = process.waitFor();
+                exitCode = process.waitFor();
                 log.debug("Process completed with exit code: {}", exitCode);
 
                 if (shouldUpdateUI) Platform.runLater(() -> fileListsLoader.refreshFileListViews());
                 return output;
 
             } catch (IOException | InterruptedException e) {
+                failure = e;
                 log.error("Error running external process", e);
                 throw new RuntimeException(e);
+            } finally {
+                if (process != null) {
+                    runningProcesses.remove(process);
+                }
+                notifyCommandFinished(commandSnapshot, exitCode, failure);
             }
         });
     }
 
     public CompletableFuture<List<String>> runExternal(List<String> params, boolean shouldUpdateUI) {
         return runExecutable(params, shouldUpdateUI);
+    }
+
+    public int stopRunningExternalCommands() {
+        List<Process> snapshot = new ArrayList<>(runningProcesses);
+        int stopped = 0;
+        for (Process process : snapshot) {
+            if (!process.isAlive()) {
+                continue;
+            }
+            try {
+                process.destroy();
+                if (process.isAlive()) {
+                    process.destroyForcibly();
+                }
+                stopped++;
+            } catch (Exception ex) {
+                log.warn("Failed stopping external process", ex);
+            }
+        }
+        return stopped;
+    }
+
+    private void notifyCommandStarted(List<String> command) {
+        if (externalCommandListener == null) {
+            return;
+        }
+        try {
+            externalCommandListener.onCommandStarted(command);
+        } catch (Exception ex) {
+            log.debug("External command listener failed on start", ex);
+        }
+    }
+
+    private void notifyCommandFinished(List<String> command, int exitCode, Throwable error) {
+        if (externalCommandListener == null) {
+            return;
+        }
+        try {
+            externalCommandListener.onCommandFinished(command, exitCode, error);
+        } catch (Exception ex) {
+            log.debug("External command listener failed on finish", ex);
+        }
     }
 }

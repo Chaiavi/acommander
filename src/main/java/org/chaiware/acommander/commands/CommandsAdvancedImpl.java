@@ -27,6 +27,19 @@ public class CommandsAdvancedImpl extends ACommands {
     }
 
     @Override
+    public void setExternalCommandListener(ExternalCommandListener externalCommandListener) {
+        super.setExternalCommandListener(externalCommandListener);
+        commandsSimpleImpl.setExternalCommandListener(externalCommandListener);
+    }
+
+    @Override
+    public int stopRunningExternalCommands() {
+        int stoppedByAdvanced = super.stopRunningExternalCommands();
+        int stoppedBySimple = commandsSimpleImpl.stopRunningExternalCommands();
+        return stoppedByAdvanced + stoppedBySimple;
+    }
+
+    @Override
     protected void doRename(List<FileItem> validItems, String newFilename) throws Exception {
         if (validItems.size() == 1) {
             commandsSimpleImpl.doRename(validItems, newFilename);
@@ -48,7 +61,7 @@ public class CommandsAdvancedImpl extends ACommands {
     }
 
     @Override
-    protected void doView(FileItem fileItem) throws Exception {
+    protected void doView(FileItem fileItem) {
         ActionDefinition action = requireAction("view");
         List<String> selectedFiles = List.of(fileItem.getFullPath());
         List<String> command = ToolCommandBuilder.buildCommand(
@@ -63,7 +76,7 @@ public class CommandsAdvancedImpl extends ACommands {
     }
 
     @Override
-    protected void doEdit(FileItem fileItem) throws Exception {
+    protected void doEdit(FileItem fileItem) {
         ActionDefinition action = requireAction("edit");
         List<String> selectedFiles = List.of(fileItem.getFullPath());
         List<String> command = ToolCommandBuilder.buildCommand(
@@ -78,7 +91,7 @@ public class CommandsAdvancedImpl extends ACommands {
     }
 
     @Override
-    protected void doCopy(FileItem sourceFile, String targetFolder) throws Exception {
+    protected void doCopy(FileItem sourceFile, String targetFolder) {
         ActionDefinition action = requireAction("copy");
         List<String> selectedFiles = List.of(sourceFile.getFullPath());
         List<String> command = ToolCommandBuilder.buildCommand(
@@ -148,7 +161,7 @@ public class CommandsAdvancedImpl extends ACommands {
     }
 
     @Override
-    protected void doUnlockDelete(List<FileItem> validItems) throws Exception {
+    protected void doUnlockDelete(List<FileItem> validItems) {
         ActionDefinition action = requireAction("unlockDelete");
         List<String> selectedFiles = validItems.stream()
                 .map(FileItem::getFullPath)
@@ -165,7 +178,7 @@ public class CommandsAdvancedImpl extends ACommands {
     }
 
     @Override
-    protected void doWipeDelete(List<FileItem> validItems) throws Exception {
+    protected void doWipeDelete(List<FileItem> validItems) {
         ActionDefinition action = requireAction("wipeDelete");
         List<String> selectedFiles = validItems.stream()
                 .map(FileItem::getFullPath)
@@ -205,7 +218,7 @@ public class CommandsAdvancedImpl extends ACommands {
     }
 
     @Override
-    protected void doPack(List<FileItem> validItems, String archiveFilenameWithPath) throws Exception {
+    protected void doPack(List<FileItem> validItems, String archiveFilenameWithPath) {
         ActionDefinition action = requireAction("pack");
         List<String> selectedFiles = validItems.stream()
                 .map(FileItem::getFullPath)
@@ -222,7 +235,7 @@ public class CommandsAdvancedImpl extends ACommands {
     }
 
     @Override
-    protected void doUnpack(FileItem selectedItem, String destinationPath) throws Exception {
+    protected void doUnpack(FileItem selectedItem, String destinationPath) {
         ActionDefinition action = requireAction("unpack");
         List<String> selectedFiles = List.of(selectedItem.getFullPath());
         List<String> command = ToolCommandBuilder.buildCommand(
@@ -237,7 +250,7 @@ public class CommandsAdvancedImpl extends ACommands {
     }
 
     @Override
-    protected void doExtractAll(FileItem selectedItem, String destinationPath) throws Exception {
+    protected void doExtractAll(FileItem selectedItem, String destinationPath) {
         ActionDefinition action = requireAction("extractAll");
         List<String> selectedFiles = List.of(selectedItem.getFullPath());
         List<String> command = ToolCommandBuilder.buildCommand(
@@ -252,7 +265,7 @@ public class CommandsAdvancedImpl extends ACommands {
     }
 
     @Override
-    protected void doMergePDFs(List<FileItem> validItems, String newPdfFilenameWithPath) throws Exception {
+    protected void doMergePDFs(List<FileItem> validItems, String newPdfFilenameWithPath) {
         ActionDefinition action = requireAction("mergePdf");
         List<String> selectedFiles = validItems.stream()
                 .map(FileItem::getFullPath)
@@ -269,7 +282,7 @@ public class CommandsAdvancedImpl extends ACommands {
     }
 
     @Override
-    protected void doExtractPDFPages(FileItem fileItem, String destinationPath) throws Exception {
+    protected void doExtractPDFPages(FileItem fileItem, String destinationPath) {
         ActionDefinition action = requireAction("extractPdfPages");
         List<String> selectedFiles = List.of(fileItem.getFullPath());
         String outputPattern = destinationPath + "\\" + fileItem.getName().replaceFirst("\\.pdf$", "") + "_%04d.pdf";

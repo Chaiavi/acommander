@@ -18,6 +18,7 @@ import org.chaiware.acommander.actions.ActionExecutor;
 import org.chaiware.acommander.actions.ActionRegistry;
 import org.chaiware.acommander.commands.ACommands;
 import org.chaiware.acommander.commands.CommandsAdvancedImpl;
+import org.chaiware.acommander.commands.ExternalCommandListener;
 import org.chaiware.acommander.config.AppConfigLoader;
 import org.chaiware.acommander.config.AppRegistry;
 import org.chaiware.acommander.helpers.ComboBoxSetup;
@@ -41,6 +42,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static java.awt.Desktop.getDesktop;
 import static org.chaiware.acommander.helpers.FilesPanesHelper.FocusSide.LEFT;
@@ -74,6 +76,14 @@ public class Commander {
     @FXML
     Button btnF1, btnF2, btnF3, btnF4, btnF5, btnF6, btnF7, btnF8, btnF9, btnF10, btnF11, btnF12;
     @FXML
+    HBox externalProgressBox;
+    @FXML
+    ProgressBar externalProgressBar;
+    @FXML
+    Label externalProgressLabel;
+    @FXML
+    Button externalStopButton;
+    @FXML
     private CommandPaletteController commandPaletteController;
 
     Properties properties = new Properties();
@@ -87,6 +97,7 @@ public class Commander {
     private final FileAttributesHelper attributesHelper = new FileAttributesHelper();
     private ThemeMode currentThemeMode = ThemeMode.REGULAR;
     private KeyCode bottomButtonModifier;
+    private final AtomicInteger runningExternalCommands = new AtomicInteger(0);
 
 
     @FXML
@@ -99,6 +110,8 @@ public class Commander {
         appRegistry = loadAppRegistry();
         actionExecutor = new ActionExecutor(this, appRegistry);
         commands = new CommandsAdvancedImpl(filesPanesHelper, appRegistry);
+        configureExternalProgressUi();
+        commands.setExternalCommandListener(buildExternalCommandListener());
         configMouseDoubleClick();
 
         logger.debug("Loading file lists into the double panes file views");
@@ -120,6 +133,101 @@ public class Commander {
         filesPanesHelper.refreshFileListViews();
         filesPanesHelper.getFileList(true).getSelectionModel().selectFirst();
         Platform.runLater(() -> leftFileList.requestFocus());
+    }
+
+    private void configureExternalProgressUi() {
+        if (externalProgressBar != null) {
+            externalProgressBar.setProgress(ProgressIndicator.INDETERMINATE_PROGRESS);
+        }
+        if (externalProgressBox != null) {
+            externalProgressBox.setVisible(false);
+            externalProgressBox.setManaged(false);
+        }
+        if (externalProgressLabel != null) {
+            externalProgressLabel.setText("");
+        }
+        if (externalStopButton != null) {
+            externalStopButton.setDisable(true);
+        }
+    }
+
+    private ExternalCommandListener buildExternalCommandListener() {
+        return new ExternalCommandListener() {
+            @Override
+            public void onCommandStarted(List<String> command) {
+                int active = runningExternalCommands.incrementAndGet();
+                String toolName = extractToolName(command);
+                Platform.runLater(() -> showExternalProgress(active, toolName));
+            }
+
+            @Override
+            public void onCommandFinished(List<String> command, int exitCode, Throwable error) {
+                int active = runningExternalCommands.updateAndGet(current -> Math.max(0, current - 1));
+                Platform.runLater(() -> hideOrUpdateExternalProgress(active));
+            }
+        };
+    }
+
+    private void showExternalProgress(int activeCommands, String toolName) {
+        if (externalProgressBox == null || externalProgressLabel == null || externalProgressBar == null) {
+            return;
+        }
+        externalProgressBar.setProgress(ProgressIndicator.INDETERMINATE_PROGRESS);
+        externalProgressBox.setVisible(true);
+        externalProgressBox.setManaged(true);
+        if (activeCommands == 1) {
+            externalProgressLabel.setText("Running: " + toolName);
+        } else {
+            externalProgressLabel.setText("Running " + activeCommands + " external tasks...");
+        }
+        if (externalStopButton != null) {
+            externalStopButton.setDisable(false);
+        }
+    }
+
+    private void hideOrUpdateExternalProgress(int activeCommands) {
+        if (externalProgressBox == null || externalProgressLabel == null) {
+            return;
+        }
+        if (activeCommands <= 0) {
+            externalProgressBox.setVisible(false);
+            externalProgressBox.setManaged(false);
+            externalProgressLabel.setText("");
+            if (externalStopButton != null) {
+                externalStopButton.setDisable(true);
+            }
+            return;
+        }
+        externalProgressLabel.setText("Running " + activeCommands + " external tasks...");
+        if (externalStopButton != null) {
+            externalStopButton.setDisable(false);
+        }
+    }
+
+    private String extractToolName(List<String> command) {
+        if (command == null || command.isEmpty() || command.getFirst() == null || command.getFirst().isBlank()) {
+            return "external command";
+        }
+        String executable = command.getFirst();
+        try {
+            Path path = Paths.get(executable);
+            Path fileName = path.getFileName();
+            if (fileName != null) {
+                return fileName.toString();
+            }
+        } catch (Exception ignored) {
+            // Keep raw value when path parsing fails.
+        }
+        return executable;
+    }
+
+    @FXML
+    public void stopExternalTasks() {
+        int stopped = commands.stopRunningExternalCommands();
+        logger.info("Stop requested for running external tasks. Requested stops: {}", stopped);
+        if (externalStopButton != null) {
+            externalStopButton.setDisable(true);
+        }
     }
 
     private void configSortHeaders() {

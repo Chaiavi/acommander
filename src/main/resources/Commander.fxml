@@ -5,6 +5,7 @@
 <?import javafx.scene.control.ComboBox?>
 <?import javafx.scene.control.Label?>
 <?import javafx.scene.control.ListView?>
+<?import javafx.scene.control.ProgressBar?>
 <?import javafx.scene.layout.BorderPane?>
 <?import javafx.scene.layout.ColumnConstraints?>
 <?import javafx.scene.layout.GridPane?>
@@ -80,6 +81,14 @@
     <bottom>
         <!-- Function keys bar -->
         <VBox styleClass="function-bar-shell">
+            <HBox fx:id="externalProgressBox" alignment="CENTER_LEFT" managed="false" spacing="8.0" styleClass="external-progress-row" visible="false">
+                <HBox.margin>
+                    <Insets bottom="2.0" left="8.0" right="8.0" top="4.0" />
+                </HBox.margin>
+                <Label fx:id="externalProgressLabel" styleClass="external-progress-label" text="Running external command..." />
+                <ProgressBar fx:id="externalProgressBar" maxWidth="Infinity" progress="-1.0" HBox.hgrow="ALWAYS" styleClass="external-progress-bar" />
+                <Button fx:id="externalStopButton" onAction="#stopExternalTasks" styleClass="external-stop-button" text="Stop" />
+            </HBox>
             <HBox fx:id="functionBar" alignment="CENTER" prefHeight="40.0" spacing="1" styleClass="function-bar-row">
                 <Button fx:id="btnF1" maxWidth="Infinity" onAction="#help" prefHeight="32.0" styleClass="function-button" HBox.hgrow="ALWAYS">
                     <HBox.margin>
