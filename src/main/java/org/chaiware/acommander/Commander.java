@@ -5,18 +5,13 @@ import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
-import javafx.scene.Node;
 import javafx.scene.Cursor;
+import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
-import javafx.scene.layout.BorderPane;
-import javafx.scene.layout.GridPane;
-import javafx.scene.layout.HBox;
-import javafx.scene.layout.Priority;
-import javafx.scene.layout.Region;
-import javafx.scene.layout.VBox;
+import javafx.scene.layout.*;
 import javafx.stage.Window;
 import org.chaiware.acommander.actions.ActionContext;
 import org.chaiware.acommander.actions.ActionExecutor;
@@ -36,16 +31,16 @@ import org.chaiware.acommander.palette.CommandPaletteController;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.File;
 import java.io.ByteArrayOutputStream;
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.concurrent.CompletableFuture;
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
 
 import static java.awt.Desktop.getDesktop;
 import static org.chaiware.acommander.helpers.FilesPanesHelper.FocusSide.LEFT;
@@ -91,6 +86,7 @@ public class Commander {
     public FilesPanesHelper filesPanesHelper;
     private final FileAttributesHelper attributesHelper = new FileAttributesHelper();
     private ThemeMode currentThemeMode = ThemeMode.REGULAR;
+    private KeyCode bottomButtonModifier;
 
 
     @FXML
@@ -837,6 +833,203 @@ public class Commander {
     }
 
     @FXML
+    public void handleF10Button() {
+        if (bottomButtonModifier == KeyCode.ALT) {
+            findInFiles();
+            return;
+        }
+        search();
+    }
+
+    public void findInFiles() {
+        logger.info("Find in Files (ALT+F10)");
+        Optional<FindInFilesOptions> options = promptFindInFilesOptions();
+        if (options.isEmpty()) {
+            return;
+        }
+        runFindInFiles(options.get());
+    }
+
+    private Optional<FindInFilesOptions> promptFindInFilesOptions() {
+        Dialog<FindInFilesOptions> dialog = new Dialog<>();
+        dialog.setTitle("Find in Files");
+        dialog.setHeaderText(null);
+
+        ButtonType findType = new ButtonType("Find", ButtonBar.ButtonData.OK_DONE);
+        dialog.getDialogPane().getButtonTypes().addAll(findType, ButtonType.CANCEL);
+
+        TextField queryField = new TextField();
+        queryField.setPromptText("Text to find");
+
+        CheckBox caseInsensitive = new CheckBox("Case Insensitive");
+        CheckBox findInSpecificExtension = new CheckBox("Find in specific extention");
+        TextField extensionField = new TextField();
+        extensionField.setPromptText("Example: java");
+        extensionField.setDisable(true);
+        findInSpecificExtension.selectedProperty().addListener((obs, oldValue, selected) -> {
+            extensionField.setDisable(!selected);
+            if (!selected) {
+                extensionField.clear();
+            }
+        });
+
+        CheckBox includeHiddenAndIgnored = new CheckBox("Search including hidden & ignored files");
+
+        VBox content = new VBox(10,
+                new Label("Find text in: " + filesPanesHelper.getFocusedPath()),
+                queryField,
+                caseInsensitive,
+                findInSpecificExtension,
+                extensionField,
+                includeHiddenAndIgnored
+        );
+        content.setPadding(new Insets(12));
+        dialog.getDialogPane().setContent(content);
+        applyThemeToDialog(dialog);
+
+        Button findButton = (Button) dialog.getDialogPane().lookupButton(findType);
+        Runnable validate = () -> {
+            String query = queryField.getText() == null ? "" : queryField.getText().trim();
+            boolean extensionRequired = findInSpecificExtension.isSelected();
+            String ext = extensionField.getText() == null ? "" : extensionField.getText().trim();
+            findButton.setDisable(query.isEmpty() || (extensionRequired && ext.isEmpty()));
+        };
+        queryField.textProperty().addListener((obs, oldValue, newValue) -> validate.run());
+        extensionField.textProperty().addListener((obs, oldValue, newValue) -> validate.run());
+        findInSpecificExtension.selectedProperty().addListener((obs, oldValue, newValue) -> validate.run());
+        validate.run();
+
+        dialog.setOnShown(event -> Platform.runLater(queryField::requestFocus));
+        dialog.setResultConverter(button -> {
+            if (button != findType) {
+                return null;
+            }
+            String query = queryField.getText() == null ? "" : queryField.getText().trim();
+            String extension = extensionField.getText() == null ? "" : extensionField.getText().trim();
+            return new FindInFilesOptions(
+                    query,
+                    caseInsensitive.isSelected(),
+                    findInSpecificExtension.isSelected(),
+                    extension,
+                    includeHiddenAndIgnored.isSelected()
+            );
+        });
+        return dialog.showAndWait();
+    }
+
+    private void runFindInFiles(FindInFilesOptions options) {
+        String sourcePath = filesPanesHelper.getFocusedPath();
+        Path rgPath = Paths.get(System.getProperty("user.dir"), "apps", "search_in_files", "rg.exe");
+        if (!Files.isRegularFile(rgPath)) {
+            showError("Find in Files", "Ripgrep executable was not found at: " + rgPath);
+            return;
+        }
+
+        List<String> command = new ArrayList<>();
+        command.add(rgPath.toString());
+        command.add("--files-with-matches");
+        command.add("--no-messages");
+        command.add("--fixed-strings");
+        if (options.caseInsensitive()) {
+            command.add("--ignore-case");
+        }
+        if (options.includeHiddenAndIgnored()) {
+            command.add("--hidden");
+            command.add("--no-ignore");
+        }
+        if (options.findInSpecificExtension()) {
+            String ext = options.extension().replaceFirst("^\\.+", "");
+            command.add("--glob");
+            command.add("*." + ext);
+        }
+        command.add(options.query());
+        command.add(sourcePath);
+
+        runExternal(command, false)
+                .thenAccept(output -> Platform.runLater(() -> {
+                    if (output == null || output.isEmpty()) {
+                        Alert alert = new Alert(Alert.AlertType.INFORMATION, "No files found :-(");
+                        alert.setHeaderText(null);
+                        applyThemeToDialog(alert);
+                        alert.showAndWait();
+                        return;
+                    }
+
+                    List<String> files = output.stream()
+                            .map(String::trim)
+                            .filter(line -> !line.isEmpty())
+                            .map(line -> {
+                                Path path = Paths.get(line);
+                                if (!path.isAbsolute()) {
+                                    path = Paths.get(sourcePath).resolve(path);
+                                }
+                                return path.normalize().toString();
+                            })
+                            .distinct()
+                            .toList();
+
+                    FileItem selectedFile = showFileResultsDialog(files);
+                    if (selectedFile == null) {
+                        return;
+                    }
+                    filesPanesHelper.setFocusedFileListPath(selectedFile.getFile().getParent());
+                    filesPanesHelper.selectFileItem(true, selectedFile);
+                }))
+                .exceptionally(throwable -> {
+                    Platform.runLater(() -> showError("Find in Files", "Failed running ripgrep: " + throwable.getMessage()));
+                    return null;
+                });
+    }
+
+    private FileItem showFileResultsDialog(List<String> files) {
+        List<FileItem> fileItems = files.stream().map(filename -> new FileItem(new File(filename))).toList();
+        ListView<FileItem> fileList = new ListView<>();
+        fileList.getItems().setAll(fileItems);
+        fileList.setCellFactory(list -> new ListCell<>() {
+            @Override
+            protected void updateItem(FileItem item, boolean empty) {
+                super.updateItem(item, empty);
+                setText(empty || item == null ? null : item.getFullPath());
+            }
+        });
+        fileList.getSelectionModel().selectFirst();
+        fileList.getFocusModel().focus(0);
+        fileList.setPrefSize(980, 420);
+
+        Dialog<FileItem> dialog = new Dialog<>();
+        dialog.setTitle("Files Found");
+        DialogPane pane = dialog.getDialogPane();
+        pane.setContent(fileList);
+        ButtonType goToFileButton = new ButtonType("Go to File", ButtonBar.ButtonData.OK_DONE);
+        pane.getButtonTypes().addAll(goToFileButton, ButtonType.CANCEL);
+        pane.setPrefSize(1020, 480);
+        dialog.setResizable(true);
+        dialog.setResultConverter(buttonType -> buttonType == goToFileButton ? fileList.getSelectionModel().getSelectedItem() : null);
+        dialog.setOnShown(event -> Platform.runLater(() -> {
+            fileList.requestFocus();
+            fileList.getSelectionModel().selectFirst();
+            fileList.getFocusModel().focus(0);
+        }));
+
+        pane.addEventFilter(KeyEvent.KEY_PRESSED, event -> {
+            if (event.getCode() == KeyCode.ESCAPE) {
+                dialog.setResult(null);
+                dialog.close();
+                event.consume();
+                return;
+            }
+            if (event.getCode() == KeyCode.ENTER) {
+                dialog.setResult(fileList.getSelectionModel().getSelectedItem());
+                dialog.close();
+                event.consume();
+            }
+        });
+
+        applyThemeToDialog(dialog);
+        return dialog.showAndWait().orElse(null);
+    }
+
+    @FXML
     public void pack() {
         logger.info("Pack (F11)");
         try {
@@ -1444,6 +1637,13 @@ public class Commander {
     }
 
     private record SplitSize(boolean valid, long bytes, String sevenZipArg, String message) {}
+    private record FindInFilesOptions(
+            String query,
+            boolean caseInsensitive,
+            boolean findInSpecificExtension,
+            String extension,
+            boolean includeHiddenAndIgnored
+    ) {}
 
     private Optional<FileAttributesHelper.AttributeChangeRequest> promptAttributes(List<FileItem> selectedItems) {
         Dialog<FileAttributesHelper.AttributeChangeRequest> dialog = new Dialog<>();
@@ -1523,6 +1723,7 @@ public class Commander {
     }
 
     public void updateBottomButtons(KeyCode whichKeyWasPressed) {
+        bottomButtonModifier = whichKeyWasPressed;
         switch (whichKeyWasPressed) {
             case null -> {
                 btnF1.setText("F1 Help");
@@ -1544,6 +1745,7 @@ public class Commander {
                 btnF4.setText("ALT+F4 Exit");
                 btnF7.setText("ALT+F7 MkFile");
                 btnF9.setText("ALT+F9 Explorer");
+                btnF10.setText("ALT+F10 Find in Files");
                 btnF11.setText("ALT+F11 Split");
                 btnF12.setText("ALT+F12 Extract All");
             }

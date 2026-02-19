@@ -48,6 +48,7 @@ public class ActionExecutor {
             case "terminal" -> commander.terminalHere();
             case "explorer" -> commander.explorerHere();
             case "search" -> commander.search();
+            case "findInFiles" -> commander.findInFiles();
             case "pack" -> commander.pack();
             case "splitLargeFile" -> commander.splitLargeFile();
             case "unpack" -> commander.unpackFile();

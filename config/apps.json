@@ -179,6 +179,15 @@
       "type": "builtin"
     },
     {
+      "id": "findInFiles",
+      "label": "Find in Files",
+      "shortcut": "Alt+F10",
+      "aliases": ["search text", "content search", "ripgrep"],
+      "contexts": ["global", "commandPalette"],
+      "selection": "none",
+      "type": "builtin"
+    },
+    {
       "id": "searchAlt",
       "label": "Search Files",
       "shortcut": "Ctrl+F",
