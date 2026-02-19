@@ -368,7 +368,7 @@
     },
     {
       "id": "syncToOtherPane",
-      "label": "Show Other Pane Folder",
+      "label": "Same Folder on Other Panel",
       "aliases": ["sync panes", "mirror pane", "same folder"],
       "contexts": ["commandPalette"],
       "selection": "none",

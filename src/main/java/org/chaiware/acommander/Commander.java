@@ -1318,6 +1318,7 @@ public class Commander {
             filesPanesHelper.setFileListPath(RIGHT, focusedPath);
         else
             filesPanesHelper.setFileListPath(LEFT, focusedPath);
+        Platform.runLater(() -> filesPanesHelper.getFileList(true).requestFocus());
     }
 
     public void bookmarkCurrentPath() {
