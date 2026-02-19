@@ -258,6 +258,11 @@
     -fx-background-color: transparent;
 }
 
+.palette-results .list-cell:empty {
+    -fx-background-color: transparent;
+    -fx-padding: 0;
+}
+
 .palette-results .list-cell:filled:hover {
     -fx-background-color: -ac-hover;
 }

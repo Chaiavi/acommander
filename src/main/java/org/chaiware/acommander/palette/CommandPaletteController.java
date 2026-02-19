@@ -2,6 +2,7 @@ package org.chaiware.acommander.palette;
 
 import javafx.application.Platform;
 import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
 import javafx.scene.input.ScrollEvent;
@@ -29,12 +30,15 @@ public class CommandPaletteController {
     private ListView<AppAction> resultsList;
 
     private final ActionMatcher matcher = new ActionMatcher();
+    private final ObservableList<AppAction> filteredActions = FXCollections.observableArrayList();
     private ActionRegistry actionRegistry;
     private ActionContext actionContext;
 
     @FXML
     public void initialize() {
+        resultsList.setItems(filteredActions);
         resultsList.setFixedCellSize(34);
+        updateListHeight(0);
         resultsList.addEventFilter(ScrollEvent.SCROLL, event -> {
             if (!hasScrollableOverflow() && Math.abs(event.getDeltaY()) > 0) {
                 event.consume();
@@ -91,7 +95,7 @@ public class CommandPaletteController {
         paletteRoot.setVisible(false);
         paletteRoot.setManaged(false);
         queryField.clear();
-        resultsList.getItems().clear();
+        filteredActions.clear();
     }
 
     public boolean isOpen() {
@@ -107,7 +111,9 @@ public class CommandPaletteController {
         int next = current < 0 ? 0 : Math.min(current + 1, size - 1);
         if (next != current) {
             resultsList.getSelectionModel().select(next);
-            resultsList.scrollTo(next);
+            if (hasScrollableOverflow()) {
+                resultsList.scrollTo(next);
+            }
             return;
         }
         if (current < 0) {
@@ -124,7 +130,9 @@ public class CommandPaletteController {
         int previous = current <= 0 ? 0 : current - 1;
         if (previous != current) {
             resultsList.getSelectionModel().select(previous);
-            resultsList.scrollTo(previous);
+            if (hasScrollableOverflow()) {
+                resultsList.scrollTo(previous);
+            }
             return;
         }
         if (current < 0) {
@@ -147,9 +155,8 @@ public class CommandPaletteController {
             return;
         }
         List<AppAction> matched = matcher.rank(queryField.getText(), actionRegistry.all(), actionContext);
-        resultsList.setItems(FXCollections.observableArrayList(matched));
-        int visibleRows = Math.min(Math.max(matched.size(), 1), MAX_VISIBLE_ROWS);
-        resultsList.setPrefHeight((visibleRows * resultsList.getFixedCellSize()) + 2);
+        filteredActions.setAll(matched);
+        updateListHeight(matched.size());
         if (!matched.isEmpty()) {
             resultsList.getSelectionModel().selectFirst();
         } else {
@@ -160,6 +167,16 @@ public class CommandPaletteController {
 
     private boolean hasScrollableOverflow() {
         return resultsList.getItems().size() > MAX_VISIBLE_ROWS;
+    }
+
+    private void updateListHeight(int itemCount) {
+        int visibleRows = Math.min(Math.max(itemCount, 1), MAX_VISIBLE_ROWS);
+        double listHeight = (visibleRows * resultsList.getFixedCellSize())
+                + resultsList.snappedTopInset()
+                + resultsList.snappedBottomInset();
+        resultsList.setMinHeight(listHeight);
+        resultsList.setPrefHeight(listHeight);
+        resultsList.setMaxHeight(listHeight);
     }
 
     private void clampScrollToTop() {
