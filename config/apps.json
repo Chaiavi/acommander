@@ -226,6 +226,22 @@
       "type": "builtin"
     },
     {
+      "id": "checksumFile",
+      "label": "Checksum File",
+      "aliases": ["hash file", "rhash file", "file checksum"],
+      "contexts": ["commandPalette"],
+      "selection": "any",
+      "type": "builtin"
+    },
+    {
+      "id": "checksumFolderContents",
+      "label": "Checksum Folder Contents",
+      "aliases": ["hash folder", "rhash folder", "folder checksum"],
+      "contexts": ["commandPalette"],
+      "selection": "any",
+      "type": "builtin"
+    },
+    {
       "id": "unpack",
       "label": "Unpack",
       "shortcut": "F12",

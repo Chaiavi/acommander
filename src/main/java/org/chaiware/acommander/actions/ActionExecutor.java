@@ -52,6 +52,8 @@ public class ActionExecutor {
             case "findInFiles" -> commander.findInFiles();
             case "pack" -> commander.pack();
             case "splitLargeFile" -> commander.splitLargeFile();
+            case "checksumFile" -> commander.checksumFile();
+            case "checksumFolderContents" -> commander.checksumFolderContents();
             case "unpack" -> commander.unpackFile();
             case "extractAll" -> commander.extractAll();
             case "mergePdf" -> commander.mergePDFFiles();

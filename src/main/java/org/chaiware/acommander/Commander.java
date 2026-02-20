@@ -9,6 +9,8 @@ import javafx.scene.Cursor;
 import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
+import javafx.scene.input.Clipboard;
+import javafx.scene.input.ClipboardContent;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.*;
@@ -43,6 +45,7 @@ import java.nio.file.Paths;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.regex.Pattern;
 
 import static java.awt.Desktop.getDesktop;
 import static org.chaiware.acommander.helpers.FilesPanesHelper.FocusSide.LEFT;
@@ -1268,6 +1271,120 @@ public class Commander {
         }
     }
 
+    public void checksumFile() {
+        logger.info("Checksum File");
+        List<FileItem> selectedItems = commands.filterValidItems(new ArrayList<>(filesPanesHelper.getSelectedItems()));
+        if (selectedItems.size() != 1) {
+            showError("Checksum File", "Select exactly one file.");
+            requestFocusedFileListFocus();
+            return;
+        }
+
+        FileItem selectedItem = selectedItems.getFirst();
+        if (selectedItem.isDirectory()) {
+            showError("Checksum File", "The selected item is a folder. Please select a single file.");
+            requestFocusedFileListFocus();
+            return;
+        }
+
+        Optional<ChecksumOptions> options = promptChecksumOptions("Checksum File", selectedItem.getName(), false);
+        if (options.isEmpty()) {
+            requestFocusedFileListFocus();
+            return;
+        }
+
+        Path rhashPath = Paths.get(System.getProperty("user.dir"), "apps", "checksum", "rhash.exe");
+        if (!Files.exists(rhashPath)) {
+            showError("Checksum File", "rhash executable was not found at: " + rhashPath);
+            requestFocusedFileListFocus();
+            return;
+        }
+
+        List<String> command = buildChecksumCommand(rhashPath, selectedItem.getFullPath(), options.get(), false);
+        runExternal(command, false)
+                .thenAccept(output -> Platform.runLater(() -> {
+                    String checksumValue = options.get().includeFileNames()
+                            ? String.join(System.lineSeparator(), output)
+                            : extractDigestValue(output);
+                    if (checksumValue == null || checksumValue.isBlank()) {
+                        showError("Checksum File", "No checksum value was returned by rhash.");
+                    } else {
+                        showChecksumResultDialog(
+                                "Checksum File",
+                                selectedItem.getName(),
+                                options.get().algorithmLabel(),
+                                checksumValue,
+                                selectedItem.getFile().getParentFile().toPath(),
+                                false
+                        );
+                    }
+                    requestFocusedFileListFocus();
+                }))
+                .exceptionally(throwable -> {
+                    Platform.runLater(() -> {
+                        showError("Checksum File", "Failed running rhash: " + throwable.getMessage());
+                        requestFocusedFileListFocus();
+                    });
+                    return null;
+                });
+    }
+
+    public void checksumFolderContents() {
+        logger.info("Checksum Folder Contents");
+        List<FileItem> selectedItems = commands.filterValidItems(new ArrayList<>(filesPanesHelper.getSelectedItems()));
+        if (selectedItems.size() != 1) {
+            showError("Checksum Folder Contents", "Select exactly one folder.");
+            requestFocusedFileListFocus();
+            return;
+        }
+
+        FileItem selectedItem = selectedItems.getFirst();
+        if (!selectedItem.isDirectory()) {
+            showError("Checksum Folder Contents", "The selected item is a file. Please select a single folder.");
+            requestFocusedFileListFocus();
+            return;
+        }
+
+        Optional<ChecksumOptions> options = promptChecksumOptions("Checksum Folder Contents", selectedItem.getName(), true);
+        if (options.isEmpty()) {
+            requestFocusedFileListFocus();
+            return;
+        }
+
+        Path rhashPath = Paths.get(System.getProperty("user.dir"), "apps", "checksum", "rhash.exe");
+        if (!Files.exists(rhashPath)) {
+            showError("Checksum Folder Contents", "rhash executable was not found at: " + rhashPath);
+            requestFocusedFileListFocus();
+            return;
+        }
+
+        List<String> command = buildChecksumCommand(rhashPath, selectedItem.getFullPath(), options.get(), true);
+        runExternal(command, false)
+                .thenAccept(output -> Platform.runLater(() -> {
+                    String resultText = String.join(System.lineSeparator(), output).trim();
+                    if (resultText.isBlank()) {
+                        showError("Checksum Folder Contents", "No checksum values were returned by rhash.");
+                    } else {
+                        showChecksumResultDialog(
+                                "Checksum Folder Contents",
+                                selectedItem.getName(),
+                                options.get().algorithmLabel(),
+                                resultText,
+                                selectedItem.getFile().toPath(),
+                                true
+                        );
+                    }
+                    requestFocusedFileListFocus();
+                }))
+                .exceptionally(throwable -> {
+                    Platform.runLater(() -> {
+                        showError("Checksum Folder Contents", "Failed running rhash: " + throwable.getMessage());
+                        requestFocusedFileListFocus();
+                    });
+                    return null;
+                });
+    }
+
     @FXML
     public void unpackFile() {
         logger.info("UnPack (F12)");
@@ -1790,6 +1907,198 @@ public class Commander {
         return String.format(Locale.ROOT, "%.2f GB", gb);
     }
 
+    private List<String> buildChecksumCommand(Path rhashPath, String targetPath, ChecksumOptions options, boolean recursive) {
+        List<String> command = new ArrayList<>();
+        command.add(rhashPath.toString());
+        command.add(options.algorithmFlag());
+        if (recursive) {
+            command.add("--recursive");
+        }
+        if (options.base32()) {
+            command.add("--base32");
+        } else if (options.base64()) {
+            command.add("--base64");
+        } else {
+            command.add("--hex");
+        }
+        if (!options.includeFileNames()) {
+            command.add("--simple");
+        }
+        command.add(targetPath);
+        return command;
+    }
+
+    private Optional<ChecksumOptions> promptChecksumOptions(String titleText, String selectedName, boolean includeNamesByDefault) {
+        Dialog<ChecksumOptions> dialog = new Dialog<>();
+        dialog.setTitle(titleText);
+        dialog.setHeaderText(null);
+
+        ButtonType computeType = new ButtonType("Compute", ButtonBar.ButtonData.OK_DONE);
+        dialog.getDialogPane().getButtonTypes().addAll(computeType, ButtonType.CANCEL);
+
+        Label title = new Label(titleText);
+        title.setStyle("-fx-font-size: 16px; -fx-font-weight: bold;");
+        Label subtitle = new Label("Selected item: " + selectedName);
+
+        ToggleGroup hashToggle = new ToggleGroup();
+        RadioButton md5 = new RadioButton("MD5");
+        RadioButton sha1 = new RadioButton("SHA1");
+        RadioButton sha256 = new RadioButton("SHA256");
+        RadioButton sha512 = new RadioButton("SHA512");
+        RadioButton crc32 = new RadioButton("CRC32");
+        md5.setToggleGroup(hashToggle);
+        sha1.setToggleGroup(hashToggle);
+        sha256.setToggleGroup(hashToggle);
+        sha512.setToggleGroup(hashToggle);
+        crc32.setToggleGroup(hashToggle);
+        sha256.setSelected(true);
+
+        GridPane hashGrid = new GridPane();
+        hashGrid.setHgap(16);
+        hashGrid.setVgap(8);
+        hashGrid.add(md5, 0, 0);
+        hashGrid.add(sha1, 1, 0);
+        hashGrid.add(sha256, 0, 1);
+        hashGrid.add(sha512, 1, 1);
+        hashGrid.add(crc32, 0, 2);
+
+        CheckBox outputBase32 = new CheckBox("Output as Base32");
+        CheckBox outputBase64 = new CheckBox("Output as Base64");
+        CheckBox includeFileNames = new CheckBox("Include file names in output");
+        includeFileNames.setSelected(includeNamesByDefault);
+
+        outputBase32.selectedProperty().addListener((obs, oldValue, selected) -> {
+            if (selected) {
+                outputBase64.setSelected(false);
+            }
+        });
+        outputBase64.selectedProperty().addListener((obs, oldValue, selected) -> {
+            if (selected) {
+                outputBase32.setSelected(false);
+            }
+        });
+
+        VBox content = new VBox(
+                12,
+                title,
+                subtitle,
+                new Separator(),
+                new Label("Checksum type (choose one):"),
+                hashGrid,
+                new Separator(),
+                new Label("Options:"),
+                outputBase32,
+                outputBase64,
+                includeFileNames
+        );
+        content.setPadding(new Insets(12));
+        dialog.getDialogPane().setContent(content);
+        applyThemeToDialog(dialog);
+
+        dialog.setResultConverter(buttonType -> {
+            if (buttonType != computeType) {
+                return null;
+            }
+            Toggle selected = hashToggle.getSelectedToggle();
+            if (!(selected instanceof RadioButton selectedButton)) {
+                return null;
+            }
+
+            return switch (selectedButton.getText()) {
+                case "MD5" -> new ChecksumOptions("--md5", "MD5", outputBase32.isSelected(), outputBase64.isSelected(), includeFileNames.isSelected());
+                case "SHA1" -> new ChecksumOptions("--sha1", "SHA1", outputBase32.isSelected(), outputBase64.isSelected(), includeFileNames.isSelected());
+                case "SHA512" -> new ChecksumOptions("--sha512", "SHA512", outputBase32.isSelected(), outputBase64.isSelected(), includeFileNames.isSelected());
+                case "CRC32" -> new ChecksumOptions("--crc32", "CRC32", outputBase32.isSelected(), outputBase64.isSelected(), includeFileNames.isSelected());
+                default -> new ChecksumOptions("--sha256", "SHA256", outputBase32.isSelected(), outputBase64.isSelected(), includeFileNames.isSelected());
+            };
+        });
+        return dialog.showAndWait();
+    }
+
+    private String extractDigestValue(List<String> outputLines) {
+        if (outputLines == null) {
+            return "";
+        }
+        Pattern valuePrefix = Pattern.compile("^\\s*([A-Za-z0-9+/=]+)");
+        for (String line : outputLines) {
+            if (line == null || line.isBlank()) {
+                continue;
+            }
+            String trimmed = line.trim();
+            if (trimmed.toLowerCase(Locale.ROOT).startsWith("rhash:") || trimmed.toLowerCase(Locale.ROOT).contains("error")) {
+                continue;
+            }
+            var matcher = valuePrefix.matcher(line);
+            if (matcher.find()) {
+                String candidate = matcher.group(1).trim();
+                if (candidate.length() >= 8) {
+                    return candidate;
+                }
+            }
+        }
+        return String.join(System.lineSeparator(), outputLines).trim();
+    }
+
+    private void showChecksumResultDialog(
+            String titleText,
+            String targetName,
+            String algorithmLabel,
+            String checksumValue,
+            Path outputDirectory,
+            boolean folderMode
+    ) {
+        Dialog<Void> dialog = new Dialog<>();
+        dialog.setTitle(titleText);
+        dialog.setHeaderText(null);
+
+        ButtonType closeType = new ButtonType("Close", ButtonBar.ButtonData.OK_DONE);
+        dialog.getDialogPane().getButtonTypes().add(closeType);
+
+        Label title = new Label(titleText);
+        title.setStyle("-fx-font-size: 16px; -fx-font-weight: bold;");
+        Label details = new Label("Item: " + targetName + " | Type: " + algorithmLabel);
+
+        TextArea checksumArea = new TextArea(checksumValue);
+        checksumArea.setEditable(false);
+        checksumArea.setWrapText(false);
+        checksumArea.setPrefRowCount(Math.max(4, Math.min(16, checksumValue.lines().toArray().length + 1)));
+
+        Button copyButton = new Button("Copy Value");
+        copyButton.setOnAction(event -> {
+            ClipboardContent content = new ClipboardContent();
+            content.putString(checksumArea.getText());
+            Clipboard.getSystemClipboard().setContent(content);
+        });
+
+        Button saveAsButton = new Button("Save Value As File");
+        saveAsButton.setOnAction(event -> {
+            Path savePath = buildChecksumOutputPath(outputDirectory, targetName, algorithmLabel, folderMode);
+            try {
+                Files.createDirectories(savePath.getParent());
+                Files.writeString(savePath, checksumArea.getText(), StandardCharsets.UTF_8);
+                showInfo(titleText, "Saved checksum value as:\n" + savePath);
+            } catch (Exception ex) {
+                showError(titleText, "Failed saving checksum file: " + ex.getMessage());
+            }
+        });
+
+        HBox actions = new HBox(8, copyButton, saveAsButton);
+        VBox content = new VBox(10, title, details, checksumArea, actions);
+        content.setPadding(new Insets(12));
+        dialog.getDialogPane().setContent(content);
+        dialog.getDialogPane().setPrefSize(760, 420);
+        applyThemeToDialog(dialog);
+        dialog.showAndWait();
+    }
+
+    private Path buildChecksumOutputPath(Path outputDirectory, String targetName, String algorithmLabel, boolean folderMode) {
+        String algorithmLower = algorithmLabel.toLowerCase(Locale.ROOT);
+        String fileName = folderMode
+                ? targetName + "." + algorithmLabel.toUpperCase(Locale.ROOT) + "SUMS"
+                : targetName + "." + algorithmLower;
+        return outputDirectory.resolve(fileName);
+    }
+
     private void showError(String title, String message) {
         Alert alert = new Alert(Alert.AlertType.ERROR);
         alert.setTitle(title);
@@ -1801,7 +2110,25 @@ public class Commander {
         alert.showAndWait();
     }
 
+    private void showInfo(String title, String message) {
+        Alert alert = new Alert(Alert.AlertType.INFORMATION);
+        alert.setTitle(title);
+        alert.setHeaderText(null);
+        alert.setContentText(message);
+        alert.setResizable(true);
+        alert.getDialogPane().setMinHeight(Region.USE_PREF_SIZE);
+        applyThemeToDialog(alert);
+        alert.showAndWait();
+    }
+
     private record SplitSize(boolean valid, long bytes, String sevenZipArg, String message) {}
+    private record ChecksumOptions(
+            String algorithmFlag,
+            String algorithmLabel,
+            boolean base32,
+            boolean base64,
+            boolean includeFileNames
+    ) {}
     private record FindInFilesOptions(
             String query,
             boolean caseInsensitive,
