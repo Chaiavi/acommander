@@ -315,7 +315,7 @@ public class Commander {
 
     private void applySortFromPalette(FilesPanesHelper.SortColumn column) {
         FilesPanesHelper.FocusSide side = filesPanesHelper.getFocusedSide();
-        filesPanesHelper.setSort(side, column, true);
+        filesPanesHelper.toggleSort(side, column);
         updateSortHeaderTexts(side);
     }
 
