@@ -11,11 +11,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Locale;
+import java.util.*;
 
 import static org.chaiware.acommander.helpers.FilesPanesHelper.FocusSide.LEFT;
 import static org.chaiware.acommander.helpers.FilesPanesHelper.FocusSide.RIGHT;
@@ -55,6 +51,7 @@ public class FilesPanesHelper {
         ComboBox<Folder> pathComboBox = filePanes.get(focusSide).getPathComboBox();
         pathComboBox.setValue(new Folder(path));
         refreshFileListView(focusSide);
+        ensureFirstEntrySelected(focusSide);
     }
 
     public void setFocusedFileListPath(String path) {
@@ -82,10 +79,12 @@ public class FilesPanesHelper {
      * Loads the files in the path into the ListView
      */
     public void refreshFileListView(FocusSide focusSide) {
+        ListView<FileItem> listView = filePanes.get(focusSide).getFileListView();
+        FileItem previouslySelected = listView.getSelectionModel().getSelectedItem();
         File folder = new File(filePanes.get(focusSide).getPath());
         File[] files = folder.listFiles();
 
-        ObservableList<FileItem> items = filePanes.get(focusSide).getFileListView().getItems();
+        ObservableList<FileItem> items = listView.getItems();
         items.clear();
         if (folder.getParentFile() != null)
             items.add(new FileItem(folder, ".."));
@@ -94,6 +93,21 @@ public class FilesPanesHelper {
                 items.add(new FileItem(f));
 
         applySort(focusSide);
+        if (previouslySelected != null) {
+            listView.getSelectionModel().select(previouslySelected);
+        }
+        if (listView.getSelectionModel().getSelectedIndex() < 0) {
+            ensureFirstEntrySelected(focusSide);
+        }
+    }
+
+    private void ensureFirstEntrySelected(FocusSide focusSide) {
+        ListView<FileItem> listView = filePanes.get(focusSide).getFileListView();
+        if (listView.getItems().isEmpty()) {
+            return;
+        }
+        listView.getSelectionModel().selectFirst();
+        listView.getFocusModel().focus(0);
     }
 
     public void toggleSort(FocusSide focusSide, SortColumn column) {
