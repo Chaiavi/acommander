@@ -52,6 +52,7 @@ public class ActionExecutor {
             case "findInFiles" -> commander.findInFiles();
             case "pack" -> commander.pack();
             case "splitLargeFile" -> commander.splitLargeFile();
+            case "convertGraphicsFiles" -> commander.convertGraphicsFiles();
             case "checksumFile" -> commander.checksumFile();
             case "checksumFolderContents" -> commander.checksumFolderContents();
             case "unpack" -> commander.unpackFile();

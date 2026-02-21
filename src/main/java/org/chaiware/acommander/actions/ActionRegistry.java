@@ -3,6 +3,7 @@ package org.chaiware.acommander.actions;
 import org.chaiware.acommander.config.ActionDefinition;
 import org.chaiware.acommander.config.ActionScope;
 import org.chaiware.acommander.config.AppRegistry;
+import org.chaiware.acommander.helpers.ImageConversionSupport;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -18,14 +19,26 @@ public class ActionRegistry {
 
     private AppAction toAppAction(ActionDefinition action, ActionExecutor executor) {
         SelectionRule rule = SelectionRule.fromString(action.getSelection());
+        String builtin = action.getBuiltin() == null ? action.getId() : action.getBuiltin();
         return new AppAction(
                 action.getId(),
                 action.getLabel(),
                 action.getShortcut(),
                 action.getAliases(),
-                ctx -> rule.isSatisfied(ctx.commander().filesPanesHelper.getSelectedItems()),
+                ctx -> rule.isSatisfied(ctx.commander().filesPanesHelper.getSelectedItems())
+                        && isSelectionAllowedForBuiltin(builtin, ctx),
                 ctx -> executor.execute(action)
         );
+    }
+
+    private boolean isSelectionAllowedForBuiltin(String builtin, ActionContext ctx) {
+        if (!"convertGraphicsFiles".equals(builtin)) {
+            return true;
+        }
+        if (ctx == null || ctx.commander() == null || ctx.commander().filesPanesHelper == null) {
+            return false;
+        }
+        return ImageConversionSupport.areAllConvertibleImages(ctx.commander().filesPanesHelper.getSelectedItems());
     }
 
     public List<AppAction> all() {

@@ -226,6 +226,14 @@
       "type": "builtin"
     },
     {
+      "id": "convertGraphicsFiles",
+      "label": "Convert Graphics Files",
+      "aliases": ["convert image", "image convert", "convert graphics", "caesium"],
+      "contexts": ["commandPalette"],
+      "selection": "any",
+      "type": "builtin"
+    },
+    {
       "id": "checksumFile",
       "label": "Checksum File",
       "aliases": ["hash file", "rhash file", "file checksum"],

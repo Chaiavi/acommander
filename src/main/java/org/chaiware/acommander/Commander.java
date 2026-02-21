@@ -26,6 +26,7 @@ import org.chaiware.acommander.config.AppRegistry;
 import org.chaiware.acommander.helpers.ComboBoxSetup;
 import org.chaiware.acommander.helpers.FileAttributesHelper;
 import org.chaiware.acommander.helpers.FilesPanesHelper;
+import org.chaiware.acommander.helpers.ImageConversionSupport;
 import org.chaiware.acommander.keybinding.KeyBindingManager;
 import org.chaiware.acommander.keybinding.KeyBindingManager.KeyContext;
 import org.chaiware.acommander.model.FileItem;
@@ -1271,6 +1272,304 @@ public class Commander {
         }
     }
 
+    public void convertGraphicsFiles() {
+        logger.info("Convert Graphics Files");
+        List<FileItem> selectedItems = commands.filterValidItems(new ArrayList<>(filesPanesHelper.getSelectedItems()));
+        if (!ImageConversionSupport.areAllConvertibleImages(selectedItems)) {
+            showError("Convert Graphics Files", "Select one or more image files only.");
+            requestFocusedFileListFocus();
+            return;
+        }
+
+        Optional<ImageConversionRequest> request = promptImageConversionOptions(selectedItems);
+        if (request.isEmpty()) {
+            requestFocusedFileListFocus();
+            return;
+        }
+
+        Path caesiumPath = Paths.get(System.getProperty("user.dir"), "apps", "image_convert", "caesiumclt.exe");
+        if (!Files.isRegularFile(caesiumPath)) {
+            showError("Convert Graphics Files", "caesiumclt executable was not found at: " + caesiumPath);
+            requestFocusedFileListFocus();
+            return;
+        }
+
+        String outputFolder = filesPanesHelper.getUnfocusedPath();
+        ImageConversionRequest options = request.get();
+        List<String> command = buildImageConvertCommand(caesiumPath, outputFolder, selectedItems, options);
+        runExternal(command, true)
+                .thenAccept(output -> Platform.runLater(() -> {
+                    focusConvertedFileInOtherPane(selectedItems, outputFolder, options);
+                }))
+                .exceptionally(throwable -> {
+                    Platform.runLater(() -> {
+                        showError("Convert Graphics Files", "Image conversion failed: " + throwable.getMessage());
+                        requestFocusedFileListFocus();
+                    });
+                    return null;
+                });
+    }
+
+    private Optional<ImageConversionRequest> promptImageConversionOptions(List<FileItem> selectedItems) {
+        List<String> targetFormats = ImageConversionSupport.targetFormatsForSelection(selectedItems);
+        if (targetFormats.isEmpty()) {
+            showError("Convert Graphics Files", "No supported target formats were found for the selected files.");
+            return Optional.empty();
+        }
+
+        Dialog<ImageConversionRequest> dialog = new Dialog<>();
+        dialog.setTitle("Convert Graphics Files");
+        dialog.setHeaderText(null);
+
+        ButtonType convertType = new ButtonType("Convert", ButtonBar.ButtonData.OK_DONE);
+        dialog.getDialogPane().getButtonTypes().addAll(convertType, ButtonType.CANCEL);
+
+        Label title = new Label("Convert Graphics Files");
+        title.setStyle("-fx-font-size: 16px; -fx-font-weight: bold;");
+        Label subtitle = new Label("Selected files: " + selectedItems.size() + " | Output folder: " + filesPanesHelper.getUnfocusedPath());
+
+        ToggleGroup formatGroup = new ToggleGroup();
+        VBox formatsBox = new VBox(8);
+        for (String format : targetFormats) {
+            RadioButton formatRadio = new RadioButton(format.toUpperCase(Locale.ROOT));
+            formatRadio.setUserData(format);
+            formatRadio.setToggleGroup(formatGroup);
+            formatsBox.getChildren().add(formatRadio);
+        }
+        if (formatGroup.getToggles().getFirst() instanceof RadioButton first) {
+            first.setSelected(true);
+        }
+
+        ToggleGroup compressionModeGroup = new ToggleGroup();
+        RadioButton qualityMode = new RadioButton("Quality (lossy)");
+        RadioButton losslessMode = new RadioButton("Lossless");
+        RadioButton targetSizeMode = new RadioButton("Target max output size");
+        qualityMode.setUserData(ImageCompressionMode.QUALITY);
+        losslessMode.setUserData(ImageCompressionMode.LOSSLESS);
+        targetSizeMode.setUserData(ImageCompressionMode.MAX_SIZE);
+        qualityMode.setToggleGroup(compressionModeGroup);
+        losslessMode.setToggleGroup(compressionModeGroup);
+        targetSizeMode.setToggleGroup(compressionModeGroup);
+        qualityMode.setSelected(true);
+
+        Slider qualitySlider = new Slider(0, 100, 80);
+        qualitySlider.setShowTickLabels(true);
+        qualitySlider.setShowTickMarks(true);
+        qualitySlider.setMajorTickUnit(20);
+        qualitySlider.setMinorTickCount(4);
+        qualitySlider.setBlockIncrement(1);
+        Label qualityValue = new Label("80");
+        qualitySlider.valueProperty().addListener((obs, oldValue, newValue) -> qualityValue.setText(String.valueOf(newValue.intValue())));
+        HBox qualityRow = new HBox(10, new Label("Quality:"), qualitySlider, qualityValue);
+        HBox.setHgrow(qualitySlider, Priority.ALWAYS);
+
+        TextField maxSizeField = new TextField();
+        maxSizeField.setPromptText("Examples: 150KB, 1MB, 0.5MB");
+        maxSizeField.setDisable(true);
+
+        CheckBox keepExif = new CheckBox("Keep EXIF metadata");
+        CheckBox keepDates = new CheckBox("Keep original file dates");
+        CheckBox noUpscale = new CheckBox("Do not upscale resized images");
+        CheckBox zopfli = new CheckBox("Use zopfli for PNG (slower, better compression)");
+        CheckBox stripIcc = new CheckBox("Strip ICC profile for JPEG output");
+
+        TextField suffixField = new TextField("_converted");
+        suffixField.setPromptText("Filename suffix");
+
+        ComboBox<String> overwritePolicy = new ComboBox<>();
+        overwritePolicy.getItems().addAll("all", "never", "bigger");
+        overwritePolicy.getSelectionModel().select("all");
+
+        Runnable syncByMode = () -> {
+            ImageCompressionMode mode = selectedCompressionMode(compressionModeGroup);
+            maxSizeField.setDisable(mode != ImageCompressionMode.MAX_SIZE);
+            qualitySlider.setDisable(mode != ImageCompressionMode.QUALITY);
+        };
+        compressionModeGroup.selectedToggleProperty().addListener((obs, oldValue, newValue) -> syncByMode.run());
+        syncByMode.run();
+
+        Label validationLabel = new Label();
+        Button convertButton = (Button) dialog.getDialogPane().lookupButton(convertType);
+        Runnable validate = () -> {
+            ImageCompressionMode mode = selectedCompressionMode(compressionModeGroup);
+            if (mode == ImageCompressionMode.MAX_SIZE && (maxSizeField.getText() == null || maxSizeField.getText().trim().isEmpty())) {
+                validationLabel.setText("Max size is required for target-size mode.");
+                convertButton.setDisable(true);
+                return;
+            }
+            validationLabel.setText("");
+            convertButton.setDisable(formatGroup.getSelectedToggle() == null);
+        };
+        maxSizeField.textProperty().addListener((obs, oldValue, newValue) -> validate.run());
+        formatGroup.selectedToggleProperty().addListener((obs, oldValue, newValue) -> validate.run());
+        compressionModeGroup.selectedToggleProperty().addListener((obs, oldValue, newValue) -> validate.run());
+        validate.run();
+
+        VBox content = new VBox(
+                10,
+                title,
+                subtitle,
+                new Separator(),
+                new Label("Convert to format:"),
+                formatsBox,
+                new Separator(),
+                new Label("Compression mode:"),
+                qualityMode,
+                qualityRow,
+                losslessMode,
+                targetSizeMode,
+                maxSizeField,
+                new Separator(),
+                new Label("Options:"),
+                keepExif,
+                keepDates,
+                noUpscale,
+                zopfli,
+                stripIcc,
+                new Label("Filename suffix:"),
+                suffixField,
+                new Label("Overwrite policy:"),
+                overwritePolicy,
+                validationLabel
+        );
+        content.setPadding(new Insets(12));
+        dialog.getDialogPane().setContent(content);
+        dialog.getDialogPane().setPrefSize(620, 760);
+        applyThemeToDialog(dialog);
+
+        dialog.setResultConverter(buttonType -> {
+            if (buttonType != convertType || formatGroup.getSelectedToggle() == null) {
+                return null;
+            }
+            String targetFormat = String.valueOf(formatGroup.getSelectedToggle().getUserData());
+            ImageCompressionMode compressionMode = selectedCompressionMode(compressionModeGroup);
+            Integer quality = compressionMode == ImageCompressionMode.QUALITY ? (int) Math.round(qualitySlider.getValue()) : null;
+            String maxSize = compressionMode == ImageCompressionMode.MAX_SIZE ? maxSizeField.getText().trim() : null;
+            return new ImageConversionRequest(
+                    targetFormat,
+                    compressionMode,
+                    quality,
+                    maxSize,
+                    keepExif.isSelected(),
+                    keepDates.isSelected(),
+                    noUpscale.isSelected(),
+                    zopfli.isSelected(),
+                    stripIcc.isSelected(),
+                    suffixField.getText() == null ? "" : suffixField.getText().trim(),
+                    overwritePolicy.getSelectionModel().getSelectedItem()
+            );
+        });
+
+        return dialog.showAndWait();
+    }
+
+    private ImageCompressionMode selectedCompressionMode(ToggleGroup group) {
+        if (group == null || group.getSelectedToggle() == null || group.getSelectedToggle().getUserData() == null) {
+            return ImageCompressionMode.QUALITY;
+        }
+        return (ImageCompressionMode) group.getSelectedToggle().getUserData();
+    }
+
+    private List<String> buildImageConvertCommand(
+            Path caesiumPath,
+            String outputFolder,
+            List<FileItem> selectedItems,
+            ImageConversionRequest options
+    ) {
+        List<String> command = new ArrayList<>();
+        command.add(caesiumPath.toString());
+
+        switch (options.compressionMode()) {
+            case QUALITY -> {
+                command.add("--quality");
+                command.add(String.valueOf(options.quality() == null ? 80 : options.quality()));
+            }
+            case LOSSLESS -> command.add("--lossless");
+            case MAX_SIZE -> {
+                command.add("--max-size");
+                command.add(options.maxSize());
+            }
+        }
+
+        command.add("--output");
+        command.add(outputFolder);
+        command.add("--format");
+        command.add(options.targetFormat());
+
+        if (options.keepExif()) {
+            command.add("--exif");
+        }
+        if (options.keepDates()) {
+            command.add("--keep-dates");
+        }
+        if (options.noUpscale()) {
+            command.add("--no-upscale");
+        }
+        if ("png".equals(options.targetFormat()) && options.zopfli()) {
+            command.add("--zopfli");
+        }
+        if ("jpeg".equals(options.targetFormat()) && options.stripIcc()) {
+            command.add("--strip-icc");
+        }
+        if (options.suffix() != null && !options.suffix().isBlank()) {
+            command.add("--suffix");
+            command.add(options.suffix());
+        }
+
+        command.add("--overwrite");
+        command.add(options.overwritePolicy() == null || options.overwritePolicy().isBlank() ? "all" : options.overwritePolicy());
+
+        for (FileItem item : selectedItems) {
+            command.add(item.getFullPath());
+        }
+        return command;
+    }
+
+    private void focusConvertedFileInOtherPane(
+            List<FileItem> selectedItems,
+            String outputFolder,
+            ImageConversionRequest options
+    ) {
+        FileItem firstFound = findFirstConvertedItem(selectedItems, outputFolder, options);
+        if (firstFound != null) {
+            filesPanesHelper.selectFileItem(false, firstFound);
+        }
+        requestUnfocusedFileListFocus();
+    }
+
+    private FileItem findFirstConvertedItem(
+            List<FileItem> selectedItems,
+            String outputFolder,
+            ImageConversionRequest options
+    ) {
+        for (FileItem source : selectedItems) {
+            for (String outputName : buildCandidateOutputNames(source, options)) {
+                Path candidate = Paths.get(outputFolder, outputName);
+                if (Files.exists(candidate)) {
+                    return new FileItem(candidate.toFile());
+                }
+            }
+        }
+        return null;
+    }
+
+    private List<String> buildCandidateOutputNames(FileItem source, ImageConversionRequest options) {
+        String baseName = source.getName();
+        int dotIndex = baseName.lastIndexOf('.');
+        String stem = dotIndex > 0 ? baseName.substring(0, dotIndex) : baseName;
+        String suffix = options.suffix() == null ? "" : options.suffix();
+        String normalizedFormat = options.targetFormat().toLowerCase(Locale.ROOT);
+
+        List<String> extensions = switch (normalizedFormat) {
+            case "jpeg" -> List.of("jpeg", "jpg");
+            case "tiff" -> List.of("tiff", "tif");
+            default -> List.of(normalizedFormat);
+        };
+        return extensions.stream()
+                .map(ext -> stem + suffix + "." + ext)
+                .toList();
+    }
+
     public void checksumFile() {
         logger.info("Checksum File");
         List<FileItem> selectedItems = commands.filterValidItems(new ArrayList<>(filesPanesHelper.getSelectedItems()));
@@ -1573,6 +1872,16 @@ public class Commander {
                 leftFileList.requestFocus();
             } else {
                 rightFileList.requestFocus();
+            }
+        });
+    }
+
+    private void requestUnfocusedFileListFocus() {
+        Platform.runLater(() -> {
+            if (filesPanesHelper.getFocusedSide() == LEFT) {
+                rightFileList.requestFocus();
+            } else {
+                leftFileList.requestFocus();
             }
         });
     }
@@ -2128,6 +2437,24 @@ public class Commander {
             boolean base32,
             boolean base64,
             boolean includeFileNames
+    ) {}
+    private enum ImageCompressionMode {
+        QUALITY,
+        LOSSLESS,
+        MAX_SIZE
+    }
+    private record ImageConversionRequest(
+            String targetFormat,
+            ImageCompressionMode compressionMode,
+            Integer quality,
+            String maxSize,
+            boolean keepExif,
+            boolean keepDates,
+            boolean noUpscale,
+            boolean zopfli,
+            boolean stripIcc,
+            String suffix,
+            String overwritePolicy
     ) {}
     private record FindInFilesOptions(
             String query,
