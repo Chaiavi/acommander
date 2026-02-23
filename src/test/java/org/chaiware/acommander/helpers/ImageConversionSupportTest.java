@@ -36,12 +36,12 @@ class ImageConversionSupportTest {
     }
 
     @Test
-    void excludesCurrentFormatForSingleSelectionTargets() throws IOException {
+    void includesCurrentFormatForSingleSelectionTargets() throws IOException {
         Path image = Files.createTempFile(tempDir, "photo", ".png");
 
         List<String> targets = ImageConversionSupport.targetFormatsForSelection(List.of(new FileItem(image.toFile())));
 
-        Assertions.assertThat(targets).doesNotContain("png");
+        Assertions.assertThat(targets).contains("png");
         Assertions.assertThat(targets).contains("jpeg", "webp", "gif", "tiff");
     }
 }

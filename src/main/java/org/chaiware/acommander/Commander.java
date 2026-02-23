@@ -1341,16 +1341,16 @@ public class Commander {
         }
 
         ToggleGroup compressionModeGroup = new ToggleGroup();
-        RadioButton qualityMode = new RadioButton("Quality (lossy)");
         RadioButton losslessMode = new RadioButton("Lossless");
+        RadioButton qualityMode = new RadioButton("Lossy");
         RadioButton targetSizeMode = new RadioButton("Target max output size");
-        qualityMode.setUserData(ImageCompressionMode.QUALITY);
         losslessMode.setUserData(ImageCompressionMode.LOSSLESS);
+        qualityMode.setUserData(ImageCompressionMode.QUALITY);
         targetSizeMode.setUserData(ImageCompressionMode.MAX_SIZE);
-        qualityMode.setToggleGroup(compressionModeGroup);
         losslessMode.setToggleGroup(compressionModeGroup);
+        qualityMode.setToggleGroup(compressionModeGroup);
         targetSizeMode.setToggleGroup(compressionModeGroup);
-        qualityMode.setSelected(true);
+        losslessMode.setSelected(true);
 
         Slider qualitySlider = new Slider(0, 100, 80);
         qualitySlider.setShowTickLabels(true);
@@ -1369,24 +1369,37 @@ public class Commander {
 
         CheckBox keepExif = new CheckBox("Keep EXIF metadata");
         CheckBox keepDates = new CheckBox("Keep original file dates");
+
+        ComboBox<ImageResizeMode> resizeMode = new ComboBox<>();
+        resizeMode.getItems().addAll(ImageResizeMode.NONE, ImageResizeMode.WIDTH, ImageResizeMode.HEIGHT, ImageResizeMode.LONG_EDGE, ImageResizeMode.SHORT_EDGE);
+        resizeMode.getSelectionModel().select(ImageResizeMode.NONE);
+        TextField resizeValueField = new TextField();
+        resizeValueField.setPromptText("Pixels");
+        resizeValueField.setDisable(true);
         CheckBox noUpscale = new CheckBox("Do not upscale resized images");
-        CheckBox zopfli = new CheckBox("Use zopfli for PNG (slower, better compression)");
-        CheckBox stripIcc = new CheckBox("Strip ICC profile for JPEG output");
+        noUpscale.setDisable(true);
 
         TextField suffixField = new TextField("_converted");
         suffixField.setPromptText("Filename suffix");
 
         ComboBox<String> overwritePolicy = new ComboBox<>();
-        overwritePolicy.getItems().addAll("all", "never", "bigger");
-        overwritePolicy.getSelectionModel().select("all");
+        overwritePolicy.getItems().addAll("Always", "Never", "Bigger");
+        overwritePolicy.getSelectionModel().select("Always");
 
         Runnable syncByMode = () -> {
             ImageCompressionMode mode = selectedCompressionMode(compressionModeGroup);
             maxSizeField.setDisable(mode != ImageCompressionMode.MAX_SIZE);
             qualitySlider.setDisable(mode != ImageCompressionMode.QUALITY);
         };
+        Runnable syncByResizeMode = () -> {
+            boolean resizeEnabled = resizeMode.getSelectionModel().getSelectedItem() != ImageResizeMode.NONE;
+            resizeValueField.setDisable(!resizeEnabled);
+            noUpscale.setDisable(!resizeEnabled);
+        };
         compressionModeGroup.selectedToggleProperty().addListener((obs, oldValue, newValue) -> syncByMode.run());
+        resizeMode.getSelectionModel().selectedItemProperty().addListener((obs, oldValue, newValue) -> syncByResizeMode.run());
         syncByMode.run();
+        syncByResizeMode.run();
 
         Label validationLabel = new Label();
         Button convertButton = (Button) dialog.getDialogPane().lookupButton(convertType);
@@ -1397,12 +1410,23 @@ public class Commander {
                 convertButton.setDisable(true);
                 return;
             }
+            ImageResizeMode resize = resizeMode.getSelectionModel().getSelectedItem();
+            if (resize != null && resize != ImageResizeMode.NONE) {
+                Integer resizeValue = parsePositiveOrNull(resizeValueField.getText());
+                if (resizeValue == null) {
+                    validationLabel.setText("Resize value must be a positive number.");
+                    convertButton.setDisable(true);
+                    return;
+                }
+            }
             validationLabel.setText("");
             convertButton.setDisable(formatGroup.getSelectedToggle() == null);
         };
         maxSizeField.textProperty().addListener((obs, oldValue, newValue) -> validate.run());
+        resizeValueField.textProperty().addListener((obs, oldValue, newValue) -> validate.run());
         formatGroup.selectedToggleProperty().addListener((obs, oldValue, newValue) -> validate.run());
         compressionModeGroup.selectedToggleProperty().addListener((obs, oldValue, newValue) -> validate.run());
+        resizeMode.getSelectionModel().selectedItemProperty().addListener((obs, oldValue, newValue) -> validate.run());
         validate.run();
 
         VBox content = new VBox(
@@ -1414,18 +1438,20 @@ public class Commander {
                 formatsBox,
                 new Separator(),
                 new Label("Compression mode:"),
+                losslessMode,
                 qualityMode,
                 qualityRow,
-                losslessMode,
                 targetSizeMode,
                 maxSizeField,
+                new Separator(),
+                new Label("Resize (optional):"),
+                new HBox(10, new Label("Mode:"), resizeMode),
+                new HBox(10, new Label("Value:"), resizeValueField),
+                noUpscale,
                 new Separator(),
                 new Label("Options:"),
                 keepExif,
                 keepDates,
-                noUpscale,
-                zopfli,
-                stripIcc,
                 new Label("Filename suffix:"),
                 suffixField,
                 new Label("Overwrite policy:"),
@@ -1445,6 +1471,10 @@ public class Commander {
             ImageCompressionMode compressionMode = selectedCompressionMode(compressionModeGroup);
             Integer quality = compressionMode == ImageCompressionMode.QUALITY ? (int) Math.round(qualitySlider.getValue()) : null;
             String maxSize = compressionMode == ImageCompressionMode.MAX_SIZE ? maxSizeField.getText().trim() : null;
+            ImageResizeMode resize = resizeMode.getSelectionModel().getSelectedItem();
+            Integer resizeValue = resize == null || resize == ImageResizeMode.NONE
+                    ? null
+                    : parsePositiveOrNull(resizeValueField.getText());
             return new ImageConversionRequest(
                     targetFormat,
                     compressionMode,
@@ -1452,12 +1482,12 @@ public class Commander {
                     maxSize,
                     keepExif.isSelected(),
                     keepDates.isSelected(),
+                    resize == null ? ImageResizeMode.NONE : resize,
+                    resizeValue,
                     noUpscale.isSelected(),
-                    zopfli.isSelected(),
-                    stripIcc.isSelected(),
                     suffixField.getText() == null ? "" : suffixField.getText().trim(),
                     overwritePolicy.getSelectionModel().getSelectedItem()
-            );
+                );
         });
 
         return dialog.showAndWait();
@@ -1468,6 +1498,18 @@ public class Commander {
             return ImageCompressionMode.QUALITY;
         }
         return (ImageCompressionMode) group.getSelectedToggle().getUserData();
+    }
+
+    private Integer parsePositiveOrNull(String raw) {
+        if (raw == null || raw.trim().isEmpty()) {
+            return null;
+        }
+        try {
+            int value = Integer.parseInt(raw.trim());
+            return value > 0 ? value : null;
+        } catch (NumberFormatException ex) {
+            return null;
+        }
     }
 
     private List<String> buildImageConvertCommand(
@@ -1502,14 +1544,33 @@ public class Commander {
         if (options.keepDates()) {
             command.add("--keep-dates");
         }
-        if (options.noUpscale()) {
+        switch (options.resizeMode()) {
+            case WIDTH -> {
+                command.add("--width");
+                command.add(String.valueOf(options.resizeValue()));
+            }
+            case HEIGHT -> {
+                command.add("--height");
+                command.add(String.valueOf(options.resizeValue()));
+            }
+            case LONG_EDGE -> {
+                command.add("--long-edge");
+                command.add(String.valueOf(options.resizeValue()));
+            }
+            case SHORT_EDGE -> {
+                command.add("--short-edge");
+                command.add(String.valueOf(options.resizeValue()));
+            }
+            case NONE -> {
+            }
+        }
+        if (options.resizeMode() != ImageResizeMode.NONE && options.noUpscale()) {
             command.add("--no-upscale");
         }
-        if ("png".equals(options.targetFormat()) && options.zopfli()) {
+        if ("png".equals(options.targetFormat())) {
+            command.add("--png-opt-level");
+            command.add("3");
             command.add("--zopfli");
-        }
-        if ("jpeg".equals(options.targetFormat()) && options.stripIcc()) {
-            command.add("--strip-icc");
         }
         if (options.suffix() != null && !options.suffix().isBlank()) {
             command.add("--suffix");
@@ -1517,12 +1578,23 @@ public class Commander {
         }
 
         command.add("--overwrite");
-        command.add(options.overwritePolicy() == null || options.overwritePolicy().isBlank() ? "all" : options.overwritePolicy());
+        command.add(mapCaesiumOverwritePolicy(options.overwritePolicy()));
 
         for (FileItem item : selectedItems) {
             command.add(item.getFullPath());
         }
         return command;
+    }
+
+    private String mapCaesiumOverwritePolicy(String label) {
+        if (label == null) {
+            return "all";
+        }
+        return switch (label.trim().toLowerCase(Locale.ROOT)) {
+            case "never" -> "never";
+            case "bigger" -> "bigger";
+            default -> "all";
+        };
     }
 
     private void focusConvertedFileInOtherPane(
@@ -2443,6 +2515,13 @@ public class Commander {
         LOSSLESS,
         MAX_SIZE
     }
+    private enum ImageResizeMode {
+        NONE,
+        WIDTH,
+        HEIGHT,
+        LONG_EDGE,
+        SHORT_EDGE
+    }
     private record ImageConversionRequest(
             String targetFormat,
             ImageCompressionMode compressionMode,
@@ -2450,9 +2529,9 @@ public class Commander {
             String maxSize,
             boolean keepExif,
             boolean keepDates,
+            ImageResizeMode resizeMode,
+            Integer resizeValue,
             boolean noUpscale,
-            boolean zopfli,
-            boolean stripIcc,
             String suffix,
             String overwritePolicy
     ) {}
