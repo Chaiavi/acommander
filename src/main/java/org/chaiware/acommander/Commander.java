@@ -1,6 +1,7 @@
 package org.chaiware.acommander;
 
 import javafx.application.Platform;
+import javafx.collections.ListChangeListener;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
 import javafx.geometry.Insets;
@@ -71,6 +72,8 @@ public class Commander {
     @FXML
     Label leftNameHeader, leftSizeHeader, leftModifiedHeader, rightNameHeader, rightSizeHeader, rightModifiedHeader;
     @FXML
+    Label leftPaneSummaryLabel, rightPaneSummaryLabel;
+    @FXML
     HBox leftHeaderBox, rightHeaderBox;
     @FXML
     Region leftIconHeaderSpacer, rightIconHeaderSpacer;
@@ -129,10 +132,13 @@ public class Commander {
         configListViewLookAndBehavior(rightFileList);
         configSortHeaders();
         configFileListsFocus();
+        configurePaneSummary();
         commandPaletteController.configure(new ActionRegistry(appRegistry, actionExecutor), new ActionContext(this));
 
         updateBottomButtons(null);
         filesPanesHelper.refreshFileListViews();
+        updatePaneSummary(LEFT);
+        updatePaneSummary(RIGHT);
         filesPanesHelper.getFileList(true).getSelectionModel().selectFirst();
         Platform.runLater(() -> leftFileList.requestFocus());
     }
@@ -684,6 +690,48 @@ public class Commander {
             if (isNowFocused) filesPanesHelper.setFocusedFileList(RIGHT);
         });
         leftFileList.requestFocus();
+    }
+
+    private void configurePaneSummary() {
+        bindPaneSummaryUpdates(LEFT);
+        bindPaneSummaryUpdates(RIGHT);
+    }
+
+    private void bindPaneSummaryUpdates(FilesPanesHelper.FocusSide side) {
+        ListView<FileItem> listView = side == LEFT ? leftFileList : rightFileList;
+        listView.getItems().addListener((ListChangeListener<FileItem>) change -> updatePaneSummary(side));
+        listView.getSelectionModel().getSelectedItems().addListener((ListChangeListener<FileItem>) change -> updatePaneSummary(side));
+    }
+
+    private void updatePaneSummary(FilesPanesHelper.FocusSide side) {
+        Label summaryLabel = side == LEFT ? leftPaneSummaryLabel : rightPaneSummaryLabel;
+        if (summaryLabel == null) {
+            return;
+        }
+
+        ListView<FileItem> listView = side == LEFT ? leftFileList : rightFileList;
+        long totalFilesSize = listView.getItems().stream()
+                .filter(item -> item != null && !"..".equals(item.getPresentableFilename()) && !item.isDirectory())
+                .mapToLong(item -> item.getFile().length())
+                .sum();
+
+        long selectedFilesSize = listView.getSelectionModel().getSelectedItems().stream()
+                .filter(item -> item != null && !"..".equals(item.getPresentableFilename()) && !item.isDirectory())
+                .mapToLong(item -> item.getFile().length())
+                .sum();
+        int selectedFileCount = (int) listView.getSelectionModel().getSelectedItems().stream()
+                .filter(item -> item != null && !"..".equals(item.getPresentableFilename()) && !item.isDirectory())
+                .count();
+
+        int fileCount = (int) listView.getItems().stream()
+                .filter(item -> item != null && !"..".equals(item.getPresentableFilename()) && !item.isDirectory())
+                .count();
+
+        if (selectedFileCount > 0) {
+            summaryLabel.setText("Files: " + fileCount + " | Size: " + humanSize(selectedFilesSize) + " / " + humanSize(totalFilesSize));
+        } else {
+            summaryLabel.setText("Files: " + fileCount + " | Size: " + humanSize(totalFilesSize));
+        }
     }
 
     /**

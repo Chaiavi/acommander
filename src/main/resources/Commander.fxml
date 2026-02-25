@@ -27,6 +27,7 @@
                 <RowConstraints minHeight="35.0" vgrow="NEVER" />
                 <RowConstraints minHeight="25.0" vgrow="NEVER" />
                 <RowConstraints minHeight="200.0" vgrow="ALWAYS" />
+                <RowConstraints minHeight="22.0" vgrow="NEVER" />
             </rowConstraints>
 
             <!-- Drive/Path ComboBoxes -->
@@ -66,15 +67,27 @@
             <!-- File Lists -->
             <ListView fx:id="leftFileList" prefHeight="200.0" styleClass="file-pane" GridPane.columnIndex="0" GridPane.rowIndex="2">
                 <GridPane.margin>
-                    <Insets bottom="2.0" left="3.0" right="1.0" />
+                    <Insets bottom="1.0" left="3.0" right="1.0" />
                 </GridPane.margin>
             </ListView>
 
             <ListView fx:id="rightFileList" prefHeight="200.0" styleClass="file-pane" GridPane.columnIndex="1" GridPane.rowIndex="2">
                 <GridPane.margin>
-                    <Insets bottom="2.0" left="1.0" right="3.0" />
+                    <Insets bottom="1.0" left="1.0" right="3.0" />
                 </GridPane.margin>
             </ListView>
+
+            <Label fx:id="leftPaneSummaryLabel" styleClass="pane-summary-label" text="" GridPane.columnIndex="0" GridPane.rowIndex="3">
+                <GridPane.margin>
+                    <Insets bottom="2.0" left="5.0" right="1.0" />
+                </GridPane.margin>
+            </Label>
+
+            <Label fx:id="rightPaneSummaryLabel" styleClass="pane-summary-label" text="" GridPane.columnIndex="1" GridPane.rowIndex="3">
+                <GridPane.margin>
+                    <Insets bottom="2.0" left="3.0" right="5.0" />
+                </GridPane.margin>
+            </Label>
         </GridPane>
     </center>
 
