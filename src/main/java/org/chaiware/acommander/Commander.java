@@ -1408,6 +1408,13 @@ public class Commander {
 
         Label validationLabel = new Label();
         Button convertButton = (Button) dialog.getDialogPane().lookupButton(convertType);
+        convertButton.setDefaultButton(true);
+        dialog.getDialogPane().addEventFilter(KeyEvent.KEY_PRESSED, event -> {
+            if (event.getCode() == KeyCode.ENTER && !convertButton.isDisabled()) {
+                convertButton.fire();
+                event.consume();
+            }
+        });
         Runnable validate = () -> {
             ImageCompressionMode mode = selectedCompressionMode(compressionModeGroup);
             if (mode == ImageCompressionMode.MAX_SIZE && (maxSizeField.getText() == null || maxSizeField.getText().trim().isEmpty())) {
@@ -1794,6 +1801,13 @@ public class Commander {
         syncEncodingChoices.run();
 
         Button convertButton = (Button) dialog.getDialogPane().lookupButton(convertType);
+        convertButton.setDefaultButton(true);
+        dialog.getDialogPane().addEventFilter(KeyEvent.KEY_PRESSED, event -> {
+            if (event.getCode() == KeyCode.ENTER && !convertButton.isDisabled()) {
+                convertButton.fire();
+                event.consume();
+            }
+        });
         Label validationLabel = new Label();
         Runnable validate = () -> {
             if (formatGroup.getSelectedToggle() == null) {
