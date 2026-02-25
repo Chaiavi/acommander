@@ -226,6 +226,15 @@
       "type": "builtin"
     },
     {
+      "id": "convertMediaFile",
+      "label": "Convert Media File",
+      "shortcut": "Alt+F5",
+      "aliases": ["convert media", "media convert", "transcode media"],
+      "contexts": ["global"],
+      "selection": "any",
+      "type": "builtin"
+    },
+    {
       "id": "convertGraphicsFiles",
       "label": "Convert Graphics Files",
       "aliases": ["convert image", "image convert", "convert graphics", "caesium"],

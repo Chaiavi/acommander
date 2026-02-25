@@ -939,6 +939,15 @@ public class Commander {
     }
 
     @FXML
+    public void handleF5Button() {
+        if (bottomButtonModifier == KeyCode.ALT) {
+            convertMediaFile();
+            return;
+        }
+        copyFile();
+    }
+
+    @FXML
     public void moveFile() {
         logger.info("Move (F6)");
 
@@ -1700,6 +1709,21 @@ public class Commander {
         return extensions.stream()
                 .map(ext -> stem + suffix + "." + ext)
                 .toList();
+    }
+
+    public void convertMediaFile() {
+        logger.info("Convert Media File");
+        List<FileItem> selectedItems = commands.filterValidItems(new ArrayList<>(filesPanesHelper.getSelectedItems()));
+        if (ImageConversionSupport.areAllConvertibleImages(selectedItems)) {
+            convertGraphicsFiles();
+            return;
+        }
+        if (AudioConversionSupport.areAllConvertibleAudio(selectedItems)) {
+            convertAudioFiles();
+            return;
+        }
+        showError("Convert Media File", "Select one or more image files or one or more audio files only.");
+        requestFocusedFileListFocus();
     }
 
     public void convertAudioFiles() {
@@ -3173,6 +3197,7 @@ public class Commander {
                 btnF1.setText("ALT+F1 Left Folder");
                 btnF2.setText("ALT+F2 Right Folder");
                 btnF4.setText("ALT+F4 Exit");
+                btnF5.setText("ALT+F5 Convert Media File");
                 btnF7.setText("ALT+F7 MkFile");
                 btnF9.setText("ALT+F9 Explorer");
                 btnF10.setText("ALT+F10 Find in Files");
