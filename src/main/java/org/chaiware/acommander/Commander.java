@@ -3196,9 +3196,12 @@ public class Commander {
             case ALT -> {
                 btnF1.setText("ALT+F1 Left Folder");
                 btnF2.setText("ALT+F2 Right Folder");
+                btnF3.setText("");
                 btnF4.setText("ALT+F4 Exit");
                 btnF5.setText("ALT+F5 Convert Media File");
+                btnF6.setText("");
                 btnF7.setText("ALT+F7 MkFile");
+                btnF8.setText("");
                 btnF9.setText("ALT+F9 Explorer");
                 btnF10.setText("ALT+F10 Find in Files");
                 btnF11.setText("ALT+F11 Split");
@@ -3207,8 +3210,16 @@ public class Commander {
             case SHIFT -> {
                 btnF1.setText("SHIFT+F1 Merge PDF");
                 btnF2.setText("SHIFT+F2 Extract PDF");
+                btnF3.setText("");
+                btnF4.setText("");
+                btnF5.setText("");
                 btnF6.setText("SHIFT+F6 Rename");
+                btnF7.setText("");
                 btnF8.setText("SHIFT+F8 Delete & Wipe");
+                btnF9.setText("");
+                btnF10.setText("");
+                btnF11.setText("");
+                btnF12.setText("");
             }
             case CONTROL -> {
             }

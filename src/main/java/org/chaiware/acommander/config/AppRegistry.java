@@ -48,13 +48,38 @@ public class AppRegistry {
     }
 
     public Optional<ActionDefinition> matchShortcut(ActionScope scope, KeyEvent event) {
+        boolean modifiedFunctionKey = event.getCode().isFunctionKey() && (event.isAltDown() || event.isShiftDown());
         for (ActionDefinition action : actionsForScope(scope)) {
+            if (modifiedFunctionKey && isUnmodifiedFunctionShortcut(action.getShortcut())) {
+                continue;
+            }
             KeyCombination combo = shortcutCache.get(action.getId());
             if (combo != null && combo.match(event)) {
                 return Optional.of(action);
             }
         }
         return Optional.empty();
+    }
+
+    private boolean isUnmodifiedFunctionShortcut(String shortcut) {
+        if (shortcut == null) {
+            return false;
+        }
+        String token = shortcut.trim().toUpperCase(Locale.ROOT);
+        if (!token.startsWith("F")) {
+            return false;
+        }
+        for (int i = 1; i < token.length(); i++) {
+            if (!Character.isDigit(token.charAt(i))) {
+                return false;
+            }
+        }
+        try {
+            int value = Integer.parseInt(token.substring(1));
+            return value >= 1 && value <= 24;
+        } catch (NumberFormatException ex) {
+            return false;
+        }
     }
 
     private KeyCombination parseShortcut(String shortcut) {
