@@ -90,7 +90,7 @@
       "selection": "single",
       "type": "builtin",
       "path": "apps/copy/FastCopy.exe",
-      "args": ["/cmd=diff", "/auto_close", "${selectedFile}", "/to=${targetFolder}"],
+      "args": ["/cmd=diff", "/auto_close", "${selectedFile}", "/to=${targetFolderQuoted}"],
       "refreshAfter": true
     },
     {
@@ -102,7 +102,7 @@
       "selection": "single",
       "type": "builtin",
       "path": "apps/copy/FastCopy.exe",
-      "args": ["/cmd=move", "/auto_close", "${selectedFile}", "/to=${targetFolder}"],
+      "args": ["/cmd=move", "/auto_close", "${selectedFile}", "/to=${targetFolderQuoted}"],
       "refreshAfter": true
     },
     {
@@ -234,6 +234,14 @@
       "type": "builtin"
     },
     {
+      "id": "convertAudioFiles",
+      "label": "Convert Audio Files",
+      "aliases": ["convert audio", "audio convert", "sndfile", "transcode audio"],
+      "contexts": ["commandPalette"],
+      "selection": "any",
+      "type": "builtin"
+    },
+    {
       "id": "checksumFile",
       "label": "Checksum File",
       "aliases": ["hash file", "rhash file", "file checksum"],
@@ -258,7 +266,7 @@
       "selection": "any",
       "type": "builtin",
       "path": "apps/pack_unpack/7zG.exe",
-      "args": ["x", "-o${destinationPath}", "${selectedFile}"],
+      "args": ["x", "-o${destinationPathQuoted}", "${selectedFile}"],
       "refreshAfter": true
     },
     {

@@ -3,6 +3,7 @@ package org.chaiware.acommander.actions;
 import org.chaiware.acommander.config.ActionDefinition;
 import org.chaiware.acommander.config.ActionScope;
 import org.chaiware.acommander.config.AppRegistry;
+import org.chaiware.acommander.helpers.AudioConversionSupport;
 import org.chaiware.acommander.helpers.ImageConversionSupport;
 
 import java.util.List;
@@ -32,13 +33,16 @@ public class ActionRegistry {
     }
 
     private boolean isSelectionAllowedForBuiltin(String builtin, ActionContext ctx) {
-        if (!"convertGraphicsFiles".equals(builtin)) {
+        if (!"convertGraphicsFiles".equals(builtin) && !"convertAudioFiles".equals(builtin)) {
             return true;
         }
         if (ctx == null || ctx.commander() == null || ctx.commander().filesPanesHelper == null) {
             return false;
         }
-        return ImageConversionSupport.areAllConvertibleImages(ctx.commander().filesPanesHelper.getSelectedItems());
+        if ("convertGraphicsFiles".equals(builtin)) {
+            return ImageConversionSupport.areAllConvertibleImages(ctx.commander().filesPanesHelper.getSelectedItems());
+        }
+        return AudioConversionSupport.areAllConvertibleAudio(ctx.commander().filesPanesHelper.getSelectedItems());
     }
 
     public List<AppAction> all() {

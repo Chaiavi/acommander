@@ -36,7 +36,7 @@ class ActionRegistryTest {
         Commander commander = new Commander();
         commander.filesPanesHelper = panesHelper;
 
-        AppRegistry registry = new AppRegistry(configWithConvertAction());
+        AppRegistry registry = new AppRegistry(configWithConvertActions());
         ActionRegistry actionRegistry = new ActionRegistry(registry, new ActionExecutor(commander, registry));
         ActionContext context = new ActionContext(commander);
 
@@ -48,16 +48,49 @@ class ActionRegistryTest {
         Assertions.assertThat(action.isEnabled(context)).isFalse();
     }
 
-    private static AppConfig configWithConvertAction() {
-        ActionDefinition action = new ActionDefinition();
-        action.setId("convertGraphicsFiles");
-        action.setLabel("Convert Graphics Files");
-        action.setType("builtin");
-        action.setContexts(List.of("commandPalette"));
-        action.setSelection("any");
+    @Test
+    void convertAudioFilesActionHiddenWhenSelectionContainsNonAudio() throws Exception {
+        Path audio = Files.createTempFile(tempDir, "sound", ".wav");
+        Path text = Files.createTempFile(tempDir, "note", ".txt");
+
+        FilesPanesHelper panesHelper = mock(FilesPanesHelper.class);
+        when(panesHelper.getSelectedItems()).thenReturn(List.of(
+                new FileItem(audio.toFile()),
+                new FileItem(text.toFile())
+        ));
+
+        Commander commander = new Commander();
+        commander.filesPanesHelper = panesHelper;
+
+        AppRegistry registry = new AppRegistry(configWithConvertActions());
+        ActionRegistry actionRegistry = new ActionRegistry(registry, new ActionExecutor(commander, registry));
+        ActionContext context = new ActionContext(commander);
+
+        AppAction action = actionRegistry.all().stream()
+                .filter(a -> "convertAudioFiles".equals(a.id()))
+                .findFirst()
+                .orElseThrow();
+
+        Assertions.assertThat(action.isEnabled(context)).isFalse();
+    }
+
+    private static AppConfig configWithConvertActions() {
+        ActionDefinition imageConvert = new ActionDefinition();
+        imageConvert.setId("convertGraphicsFiles");
+        imageConvert.setLabel("Convert Graphics Files");
+        imageConvert.setType("builtin");
+        imageConvert.setContexts(List.of("commandPalette"));
+        imageConvert.setSelection("any");
+
+        ActionDefinition audioConvert = new ActionDefinition();
+        audioConvert.setId("convertAudioFiles");
+        audioConvert.setLabel("Convert Audio Files");
+        audioConvert.setType("builtin");
+        audioConvert.setContexts(List.of("commandPalette"));
+        audioConvert.setSelection("any");
 
         AppConfig config = new AppConfig();
-        config.setActions(List.of(action));
+        config.setActions(List.of(imageConvert, audioConvert));
         return config;
     }
 }

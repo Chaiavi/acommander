@@ -4,8 +4,8 @@ import org.assertj.core.api.Assertions;
 import org.chaiware.acommander.helpers.FilesPanesHelper;
 import org.chaiware.acommander.model.FileItem;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.api.io.TempDir;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.nio.file.Files;
@@ -95,6 +95,45 @@ class ToolCommandBuilderTest {
         Assertions.assertThat(rendered)
                 .contains("\"" + first + "\"")
                 .contains("\"" + second + "\"");
+    }
+
+    @Test
+    void resolveTemplateSupportsQuotedBuiltInPathPlaceholders() throws Exception {
+        FilesPanesHelper panesHelper = mock(FilesPanesHelper.class);
+        Path selected = Files.createTempFile(tempDir, "file one", ".txt");
+
+        when(panesHelper.getSelectedItems()).thenReturn(List.of(new FileItem(selected.toFile())));
+        when(panesHelper.getFocusedPath()).thenReturn("C:\\focused path");
+        when(panesHelper.getUnfocusedPath()).thenReturn("C:\\target path");
+
+        String rendered = ToolCommandBuilder.resolveTemplate(
+                "in=${selectedFileQuoted};to=${targetFolderQuoted};from=${focusedPathQuoted}",
+                panesHelper,
+                null,
+                null
+        );
+
+        Assertions.assertThat(rendered)
+                .contains("in=\"" + selected + "\"")
+                .contains("to=\"C:\\target path\"")
+                .contains("from=\"C:\\focused path\"");
+    }
+
+    @Test
+    void resolveTemplateAddsQuotedAliasForExtraValues() throws Exception {
+        FilesPanesHelper panesHelper = mock(FilesPanesHelper.class);
+        when(panesHelper.getSelectedItems()).thenReturn(List.of());
+        when(panesHelper.getFocusedPath()).thenReturn("C:\\focused");
+        when(panesHelper.getUnfocusedPath()).thenReturn("C:\\target");
+
+        String rendered = ToolCommandBuilder.resolveTemplate(
+                "-o${destinationPathQuoted}",
+                panesHelper,
+                Map.of("${destinationPath}", "C:\\other pane\\folder"),
+                null
+        );
+
+        Assertions.assertThat(rendered).isEqualTo("-o\"C:\\other pane\\folder\"");
     }
 
     @Test

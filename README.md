@@ -171,10 +171,14 @@ Use these placeholders in the `args` array:
 | Variable | Description |
 |----------|-------------|
 | `${selectedFile}` | Full path to the currently selected file |
-| `${selectedFilesJoined}` | All selected files, space-separated |
+| `${selectedFileQuoted}` | Selected file path wrapped in quotes |
+| `${selectedFilesJoined}` | All selected files as a quoted, comma-separated list |
 | `${targetFolder}` | Path of the opposite pane (destination) |
+| `${targetFolderQuoted}` | Target folder path wrapped in quotes |
+| `${focusedPathQuoted}` | Focused pane path wrapped in quotes |
 | `${archiveFile}` | Output archive path (for pack operations) |
 | `${destinationPath}` | Extraction destination folder |
+| `${destinationPathQuoted}` | Extraction destination path wrapped in quotes |
 | `${outputPdf}` | Output PDF path (for merge operations) |
 | `${outputPattern}` | Output filename pattern (for split operations) |
 

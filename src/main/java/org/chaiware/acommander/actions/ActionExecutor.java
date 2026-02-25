@@ -53,6 +53,7 @@ public class ActionExecutor {
             case "pack" -> commander.pack();
             case "splitLargeFile" -> commander.splitLargeFile();
             case "convertGraphicsFiles" -> commander.convertGraphicsFiles();
+            case "convertAudioFiles" -> commander.convertAudioFiles();
             case "checksumFile" -> commander.checksumFile();
             case "checksumFolderContents" -> commander.checksumFolderContents();
             case "unpack" -> commander.unpackFile();

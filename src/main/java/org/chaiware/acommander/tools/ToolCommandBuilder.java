@@ -10,10 +10,13 @@ import java.util.stream.Collectors;
 
 public class ToolCommandBuilder {
     private static final String SELECTED_FILE = "${selectedFile}";
+    private static final String SELECTED_FILE_QUOTED = "${selectedFileQuoted}";
     private static final String SELECTED_FILES = "${selectedFiles}";
     private static final String SELECTED_FILES_JOINED = "${selectedFilesJoined}";
     private static final String FOCUSED_PATH = "${focusedPath}";
+    private static final String FOCUSED_PATH_QUOTED = "${focusedPathQuoted}";
     private static final String TARGET_FOLDER = "${targetFolder}";
+    private static final String TARGET_FOLDER_QUOTED = "${targetFolderQuoted}";
     private static final String SELECTED_NAME = "${selectedName}";
 
     private ToolCommandBuilder() {
@@ -106,14 +109,33 @@ public class ToolCommandBuilder {
 
         Map<String, String> values = new HashMap<>();
         values.put(SELECTED_FILE, selectedFile);
+        values.put(SELECTED_FILE_QUOTED, quote(selectedFile));
         values.put(SELECTED_FILES_JOINED, selectedFilesJoined);
         values.put(FOCUSED_PATH, focusedPath);
+        values.put(FOCUSED_PATH_QUOTED, quote(focusedPath));
         values.put(TARGET_FOLDER, targetFolder);
+        values.put(TARGET_FOLDER_QUOTED, quote(targetFolder));
         values.put(SELECTED_NAME, selectedName);
         if (extraValues != null) {
             values.putAll(extraValues);
+            addQuotedAliases(values, extraValues);
         }
         return values;
+    }
+
+    private static void addQuotedAliases(Map<String, String> values, Map<String, String> extraValues) {
+        for (Map.Entry<String, String> entry : extraValues.entrySet()) {
+            String key = entry.getKey();
+            if (key == null || !key.startsWith("${") || !key.endsWith("}")) {
+                continue;
+            }
+            String inner = key.substring(2, key.length() - 1);
+            if (inner.endsWith("Quoted")) {
+                continue;
+            }
+            String quotedAlias = "${" + inner + "Quoted}";
+            values.putIfAbsent(quotedAlias, quote(entry.getValue()));
+        }
     }
 
     private static List<String> resolveSelectedFiles(
@@ -155,6 +177,13 @@ public class ToolCommandBuilder {
         return "powershell".equalsIgnoreCase(path)
                 || "pwsh".equalsIgnoreCase(path)
                 || "cmd".equalsIgnoreCase(path);
+    }
+
+    private static String quote(String value) {
+        if (value == null || value.isBlank()) {
+            return "";
+        }
+        return "\"" + value.replace("\"", "\\\"") + "\"";
     }
 
     private static String nullToEmpty(String value) {

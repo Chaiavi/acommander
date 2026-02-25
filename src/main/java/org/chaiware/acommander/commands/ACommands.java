@@ -161,6 +161,7 @@ public abstract class ACommands {
             int exitCode = -1;
             Throwable failure = null;
             Process process = null;
+            List<String> output = List.of();
             try {
                 ProcessBuilder pb = new ProcessBuilder(params);
                 pb.redirectErrorStream(true); // merges stderr into stdout
@@ -168,7 +169,7 @@ public abstract class ACommands {
                 process = pb.start();
                 runningProcesses.add(process);
 
-                List<String> output = new ArrayList<>();
+                output = new ArrayList<>();
                 try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
                     String line;
                     while ((line = reader.readLine()) != null) {
@@ -178,13 +179,30 @@ public abstract class ACommands {
 
                 exitCode = process.waitFor();
                 log.debug("Process completed with exit code: {}", exitCode);
+                if (exitCode != 0) {
+                    String toolOutput = summarizeOutput(output);
+                    IllegalStateException ex = new IllegalStateException(
+                            "External command failed with exit code " + exitCode + ": " + formatCommand(commandSnapshot)
+                    );
+                    failure = ex;
+                    log.error(
+                            "External command failed. exitCode={} command={} outputTail={}",
+                            exitCode,
+                            formatCommand(commandSnapshot),
+                            toolOutput
+                    );
+                    throw ex;
+                }
 
                 if (shouldUpdateUI) Platform.runLater(() -> fileListsLoader.refreshFileListViews());
                 return output;
 
             } catch (IOException | InterruptedException e) {
                 failure = e;
-                log.error("Error running external process", e);
+                if (e instanceof InterruptedException) {
+                    Thread.currentThread().interrupt();
+                }
+                log.error("Error running external process. command={}", formatCommand(commandSnapshot), e);
                 throw new RuntimeException(e);
             } finally {
                 if (process != null) {
@@ -239,5 +257,24 @@ public abstract class ACommands {
         } catch (Exception ex) {
             log.debug("External command listener failed on finish", ex);
         }
+    }
+
+    private String formatCommand(List<String> command) {
+        if (command == null || command.isEmpty()) {
+            return "<empty>";
+        }
+        return String.join(" ", command);
+    }
+
+    private String summarizeOutput(List<String> output) {
+        if (output == null || output.isEmpty()) {
+            return "<no output>";
+        }
+        int start = Math.max(0, output.size() - 20);
+        String tail = String.join(" | ", output.subList(start, output.size()));
+        if (tail.length() > 4000) {
+            return tail.substring(tail.length() - 4000);
+        }
+        return tail;
     }
 }

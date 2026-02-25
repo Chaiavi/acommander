@@ -23,10 +23,7 @@ import org.chaiware.acommander.commands.CommandsAdvancedImpl;
 import org.chaiware.acommander.commands.ExternalCommandListener;
 import org.chaiware.acommander.config.AppConfigLoader;
 import org.chaiware.acommander.config.AppRegistry;
-import org.chaiware.acommander.helpers.ComboBoxSetup;
-import org.chaiware.acommander.helpers.FileAttributesHelper;
-import org.chaiware.acommander.helpers.FilesPanesHelper;
-import org.chaiware.acommander.helpers.ImageConversionSupport;
+import org.chaiware.acommander.helpers.*;
 import org.chaiware.acommander.keybinding.KeyBindingManager;
 import org.chaiware.acommander.keybinding.KeyBindingManager.KeyContext;
 import org.chaiware.acommander.model.FileItem;
@@ -169,6 +166,14 @@ public class Commander {
             public void onCommandFinished(List<String> command, int exitCode, Throwable error) {
                 int active = runningExternalCommands.updateAndGet(current -> Math.max(0, current - 1));
                 boolean finishedSettingsEditor = isSettingsEditCommand(command);
+                if (error != null || exitCode != 0) {
+                    logger.warn(
+                            "External action failed. exitCode={} command={} error={}",
+                            exitCode,
+                            command == null ? "<null>" : String.join(" ", command),
+                            error == null ? "<none>" : error.getMessage()
+                    );
+                }
                 Platform.runLater(() -> {
                     hideOrUpdateExternalProgress(active);
                     if (finishedSettingsEditor && restoreFileListFocusAfterSettingsEdit) {
@@ -1642,6 +1647,456 @@ public class Commander {
                 .toList();
     }
 
+    public void convertAudioFiles() {
+        logger.info("Convert Audio Files");
+        List<FileItem> selectedItems = commands.filterValidItems(new ArrayList<>(filesPanesHelper.getSelectedItems()));
+        if (!AudioConversionSupport.areAllConvertibleAudio(selectedItems)) {
+            showError("Convert Audio Files", "Select one or more audio files only.");
+            requestFocusedFileListFocus();
+            return;
+        }
+
+        Optional<AudioConversionRequest> request = promptAudioConversionOptions(selectedItems);
+        if (request.isEmpty()) {
+            requestFocusedFileListFocus();
+            return;
+        }
+
+        Path converterPath = Paths.get(System.getProperty("user.dir"), "apps", "sound_convert", "sndfile-convert.exe");
+        if (!Files.isRegularFile(converterPath)) {
+            showError("Convert Audio Files", "sndfile-convert executable was not found at: " + converterPath);
+            requestFocusedFileListFocus();
+            return;
+        }
+
+        String outputFolder = filesPanesHelper.getUnfocusedPath();
+        AudioConversionRequest options = request.get();
+        Path outputFolderPath = Paths.get(outputFolder);
+        final Path[] firstConverted = {null};
+
+        CompletableFuture<Void> chain = CompletableFuture.completedFuture(null);
+        for (FileItem source : selectedItems) {
+            chain = chain.thenCompose(ignored -> {
+                Path outputPath = buildAudioOutputPath(outputFolderPath, source, options);
+                try {
+                    outputPath = resolveAudioOutputCollision(outputPath, options.conflictPolicy());
+                } catch (IOException ioException) {
+                    return CompletableFuture.failedFuture(ioException);
+                }
+                if (outputPath == null) {
+                    return CompletableFuture.completedFuture(null);
+                }
+                List<String> command = buildAudioConvertCommand(converterPath, source.getFullPath(), outputPath, options);
+                Path finalOutputPath = outputPath;
+                return runExternal(command, false).thenAccept(lines -> {
+                    if (firstConverted[0] == null) {
+                        firstConverted[0] = finalOutputPath;
+                    }
+                });
+            });
+        }
+
+        chain.thenAccept(ignored -> Platform.runLater(() -> {
+                    filesPanesHelper.refreshFileListViews();
+                    if (firstConverted[0] != null) {
+                        filesPanesHelper.selectFileItem(false, new FileItem(firstConverted[0].toFile()));
+                    }
+                    requestUnfocusedFileListFocus();
+                }))
+                .exceptionally(throwable -> {
+                    Platform.runLater(() -> {
+                        showError("Convert Audio Files", "Audio conversion failed: " + throwable.getMessage());
+                        requestFocusedFileListFocus();
+                    });
+                    return null;
+                });
+    }
+
+    private Optional<AudioConversionRequest> promptAudioConversionOptions(List<FileItem> selectedItems) {
+        List<String> targetFormats = AudioConversionSupport.targetFormatsForSelection(selectedItems);
+        if (targetFormats.isEmpty()) {
+            showError("Convert Audio Files", "No supported target formats were found for the selected files.");
+            return Optional.empty();
+        }
+
+        Dialog<AudioConversionRequest> dialog = new Dialog<>();
+        dialog.setTitle("Convert Audio Files");
+        dialog.setHeaderText(null);
+
+        ButtonType convertType = new ButtonType("Convert", ButtonBar.ButtonData.OK_DONE);
+        dialog.getDialogPane().getButtonTypes().addAll(convertType, ButtonType.CANCEL);
+
+        Label title = new Label("Convert Audio Files");
+        title.setStyle("-fx-font-size: 16px; -fx-font-weight: bold;");
+        Label subtitle = new Label("Selected files: " + selectedItems.size() + " | Output folder: " + filesPanesHelper.getUnfocusedPath());
+
+        ToggleGroup formatGroup = new ToggleGroup();
+        VBox formatsBox = new VBox(8);
+        for (String format : targetFormats) {
+            RadioButton formatRadio = new RadioButton(format.toUpperCase(Locale.ROOT));
+            formatRadio.setUserData(format);
+            formatRadio.setToggleGroup(formatGroup);
+            formatsBox.getChildren().add(formatRadio);
+        }
+        if (formatGroup.getToggles().getFirst() instanceof RadioButton first) {
+            first.setSelected(true);
+        }
+
+        ToggleGroup profileGroup = new ToggleGroup();
+        RadioButton lossless = new RadioButton("Lossless");
+        RadioButton lossy = new RadioButton("Lossy");
+        RadioButton custom = new RadioButton("Custom encoding");
+        lossless.setUserData(AudioCompressionProfile.LOSSLESS);
+        lossy.setUserData(AudioCompressionProfile.LOSSY);
+        custom.setUserData(AudioCompressionProfile.CUSTOM);
+        lossless.setToggleGroup(profileGroup);
+        lossy.setToggleGroup(profileGroup);
+        custom.setToggleGroup(profileGroup);
+        lossless.setSelected(true);
+
+        ComboBox<String> encodingCombo = new ComboBox<>();
+        encodingCombo.setPrefWidth(260);
+        Map<String, String> encodingChoices = new LinkedHashMap<>();
+
+        CheckBox normalize = new CheckBox("Normalize output audio");
+        CheckBox overrideSampleRate = new CheckBox("Override sample rate (Hz)");
+        TextField sampleRateField = new TextField("44100");
+        sampleRateField.setDisable(true);
+
+        ComboBox<String> endianCombo = new ComboBox<>();
+        endianCombo.getItems().addAll("Auto", "CPU", "Little", "Big");
+        endianCombo.getSelectionModel().select("Auto");
+
+        TextField suffixField = new TextField("_converted");
+        suffixField.setPromptText("Filename suffix");
+
+        ComboBox<String> conflictPolicy = new ComboBox<>();
+        conflictPolicy.getItems().addAll("Overwrite", "Skip", "Auto-rename");
+        conflictPolicy.getSelectionModel().select("Overwrite");
+
+        Runnable syncEncodingChoices = () -> {
+            String targetFormat = formatGroup.getSelectedToggle() == null
+                    ? null
+                    : String.valueOf(formatGroup.getSelectedToggle().getUserData());
+            AudioCompressionProfile profile = selectedAudioCompressionProfile(profileGroup);
+            encodingChoices.clear();
+            encodingChoices.putAll(audioEncodingOptionsFor(targetFormat, profile));
+            encodingCombo.getItems().setAll(encodingChoices.keySet());
+            if (!encodingCombo.getItems().isEmpty()) {
+                encodingCombo.getSelectionModel().selectFirst();
+            }
+            encodingCombo.setDisable(profile != AudioCompressionProfile.CUSTOM);
+        };
+
+        overrideSampleRate.selectedProperty().addListener((obs, oldValue, newValue) -> sampleRateField.setDisable(!newValue));
+        formatGroup.selectedToggleProperty().addListener((obs, oldValue, newValue) -> syncEncodingChoices.run());
+        profileGroup.selectedToggleProperty().addListener((obs, oldValue, newValue) -> syncEncodingChoices.run());
+        syncEncodingChoices.run();
+
+        Button convertButton = (Button) dialog.getDialogPane().lookupButton(convertType);
+        Label validationLabel = new Label();
+        Runnable validate = () -> {
+            if (formatGroup.getSelectedToggle() == null) {
+                convertButton.setDisable(true);
+                validationLabel.setText("Choose a target format.");
+                return;
+            }
+            Integer sampleRate = overrideSampleRate.isSelected() ? parsePositiveOrNull(sampleRateField.getText()) : null;
+            if (overrideSampleRate.isSelected() && sampleRate == null) {
+                convertButton.setDisable(true);
+                validationLabel.setText("Sample rate must be a positive number.");
+                return;
+            }
+            if (encodingCombo.getSelectionModel().getSelectedItem() == null) {
+                convertButton.setDisable(true);
+                validationLabel.setText("Choose an encoding option.");
+                return;
+            }
+            String targetFormat = String.valueOf(formatGroup.getSelectedToggle().getUserData());
+            String selectedEncodingLabel = encodingCombo.getSelectionModel().getSelectedItem();
+            String selectedEncodingFlag = selectedEncodingLabel == null ? "" : encodingChoices.getOrDefault(selectedEncodingLabel, "");
+            if (sampleRate != null && isOpusOutput(targetFormat, selectedEncodingFlag) && !isValidOpusSampleRate(sampleRate)) {
+                convertButton.setDisable(true);
+                validationLabel.setText("Opus sample rate must be one of: 8000, 12000, 16000, 24000, 48000.");
+                return;
+            }
+            convertButton.setDisable(false);
+            validationLabel.setText("");
+        };
+        sampleRateField.textProperty().addListener((obs, oldValue, newValue) -> validate.run());
+        formatGroup.selectedToggleProperty().addListener((obs, oldValue, newValue) -> validate.run());
+        profileGroup.selectedToggleProperty().addListener((obs, oldValue, newValue) -> validate.run());
+        encodingCombo.getSelectionModel().selectedItemProperty().addListener((obs, oldValue, newValue) -> validate.run());
+        validate.run();
+
+        VBox content = new VBox(
+                10,
+                title,
+                subtitle,
+                new Separator(),
+                new Label("Convert to format:"),
+                formatsBox,
+                new Separator(),
+                new Label("Compression profile:"),
+                lossless,
+                lossy,
+                custom,
+                new HBox(10, new Label("Encoding:"), encodingCombo),
+                new Separator(),
+                new Label("Options:"),
+                normalize,
+                new HBox(10, overrideSampleRate, sampleRateField),
+                new HBox(10, new Label("Endian:"), endianCombo),
+                new Label("Filename suffix:"),
+                suffixField,
+                new Label("If output file exists:"),
+                conflictPolicy,
+                validationLabel
+        );
+        content.setPadding(new Insets(12));
+        dialog.getDialogPane().setContent(content);
+        dialog.getDialogPane().setPrefSize(620, 680);
+        applyThemeToDialog(dialog);
+
+        dialog.setResultConverter(buttonType -> {
+            if (buttonType != convertType || formatGroup.getSelectedToggle() == null) {
+                return null;
+            }
+            String selectedEncodingLabel = encodingCombo.getSelectionModel().getSelectedItem();
+            String targetFormat = String.valueOf(formatGroup.getSelectedToggle().getUserData());
+            Integer sampleRate = overrideSampleRate.isSelected() ? parsePositiveOrNull(sampleRateField.getText()) : null;
+            return new AudioConversionRequest(
+                    targetFormat,
+                    selectedAudioCompressionProfile(profileGroup),
+                    selectedEncodingLabel == null ? "" : encodingChoices.getOrDefault(selectedEncodingLabel, ""),
+                    normalize.isSelected(),
+                    sampleRate,
+                    endianCombo.getSelectionModel().getSelectedItem(),
+                    suffixField.getText() == null ? "" : suffixField.getText().trim(),
+                    conflictPolicy.getSelectionModel().getSelectedItem()
+            );
+        });
+
+        return dialog.showAndWait();
+    }
+
+    private AudioCompressionProfile selectedAudioCompressionProfile(ToggleGroup group) {
+        if (group == null || group.getSelectedToggle() == null || group.getSelectedToggle().getUserData() == null) {
+            return AudioCompressionProfile.LOSSLESS;
+        }
+        return (AudioCompressionProfile) group.getSelectedToggle().getUserData();
+    }
+
+    private Map<String, String> audioEncodingOptionsFor(String targetFormat, AudioCompressionProfile profile) {
+        String fmt = targetFormat == null ? "" : targetFormat.toLowerCase(Locale.ROOT);
+        Map<String, String> options = new LinkedHashMap<>();
+        switch (profile) {
+            case LOSSLESS -> {
+                switch (fmt) {
+                    case "wav", "aif", "au", "rf64", "w64", "raw", "flac" -> {
+                        options.put("16-bit PCM", "-pcm16");
+                        options.put("24-bit PCM", "-pcm24");
+                        if (!"flac".equals(fmt)) {
+                            options.put("32-bit PCM", "-pcm32");
+                            options.put("32-bit Float", "-float32");
+                        }
+                    }
+                    case "caf" -> {
+                        options.put("ALAC 16-bit", "-alac16");
+                        options.put("ALAC 24-bit", "-alac24");
+                        options.put("PCM 24-bit", "-pcm24");
+                    }
+                    default -> options.put("Auto (source/default)", "");
+                }
+            }
+            case LOSSY -> {
+                switch (fmt) {
+                    case "ogg", "oga" -> {
+                        options.put("Vorbis", "-vorbis");
+                        options.put("Opus", "-opus");
+                    }
+                    case "opus" -> options.put("Opus", "-opus");
+                    case "wav" -> {
+                        options.put("IMA ADPCM", "-ima-adpcm");
+                        options.put("MS ADPCM", "-ms-adpcm");
+                        options.put("GSM 6.10", "-gsm610");
+                    }
+                    case "mp3" -> options.put("MP3 (container default)", "");
+                    default -> options.put("Auto (source/default)", "");
+                }
+            }
+            case CUSTOM -> {
+                options.put("Auto (source/default)", "");
+                options.put("16-bit PCM", "-pcm16");
+                options.put("24-bit PCM", "-pcm24");
+                options.put("32-bit PCM", "-pcm32");
+                options.put("32-bit Float", "-float32");
+                options.put("64-bit Float", "-float64");
+                options.put("uLaw", "-ulaw");
+                options.put("aLaw", "-alaw");
+                if ("flac".equals(fmt)) {
+                    options.put("FLAC-safe PCM 16-bit", "-pcm16");
+                    options.put("FLAC-safe PCM 24-bit", "-pcm24");
+                }
+                if ("caf".equals(fmt)) {
+                    options.put("ALAC 16-bit (CAF)", "-alac16");
+                    options.put("ALAC 24-bit (CAF)", "-alac24");
+                }
+                if ("wav".equals(fmt)) {
+                    options.put("IMA ADPCM (WAV)", "-ima-adpcm");
+                    options.put("MS ADPCM (WAV)", "-ms-adpcm");
+                    options.put("GSM 6.10 (WAV)", "-gsm610");
+                }
+                if ("ogg".equals(fmt) || "oga".equals(fmt) || "opus".equals(fmt)) {
+                    options.put("Vorbis (OGG)", "-vorbis");
+                    options.put("Opus (OGG)", "-opus");
+                }
+            }
+        }
+        if (options.isEmpty()) {
+            options.put("Auto (source/default)", "");
+        }
+        return options;
+    }
+
+    private List<String> buildAudioConvertCommand(
+            Path converterPath,
+            String inputPath,
+            Path outputPath,
+            AudioConversionRequest options
+    ) {
+        List<String> command = new ArrayList<>();
+        command.add(converterPath.toString());
+
+        String encodingFlag = options.encodingFlag();
+        if (encodingFlag == null || encodingFlag.isBlank()) {
+            encodingFlag = defaultEncodingForTargetFormat(options.targetFormat());
+        }
+
+        boolean opusOutput = isOpusOutput(options.targetFormat(), encodingFlag);
+        Integer effectiveSampleRate = normalizeSampleRateForOutput(options.sampleRateOverride(), opusOutput);
+        if (effectiveSampleRate != null) {
+            command.add("-override-sample-rate=" + effectiveSampleRate);
+        }
+
+        if (options.endian() != null && isEndianAllowedForTargetFormat(options.targetFormat())) {
+            String endian = options.endian().trim().toLowerCase(Locale.ROOT);
+            if (endian.equals("little") || endian.equals("big") || endian.equals("cpu")) {
+                command.add("-endian=" + endian);
+            }
+        }
+        if (options.normalize()) {
+            command.add("-normalize");
+        }
+        if (encodingFlag != null && !encodingFlag.isBlank()) {
+            command.add(encodingFlag);
+        }
+
+        command.add(inputPath);
+        command.add(outputPath.toString());
+        return command;
+    }
+
+    private String defaultEncodingForTargetFormat(String targetFormat) {
+        String fmt = targetFormat == null ? "" : targetFormat.toLowerCase(Locale.ROOT);
+        return switch (fmt) {
+            case "flac", "wav", "aif", "au", "rf64", "w64", "raw", "caf" -> "-pcm16";
+            case "ogg", "oga" -> "-vorbis";
+            case "opus" -> "-opus";
+            default -> "";
+        };
+    }
+
+    private Integer normalizeSampleRateForOutput(Integer requestedSampleRate, boolean opusOutput) {
+        if (!opusOutput) {
+            return requestedSampleRate;
+        }
+        if (requestedSampleRate == null) {
+            return 48000;
+        }
+        if (isValidOpusSampleRate(requestedSampleRate)) {
+            return requestedSampleRate;
+        }
+        int normalized = nearestSupportedOpusSampleRate(requestedSampleRate);
+        logger.warn("Adjusted unsupported Opus sample rate {} to {}", requestedSampleRate, normalized);
+        return normalized;
+    }
+
+    private int nearestSupportedOpusSampleRate(int requested) {
+        int[] supported = {8000, 12000, 16000, 24000, 48000};
+        int nearest = supported[0];
+        int bestDistance = Math.abs(requested - nearest);
+        for (int candidate : supported) {
+            int distance = Math.abs(requested - candidate);
+            if (distance < bestDistance) {
+                bestDistance = distance;
+                nearest = candidate;
+            }
+        }
+        return nearest;
+    }
+
+    private boolean isValidOpusSampleRate(int sampleRate) {
+        return sampleRate == 8000
+                || sampleRate == 12000
+                || sampleRate == 16000
+                || sampleRate == 24000
+                || sampleRate == 48000;
+    }
+
+    private boolean isOpusOutput(String targetFormat, String encodingFlag) {
+        String fmt = targetFormat == null ? "" : targetFormat.toLowerCase(Locale.ROOT);
+        String codec = encodingFlag == null ? "" : encodingFlag.trim().toLowerCase(Locale.ROOT);
+        return "opus".equals(fmt) || "-opus".equals(codec);
+    }
+
+    private boolean isEndianAllowedForTargetFormat(String targetFormat) {
+        String fmt = targetFormat == null ? "" : targetFormat.toLowerCase(Locale.ROOT);
+        return switch (fmt) {
+            case "flac", "ogg", "oga", "opus", "mp3" -> false;
+            default -> true;
+        };
+    }
+
+    private Path buildAudioOutputPath(Path outputFolder, FileItem source, AudioConversionRequest options) {
+        String name = source.getName();
+        int dot = name.lastIndexOf('.');
+        String stem = dot > 0 ? name.substring(0, dot) : name;
+        String suffix = options.suffix() == null ? "" : options.suffix();
+        return outputFolder.resolve(stem + suffix + "." + options.targetFormat().toLowerCase(Locale.ROOT));
+    }
+
+    private Path resolveAudioOutputCollision(Path outputPath, String conflictPolicy) throws IOException {
+        if (!Files.exists(outputPath)) {
+            return outputPath;
+        }
+        String policy = conflictPolicy == null ? "overwrite" : conflictPolicy.trim().toLowerCase(Locale.ROOT);
+        if ("skip".equals(policy)) {
+            return null;
+        }
+        if ("auto-rename".equals(policy)) {
+            return nextAvailableFileName(outputPath);
+        }
+        Files.delete(outputPath);
+        return outputPath;
+    }
+
+    private Path nextAvailableFileName(Path originalPath) {
+        Path parent = originalPath.getParent();
+        String filename = originalPath.getFileName().toString();
+        int dot = filename.lastIndexOf('.');
+        String stem = dot > 0 ? filename.substring(0, dot) : filename;
+        String ext = dot > 0 ? filename.substring(dot) : "";
+
+        int counter = 1;
+        Path candidate = originalPath;
+        while (Files.exists(candidate)) {
+            candidate = parent.resolve(stem + " (" + counter + ")" + ext);
+            counter++;
+        }
+        return candidate;
+    }
+
     public void checksumFile() {
         logger.info("Checksum File");
         List<FileItem> selectedItems = commands.filterValidItems(new ArrayList<>(filesPanesHelper.getSelectedItems()));
@@ -2515,6 +2970,11 @@ public class Commander {
         LOSSLESS,
         MAX_SIZE
     }
+    private enum AudioCompressionProfile {
+        LOSSLESS,
+        LOSSY,
+        CUSTOM
+    }
     private enum ImageResizeMode {
         NONE,
         WIDTH,
@@ -2534,6 +2994,16 @@ public class Commander {
             boolean noUpscale,
             String suffix,
             String overwritePolicy
+    ) {}
+    private record AudioConversionRequest(
+            String targetFormat,
+            AudioCompressionProfile compressionProfile,
+            String encodingFlag,
+            boolean normalize,
+            Integer sampleRateOverride,
+            String endian,
+            String suffix,
+            String conflictPolicy
     ) {}
     private record FindInFilesOptions(
             String query,
