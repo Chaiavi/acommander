@@ -28,6 +28,7 @@ public class FilePaneKeyHandlerImpl implements IKeyHandler {
     public boolean handle(KeyEvent event) {
         ActionDefinition action = appRegistry.matchShortcut(ActionScope.FILE_PANE, event).orElse(null);
         if (action != null) {
+            commander.clearCharFilter();
             SelectionRule rule = SelectionRule.fromString(action.getSelection());
             if (rule.isSatisfied(commander.filesPanesHelper.getSelectedItems())) {
                 String builtin = action.getBuiltin() == null ? action.getId() : action.getBuiltin();
@@ -50,22 +51,28 @@ public class FilePaneKeyHandlerImpl implements IKeyHandler {
             return false;
         }
 
+        Character filterChar = extractFilterChar(event);
+        if (filterChar != null) {
+            commander.filterByChar(filterChar);
+            return true;
+        }
+
         return switch (event.getCode()) {
             case BACK_SPACE -> {
+                if (commander.backspaceCharFilter()) {
+                    yield true;
+                }
                 goUpOneFolder();
                 yield true;
             }
             case ENTER -> {
+                commander.clearCharFilter();
                 commander.enterSelectedItem();
                 event.consume();
                 yield true;
             }
             default -> {
-                String keyText = event.getText();
-                if (keyText.matches("[a-zA-Z0-9]")) {
-                    commander.filterByChar(keyText.charAt(0));
-                    yield true;
-                }
+                commander.clearCharFilter();
                 yield false;
             }
         };
@@ -75,5 +82,36 @@ public class FilePaneKeyHandlerImpl implements IKeyHandler {
         File parent = new File(commander.filesPanesHelper.getFocusedPath()).getParentFile();
         if (parent != null)
             commander.filesPanesHelper.setFocusedFileListPath(parent.getAbsolutePath());
+    }
+
+    private Character extractFilterChar(KeyEvent event) {
+        String keyText = event.getText();
+        if (keyText != null && keyText.codePointCount(0, keyText.length()) == 1) {
+            int codePoint = keyText.codePointAt(0);
+            if (Character.isLetterOrDigit(codePoint)) {
+                return Character.toLowerCase((char) codePoint);
+            }
+        }
+
+        if (event.getCode().isLetterKey()) {
+            String keyName = event.getCode().getName();
+            if (keyName != null && keyName.length() == 1) {
+                return Character.toLowerCase(keyName.charAt(0));
+            }
+        }
+
+        return switch (event.getCode()) {
+            case DIGIT0, NUMPAD0 -> '0';
+            case DIGIT1, NUMPAD1 -> '1';
+            case DIGIT2, NUMPAD2 -> '2';
+            case DIGIT3, NUMPAD3 -> '3';
+            case DIGIT4, NUMPAD4 -> '4';
+            case DIGIT5, NUMPAD5 -> '5';
+            case DIGIT6, NUMPAD6 -> '6';
+            case DIGIT7, NUMPAD7 -> '7';
+            case DIGIT8, NUMPAD8 -> '8';
+            case DIGIT9, NUMPAD9 -> '9';
+            default -> null;
+        };
     }
 }

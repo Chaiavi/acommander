@@ -2,8 +2,8 @@ package org.chaiware.acommander;
 
 import javafx.application.Platform;
 import javafx.collections.ListChangeListener;
-import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
+import javafx.geometry.Bounds;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Cursor;
@@ -15,6 +15,7 @@ import javafx.scene.input.ClipboardContent;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.*;
+import javafx.stage.Popup;
 import javafx.stage.Window;
 import org.chaiware.acommander.actions.ActionContext;
 import org.chaiware.acommander.actions.ActionExecutor;
@@ -103,6 +104,10 @@ public class Commander {
     private KeyCode bottomButtonModifier;
     private final AtomicInteger runningExternalCommands = new AtomicInteger(0);
     private volatile boolean restoreFileListFocusAfterSettingsEdit = false;
+    private final Map<FilesPanesHelper.FocusSide, String> incrementalCharFilters = new EnumMap<>(FilesPanesHelper.FocusSide.class);
+    private final Map<FilesPanesHelper.FocusSide, List<FileItem>> incrementalFilterBases = new EnumMap<>(FilesPanesHelper.FocusSide.class);
+    private Popup incrementalFilterPopup;
+    private Label incrementalFilterPopupLabel;
 
 
     @FXML
@@ -358,6 +363,7 @@ public class Commander {
 
         properties.setProperty(side == LEFT ? LEFT_FOLDER_KEY : RIGHT_FOLDER_KEY, newValue.getPath());
         saveConfigFile();
+        clearCharFilter(side);
         filesPanesHelper.refreshFileListView(side);
     }
 
@@ -739,6 +745,7 @@ public class Commander {
      */
     public void enterSelectedItem() {
         logger.debug("User clicked ENTER (or mouse double-click)");
+        clearCharFilter();
 
         String currentPath = filesPanesHelper.getFocusedPath();
         FileItem selectedItem = filesPanesHelper.getSelectedItem();
@@ -2461,10 +2468,158 @@ public class Commander {
     }
 
     public void filterByChar(char selectedChar) {
-        ObservableList<FileItem> fileItems = filesPanesHelper.getFileList(true).getItems();
-        fileItems.stream()
-                .filter(f -> f.getName().toLowerCase().startsWith(String.valueOf(selectedChar)))
-                .findFirst().ifPresent(match -> filesPanesHelper.selectFileItem(true, match));
+        FilesPanesHelper.FocusSide side = filesPanesHelper.getFocusedSide();
+        ListView<FileItem> listView = side == LEFT ? leftFileList : rightFileList;
+        List<FileItem> currentItems = List.copyOf(listView.getItems());
+        String existingPrefix = incrementalCharFilters.getOrDefault(side, "");
+
+        List<FileItem> baseItems = incrementalFilterBases.get(side);
+        if (baseItems == null || !isSubset(currentItems, baseItems) || !matchesActiveFilter(currentItems, baseItems, existingPrefix)) {
+            baseItems = currentItems;
+            existingPrefix = "";
+        }
+
+        String nextPrefix = existingPrefix + Character.toLowerCase(selectedChar);
+        incrementalFilterBases.put(side, baseItems);
+        incrementalCharFilters.put(side, nextPrefix);
+        applyIncrementalFilter(side, nextPrefix);
+        showIncrementalFilterPopup(nextPrefix);
+    }
+
+    public void clearCharFilter() {
+        clearCharFilter(filesPanesHelper.getFocusedSide());
+    }
+
+    public boolean backspaceCharFilter() {
+        FilesPanesHelper.FocusSide side = filesPanesHelper.getFocusedSide();
+        String existingPrefix = incrementalCharFilters.getOrDefault(side, "");
+        if (existingPrefix.isEmpty()) {
+            return false;
+        }
+
+        String updatedPrefix = existingPrefix.substring(0, existingPrefix.length() - 1);
+        if (updatedPrefix.isEmpty()) {
+            clearCharFilter(side);
+            hideIncrementalFilterPopup();
+            return true;
+        }
+
+        incrementalCharFilters.put(side, updatedPrefix);
+        applyIncrementalFilter(side, updatedPrefix);
+        showIncrementalFilterPopup(updatedPrefix);
+        return true;
+    }
+
+    private void clearCharFilter(FilesPanesHelper.FocusSide side) {
+        List<FileItem> baseItems = incrementalFilterBases.remove(side);
+        incrementalCharFilters.remove(side);
+        hideIncrementalFilterPopup();
+        if (baseItems == null) {
+            return;
+        }
+
+        ListView<FileItem> listView = side == LEFT ? leftFileList : rightFileList;
+        FileItem selectedItem = listView.getSelectionModel().getSelectedItem();
+        listView.getItems().setAll(baseItems);
+        if (selectedItem != null && listView.getItems().contains(selectedItem)) {
+            listView.getSelectionModel().select(selectedItem);
+            return;
+        }
+        if (!listView.getItems().isEmpty()) {
+            listView.getSelectionModel().selectFirst();
+        }
+    }
+
+    private void applyIncrementalFilter(FilesPanesHelper.FocusSide side, String prefix) {
+        List<FileItem> baseItems = incrementalFilterBases.getOrDefault(side, List.of());
+        List<FileItem> filteredItems = baseItems.stream()
+                .filter(item -> "..".equals(item.getPresentableFilename())
+                        || item.getPresentableFilename().toLowerCase(Locale.ROOT).startsWith(prefix))
+                .toList();
+
+        ListView<FileItem> listView = side == LEFT ? leftFileList : rightFileList;
+        listView.getItems().setAll(filteredItems);
+        filteredItems.stream()
+                .filter(item -> !"..".equals(item.getPresentableFilename()))
+                .findFirst()
+                .ifPresentOrElse(
+                        item -> listView.getSelectionModel().select(item),
+                        () -> {
+                            if (!filteredItems.isEmpty()) {
+                                listView.getSelectionModel().selectFirst();
+                            }
+                        }
+                );
+    }
+
+    private boolean isSubset(List<FileItem> currentItems, List<FileItem> baseItems) {
+        return currentItems.stream().allMatch(baseItems::contains);
+    }
+
+    private boolean matchesActiveFilter(List<FileItem> currentItems, List<FileItem> baseItems, String prefix) {
+        if (prefix == null || prefix.isEmpty()) {
+            return currentItems.equals(baseItems);
+        }
+
+        List<FileItem> expectedItems = baseItems.stream()
+                .filter(item -> "..".equals(item.getPresentableFilename())
+                        || item.getPresentableFilename().toLowerCase(Locale.ROOT).startsWith(prefix))
+                .toList();
+        return currentItems.equals(expectedItems);
+    }
+
+    private void showIncrementalFilterPopup(String prefix) {
+        if (prefix == null || prefix.isEmpty()) {
+            hideIncrementalFilterPopup();
+            return;
+        }
+
+        ListView<FileItem> focusedList = filesPanesHelper.getFocusedSide() == LEFT ? leftFileList : rightFileList;
+        if (focusedList == null || focusedList.getScene() == null) {
+            return;
+        }
+
+        Bounds bounds = focusedList.localToScreen(focusedList.getBoundsInLocal());
+        if (bounds == null) {
+            return;
+        }
+
+        initializeIncrementalFilterPopupIfNeeded();
+        incrementalFilterPopupLabel.setText(prefix);
+
+        double x = bounds.getMaxX() - 32;
+        double y = bounds.getMinY() + 8;
+        if (incrementalFilterPopup.isShowing()) {
+            incrementalFilterPopup.hide();
+        }
+        incrementalFilterPopup.show(focusedList, x, y);
+    }
+
+    private void hideIncrementalFilterPopup() {
+        if (incrementalFilterPopup != null && incrementalFilterPopup.isShowing()) {
+            incrementalFilterPopup.hide();
+        }
+    }
+
+    private void initializeIncrementalFilterPopupIfNeeded() {
+        if (incrementalFilterPopup != null) {
+            return;
+        }
+
+        incrementalFilterPopup = new Popup();
+        incrementalFilterPopupLabel = new Label();
+
+        incrementalFilterPopupLabel.setStyle(
+                "-fx-background-color: rgba(20, 20, 20, 0.92);"
+                        + "-fx-text-fill: white;"
+                        + "-fx-padding: 4 8 4 8;"
+                        + "-fx-background-radius: 6;"
+                        + "-fx-font-size: 12px;"
+                        + "-fx-font-weight: bold;"
+        );
+        incrementalFilterPopup.getContent().add(incrementalFilterPopupLabel);
+        incrementalFilterPopup.setAutoHide(false);
+        incrementalFilterPopup.setHideOnEscape(false);
     }
 
     /** Opens a dialog with the title asking the requested question returning the optional user's input */
