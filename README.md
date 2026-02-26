@@ -11,6 +11,12 @@ Fast. Keyboard-driven. Endlessly configurable.
 [![Build](https://img.shields.io/badge/Build-Gradle-02303A?logo=gradle&logoColor=white)](#)
 [![License](https://img.shields.io/badge/License-BSL%201.0-blue)](#license)
 
+
+# Out of the box, open ACommander
+<img width="3826" height="2054" alt="image" src="https://github.com/user-attachments/assets/5880e5c6-c1f4-4450-b169-b8bf8079a350" />
+
+# A Commander workstation with multiple associated apps running (View Text File, View Image, Edit and Terminal)
+<img width="3840" height="2060" alt="image" src="https://github.com/user-attachments/assets/345ee06a-8edc-4302-9b1c-2f76124177d3" />
 </div>
 
 ---
