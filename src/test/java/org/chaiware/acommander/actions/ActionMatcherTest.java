@@ -132,4 +132,24 @@ class ActionMatcherTest {
 
         Assertions.assertThat(ranked.getFirst().id()).isEqualTo("convertGraphicsFiles");
     }
+
+    @Test
+    void blankQueryPinsPdfActionsFirstWhenPdfSelection() throws Exception {
+        ActionMatcher matcher = new ActionMatcher();
+        Path pdf = Files.createTempFile(tempDir, "doc", ".pdf");
+
+        FilesPanesHelper panesHelper = mock(FilesPanesHelper.class);
+        when(panesHelper.getSelectedItems()).thenReturn(List.of(new FileItem(pdf.toFile())));
+
+        Commander commander = new Commander();
+        commander.filesPanesHelper = panesHelper;
+        ActionContext context = new ActionContext(commander);
+
+        AppAction alpha = new AppAction("a", "Alpha", "", List.of(), ctx -> true, ctx -> {});
+        AppAction extractPdfPages = new AppAction("extractPdfPages", "Extract PDF Pages", "", List.of(), ctx -> true, ctx -> {});
+
+        List<AppAction> ranked = matcher.rank("", List.of(alpha, extractPdfPages), context);
+
+        Assertions.assertThat(ranked.getFirst().id()).isEqualTo("extractPdfPages");
+    }
 }

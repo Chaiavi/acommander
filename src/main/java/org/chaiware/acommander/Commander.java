@@ -789,7 +789,7 @@ public class Commander {
         logger.info("Help (F1)");
 
         try {
-            File helpFile = (Paths.get(System.getProperty("user.dir"), "config", "f1-help.md")).toFile();
+            File helpFile = Paths.get(System.getProperty("user.dir"), "config", "f1-help.html").toFile();
             FileItem selectedItem = new FileItem(helpFile, helpFile.getName());
             commands.view(selectedItem);
         } catch (Exception ex) {
@@ -2317,7 +2317,7 @@ public class Commander {
     }
 
     public void extractAll() {
-        logger.info("Extract All (ALT+F12)");
+        logger.info("Extract Anything (ALT+F12)");
         try {
             List<FileItem> selectedItems = new ArrayList<>(filesPanesHelper.getSelectedItems());
             for (FileItem selectedItem : selectedItems)
@@ -2328,7 +2328,7 @@ public class Commander {
     }
 
     public void mergePDFFiles() {
-        logger.info("Merge PDF Files (SHIFT+F1)");
+        logger.info("Merge PDF Files");
         try {
             List<FileItem> selectedItems = filesPanesHelper.getSelectedItems();
             String firstFilename = selectedItems.getFirst().getName();
@@ -2348,7 +2348,7 @@ public class Commander {
     }
 
     public void extractPDFPages() {
-        logger.info("Extract PDF Pages (SHIFT+F2)");
+        logger.info("Extract PDF Pages");
         try {
             List<FileItem> selectedItems = new ArrayList<>(filesPanesHelper.getSelectedItems());
             for (FileItem selectedItem : selectedItems)
@@ -3360,11 +3360,11 @@ public class Commander {
                 btnF9.setText("ALT+F9 Explorer");
                 btnF10.setText("ALT+F10 Find in Files");
                 btnF11.setText("ALT+F11 Split");
-                btnF12.setText("ALT+F12 Extract All");
+                btnF12.setText("ALT+F12 Extract Anything");
             }
             case SHIFT -> {
-                btnF1.setText("SHIFT+F1 Merge PDF");
-                btnF2.setText("SHIFT+F2 Extract PDF");
+                btnF1.setText("");
+                btnF2.setText("");
                 btnF3.setText("");
                 btnF4.setText("");
                 btnF5.setText("");

@@ -83,6 +83,21 @@ public class ActionMatcher {
         if ("convertGraphicsFiles".equals(action.id()) && ImageConversionSupport.areAllConvertibleImages(selectedItems)) {
             return 0;
         }
+        if (("mergePdf".equals(action.id()) || "extractPdfPages".equals(action.id()))
+                && areAllSelectedItemsPdf(selectedItems)) {
+            return 0;
+        }
         return 1;
+    }
+
+    private boolean areAllSelectedItemsPdf(List<FileItem> selectedItems) {
+        if (selectedItems == null || selectedItems.isEmpty()) {
+            return false;
+        }
+        return selectedItems.stream()
+                .allMatch(item -> item != null
+                        && !item.isDirectory()
+                        && item.getName() != null
+                        && item.getName().toLowerCase(Locale.ROOT).endsWith(".pdf"));
     }
 }

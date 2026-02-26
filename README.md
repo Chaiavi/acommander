@@ -1,313 +1,234 @@
+<div align="center">
+
 # ⚡ A Commander
 
-### (A)nother Dual Pane File Explorer
+**A dual-pane file explorer for Windows, inspired by Norton Commander and built with JavaFX.**
 
-A modern take on Norton Commander for Windows — streamlined, opinionated, and built around the tools you already love.
+Fast. Keyboard-driven. Endlessly configurable.
 
-[![Windows](https://img.shields.io/badge/platform-Windows-0078D4?logo=windows&logoColor=white)](https://github.com/Chaiavi/acommander)
-[![Java](https://img.shields.io/badge/language-Java-ED8B00?logo=openjdk&logoColor=white)](https://github.com/Chaiavi/acommander)
-[![License](https://img.shields.io/badge/license-BSL--1.0-blue)](LICENSE)
-[![Release](https://img.shields.io/github/v/release/Chaiavi/acommander?include_prereleases)](https://github.com/Chaiavi/acommander/releases)
+[![Java](https://img.shields.io/badge/Java-21-orange?logo=openjdk&logoColor=white)](#)
+[![Platform](https://img.shields.io/badge/Platform-Windows%2010%2F11-0078D6?logo=windows&logoColor=white)](#)
+[![Build](https://img.shields.io/badge/Build-Gradle-02303A?logo=gradle&logoColor=white)](#)
+[![License](https://img.shields.io/badge/License-BSL%201.0-blue)](#license)
 
----
-# Out of the box, open ACommander
-<img width="3826" height="2054" alt="image" src="https://github.com/user-attachments/assets/5880e5c6-c1f4-4450-b169-b8bf8079a350" />
-
-# A Commander workstation with multiple associated apps running (View Text File, View Image, Edit and Terminal)
-<img width="3840" height="2060" alt="image" src="https://github.com/user-attachments/assets/345ee06a-8edc-4302-9b1c-2f76124177d3" />
+</div>
 
 ---
 
-## 🎯 Philosophy
-
-A Commander is **not** a pure Norton Commander clone. It keeps what works, drops what doesn't, and delegates specialized tasks to best-in-class external tools.
-
-> **Core principle:** Files are the focus. Everything else gets out of the way.
-
-### Design Decisions
-
-- ✅ Classic NC keyboard shortcuts preserved (`F1`–`F12`)
-- ✅ **Command Palette** — modern discoverability with fuzzy search
-- ✅ **Fully configurable actions** — customize tools, shortcuts, and arguments via JSON
-- ✅ External tools handle what they do best (see below)
-- ❌ No NCD — removed features that didn't add value
-- ❌ Minimal configuration — opinionated defaults over endless settings
+A Commander keeps file operations fast and keyboard-driven, and offloads specialized tasks — view, edit, copy, archive, convert, checksum — to proven external tools configured in `config/apps.json`.
 
 ---
 
-## ✨ Features
+## 📑 Table of Contents
 
-### Command Palette
-
-Press `Ctrl+Shift+P` to open the Command Palette — a modern, searchable interface for all available actions. Type to filter by command name or alias, then press Enter to execute. No more memorizing obscure shortcuts.
-
-### Configurable Actions
-
-Every action in A Commander is defined in `config/apps.json`. Want to swap Notepad4 for VS Code? Change the compression tool? Add your own custom actions? Just edit the JSON — no recompilation needed.
-
----
-
-## 🔧 External Tool Integration
-
-A Commander delegates specialized operations to dedicated tools, giving you professional-grade functionality without reinventing the wheel:
-
-| Key | Action | Tool |
-|-----|--------|------|
-| `F3` | View | [Universal Viewer](https://www.uvviewsoft.com/) |
-| `F4` | Edit | [Notepad4](https://github.com/zufuliu/notepad4) |
-| `F5` | Copy | [FastCopy](https://fastcopy.jp/) |
-| `F6` | Move | [FastCopy](https://fastcopy.jp/) |
-| `F9` | Terminal | PowerShell / Windows CMD |
-| `Alt+F9` | Open Explorer | Windows Explorer |
-| `F10` | Search Files | Built-in search |
-| `F11` | Pack | [7-Zip](https://www.7-zip.org/) |
-| `F12` | Unpack | [7-Zip](https://www.7-zip.org/) |
-| `Alt+F12` | Extract All | [Universal Extractor](https://github.com/Bioruebe/UniExtract2) |
-| `Shift+F1` | Merge PDFs | [PDFtk](https://www.pdflabs.com/tools/pdftk-the-pdf-toolkit/) |
-| `Shift+F2` | Extract PDF Pages | [PDFtk](https://www.pdflabs.com/tools/pdftk-the-pdf-toolkit/) |
+- [Core Features](#-core-features)
+- [File Operations](#-file-operations)
+- [Search & Navigation](#-search--navigation)
+- [Archive, PDF, Convert & Checksum](#-archive-pdf-convert--checksum)
+- [Default Shortcuts](#-default-shortcuts)
+- [External Tools Bundled](#-external-tools-bundled)
+- [Configuration](#-configuration-configappsjson)
+- [Build & Run](#-build--run)
+- [Project Layout](#-project-layout)
+- [License](#-license)
 
 ---
 
-## ⌨️ Keyboard Shortcuts
+## ✨ Core Features
 
-### File Operations
-
-| Key | Action |
-|-----|--------|
-| `F2` / `Shift+F6` | Rename |
-| `F3` | View |
-| `F4` | Edit |
-| `F5` | Copy |
-| `F6` | Move |
-| `F7` | Create Directory |
-| `Alt+F7` | Create File |
-| `F8` / `Delete` | Delete |
-| `Shift+F8` / `Shift+Delete` | Secure Delete & Wipe |
-
-### Navigation & Tools
-
-| Key | Action |
-|-----|--------|
-| `F1` | Help |
-| `F9` | Open Terminal |
-| `Alt+F9` | Open Explorer Here |
-| `F10` / `Ctrl+F` | Search Files |
-| `Ctrl+R` | Refresh Panels |
-| `Alt+F1` | Left Path Dropdown |
-| `Alt+F2` | Right Path Dropdown |
-| `Ctrl+Shift+P` | Command Palette |
-
-### Archive Operations
-
-| Key | Action |
-|-----|--------|
-| `F11` | Pack to Zip |
-| `F12` | Unpack |
-| `Alt+F12` | Extract All (Universal Extractor) |
-
-### PDF Operations
-
-| Key | Action |
-|-----|--------|
-| `Shift+F1` | Merge PDF Files |
-| `Shift+F2` | Extract PDF Pages |
+- **Dual-pane navigation** with keyboard-first workflow
+- **Command Palette** (`Ctrl+Shift+P`) with fuzzy search and aliases
+- **Data-driven action system** via `config/apps.json` — no recompilation needed for tool changes
+- Built-in and external actions with selection/context rules
+- External task **progress bar** with stop button
+- **Persistent state** — left/right paths, theme mode, and bookmarks in `config/acommander.properties`
+- Sort by Name / Size / Modified (header click or palette actions)
+- Incremental **in-pane filtering** by typing letters/digits
 
 ---
 
-## 💡 Smart Behaviors
+## 📂 File Operations
 
-A Commander is opinionated — it makes decisions so you don't have to:
-
-| Scenario | What Happens |
-|----------|--------------|
-| 🔒 File can't be deleted | Automatically sent to [ThisIsMyFile](https://www.yourownnet.net/en/thisismyfile/) for unlocking + deletion |
-| 📝 Batch rename files | Handed off to [Ant Renamer](https://www.antp.be/software/renamer) |
-| 🗑️ Secure delete needed | Uses [SDelete](https://learn.microsoft.com/en-us/sysinternals/downloads/sdelete) for military-grade wiping |
-| 👁️ Hidden files | Always visible — no toggle needed |
+| Operation | Details |
+| :--- | :--- |
+| **Rename** | Single or batch via Ant Renamer |
+| **Copy / Move** | Between panes |
+| **Create** | New directory or new file |
+| **Delete** | With fallback unlock-delete for locked files |
+| **Secure Wipe** | Via SDelete |
+| **Attributes** | Change file/folder attributes |
 
 ---
 
-## 🔌 Adding Custom Tools
+## 🔍 Search & Navigation
 
-A Commander's power lies in its configurability. All actions are defined in `config/apps.json`.
+| Feature | Shortcut |
+| :--- | :--- |
+| File search (wildcard-aware) | `F10` |
+| Find-in-files text search (ripgrep) | `Alt+F10` |
+| Path dropdowns | `Alt+F1` / `Alt+F2` |
+| Open terminal here | `F9` |
+| Open Explorer here | `Alt+F9` |
+| Bookmark / Go to / Remove bookmark | via Command Palette |
+| Sync other pane to current path | via Command Palette |
+
+---
+
+## 📦 Archive, PDF, Convert & Checksum
+
+| Category | Actions |
+| :--- | :--- |
+| **Archive** | Pack to zip (`F11`) via 7-Zip GUI · Unpack (`F12`) via 7-Zip GUI · Extract anything (`Alt+F12`) via Universal Extractor · Split large file (`Alt+F11`) via 7z CLI |
+| **PDF** | Merge PDF files · Extract PDF pages |
+| **Convert** | Media conversion (`Alt+F5`) auto-routes to image or audio · Graphics via `caesiumclt.exe` · Audio via `sndfile-convert.exe` |
+| **Checksum** | Single file or recursive folder checksum via `rhash.exe` |
+
+---
+
+## ⌨️ Default Shortcuts
+
+| Key | Action | | Key | Action |
+| :--- | :--- | :---: | :--- | :--- |
+| `F1` | Help | | `F7` | Create Directory |
+| `F2` / `Shift+F6` | Rename | | `Alt+F7` | Create File |
+| `F3` | View | | `F8` / `Delete` | Delete |
+| `F4` | Edit | | `Shift+F8` / `Shift+Del` | Delete & Wipe |
+| `F5` | Copy | | `F9` | Open Terminal Here |
+| `Alt+F5` | Convert Media | | `Alt+F9` | Open Explorer Here |
+| `F6` | Move | | `F10` / `Ctrl+F` | Search for Files |
+| `Alt+F10` | Find in Files | | `Ctrl+R` | Refresh Panels |
+| `F11` | Pack to Zip | | `Ctrl+Shift+P` | Command Palette |
+| `Alt+F11` | Split Large File | | `Alt+F1` / `Alt+F2` | Path Dropdown |
+| `F12` | Unpack | | `Alt+Enter` | Change Attributes |
+| `Alt+F12` | Extract Anything | | | |
+
+> **Quick tips:** `Tab` switches active pane · `Enter` opens folder/file · `Backspace` goes to parent · `F3` on a folder calculates its size.
+
+---
+
+## 🧰 External Tools Bundled
+
+| Tool | Location |
+| :--- | :--- |
+| Universal Viewer | `apps/view/UniversalViewer` |
+| Notepad4 & TedNPad | `apps/edit` |
+| FastCopy | `apps/copy` |
+| 7-Zip GUI | `apps/pack_unpack/7zG.exe` |
+| Universal Extractor | `apps/extract_all/UniExtract` |
+| PDFtk | `apps/pdf/pdftk.exe` |
+| Ant Renamer | `apps/multi_rename` |
+| ThisIsMyFile & SDelete | `apps/delete` |
+| ripgrep | `apps/search_in_files/rg.exe` |
+| Caesium CLI | `apps/image_convert/caesiumclt.exe` |
+| sndfile-convert | `apps/sound_convert/sndfile-convert.exe` |
+| rhash | `apps/checksum/rhash.exe` |
+
+---
+
+## ⚙️ Configuration (`config/apps.json`)
+
+Every action is **data-driven**. Add, remove, or reconfigure tools without touching the source code.
 
 ### Action Schema
 
 ```json
 {
-  "id": "myTool",
-  "label": "My Custom Tool",
-  "shortcut": "Ctrl+Alt+M",
-  "aliases": ["custom", "mytool"],
+  "id": "openVSCode",
+  "label": "Open in VS Code",
+  "shortcut": "Ctrl+Alt+V",
+  "aliases": ["code", "vscode"],
   "contexts": ["filePane", "commandPalette"],
   "selection": "single",
-  "type": "builtin",
-  "path": "apps/mytool/tool.exe",
-  "args": ["--input", "${selectedFile}"],
-  "refreshAfter": true
-}
-```
-
-### Field Reference
-
-| Field | Required | Description |
-|-------|----------|-------------|
-| `id` | ✅ | Unique identifier for the action |
-| `label` | ✅ | Display name shown in UI and Command Palette |
-| `shortcut` | ❌ | Keyboard shortcut (e.g., `F5`, `Ctrl+Alt+M`, `Shift+F8`) |
-| `aliases` | ❌ | Alternative names for Command Palette search |
-| `contexts` | ❌ | Where action is available: `global`, `filePane`, `commandPalette` |
-| `selection` | ❌ | Required selection: `none`, `single`, `multi`, `any`, `singleFile` |
-| `type` | ✅ | `builtin` (internal handling) or `external` (launch external app) |
-| `path` | ❌ | Path to executable (relative to A Commander root) |
-| `args` | ❌ | Command-line arguments array |
-| `builtin` | ❌ | Reference another action's handler |
-| `refreshAfter` | ❌ | Refresh file panels after execution (`true`/`false`) |
-
-### Available Variables
-
-Use these placeholders in the `args` array:
-
-| Variable | Description |
-|----------|-------------|
-| `${selectedFile}` | Full path to the currently selected file |
-| `${selectedFileQuoted}` | Selected file path wrapped in quotes |
-| `${selectedFilesJoined}` | All selected files as a quoted, comma-separated list |
-| `${targetFolder}` | Path of the opposite pane (destination) |
-| `${targetFolderQuoted}` | Target folder path wrapped in quotes |
-| `${focusedPathQuoted}` | Focused pane path wrapped in quotes |
-| `${archiveFile}` | Output archive path (for pack operations) |
-| `${destinationPath}` | Extraction destination folder |
-| `${destinationPathQuoted}` | Extraction destination path wrapped in quotes |
-| `${outputPdf}` | Output PDF path (for merge operations) |
-| `${outputPattern}` | Output filename pattern (for split operations) |
-
-### Example: Adding a Custom Image Viewer
-
-```json
-{
-  "id": "imageView",
-  "label": "View Image",
-  "shortcut": "Ctrl+I",
-  "aliases": ["picture", "photo", "img"],
-  "contexts": ["filePane", "commandPalette"],
-  "selection": "single",
-  "type": "builtin",
-  "path": "apps/imageviewer/viewer.exe",
-  "args": ["${selectedFile}"]
-}
-```
-
-### Example: Adding a Git Status Tool
-
-```json
-{
-  "id": "gitStatus",
-  "label": "Git Status",
-  "shortcut": "Ctrl+G",
-  "aliases": ["git", "status", "vcs"],
-  "contexts": ["global", "commandPalette"],
-  "selection": "none",
   "type": "external",
-  "path": "C:/Program Files/Git/bin/git.exe",
-  "args": ["status"]
+  "path": "C:/Program Files/Microsoft VS Code/Code.exe",
+  "args": ["${selectedFile}"],
+  "refreshAfter": false,
+  "prompt": {
+    "title": "Optional argument",
+    "label": "Value",
+    "defaultValue": "${selectedName}"
+  }
 }
 ```
 
-### Tips
+### Fields
 
-1. **Portable apps**: Place tools in the `apps/` folder for a self-contained installation
-2. **Context matters**: Use `global` for actions that don't need file selection, `filePane` for file-specific operations
-3. **Aliases help**: Add common synonyms so users can find actions in Command Palette
-4. **Refresh when needed**: Set `refreshAfter: true` for any action that modifies files
+| Field | Required | Notes |
+| :--- | :---: | :--- |
+| `id` | ✅ | Unique action id |
+| `label` | ✅ | Display name |
+| `shortcut` | — | Keyboard shortcut string |
+| `aliases` | — | Palette search aliases |
+| `contexts` | — | `global` · `filePane` · `commandPalette` |
+| `selection` | — | `none` · `single` · `multi` · `any` · `singleFile` |
+| `type` | — | `builtin` (default) or `external` |
+| `builtin` | — | Override builtin handler id |
+| `path` | External | Executable path |
+| `args` | — | Argument array |
+| `refreshAfter` | — | Refresh panes after execution |
+| `prompt` | — | Prompt config for external actions |
 
----
+### Placeholders in `args`
 
-## 🏗️ Development Guidelines
+| Placeholder | Meaning |
+| :--- | :--- |
+| `${selectedFile}` | First selected file path |
+| `${selectedFileQuoted}` | First selected file path (quoted) |
+| `${selectedFiles}` | All selected file paths as separate args |
+| `${selectedFilesJoined}` | All selected file paths as quoted, comma-joined string |
+| `${selectedName}` | Selected item name |
+| `${focusedPath}` / `${focusedPathQuoted}` | Focused pane path |
+| `${targetFolder}` / `${targetFolderQuoted}` | Opposite pane path |
+| `${promptValue}` | Value entered from the `prompt` dialog |
 
-| Guideline | Rationale |
-|-----------|-----------|
-| Keep the code **super simple** | Maintainability over cleverness |
-| Don't worry about storage | This isn't Volkov Commander 😄 |
-| **Windows only** | No cross-platform compromises |
-| **Files first** | Every feature serves file management |
-
----
-
-## 🚀 Getting Started
-
-### Prerequisites
-
-- Java 17 or higher
-- Windows 10/11
-
-### Installation
-
-```bash
-git clone https://github.com/Chaiavi/acommander.git
-cd acommander
-```
-
-### Running
-
-```bash
-./gradlew run
-```
-
-### Building
-
-```bash
-./gradlew build
-```
-
-The built application will be in `build/`.
+> `ToolCommandBuilder` also creates quoted aliases for extra placeholders (e.g. `${archiveFileQuoted}` when `${archiveFile}` is provided by builtin flows).
 
 ---
 
-## 📁 Project Structure
+## 🚀 Build & Run
 
+```powershell
+# Run the application
+.\gradlew.bat run
+
+# Run tests
+.\gradlew.bat test
+
+# Build fat JAR
+.\gradlew.bat shadowJar
+
+# Build Windows distribution (EXE + runtime + apps/config + zip)
+.\gradlew.bat dist
 ```
+
+**Output locations:**
+
+| Artifact | Path |
+| :--- | :--- |
+| JAR + resources | `build/libs/` |
+| EXE | `build/launch4j/` |
+| Distribution | `dist/` |
+
+---
+
+## 🗂️ Project Layout
+
+```text
 acommander/
-├── apps/                    # Bundled external tools
-│   ├── copy/               # FastCopy
-│   ├── delete/             # ThisIsMyFile, SDelete
-│   ├── edit/               # Notepad4
-│   ├── extract_all/        # Universal Extractor
-│   ├── multi_rename/       # Ant Renamer
-│   ├── pack_unpack/        # 7-Zip
-│   ├── pdf/                # PDFtk
-│   └── view/               # Universal Viewer
-├── config/
-│   └── apps.json           # Action configuration
-├── src/main/               # Java source code
-├── build.gradle            # Gradle build configuration
-└── README.md
+├── apps/                    Bundled external tools
+├── config/                  apps.json, user properties, F1 help markdown
+├── src/
+│   ├── main/
+│   │   ├── java/            Application source
+│   │   └── resources/       FXML, styles, icons, logging config
+│   └── test/
+│       └── java/            Unit tests
+├── build.gradle             Build, packaging, launch4j, dist tasks
+└── LICENSE
 ```
 
 ---
 
-## 📜 License
+## 📄 License
 
-This project is licensed under the [Boost Software License 1.0](LICENSE).
-
----
-
-## 🙏 Acknowledgments
-
-A Commander stands on the shoulders of giants:
-
-- [Norton Commander](https://en.wikipedia.org/wiki/Norton_Commander) — the original inspiration
-- [FastCopy](https://fastcopy.jp/) — blazing fast file operations
-- [7-Zip](https://www.7-zip.org/) — universal archive handling
-- [Universal Viewer](https://www.uvviewsoft.com/) — view anything
-- [Notepad4](https://github.com/zufuliu/notepad4) — lightweight editing
-- [PDFtk](https://www.pdflabs.com/tools/pdftk-the-pdf-toolkit/) — PDF manipulation
-- [Ant Renamer](https://www.antp.be/software/renamer) — batch renaming
-- [ThisIsMyFile](https://www.yourownnet.net/en/thisismyfile/) — unlock stubborn files
-- [SDelete](https://learn.microsoft.com/en-us/sysinternals/downloads/sdelete) — secure deletion
-- [Universal Extractor](https://github.com/Bioruebe/UniExtract2) — extract anything
-
----
-
-**[⭐ Star this repo](https://github.com/Chaiavi/acommander)** if you find it useful!
-
+Released under the **Boost Software License 1.0** — see [`LICENSE`](LICENSE) for details.

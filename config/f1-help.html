@@ -1,0 +1,637 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>A Commander — Help</title>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=DM+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+    <style>
+        :root {
+          --bg: #0c0e13;
+          --bg-card: #13161d;
+          --bg-card-hover: #191d27;
+          --border: #1e2330;
+          --border-accent: #2a3040;
+          --text: #c8cdd8;
+          --text-dim: #6b7394;
+          --text-bright: #eaeef6;
+          --accent: #5b9cf6;
+          --accent-glow: rgba(91, 156, 246, 0.12);
+          --accent2: #f6c95b;
+          --accent3: #6bf6a0;
+          --accent4: #f67b5b;
+          --key-bg: #1a1e2a;
+          --key-border: #2e3548;
+          --key-text: #dce1ec;
+          --section-gap: 3.5rem;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+          font-family: 'DM Sans', sans-serif;
+          background: var(--bg);
+          color: var(--text);
+          line-height: 1.7;
+          min-height: 100vh;
+          overflow-x: hidden;
+        }
+
+        /* Subtle grid background */
+        body::before {
+          content: '';
+          position: fixed;
+          inset: 0;
+          background-image:
+            linear-gradient(var(--border) 1px, transparent 1px),
+            linear-gradient(90deg, var(--border) 1px, transparent 1px);
+          background-size: 60px 60px;
+          opacity: 0.18;
+          pointer-events: none;
+          z-index: 0;
+        }
+
+        /* Top accent line */
+        body::after {
+          content: '';
+          position: fixed;
+          top: 0; left: 0; right: 0;
+          height: 2px;
+          background: linear-gradient(90deg, transparent, var(--accent), var(--accent2), var(--accent3), transparent);
+          z-index: 100;
+        }
+
+        .container {
+          position: relative;
+          z-index: 1;
+          max-width: 860px;
+          margin: 0 auto;
+          padding: 4rem 2rem 6rem;
+        }
+
+        /* ── Header ── */
+        header {
+          margin-bottom: 4rem;
+          padding-bottom: 2.5rem;
+          border-bottom: 1px solid var(--border);
+          position: relative;
+        }
+
+        header::after {
+          content: '';
+          position: absolute;
+          bottom: -1px;
+          left: 0;
+          width: 120px;
+          height: 2px;
+          background: var(--accent);
+        }
+
+        .logo-line {
+          display: flex;
+          align-items: center;
+          gap: 0.75rem;
+          margin-bottom: 1rem;
+        }
+
+        .logo-icon {
+          width: 40px;
+          height: 40px;
+          border-radius: 8px;
+          background: linear-gradient(135deg, var(--accent), #3d78d8);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-family: 'JetBrains Mono', monospace;
+          font-weight: 700;
+          font-size: 18px;
+          color: #fff;
+          letter-spacing: -1px;
+          box-shadow: 0 4px 20px rgba(91, 156, 246, 0.25);
+        }
+
+        .badge {
+          font-family: 'JetBrains Mono', monospace;
+          font-size: 0.65rem;
+          font-weight: 600;
+          letter-spacing: 0.12em;
+          text-transform: uppercase;
+          color: var(--accent);
+          background: var(--accent-glow);
+          padding: 0.25rem 0.65rem;
+          border-radius: 4px;
+          border: 1px solid rgba(91, 156, 246, 0.15);
+        }
+
+        h1 {
+          font-family: 'JetBrains Mono', monospace;
+          font-size: 2.4rem;
+          font-weight: 700;
+          color: var(--text-bright);
+          letter-spacing: -0.03em;
+          line-height: 1.15;
+        }
+
+        header p {
+          color: var(--text-dim);
+          font-size: 1.05rem;
+          margin-top: 0.5rem;
+        }
+
+        /* ── Sections ── */
+        section {
+          margin-bottom: var(--section-gap);
+          animation: fadeUp 0.5s ease both;
+        }
+
+        @keyframes fadeUp {
+          from { opacity: 0; transform: translateY(16px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+
+        section:nth-child(2) { animation-delay: 0.05s; }
+        section:nth-child(3) { animation-delay: 0.1s; }
+        section:nth-child(4) { animation-delay: 0.15s; }
+        section:nth-child(5) { animation-delay: 0.2s; }
+        section:nth-child(6) { animation-delay: 0.25s; }
+        section:nth-child(7) { animation-delay: 0.3s; }
+        section:nth-child(8) { animation-delay: 0.35s; }
+        section:nth-child(9) { animation-delay: 0.4s; }
+        section:nth-child(10) { animation-delay: 0.45s; }
+
+        h2 {
+          font-family: 'JetBrains Mono', monospace;
+          font-size: 1.15rem;
+          font-weight: 600;
+          color: var(--text-bright);
+          letter-spacing: -0.01em;
+          margin-bottom: 1.25rem;
+          display: flex;
+          align-items: center;
+          gap: 0.6rem;
+        }
+
+        h2 .section-icon {
+          width: 28px;
+          height: 28px;
+          border-radius: 6px;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 14px;
+          flex-shrink: 0;
+        }
+
+        .icon-nav    { background: rgba(91, 156, 246, 0.12); color: #5b9cf6; }
+        .icon-file   { background: rgba(107, 246, 160, 0.10); color: #6bf6a0; }
+        .icon-search { background: rgba(246, 201, 91, 0.10); color: #f6c95b; }
+        .icon-arch   { background: rgba(246, 123, 91, 0.10); color: #f67b5b; }
+        .icon-conv   { background: rgba(186, 123, 246, 0.10); color: #ba7bf6; }
+        .icon-cmd    { background: rgba(91, 156, 246, 0.12); color: #5b9cf6; }
+        .icon-tools  { background: rgba(246, 201, 91, 0.10); color: #f6c95b; }
+        .icon-mouse  { background: rgba(107, 246, 160, 0.10); color: #6bf6a0; }
+        .icon-config { background: rgba(246, 123, 91, 0.10); color: #f67b5b; }
+        .icon-notes  { background: rgba(186, 123, 246, 0.10); color: #ba7bf6; }
+
+        /* ── Shortcut rows ── */
+        .shortcut-grid {
+          display: flex;
+          flex-direction: column;
+          gap: 2px;
+        }
+
+        .shortcut-row {
+          display: flex;
+          align-items: flex-start;
+          gap: 1rem;
+          padding: 0.65rem 0.85rem;
+          border-radius: 8px;
+          background: transparent;
+          transition: background 0.2s;
+        }
+
+        .shortcut-row:hover {
+          background: var(--bg-card);
+        }
+
+        .shortcut-keys {
+          flex-shrink: 0;
+          min-width: 180px;
+          display: flex;
+          flex-wrap: wrap;
+          align-items: center;
+          gap: 0.35rem;
+          padding-top: 1px;
+        }
+
+        kbd {
+          font-family: 'JetBrains Mono', monospace;
+          font-size: 0.72rem;
+          font-weight: 500;
+          color: var(--key-text);
+          background: var(--key-bg);
+          border: 1px solid var(--key-border);
+          border-bottom-width: 2px;
+          padding: 0.2rem 0.5rem;
+          border-radius: 5px;
+          white-space: nowrap;
+          line-height: 1.4;
+        }
+
+        .key-sep {
+          font-family: 'JetBrains Mono', monospace;
+          font-size: 0.65rem;
+          color: var(--text-dim);
+          padding: 0 0.1rem;
+        }
+
+        .shortcut-desc {
+          color: var(--text);
+          font-size: 0.92rem;
+          line-height: 1.6;
+          padding-top: 1px;
+        }
+
+        .shortcut-desc .sub {
+          display: block;
+          color: var(--text-dim);
+          font-size: 0.82rem;
+          margin-top: 2px;
+          padding-left: 0.75rem;
+          border-left: 2px solid var(--border);
+        }
+
+        /* ── Palette actions list ── */
+        .palette-list {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 0.4rem;
+          margin-top: 0.75rem;
+          padding-left: 0;
+        }
+
+        .palette-tag {
+          font-family: 'JetBrains Mono', monospace;
+          font-size: 0.72rem;
+          font-weight: 500;
+          color: var(--text);
+          background: var(--bg-card);
+          border: 1px solid var(--border);
+          padding: 0.3rem 0.6rem;
+          border-radius: 5px;
+          transition: border-color 0.2s, color 0.2s;
+        }
+
+        .palette-tag:hover {
+          border-color: var(--accent);
+          color: var(--accent);
+        }
+
+        /* ── Config paths ── */
+        .config-block {
+          display: flex;
+          flex-direction: column;
+          gap: 0.75rem;
+          margin-top: 0.25rem;
+        }
+
+        .config-item {
+          padding: 0.85rem 1rem;
+          background: var(--bg-card);
+          border: 1px solid var(--border);
+          border-radius: 8px;
+          transition: border-color 0.2s;
+        }
+
+        .config-item:hover {
+          border-color: var(--border-accent);
+        }
+
+        .config-path {
+          font-family: 'JetBrains Mono', monospace;
+          font-size: 0.78rem;
+          color: var(--accent);
+          word-break: break-all;
+        }
+
+        .config-label {
+          font-size: 0.85rem;
+          color: var(--text-dim);
+          margin-top: 0.25rem;
+        }
+
+        /* ── Notes ── */
+        .note-card {
+          padding: 1rem 1.15rem;
+          background: var(--bg-card);
+          border: 1px solid var(--border);
+          border-left: 3px solid var(--accent);
+          border-radius: 0 8px 8px 0;
+          font-size: 0.9rem;
+          color: var(--text);
+          margin-bottom: 0.5rem;
+        }
+
+        /* ── Footer ── */
+        footer {
+          margin-top: 4rem;
+          padding-top: 2rem;
+          border-top: 1px solid var(--border);
+          text-align: center;
+        }
+
+        footer p {
+          font-family: 'JetBrains Mono', monospace;
+          font-size: 0.7rem;
+          color: var(--text-dim);
+          letter-spacing: 0.08em;
+          text-transform: uppercase;
+        }
+
+        /* ── Responsive ── */
+        @media (max-width: 640px) {
+          .container { padding: 2.5rem 1.15rem 4rem; }
+          h1 { font-size: 1.7rem; }
+          .shortcut-row { flex-direction: column; gap: 0.3rem; }
+          .shortcut-keys { min-width: unset; }
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+
+    <header>
+        <div class="logo-line">
+            <div class="logo-icon">A:</div>
+            <span class="badge">Help Reference</span>
+        </div>
+        <h1>A Commander</h1>
+        <p>Dual-pane file manager for Windows with keyboard-first workflows.</p>
+    </header>
+
+    <!-- Getting Around -->
+    <section>
+        <h2><span class="section-icon icon-nav">⌨</span> Getting Around</h2>
+        <div class="shortcut-grid">
+            <div class="shortcut-row">
+                <div class="shortcut-keys"><kbd>Tab</kbd></div>
+                <div class="shortcut-desc">Switch active pane</div>
+            </div>
+            <div class="shortcut-row">
+                <div class="shortcut-keys"><kbd>↑</kbd> <kbd>↓</kbd> <kbd>←</kbd> <kbd>→</kbd></div>
+                <div class="shortcut-desc">Move selection</div>
+            </div>
+            <div class="shortcut-row">
+                <div class="shortcut-keys"><kbd>Enter</kbd></div>
+                <div class="shortcut-desc">Open folder or launch file with default app</div>
+            </div>
+            <div class="shortcut-row">
+                <div class="shortcut-keys"><kbd>Backspace</kbd></div>
+                <div class="shortcut-desc">Go to parent folder</div>
+            </div>
+            <div class="shortcut-row">
+                <div class="shortcut-keys"><kbd>Alt</kbd><span class="key-sep">+</span><kbd>F1</kbd></div>
+                <div class="shortcut-desc">Open left path dropdown</div>
+            </div>
+            <div class="shortcut-row">
+                <div class="shortcut-keys"><kbd>Alt</kbd><span class="key-sep">+</span><kbd>F2</kbd></div>
+                <div class="shortcut-desc">Open right path dropdown</div>
+            </div>
+            <div class="shortcut-row">
+                <div class="shortcut-keys"><kbd>A</kbd>–<kbd>Z</kbd> <kbd>0</kbd>–<kbd>9</kbd></div>
+                <div class="shortcut-desc">
+                    Incremental filter in file pane
+                    <span class="sub"><kbd>Backspace</kbd> removes last character · any action clears the filter</span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- File Operations -->
+    <section>
+        <h2><span class="section-icon icon-file">📁</span> File Operations</h2>
+        <div class="shortcut-grid">
+            <div class="shortcut-row">
+                <div class="shortcut-keys"><kbd>F2</kbd> <span class="key-sep">/</span> <kbd>Shift</kbd><span class="key-sep">+</span><kbd>F6</kbd></div>
+                <div class="shortcut-desc">
+                    Rename
+                    <span class="sub">Single selection → inline rename · Multi selection → Ant Renamer</span>
+                </div>
+            </div>
+            <div class="shortcut-row">
+                <div class="shortcut-keys"><kbd>F3</kbd></div>
+                <div class="shortcut-desc">
+                    View selected file(s)
+                    <span class="sub">On a folder, calculates folder size instead</span>
+                </div>
+            </div>
+            <div class="shortcut-row">
+                <div class="shortcut-keys"><kbd>F4</kbd></div>
+                <div class="shortcut-desc">Edit selected file(s)</div>
+            </div>
+            <div class="shortcut-row">
+                <div class="shortcut-keys"><kbd>F5</kbd></div>
+                <div class="shortcut-desc">Copy to the other pane</div>
+            </div>
+            <div class="shortcut-row">
+                <div class="shortcut-keys"><kbd>F6</kbd></div>
+                <div class="shortcut-desc">Move to the other pane</div>
+            </div>
+            <div class="shortcut-row">
+                <div class="shortcut-keys"><kbd>F7</kbd></div>
+                <div class="shortcut-desc">Create directory</div>
+            </div>
+            <div class="shortcut-row">
+                <div class="shortcut-keys"><kbd>Alt</kbd><span class="key-sep">+</span><kbd>F7</kbd></div>
+                <div class="shortcut-desc">Create file</div>
+            </div>
+            <div class="shortcut-row">
+                <div class="shortcut-keys"><kbd>F8</kbd> <span class="key-sep">/</span> <kbd>Delete</kbd></div>
+                <div class="shortcut-desc">
+                    Delete
+                    <span class="sub">If delete fails (locked files), offers unlock-delete flow</span>
+                </div>
+            </div>
+            <div class="shortcut-row">
+                <div class="shortcut-keys"><kbd>Shift</kbd><span class="key-sep">+</span><kbd>F8</kbd> <span class="key-sep">/</span> <kbd>Shift</kbd><span class="key-sep">+</span><kbd>Del</kbd></div>
+                <div class="shortcut-desc">Secure wipe delete (SDelete)</div>
+            </div>
+            <div class="shortcut-row">
+                <div class="shortcut-keys"><kbd>Alt</kbd><span class="key-sep">+</span><kbd>Enter</kbd></div>
+                <div class="shortcut-desc">Change file / folder attributes</div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Search -->
+    <section>
+        <h2><span class="section-icon icon-search">🔍</span> Search</h2>
+        <div class="shortcut-grid">
+            <div class="shortcut-row">
+                <div class="shortcut-keys"><kbd>F10</kbd> <span class="key-sep">/</span> <kbd>Ctrl</kbd><span class="key-sep">+</span><kbd>F</kbd></div>
+                <div class="shortcut-desc">Search files by filename (supports wildcards)</div>
+            </div>
+            <div class="shortcut-row">
+                <div class="shortcut-keys"><kbd>Alt</kbd><span class="key-sep">+</span><kbd>F10</kbd></div>
+                <div class="shortcut-desc">
+                    Find text in files (ripgrep)
+                    <span class="sub">Options: case-insensitive · extension filter · include hidden/ignored files</span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Archive & PDF -->
+    <section>
+        <h2><span class="section-icon icon-arch">📦</span> Archive &amp; PDF</h2>
+        <div class="shortcut-grid">
+            <div class="shortcut-row">
+                <div class="shortcut-keys"><kbd>F11</kbd></div>
+                <div class="shortcut-desc">Pack selected items to zip in the other pane</div>
+            </div>
+            <div class="shortcut-row">
+                <div class="shortcut-keys"><kbd>Alt</kbd><span class="key-sep">+</span><kbd>F11</kbd></div>
+                <div class="shortcut-desc">Split one large file into parts</div>
+            </div>
+            <div class="shortcut-row">
+                <div class="shortcut-keys"><kbd>F12</kbd></div>
+                <div class="shortcut-desc">Unpack selected archive(s) to the other pane</div>
+            </div>
+            <div class="shortcut-row">
+                <div class="shortcut-keys"><kbd>Alt</kbd><span class="key-sep">+</span><kbd>F12</kbd></div>
+                <div class="shortcut-desc">Extract anything (Universal Extractor)</div>
+            </div>
+        </div>
+        <div style="margin-top: 0.75rem; padding-left: 0.85rem;">
+            <div style="font-size: 0.82rem; color: var(--text-dim); margin-bottom: 0.5rem;">Command Palette actions:</div>
+            <div class="palette-list">
+                <span class="palette-tag">Merge PDF Files</span>
+                <span class="palette-tag">Extract PDF Pages</span>
+            </div>
+        </div>
+    </section>
+
+    <!-- Convert & Checksum -->
+    <section>
+        <h2><span class="section-icon icon-conv">🔄</span> Convert &amp; Checksum</h2>
+        <div class="shortcut-grid">
+            <div class="shortcut-row">
+                <div class="shortcut-keys"><kbd>Alt</kbd><span class="key-sep">+</span><kbd>F5</kbd></div>
+                <div class="shortcut-desc">
+                    Convert media file
+                    <span class="sub">Images → graphics converter · Audio → audio converter</span>
+                </div>
+            </div>
+        </div>
+        <div style="margin-top: 0.75rem; padding-left: 0.85rem;">
+            <div style="font-size: 0.82rem; color: var(--text-dim); margin-bottom: 0.5rem;">Command Palette actions:</div>
+            <div class="palette-list">
+                <span class="palette-tag">Convert Graphics Files</span>
+                <span class="palette-tag">Convert Audio Files</span>
+                <span class="palette-tag">Checksum File</span>
+                <span class="palette-tag">Checksum Folder Contents</span>
+            </div>
+        </div>
+    </section>
+
+    <!-- Command Palette -->
+    <section>
+        <h2><span class="section-icon icon-cmd">⚡</span> Command Palette</h2>
+        <div class="shortcut-grid">
+            <div class="shortcut-row">
+                <div class="shortcut-keys"><kbd>Ctrl</kbd><span class="key-sep">+</span><kbd>Shift</kbd><span class="key-sep">+</span><kbd>P</kbd></div>
+                <div class="shortcut-desc">Open command palette</div>
+            </div>
+            <div class="shortcut-row">
+                <div class="shortcut-keys"><kbd>↑</kbd> <kbd>↓</kbd></div>
+                <div class="shortcut-desc">Navigate results</div>
+            </div>
+            <div class="shortcut-row">
+                <div class="shortcut-keys"><kbd>Enter</kbd></div>
+                <div class="shortcut-desc">Run selected action</div>
+            </div>
+            <div class="shortcut-row">
+                <div class="shortcut-keys"><kbd>Esc</kbd></div>
+                <div class="shortcut-desc">Close palette</div>
+            </div>
+        </div>
+        <div style="margin-top: 0.75rem; padding-left: 0.85rem;">
+            <div style="font-size: 0.82rem; color: var(--text-dim); margin-bottom: 0.5rem;">Useful palette actions:</div>
+            <div class="palette-list">
+                <span class="palette-tag">Sort by Name</span>
+                <span class="palette-tag">Sort by Size</span>
+                <span class="palette-tag">Sort by Date</span>
+                <span class="palette-tag">Bookmark this path</span>
+                <span class="palette-tag">Goto Bookmark</span>
+                <span class="palette-tag">Remove Bookmark</span>
+                <span class="palette-tag">Same Folder on Other Panel</span>
+                <span class="palette-tag">Toggle Dark Mode</span>
+                <span class="palette-tag">Refresh Panels</span>
+                <span class="palette-tag">Settings</span>
+            </div>
+        </div>
+    </section>
+
+    <!-- Tools & Shell -->
+    <section>
+        <h2><span class="section-icon icon-tools">🛠</span> Tools &amp; Shell</h2>
+        <div class="shortcut-grid">
+            <div class="shortcut-row">
+                <div class="shortcut-keys"><kbd>F9</kbd></div>
+                <div class="shortcut-desc">Open terminal in current folder</div>
+            </div>
+            <div class="shortcut-row">
+                <div class="shortcut-keys"><kbd>Alt</kbd><span class="key-sep">+</span><kbd>F9</kbd></div>
+                <div class="shortcut-desc">Open Windows Explorer in current folder</div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Mouse Support -->
+    <section>
+        <h2><span class="section-icon icon-mouse">🖱</span> Mouse Support</h2>
+        <div class="shortcut-grid">
+            <div class="shortcut-row">
+                <div class="shortcut-keys" style="min-width: 180px; color: var(--text-dim); font-size: 0.82rem; font-family: 'DM Sans', sans-serif;">Double-click folder</div>
+                <div class="shortcut-desc">Enter the folder</div>
+            </div>
+            <div class="shortcut-row">
+                <div class="shortcut-keys" style="min-width: 180px; color: var(--text-dim); font-size: 0.82rem; font-family: 'DM Sans', sans-serif;">Double-click file</div>
+                <div class="shortcut-desc">Open with default app</div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Configuration -->
+    <section>
+        <h2><span class="section-icon icon-config">⚙</span> Configuration</h2>
+        <div class="config-block">
+            <div class="config-item">
+                <div class="config-path">config/apps.json</div>
+                <div class="config-label">Action definitions</div>
+            </div>
+            <div class="config-item">
+                <div class="config-path">config/acommander.properties</div>
+                <div class="config-label">User state — pane paths, theme, bookmarks</div>
+            </div>
+        </div>
+        <div style="margin-top: 0.65rem; padding-left: 0.85rem; font-size: 0.85rem; color: var(--text-dim);">
+            The <span class="palette-tag" style="display: inline; padding: 0.15rem 0.45rem; font-size: 0.7rem;">Settings</span> palette action opens the properties file in your configured editor.
+        </div>
+    </section>
+
+    <!-- Notes -->
+    <section>
+        <h2><span class="section-icon icon-notes">📌</span> Notes</h2>
+        <div class="note-card">Most operations act on the current selection in the focused pane.</div>
+        <div class="note-card">Some actions require exact selection counts (e.g. single file or single folder).</div>
+        <div class="note-card">External tool actions may show progress in the bottom status area, and can be stopped.</div>
+    </section>
+
+    <footer>
+        <p>A Commander — Help Reference</p>
+    </footer>
+
+</div>
+</body>
+</html>

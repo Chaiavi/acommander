@@ -280,7 +280,7 @@
     },
     {
       "id": "extractAll",
-      "label": "Extract All",
+      "label": "Extract Anything",
       "shortcut": "Alt+F12",
       "aliases": ["force extract"],
       "contexts": ["global", "commandPalette"],
@@ -293,9 +293,8 @@
     {
       "id": "mergePdf",
       "label": "Merge PDF Files",
-      "shortcut": "Shift+F1",
       "aliases": ["pdf merge"],
-      "contexts": ["global", "commandPalette"],
+      "contexts": ["commandPalette"],
       "selection": "multi",
       "type": "builtin",
       "path": "apps/pdf/pdftk.exe",
@@ -305,9 +304,8 @@
     {
       "id": "extractPdfPages",
       "label": "Extract PDF Pages",
-      "shortcut": "Shift+F2",
       "aliases": ["pdf split"],
-      "contexts": ["global", "commandPalette"],
+      "contexts": ["commandPalette"],
       "selection": "singleFile",
       "type": "builtin",
       "path": "apps/pdf/pdftk.exe",
