@@ -2,8 +2,8 @@ package org.chaiware.acommander;
 
 import javafx.application.Application;
 import javafx.fxml.FXMLLoader;
-import javafx.scene.Scene;
 import javafx.scene.Parent;
+import javafx.scene.Scene;
 import javafx.scene.image.Image;
 import javafx.stage.Stage;
 
@@ -22,7 +22,7 @@ public class Main extends Application {
         Image icon = new Image(Objects.requireNonNull(getClass().getResourceAsStream("/icon.png")));
         stage.getIcons().add(icon);
         stage.setMaximized(true);
-        stage.setTitle("A Commander for Java");
+        stage.setTitle("A Commander");
         stage.setScene(scene);
 
         Commander commander = loader.getController();
