@@ -1,6 +1,6 @@
 buildscript {
     ext {
-        appVersion = '3.0'
+        appVersion = '4.0'
         shadowPluginVersion = '9.3.1'
         launch4jPluginVersion = '4.0.0'
 
