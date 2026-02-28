@@ -321,6 +321,14 @@
       "type": "builtin"
     },
     {
+      "id": "compareFolders",
+      "label": "Compare Folders",
+      "aliases": ["folder compare", "diff folders", "compare panel folders"],
+      "contexts": ["commandPalette"],
+      "selection": "none",
+      "type": "builtin"
+    },
+    {
       "id": "changeAttributes",
       "label": "Change Attributes",
       "shortcut": "Alt+Enter",

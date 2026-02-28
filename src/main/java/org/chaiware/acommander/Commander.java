@@ -42,6 +42,9 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.security.DigestInputStream;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -106,6 +109,7 @@ public class Commander {
     private volatile boolean restoreFileListFocusAfterSettingsEdit = false;
     private final Map<FilesPanesHelper.FocusSide, String> incrementalCharFilters = new EnumMap<>(FilesPanesHelper.FocusSide.class);
     private final Map<FilesPanesHelper.FocusSide, List<FileItem>> incrementalFilterBases = new EnumMap<>(FilesPanesHelper.FocusSide.class);
+    private final Map<FilesPanesHelper.FocusSide, Map<String, FolderCompareMark>> folderCompareMarks = new EnumMap<>(FilesPanesHelper.FocusSide.class);
     private Popup incrementalFilterPopup;
     private Label incrementalFilterPopupLabel;
 
@@ -130,11 +134,13 @@ public class Commander {
         setup.setupComboBox(rightPathComboBox);
         filesPanesHelper.setFileListPath(LEFT, resolveInitialPath(LEFT_FOLDER_KEY));
         filesPanesHelper.setFileListPath(RIGHT, resolveInitialPath(RIGHT_FOLDER_KEY));
+        folderCompareMarks.put(LEFT, new HashMap<>());
+        folderCompareMarks.put(RIGHT, new HashMap<>());
         leftPathComboBox.valueProperty().addListener((observable, oldValue, newValue) -> onPathChanged(LEFT, newValue));
         rightPathComboBox.valueProperty().addListener((observable, oldValue, newValue) -> onPathChanged(RIGHT, newValue));
 
-        configListViewLookAndBehavior(leftFileList);
-        configListViewLookAndBehavior(rightFileList);
+        configListViewLookAndBehavior(LEFT, leftFileList);
+        configListViewLookAndBehavior(RIGHT, rightFileList);
         configSortHeaders();
         configFileListsFocus();
         configurePaneSummary();
@@ -384,6 +390,7 @@ public class Commander {
         properties.setProperty(side == LEFT ? LEFT_FOLDER_KEY : RIGHT_FOLDER_KEY, newValue.getPath());
         saveConfigFile();
         clearCharFilter(side);
+        clearFolderCompareHighlights(false);
         filesPanesHelper.refreshFileListView(side);
     }
 
@@ -555,7 +562,7 @@ public class Commander {
         });
     }
 
-    private void configListViewLookAndBehavior(ListView<FileItem> listView) {
+    private void configListViewLookAndBehavior(FilesPanesHelper.FocusSide side, ListView<FileItem> listView) {
         logger.debug("Configuring the ListViews look and experience");
         listView.getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE);
         listView.setCellFactory(lv -> new ListCell<>() {
@@ -601,6 +608,7 @@ public class Commander {
             @Override
             protected void updateItem(FileItem item, boolean empty) {
                 super.updateItem(item, empty);
+                getStyleClass().removeAll("compare-left-only", "compare-right-only", "compare-different");
                 if (empty || item == null) {
                     setGraphic(null);
                 } else {
@@ -616,10 +624,31 @@ public class Commander {
                     hbox.setMaxWidth(width);
                     hbox.setPrefWidth(width);
 
+                    applyFolderCompareStyle(side, item, this);
                     setGraphic(hbox);
                 }
             }
         });
+    }
+
+    private void applyFolderCompareStyle(FilesPanesHelper.FocusSide side, FileItem item, ListCell<FileItem> cell) {
+        if (item == null || "..".equals(item.getPresentableFilename())) {
+            return;
+        }
+        Map<String, FolderCompareMark> marks = folderCompareMarks.get(side);
+        if (marks == null || marks.isEmpty()) {
+            return;
+        }
+        String key = normalizePathKey(item.getFile().toPath());
+        FolderCompareMark mark = marks.get(key);
+        if (mark == null) {
+            return;
+        }
+        switch (mark) {
+            case LEFT_ONLY -> cell.getStyleClass().add("compare-left-only");
+            case RIGHT_ONLY -> cell.getStyleClass().add("compare-right-only");
+            case DIFFERENT -> cell.getStyleClass().add("compare-different");
+        }
     }
 
     private record IconSpec(String glyph, String textColor) {}
@@ -2432,6 +2461,272 @@ public class Commander {
                 }));
     }
 
+    public void compareFolders() {
+        logger.info("Compare Folders");
+
+        Path leftRoot = Paths.get(filesPanesHelper.getPath(LEFT));
+        Path rightRoot = Paths.get(filesPanesHelper.getPath(RIGHT));
+        if (!Files.isDirectory(leftRoot) || !Files.isDirectory(rightRoot)) {
+            showError("Compare Folders", "Both panel paths must be valid folders.");
+            return;
+        }
+
+        Optional<CompareFoldersOptions> options = promptCompareFoldersOptions(leftRoot, rightRoot);
+        if (options.isEmpty()) {
+            return;
+        }
+
+        try {
+            FolderCompareResult result = compareFolderTrees(leftRoot, rightRoot, options.get());
+            folderCompareMarks.put(LEFT, new HashMap<>(result.leftMarks()));
+            folderCompareMarks.put(RIGHT, new HashMap<>(result.rightMarks()));
+            filesPanesHelper.refreshFileListViews();
+            showInfo(
+                    "Compare Folders",
+                    "Only left: " + result.onlyLeftCount()
+                            + "\nOnly right: " + result.onlyRightCount()
+                            + "\nDifferent: " + result.differentCount()
+            );
+            requestFocusedFileListFocus();
+        } catch (Exception ex) {
+            showError("Compare Folders", "Failed comparing folders: " + ex.getMessage());
+            logger.warn("Failed comparing folders", ex);
+            requestFocusedFileListFocus();
+        }
+    }
+
+    private Optional<CompareFoldersOptions> promptCompareFoldersOptions(Path leftRoot, Path rightRoot) {
+        Dialog<CompareFoldersOptions> dialog = new Dialog<>();
+        dialog.setTitle("Compare Folders");
+        dialog.setHeaderText(null);
+
+        ButtonType compareType = new ButtonType("Compare", ButtonBar.ButtonData.OK_DONE);
+        dialog.getDialogPane().getButtonTypes().addAll(compareType, ButtonType.CANCEL);
+
+        Label title = new Label("Compare Folders");
+        title.setStyle("-fx-font-size: 16px; -fx-font-weight: bold;");
+        Label subtitle = new Label("Left: " + leftRoot + " | Right: " + rightRoot);
+        subtitle.setWrapText(true);
+
+        CheckBox compareByDate = new CheckBox("Compare also by date");
+        CheckBox checksum = new CheckBox("Checksum files for comparison (slower)");
+        CheckBox recursive = new CheckBox("Compare also subfolders (recursively)");
+        recursive.setSelected(true);
+        CheckBox caseSensitive = new CheckBox("Case-sensitive filename matching");
+
+        VBox content = new VBox(
+                10,
+                title,
+                subtitle,
+                new Separator(),
+                compareByDate,
+                checksum,
+                recursive,
+                caseSensitive
+        );
+        content.setPadding(new Insets(12));
+        dialog.getDialogPane().setContent(content);
+        dialog.getDialogPane().setPrefSize(700, 320);
+        applyThemeToDialog(dialog);
+        Button compareButton = (Button) dialog.getDialogPane().lookupButton(compareType);
+        dialog.getDialogPane().addEventFilter(KeyEvent.KEY_PRESSED, event -> {
+            if (event.getCode() != KeyCode.ENTER) {
+                return;
+            }
+            if (compareButton != null && !compareButton.isDisabled()) {
+                compareButton.fire();
+            }
+            event.consume();
+        });
+
+        dialog.setResultConverter(button -> {
+            if (button != compareType) {
+                return null;
+            }
+            return new CompareFoldersOptions(
+                    compareByDate.isSelected(),
+                    checksum.isSelected(),
+                    recursive.isSelected(),
+                    caseSensitive.isSelected()
+            );
+        });
+        return dialog.showAndWait();
+    }
+
+    private FolderCompareResult compareFolderTrees(Path leftRoot, Path rightRoot, CompareFoldersOptions options) throws IOException {
+        Map<String, FolderEntry> leftEntries = collectFolderEntries(leftRoot, options);
+        Map<String, FolderEntry> rightEntries = collectFolderEntries(rightRoot, options);
+
+        Set<String> allKeys = new TreeSet<>();
+        allKeys.addAll(leftEntries.keySet());
+        allKeys.addAll(rightEntries.keySet());
+
+        Map<String, FolderCompareMark> leftMarks = new HashMap<>();
+        Map<String, FolderCompareMark> rightMarks = new HashMap<>();
+        int onlyLeft = 0;
+        int onlyRight = 0;
+        int different = 0;
+        Map<String, String> checksumCache = new HashMap<>();
+
+        for (String key : allKeys) {
+            FolderEntry left = leftEntries.get(key);
+            FolderEntry right = rightEntries.get(key);
+
+            if (left == null) {
+                onlyRight++;
+                mark(rightMarks, right.topLevelPath(), FolderCompareMark.RIGHT_ONLY);
+                continue;
+            }
+            if (right == null) {
+                onlyLeft++;
+                mark(leftMarks, left.topLevelPath(), FolderCompareMark.LEFT_ONLY);
+                continue;
+            }
+            if (left.directory() != right.directory()) {
+                different++;
+                mark(leftMarks, left.topLevelPath(), FolderCompareMark.DIFFERENT);
+                mark(rightMarks, right.topLevelPath(), FolderCompareMark.DIFFERENT);
+                continue;
+            }
+            if (left.directory()) {
+                continue;
+            }
+            if (left.size() != right.size()) {
+                different++;
+                mark(leftMarks, left.topLevelPath(), FolderCompareMark.DIFFERENT);
+                mark(rightMarks, right.topLevelPath(), FolderCompareMark.DIFFERENT);
+                continue;
+            }
+            if (options.compareByDate() && left.modifiedMillis() != right.modifiedMillis()) {
+                different++;
+                mark(leftMarks, left.topLevelPath(), FolderCompareMark.DIFFERENT);
+                mark(rightMarks, right.topLevelPath(), FolderCompareMark.DIFFERENT);
+                continue;
+            }
+            if (options.checksum()) {
+                String leftChecksum = getOrComputeChecksum(checksumCache, left.absolutePath());
+                String rightChecksum = getOrComputeChecksum(checksumCache, right.absolutePath());
+                if (!Objects.equals(leftChecksum, rightChecksum)) {
+                    different++;
+                    mark(leftMarks, left.topLevelPath(), FolderCompareMark.DIFFERENT);
+                    mark(rightMarks, right.topLevelPath(), FolderCompareMark.DIFFERENT);
+                }
+            }
+        }
+
+        return new FolderCompareResult(leftMarks, rightMarks, onlyLeft, onlyRight, different);
+    }
+
+    private Map<String, FolderEntry> collectFolderEntries(Path root, CompareFoldersOptions options) throws IOException {
+        Map<String, FolderEntry> entries = new HashMap<>();
+        if (!options.recursive()) {
+            try (var stream = Files.list(root)) {
+                stream.forEach(path -> addFolderEntry(entries, root, path, options));
+            }
+            return entries;
+        }
+        try (var stream = Files.walk(root)) {
+            stream
+                    .filter(path -> !path.equals(root))
+                    .forEach(path -> addFolderEntry(entries, root, path, options));
+        }
+        return entries;
+    }
+
+    private void addFolderEntry(Map<String, FolderEntry> entries, Path root, Path path, CompareFoldersOptions options) {
+        String relative = root.relativize(path).toString().replace('\\', '/');
+        String key = options.caseSensitiveNames() ? relative : relative.toLowerCase(Locale.ROOT);
+        String topLevelName = extractTopLevelName(relative);
+        boolean directory = Files.isDirectory(path);
+        long size = 0L;
+        long modified = 0L;
+        if (!directory) {
+            try {
+                size = Files.size(path);
+            } catch (IOException ignored) {
+                size = 0L;
+            }
+        }
+        try {
+            modified = Files.getLastModifiedTime(path).toMillis();
+        } catch (IOException ignored) {
+            modified = 0L;
+        }
+        entries.putIfAbsent(
+                key,
+                new FolderEntry(path.toAbsolutePath().normalize(), root.resolve(topLevelName).toAbsolutePath().normalize(), directory, size, modified)
+        );
+    }
+
+    private String extractTopLevelName(String relativePath) {
+        int slash = relativePath.indexOf('/');
+        if (slash < 0) {
+            return relativePath;
+        }
+        return relativePath.substring(0, slash);
+    }
+
+    private String getOrComputeChecksum(Map<String, String> cache, Path file) throws IOException {
+        String cacheKey = normalizePathKey(file);
+        String existing = cache.get(cacheKey);
+        if (existing != null) {
+            return existing;
+        }
+        String computed = checksumSha256(file);
+        cache.put(cacheKey, computed);
+        return computed;
+    }
+
+    private String checksumSha256(Path file) throws IOException {
+        MessageDigest digest;
+        try {
+            digest = MessageDigest.getInstance("SHA-256");
+        } catch (NoSuchAlgorithmException ex) {
+            throw new IllegalStateException("SHA-256 algorithm is not available", ex);
+        }
+        try (DigestInputStream dis = new DigestInputStream(Files.newInputStream(file), digest)) {
+            byte[] buffer = new byte[8192];
+            while (dis.read(buffer) != -1) {
+                // consume stream
+            }
+        }
+        byte[] hash = digest.digest();
+        StringBuilder sb = new StringBuilder(hash.length * 2);
+        for (byte b : hash) {
+            sb.append(String.format("%02x", b));
+        }
+        return sb.toString();
+    }
+
+    private void mark(Map<String, FolderCompareMark> marks, Path topLevelPath, FolderCompareMark mark) {
+        if (topLevelPath == null) {
+            return;
+        }
+        String key = normalizePathKey(topLevelPath);
+        FolderCompareMark existing = marks.get(key);
+        if (existing == FolderCompareMark.DIFFERENT || existing == mark) {
+            return;
+        }
+        if ((existing == FolderCompareMark.LEFT_ONLY && mark == FolderCompareMark.RIGHT_ONLY)
+                || (existing == FolderCompareMark.RIGHT_ONLY && mark == FolderCompareMark.LEFT_ONLY)) {
+            marks.put(key, FolderCompareMark.DIFFERENT);
+            return;
+        }
+        marks.put(key, mark);
+    }
+
+    private String normalizePathKey(Path path) {
+        return path.toAbsolutePath().normalize().toString().toLowerCase(Locale.ROOT);
+    }
+
+    private void clearFolderCompareHighlights(boolean refresh) {
+        folderCompareMarks.computeIfAbsent(LEFT, unused -> new HashMap<>()).clear();
+        folderCompareMarks.computeIfAbsent(RIGHT, unused -> new HashMap<>()).clear();
+        if (refresh) {
+            filesPanesHelper.refreshFileListViews();
+        }
+    }
+
     public void changeAttributes() {
         logger.info("Change Attributes");
 
@@ -3521,6 +3816,31 @@ public class Commander {
             boolean ignoreCase,
             WhiteSpaceCompareMode whitespaceMode,
             boolean differencesOnly
+    ) {}
+    private enum FolderCompareMark {
+        LEFT_ONLY,
+        RIGHT_ONLY,
+        DIFFERENT
+    }
+    private record CompareFoldersOptions(
+            boolean compareByDate,
+            boolean checksum,
+            boolean recursive,
+            boolean caseSensitiveNames
+    ) {}
+    private record FolderEntry(
+            Path absolutePath,
+            Path topLevelPath,
+            boolean directory,
+            long size,
+            long modifiedMillis
+    ) {}
+    private record FolderCompareResult(
+            Map<String, FolderCompareMark> leftMarks,
+            Map<String, FolderCompareMark> rightMarks,
+            int onlyLeftCount,
+            int onlyRightCount,
+            int differentCount
     ) {}
     private enum ImageCompressionMode {
         QUALITY,

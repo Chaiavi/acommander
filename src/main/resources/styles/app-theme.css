@@ -156,6 +156,48 @@
     -fx-background-color: -ac-hover;
 }
 
+.file-pane .list-cell.compare-left-only {
+    -fx-background-color: #c62828;
+    -fx-border-color: #ff8a80;
+    -fx-border-width: 0 0 1 0;
+}
+
+.file-pane .list-cell.compare-right-only {
+    -fx-background-color: #b71c1c;
+    -fx-border-color: #ff8a80;
+    -fx-border-width: 0 0 1 0;
+}
+
+.file-pane .list-cell.compare-different {
+    -fx-background-color: #fbc02d;
+    -fx-border-color: #fff176;
+    -fx-border-width: 0 0 1 0;
+}
+
+.file-pane .list-cell.compare-left-only .file-cell-name,
+.file-pane .list-cell.compare-left-only .file-cell-size,
+.file-pane .list-cell.compare-left-only .file-cell-date,
+.file-pane .list-cell.compare-right-only .file-cell-name,
+.file-pane .list-cell.compare-right-only .file-cell-size,
+.file-pane .list-cell.compare-right-only .file-cell-date {
+    -fx-text-fill: #ffffff;
+}
+
+.file-pane .list-cell.compare-different .file-cell-name,
+.file-pane .list-cell.compare-different .file-cell-size,
+.file-pane .list-cell.compare-different .file-cell-date {
+    -fx-text-fill: #1a1a1a;
+}
+
+.file-pane .list-cell.compare-left-only:selected,
+.file-pane .list-cell.compare-right-only:selected,
+.file-pane .list-cell.compare-different:selected,
+.file-pane:focused .list-cell.compare-left-only:selected,
+.file-pane:focused .list-cell.compare-right-only:selected,
+.file-pane:focused .list-cell.compare-different:selected {
+    -fx-background-color: -ac-select-active-bg;
+}
+
 .file-cell-row {
     -fx-font-family: "JetBrains Mono";
     -fx-font-size: 14px;
