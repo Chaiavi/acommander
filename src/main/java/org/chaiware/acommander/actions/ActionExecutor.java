@@ -61,6 +61,7 @@ public class ActionExecutor {
             case "extractAll" -> commander.extractAll();
             case "mergePdf" -> commander.mergePDFFiles();
             case "extractPdfPages" -> commander.extractPDFPages();
+            case "compareFiles" -> commander.compareFiles();
             case "changeAttributes" -> commander.changeAttributes();
             case "refresh" -> commander.filesPanesHelper.refreshFileListViews();
             case "openCommandPalette" -> commander.openCommandPalette();

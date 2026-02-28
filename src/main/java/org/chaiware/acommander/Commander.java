@@ -177,7 +177,7 @@ public class Commander {
             public void onCommandFinished(List<String> command, int exitCode, Throwable error) {
                 int active = runningExternalCommands.updateAndGet(current -> Math.max(0, current - 1));
                 boolean finishedSettingsEditor = isSettingsEditCommand(command);
-                if (error != null || exitCode != 0) {
+                if (error != null || isUnexpectedNonZeroExit(command, exitCode)) {
                     logger.warn(
                             "External action failed. exitCode={} command={} error={}",
                             exitCode,
@@ -194,6 +194,26 @@ public class Commander {
                 });
             }
         };
+    }
+
+    private boolean isUnexpectedNonZeroExit(List<String> command, int exitCode) {
+        if (exitCode == 0) {
+            return false;
+        }
+        return !(exitCode == 27 && isExamDiffCommand(command));
+    }
+
+    private boolean isExamDiffCommand(List<String> command) {
+        if (command == null || command.isEmpty() || command.getFirst() == null) {
+            return false;
+        }
+        try {
+            Path executable = Paths.get(command.getFirst());
+            Path fileName = executable.getFileName();
+            return fileName != null && "examdiff.exe".equalsIgnoreCase(fileName.toString());
+        } catch (Exception ex) {
+            return command.getFirst().toLowerCase(Locale.ROOT).contains("examdiff.exe");
+        }
     }
 
     private void showExternalProgress(int activeCommands, String toolName) {
@@ -2358,6 +2378,60 @@ public class Commander {
         }
     }
 
+    public boolean canCompareSelectedFiles() {
+        FileItem leftSelected = getSingleSelectedFile(leftFileList);
+        FileItem rightSelected = getSingleSelectedFile(rightFileList);
+        if (leftSelected == null || rightSelected == null) {
+            return false;
+        }
+        return isComparableTextFile(leftSelected) && isComparableTextFile(rightSelected);
+    }
+
+    public void compareFiles() {
+        logger.info("Compare Files");
+
+        FilesPanesHelper.FocusSide lastSelectedSide = filesPanesHelper.getFocusedSide();
+        FileItem lastSelectedFile = lastSelectedSide == LEFT
+                ? getSingleSelectedFile(leftFileList)
+                : getSingleSelectedFile(rightFileList);
+
+        FileItem leftSelected = getSingleSelectedFile(leftFileList);
+        FileItem rightSelected = getSingleSelectedFile(rightFileList);
+        if (leftSelected == null || rightSelected == null) {
+            showError("Compare Files", "Select exactly one file in each panel.");
+            restoreFocusToFile(lastSelectedSide, lastSelectedFile);
+            return;
+        }
+
+        if (!isComparableTextFile(leftSelected) || !isComparableTextFile(rightSelected)) {
+            showError("Compare Files", "Only text files can be compared. One of the selected files appears to be binary.");
+            restoreFocusToFile(lastSelectedSide, lastSelectedFile);
+            return;
+        }
+
+        Optional<CompareFilesOptions> options = promptCompareFilesOptions(leftSelected, rightSelected);
+        if (options.isEmpty()) {
+            restoreFocusToFile(lastSelectedSide, lastSelectedFile);
+            return;
+        }
+
+        String examDiffPath = Paths.get(System.getProperty("user.dir"), "apps", "file_compare", "ExamDiff.exe").toString();
+        if (!Files.exists(Path.of(examDiffPath))) {
+            showError("Compare Files", "ExamDiff executable was not found at: " + examDiffPath);
+            restoreFocusToFile(lastSelectedSide, lastSelectedFile);
+            return;
+        }
+
+        List<String> command = buildCompareCommand(examDiffPath, leftSelected, rightSelected, options.get());
+        runExternal(command, false, Set.of(27))
+                .whenComplete((output, throwable) -> Platform.runLater(() -> {
+                    if (throwable != null) {
+                        showError("Compare Files", "Failed running ExamDiff: " + throwable.getMessage());
+                    }
+                    restoreFocusToFile(lastSelectedSide, lastSelectedFile);
+                }));
+    }
+
     public void changeAttributes() {
         logger.info("Change Attributes");
 
@@ -2836,6 +2910,14 @@ public class Commander {
         return commands.runExternal(command, refreshAfter);
     }
 
+    public CompletableFuture<List<String>> runExternal(
+            List<String> command,
+            boolean refreshAfter,
+            Set<Integer> acceptedNonZeroExitCodes
+    ) {
+        return commands.runExternal(command, refreshAfter, acceptedNonZeroExitCodes);
+    }
+
     private Optional<String> promptSplitSize(FileItem selectedItem, long originalFileSize) {
         Dialog<String> dialog = new Dialog<>();
         dialog.setTitle("Split a Large File");
@@ -2903,6 +2985,217 @@ public class Commander {
         });
 
         return dialog.showAndWait();
+    }
+
+    private Optional<CompareFilesOptions> promptCompareFilesOptions(FileItem leftFile, FileItem rightFile) {
+        Dialog<CompareFilesOptions> dialog = new Dialog<>();
+        dialog.setTitle("Compare Files");
+        dialog.setHeaderText(null);
+
+        ButtonType compareType = new ButtonType("Compare", ButtonBar.ButtonData.OK_DONE);
+        dialog.getDialogPane().getButtonTypes().addAll(compareType, ButtonType.CANCEL);
+
+        Label title = new Label("Compare Files");
+        title.setStyle("-fx-font-size: 16px; -fx-font-weight: bold;");
+        Label subtitle = new Label("Left: " + leftFile.getName() + " | Right: " + rightFile.getName());
+        subtitle.setWrapText(true);
+
+        Label leftPath = new Label("Left file: " + leftFile.getFullPath());
+        leftPath.setWrapText(true);
+        Label rightPath = new Label("Right file: " + rightFile.getFullPath());
+        rightPath.setWrapText(true);
+
+        CheckBox ignoreCase = new CheckBox("Ignore case");
+        ComboBox<WhiteSpaceCompareMode> whitespaceMode = new ComboBox<>();
+        whitespaceMode.getItems().addAll(
+                WhiteSpaceCompareMode.NONE,
+                WhiteSpaceCompareMode.ALL,
+                WhiteSpaceCompareMode.AMOUNT,
+                WhiteSpaceCompareMode.LEADING,
+                WhiteSpaceCompareMode.TRAILING
+        );
+        whitespaceMode.getSelectionModel().select(WhiteSpaceCompareMode.NONE);
+        whitespaceMode.setPrefWidth(340);
+
+        CheckBox differencesOnly = new CheckBox("Show differences only");
+
+        VBox content = new VBox(
+                10,
+                title,
+                subtitle,
+                new Separator(),
+                leftPath,
+                rightPath,
+                new Separator(),
+                ignoreCase,
+                new HBox(10, new Label("Whitespace handling:"), whitespaceMode),
+                differencesOnly
+        );
+        content.setPadding(new Insets(12));
+        dialog.getDialogPane().setContent(content);
+        dialog.getDialogPane().setPrefSize(680, 340);
+        applyThemeToDialog(dialog);
+        Button compareButton = (Button) dialog.getDialogPane().lookupButton(compareType);
+        dialog.getDialogPane().addEventFilter(KeyEvent.KEY_PRESSED, event -> {
+            if (event.getCode() != KeyCode.ENTER) {
+                return;
+            }
+            if (compareButton != null && !compareButton.isDisabled()) {
+                compareButton.fire();
+            }
+            event.consume();
+        });
+
+        dialog.setResultConverter(button -> {
+            if (button != compareType) {
+                return null;
+            }
+            WhiteSpaceCompareMode selectedWhitespace = whitespaceMode.getSelectionModel().getSelectedItem();
+            if (selectedWhitespace == null) {
+                selectedWhitespace = WhiteSpaceCompareMode.NONE;
+            }
+            return new CompareFilesOptions(
+                    ignoreCase.isSelected(),
+                    selectedWhitespace,
+                    differencesOnly.isSelected()
+            );
+        });
+        return dialog.showAndWait();
+    }
+
+    private List<String> buildCompareCommand(String examDiffPath, FileItem leftFile, FileItem rightFile, CompareFilesOptions options) {
+        List<String> command = new ArrayList<>();
+        command.add(examDiffPath);
+        command.add(leftFile.getFullPath());
+        command.add(rightFile.getFullPath());
+        command.add(options.ignoreCase() ? "/i" : "/!i");
+        command.add("/t");
+        command.add(options.differencesOnly() ? "/d" : "/!d");
+
+        switch (options.whitespaceMode()) {
+            case ALL -> {
+                command.add("/w");
+                command.add("/!b");
+                command.add("/!l");
+                command.add("/!e");
+            }
+            case AMOUNT -> {
+                command.add("/!w");
+                command.add("/b");
+                command.add("/!l");
+                command.add("/!e");
+            }
+            case LEADING -> {
+                command.add("/!w");
+                command.add("/!b");
+                command.add("/l");
+                command.add("/!e");
+            }
+            case TRAILING -> {
+                command.add("/!w");
+                command.add("/!b");
+                command.add("/!l");
+                command.add("/e");
+            }
+            case NONE -> {
+                command.add("/!w");
+                command.add("/!b");
+                command.add("/!l");
+                command.add("/!e");
+            }
+        }
+
+        command.add("/n");
+        return command;
+    }
+
+    private FileItem getSingleSelectedFile(ListView<FileItem> listView) {
+        if (listView == null || listView.getSelectionModel() == null) {
+            return null;
+        }
+        List<FileItem> selected = listView.getSelectionModel().getSelectedItems();
+        if (selected == null || selected.size() != 1) {
+            return null;
+        }
+        FileItem item = selected.getFirst();
+        if (item == null || item.isDirectory() || "..".equals(item.getPresentableFilename())) {
+            return null;
+        }
+        return item;
+    }
+
+    private boolean isComparableTextFile(FileItem fileItem) {
+        if (fileItem == null || fileItem.isDirectory()) {
+            return false;
+        }
+
+        Path path = fileItem.getFile().toPath();
+        if (!Files.isRegularFile(path) || !Files.isReadable(path)) {
+            return false;
+        }
+
+        byte[] buffer = new byte[8192];
+        int read;
+        try (FileInputStream inputStream = new FileInputStream(fileItem.getFile())) {
+            read = inputStream.read(buffer);
+        } catch (IOException ex) {
+            logger.debug("Failed reading file while checking if it is text: {}", fileItem.getFullPath(), ex);
+            return false;
+        }
+
+        if (read <= 0) {
+            return true;
+        }
+        if (read >= 2) {
+            boolean utf16LeBom = (buffer[0] & 0xFF) == 0xFF && (buffer[1] & 0xFF) == 0xFE;
+            boolean utf16BeBom = (buffer[0] & 0xFF) == 0xFE && (buffer[1] & 0xFF) == 0xFF;
+            if (utf16LeBom || utf16BeBom) {
+                return true;
+            }
+        }
+
+        int suspicious = 0;
+        for (int i = 0; i < read; i++) {
+            int value = buffer[i] & 0xFF;
+            if (value == 0) {
+                return false;
+            }
+            if (value < 0x09 || (value > 0x0D && value < 0x20)) {
+                suspicious++;
+            }
+        }
+        double suspiciousRatio = (double) suspicious / read;
+        return suspiciousRatio <= 0.30d;
+    }
+
+    private void restoreFocusToFile(FilesPanesHelper.FocusSide side, FileItem fileItem) {
+        Runnable restore = () -> {
+            if (side == null || filesPanesHelper == null) {
+                requestFocusedFileListFocus();
+                return;
+            }
+            ListView<FileItem> targetList = side == LEFT ? leftFileList : rightFileList;
+            if (targetList == null) {
+                requestFocusedFileListFocus();
+                return;
+            }
+
+            filesPanesHelper.setFocusedFileList(side);
+            if (fileItem != null) {
+                int index = targetList.getItems().indexOf(fileItem);
+                if (index >= 0) {
+                    targetList.getSelectionModel().clearAndSelect(index);
+                    targetList.getFocusModel().focus(index);
+                }
+            }
+            targetList.requestFocus();
+        };
+
+        if (Platform.isFxApplicationThread()) {
+            restore.run();
+        } else {
+            Platform.runLater(restore);
+        }
     }
 
     private SplitSize parseSplitSize(String rawInput) {
@@ -3205,6 +3498,29 @@ public class Commander {
             boolean base32,
             boolean base64,
             boolean includeFileNames
+    ) {}
+    private enum WhiteSpaceCompareMode {
+        NONE("Do not ignore whitespace"),
+        ALL("Ignore all whitespace"),
+        AMOUNT("Ignore changes in amount of whitespace"),
+        LEADING("Ignore leading whitespace"),
+        TRAILING("Ignore trailing whitespace");
+
+        private final String label;
+
+        WhiteSpaceCompareMode(String label) {
+            this.label = label;
+        }
+
+        @Override
+        public String toString() {
+            return label;
+        }
+    }
+    private record CompareFilesOptions(
+            boolean ignoreCase,
+            WhiteSpaceCompareMode whitespaceMode,
+            boolean differencesOnly
     ) {}
     private enum ImageCompressionMode {
         QUALITY,

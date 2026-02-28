@@ -313,6 +313,14 @@
       "refreshAfter": true
     },
     {
+      "id": "compareFiles",
+      "label": "Compare Files",
+      "aliases": ["diff files", "file compare", "examdiff"],
+      "contexts": ["commandPalette"],
+      "selection": "none",
+      "type": "builtin"
+    },
+    {
       "id": "changeAttributes",
       "label": "Change Attributes",
       "shortcut": "Alt+Enter",

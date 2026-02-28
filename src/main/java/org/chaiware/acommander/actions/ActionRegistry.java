@@ -7,6 +7,7 @@ import org.chaiware.acommander.helpers.AudioConversionSupport;
 import org.chaiware.acommander.helpers.ImageConversionSupport;
 import org.chaiware.acommander.model.FileItem;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -27,17 +28,29 @@ public class ActionRegistry {
                 action.getLabel(),
                 action.getShortcut(),
                 action.getAliases(),
-                ctx -> rule.isSatisfied(ctx.commander().filesPanesHelper.getSelectedItems())
+                ctx -> rule.isSatisfied(selectedItemsOrEmpty(ctx))
                         && isSelectionAllowedForBuiltin(builtin, ctx),
                 ctx -> executor.execute(action)
         );
     }
 
+    private List<FileItem> selectedItemsOrEmpty(ActionContext ctx) {
+        if (ctx == null || ctx.commander() == null || ctx.commander().filesPanesHelper == null) {
+            return Collections.emptyList();
+        }
+        List<FileItem> selectedItems = ctx.commander().filesPanesHelper.getSelectedItems();
+        return selectedItems == null ? Collections.emptyList() : selectedItems;
+    }
+
     private boolean isSelectionAllowedForBuiltin(String builtin, ActionContext ctx) {
         if (!"convertGraphicsFiles".equals(builtin)
                 && !"convertAudioFiles".equals(builtin)
-                && !"convertMediaFile".equals(builtin)) {
+                && !"convertMediaFile".equals(builtin)
+                && !"compareFiles".equals(builtin)) {
             return true;
+        }
+        if ("compareFiles".equals(builtin)) {
+            return ctx != null && ctx.commander() != null && ctx.commander().canCompareSelectedFiles();
         }
         if (ctx == null || ctx.commander() == null || ctx.commander().filesPanesHelper == null) {
             return false;

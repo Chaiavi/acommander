@@ -11,6 +11,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
@@ -155,7 +156,20 @@ public abstract class ACommands {
     protected abstract void doExtractPDFPages(FileItem selectedItem, String destinationPath) throws Exception;
 
     protected CompletableFuture<List<String>> runExecutable(List<String> params, boolean shouldUpdateUI) {
+        return runExecutable(params, shouldUpdateUI, Set.of());
+    }
+
+    protected CompletableFuture<List<String>> runExecutable(
+            List<String> params,
+            boolean shouldUpdateUI,
+            Set<Integer> acceptedNonZeroExitCodes
+    ) {
         List<String> commandSnapshot = List.copyOf(params);
+        Set<Integer> acceptedExitCodes = new HashSet<>();
+        acceptedExitCodes.add(0);
+        if (acceptedNonZeroExitCodes != null) {
+            acceptedExitCodes.addAll(acceptedNonZeroExitCodes);
+        }
         notifyCommandStarted(commandSnapshot);
         return CompletableFuture.supplyAsync(() -> {
             int exitCode = -1;
@@ -179,7 +193,7 @@ public abstract class ACommands {
 
                 exitCode = process.waitFor();
                 log.debug("Process completed with exit code: {}", exitCode);
-                if (exitCode != 0) {
+                if (!acceptedExitCodes.contains(exitCode)) {
                     String toolOutput = summarizeOutput(output);
                     IllegalStateException ex = new IllegalStateException(
                             "External command failed with exit code " + exitCode + ": " + formatCommand(commandSnapshot)
@@ -215,6 +229,14 @@ public abstract class ACommands {
 
     public CompletableFuture<List<String>> runExternal(List<String> params, boolean shouldUpdateUI) {
         return runExecutable(params, shouldUpdateUI);
+    }
+
+    public CompletableFuture<List<String>> runExternal(
+            List<String> params,
+            boolean shouldUpdateUI,
+            Set<Integer> acceptedNonZeroExitCodes
+    ) {
+        return runExecutable(params, shouldUpdateUI, acceptedNonZeroExitCodes);
     }
 
     public int stopRunningExternalCommands() {

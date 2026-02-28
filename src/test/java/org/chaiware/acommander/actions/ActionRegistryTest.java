@@ -74,6 +74,40 @@ class ActionRegistryTest {
         Assertions.assertThat(action.isEnabled(context)).isFalse();
     }
 
+    @Test
+    void compareFilesActionVisibleWhenCommanderAllowsComparison() {
+        Commander commander = mock(Commander.class);
+        when(commander.canCompareSelectedFiles()).thenReturn(true);
+
+        AppRegistry registry = new AppRegistry(configWithCompareAction());
+        ActionRegistry actionRegistry = new ActionRegistry(registry, new ActionExecutor(commander, registry));
+        ActionContext context = new ActionContext(commander);
+
+        AppAction action = actionRegistry.all().stream()
+                .filter(a -> "compareFiles".equals(a.id()))
+                .findFirst()
+                .orElseThrow();
+
+        Assertions.assertThat(action.isEnabled(context)).isTrue();
+    }
+
+    @Test
+    void compareFilesActionHiddenWhenCommanderDisallowsComparison() {
+        Commander commander = mock(Commander.class);
+        when(commander.canCompareSelectedFiles()).thenReturn(false);
+
+        AppRegistry registry = new AppRegistry(configWithCompareAction());
+        ActionRegistry actionRegistry = new ActionRegistry(registry, new ActionExecutor(commander, registry));
+        ActionContext context = new ActionContext(commander);
+
+        AppAction action = actionRegistry.all().stream()
+                .filter(a -> "compareFiles".equals(a.id()))
+                .findFirst()
+                .orElseThrow();
+
+        Assertions.assertThat(action.isEnabled(context)).isFalse();
+    }
+
     private static AppConfig configWithConvertActions() {
         ActionDefinition imageConvert = new ActionDefinition();
         imageConvert.setId("convertGraphicsFiles");
@@ -91,6 +125,19 @@ class ActionRegistryTest {
 
         AppConfig config = new AppConfig();
         config.setActions(List.of(imageConvert, audioConvert));
+        return config;
+    }
+
+    private static AppConfig configWithCompareAction() {
+        ActionDefinition compare = new ActionDefinition();
+        compare.setId("compareFiles");
+        compare.setLabel("Compare Files");
+        compare.setType("builtin");
+        compare.setContexts(List.of("commandPalette"));
+        compare.setSelection("none");
+
+        AppConfig config = new AppConfig();
+        config.setActions(List.of(compare));
         return config;
     }
 }
