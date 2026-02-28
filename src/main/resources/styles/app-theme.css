@@ -341,9 +341,18 @@
 
 .dialog-pane.theme-dark {
     -fx-background-color: #1f2733;
+    -fx-border-color: #6f89aa;
+    -fx-border-width: 1;
 }
 
 .dialog-pane.theme-dark .label {
+    -fx-text-fill: #f3f7ff;
+}
+
+.dialog-pane.theme-dark .header-panel,
+.dialog-pane.theme-dark .header-panel .label,
+.dialog-pane.theme-dark .content.label {
+    -fx-background-color: transparent;
     -fx-text-fill: #f3f7ff;
 }
 
@@ -351,6 +360,8 @@
     -fx-background-color: #2a3443;
     -fx-text-fill: #f3f7ff;
     -fx-prompt-text-fill: #bcc8db;
+    -fx-highlight-fill: #3f8cff;
+    -fx-highlight-text-fill: #ffffff;
 }
 
 .dialog-pane.theme-dark .button {
@@ -361,6 +372,59 @@
 
 .dialog-pane.theme-dark .button:hover {
     -fx-background-color: #344356;
+}
+
+.dialog-pane.theme-dark .text-area,
+.dialog-pane.theme-dark .text-area .content {
+    -fx-background-color: #2a3443;
+    -fx-text-fill: #f3f7ff;
+    -fx-prompt-text-fill: #bcc8db;
+}
+
+.dialog-pane.theme-dark .list-view,
+.dialog-pane.theme-dark .table-view,
+.dialog-pane.theme-dark .tree-view,
+.dialog-pane.theme-dark .combo-box-popup .list-view,
+.dialog-pane.theme-dark .choice-box {
+    -fx-background-color: #2a3443;
+    -fx-control-inner-background: #2a3443;
+}
+
+.dialog-pane.theme-dark .list-cell,
+.dialog-pane.theme-dark .table-cell,
+.dialog-pane.theme-dark .tree-cell {
+    -fx-text-fill: #f3f7ff;
+    -fx-background-color: transparent;
+}
+
+.dialog-pane.theme-dark .list-cell:filled:selected,
+.dialog-pane.theme-dark .table-row-cell:selected,
+.dialog-pane.theme-dark .tree-cell:selected {
+    -fx-background-color: #3f8cff;
+}
+
+.dialog-pane.theme-dark .list-cell:filled:selected .label,
+.dialog-pane.theme-dark .table-row-cell:selected .table-cell,
+.dialog-pane.theme-dark .tree-cell:selected .label {
+    -fx-text-fill: #ffffff;
+}
+
+.dialog-pane.theme-dark .check-box .text,
+.dialog-pane.theme-dark .radio-button .text,
+.dialog-pane.theme-dark .combo-box .list-cell,
+.dialog-pane.theme-dark .choice-box .label {
+    -fx-fill: #f3f7ff;
+    -fx-text-fill: #f3f7ff;
+}
+
+.dialog-pane.theme-dark .combo-box-base {
+    -fx-background-color: #2a3443;
+    -fx-border-color: #6f89aa;
+}
+
+.dialog-pane.theme-dark .scroll-pane,
+.dialog-pane.theme-dark .scroll-pane .viewport {
+    -fx-background-color: #2a3443;
 }
 
 .dialog-pane.theme-light {
