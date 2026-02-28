@@ -477,6 +477,7 @@ public class Commander {
         } else {
             setDarkMode();
         }
+        requestFocusedFileListFocus();
     }
 
     private void loadConfigFile() {
