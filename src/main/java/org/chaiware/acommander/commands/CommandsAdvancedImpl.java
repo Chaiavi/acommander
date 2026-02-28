@@ -105,6 +105,31 @@ public class CommandsAdvancedImpl extends ACommands {
         log.debug("Copied: {} To: {}", sourceFile, targetFolder);
     }
 
+    public void copyBatch(List<FileItem> selectedItems, String targetFolder) {
+        List<FileItem> validItems = filterValidItems(selectedItems);
+        if (validItems.isEmpty()) {
+            return;
+        }
+        if (validItems.size() == 1) {
+            doCopy(validItems.getFirst(), targetFolder);
+            return;
+        }
+
+        ActionDefinition action = requireAction("copy");
+        List<String> selectedFiles = validItems.stream()
+                .map(FileItem::getFullPath)
+                .collect(Collectors.toList());
+        List<String> command = ToolCommandBuilder.buildCommand(
+                action.getPath(),
+                action.getArgs(),
+                fileListsLoader,
+                Map.of("${targetFolder}", targetFolder),
+                selectedFiles
+        );
+        runExecutable(command, true);
+        log.debug("Copied {} items To: {}", selectedFiles.size(), targetFolder);
+    }
+
     @Override
     protected void doMove(FileItem sourceFile, String targetFolder) throws Exception {
         if (sourceFile.getFile().toPath().getRoot().toString().equalsIgnoreCase(Paths.get(targetFolder).getRoot().toString())) // Use FASTEST move in the case of moving file over same drive

@@ -7,9 +7,9 @@ import org.chaiware.acommander.config.AppRegistry;
 import org.chaiware.acommander.helpers.FilesPanesHelper;
 import org.chaiware.acommander.model.FileItem;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.api.condition.EnabledOnOs;
 import org.junit.jupiter.api.condition.OS;
+import org.junit.jupiter.api.io.TempDir;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
@@ -19,9 +19,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 class CommandsAdvancedImplTest {
 
@@ -75,6 +73,41 @@ class CommandsAdvancedImplTest {
 
         Assertions.assertThat(targetDir.resolve("data.txt")).exists();
         Assertions.assertThat(Files.readString(targetDir.resolve("data.txt"))).isEqualTo("external");
+    }
+
+    @Test
+    void copyBatchBuildsSingleCommandWithAllSelectedFiles() throws Exception {
+        Path sourceDir = Files.createDirectory(tempDir.resolve("source"));
+        Path first = sourceDir.resolve("first.txt");
+        Path second = sourceDir.resolve("second.txt");
+        Files.writeString(first, "one");
+        Files.writeString(second, "two");
+        Path targetDir = Files.createDirectory(tempDir.resolve("target"));
+
+        FilesPanesHelper panesHelper = mock(FilesPanesHelper.class);
+        AppRegistry registry = new AppRegistry(configWithAction(
+                action(
+                        "copy",
+                        "copy-tool.exe",
+                        List.of("${selectedFiles}", "/to=${targetFolder}")
+                )
+        ));
+
+        RecordingCommandsAdvanced commands = new RecordingCommandsAdvanced(panesHelper, registry);
+
+        commands.copyBatch(
+                List.of(new FileItem(first.toFile()), new FileItem(second.toFile())),
+                targetDir.toString()
+        );
+
+        Assertions.assertThat(commands.lastCommand)
+                .containsExactly(
+                        Path.of(System.getProperty("user.dir"), "copy-tool.exe").toString(),
+                        first.toString(),
+                        second.toString(),
+                        "/to=" + targetDir
+                );
+        Assertions.assertThat(commands.lastShouldUpdateUI).isTrue();
     }
 
     @Test

@@ -87,10 +87,10 @@
       "shortcut": "F5",
       "aliases": ["cp"],
       "contexts": ["filePane", "commandPalette"],
-      "selection": "single",
+      "selection": "any",
       "type": "builtin",
       "path": "apps/copy/FastCopy.exe",
-      "args": ["/cmd=diff", "/auto_close", "${selectedFile}", "/to=${targetFolderQuoted}"],
+      "args": ["/cmd=diff", "/auto_close", "${selectedFiles}", "/to=${targetFolderQuoted}"],
       "refreshAfter": true
     },
     {

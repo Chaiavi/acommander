@@ -977,9 +977,23 @@ public class Commander {
         logger.info("Copy (F5)");
 
         try {
-            List<FileItem> selectedItems = new ArrayList<>(filesPanesHelper.getSelectedItems());
+            List<FileItem> selectedItems = new ArrayList<>(commands.filterValidItems(filesPanesHelper.getSelectedItems()));
+            if (selectedItems.isEmpty()) {
+                return;
+            }
+
+            String targetFolder = filesPanesHelper.getUnfocusedPath();
+            if (selectedItems.size() > 1 && commands instanceof CommandsAdvancedImpl advancedCommands) {
+                advancedCommands.copyBatch(selectedItems, targetFolder);
+                for (FileItem selectedItem : selectedItems) {
+                    File target = new File(targetFolder, selectedItem.getName());
+                    filesPanesHelper.selectFileItem(false, new FileItem(target));
+                }
+                return;
+            }
+
             for (FileItem selectedItem : selectedItems) {
-                String targetFolder = filesPanesHelper.getUnfocusedPath();
+                targetFolder = filesPanesHelper.getUnfocusedPath();
                 if (selectedItem.isDirectory())
                     targetFolder += "\\" + selectedItem.getName();
                 commands.copy(selectedItem, targetFolder);
