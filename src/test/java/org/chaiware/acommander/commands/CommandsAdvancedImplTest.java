@@ -233,7 +233,7 @@ class CommandsAdvancedImplTest {
     @EnabledOnOs(OS.WINDOWS)
     void extractAllCreatesOutputViaExternalTool() throws Exception {
         Path sourceDir = Files.createDirectory(tempDir.resolve("source"));
-        Path file = sourceDir.resolve("data.txt");
+        Path file = sourceDir.resolve("data.zip");
         Files.writeString(file, "extract");
         Path destination = Files.createDirectory(tempDir.resolve("dest"));
 
@@ -245,7 +245,7 @@ class CommandsAdvancedImplTest {
                         List.of(
                                 "-NoProfile",
                                 "-Command",
-                                "Copy-Item -Path \"${selectedFile}\" -Destination \"${destinationPath}\" -Force"
+                                "Copy-Item -Path \"${selectedFile}\" -Destination \"${destinationPath}\\data.txt\" -Force"
                         )
                 )
         ));
@@ -316,6 +316,24 @@ class CommandsAdvancedImplTest {
         commands.awaitLast();
 
         Assertions.assertThat(destination.resolve("doc_0001.pdf")).exists();
+    }
+
+    @Test
+    @EnabledOnOs(OS.WINDOWS)
+    void unpackThrowsOnNonArchive() throws Exception {
+        Path file = tempDir.resolve("not_archive.txt");
+        Files.writeString(file, "text");
+
+        FilesPanesHelper panesHelper = mock(FilesPanesHelper.class);
+        AppRegistry registry = new AppRegistry(configWithAction(
+                action("unpack", "powershell", List.of("echo", "unpacked"))
+        ));
+
+        RecordingCommandsAdvanced commands = new RecordingCommandsAdvanced(panesHelper, registry);
+
+        Assertions.assertThatThrownBy(() -> commands.unpack(new FileItem(file.toFile()), tempDir.toString()))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("not a supported archive");
     }
 
     private static AppConfig configWithAction(ActionDefinition action) {

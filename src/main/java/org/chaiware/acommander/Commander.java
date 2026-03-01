@@ -2552,6 +2552,8 @@ public class Commander {
             List<FileItem> selectedItems = new ArrayList<>(filesPanesHelper.getSelectedItems());
             for (FileItem selectedItem : selectedItems)
                 commands.unpack(selectedItem, filesPanesHelper.getUnfocusedPath());
+        } catch (IllegalArgumentException e) {
+            showError("Unpack", e.getMessage());
         } catch (Exception e) {
             error("Failed UNPacking file", e);
         }
@@ -2563,6 +2565,8 @@ public class Commander {
             List<FileItem> selectedItems = new ArrayList<>(filesPanesHelper.getSelectedItems());
             for (FileItem selectedItem : selectedItems)
                 commands.extractAll(selectedItem, filesPanesHelper.getUnfocusedPath());
+        } catch (IllegalArgumentException e) {
+            showError("Extract", e.getMessage());
         } catch (Exception e) {
             error("Failed UNPacking file", e);
         }
@@ -2594,6 +2598,8 @@ public class Commander {
             List<FileItem> selectedItems = new ArrayList<>(filesPanesHelper.getSelectedItems());
             for (FileItem selectedItem : selectedItems)
                 commands.extractPDFPages(selectedItem, filesPanesHelper.getUnfocusedPath());
+        } catch (IllegalArgumentException e) {
+            showError("Extract PDF Pages", e.getMessage());
         } catch (Exception e) {
             error("Failed Extracting Pages from PDF file", e);
         }

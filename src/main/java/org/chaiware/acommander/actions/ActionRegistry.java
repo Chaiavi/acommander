@@ -46,24 +46,48 @@ public class ActionRegistry {
         if (!"convertGraphicsFiles".equals(builtin)
                 && !"convertAudioFiles".equals(builtin)
                 && !"convertMediaFile".equals(builtin)
-                && !"compareFiles".equals(builtin)) {
+                && !"compareFiles".equals(builtin)
+                && !"unpack".equals(builtin)
+                && !"extractAll".equals(builtin)
+                && !"extractPdfPages".equals(builtin)
+                && !"mergePdf".equals(builtin)) {
             return true;
         }
-        if ("compareFiles".equals(builtin)) {
-            return ctx != null && ctx.commander() != null && ctx.commander().canCompareSelectedFiles();
-        }
+
         if (ctx == null || ctx.commander() == null || ctx.commander().filesPanesHelper == null) {
             return false;
         }
+
+        List<FileItem> selectedItems = ctx.commander().filesPanesHelper.getSelectedItems();
+
+        if ("compareFiles".equals(builtin)) {
+            return ctx.commander().canCompareSelectedFiles();
+        }
+        if ("unpack".equals(builtin) || "extractAll".equals(builtin)) {
+            return selectedItems != null && !selectedItems.isEmpty() && selectedItems.stream().allMatch(item ->
+                    !item.isDirectory() && org.chaiware.acommander.helpers.ArchiveService.isSupportedArchiveExtension(
+                            item.getName().contains(".") ? item.getName().substring(item.getName().lastIndexOf('.') + 1) : ""
+                    )
+            );
+        }
+        if ("extractPdfPages".equals(builtin)) {
+            return selectedItems != null && !selectedItems.isEmpty() && selectedItems.stream().allMatch(item ->
+                    !item.isDirectory() && item.getName().toLowerCase().endsWith(".pdf")
+            );
+        }
+        if ("mergePdf".equals(builtin)) {
+            return selectedItems != null && selectedItems.size() >= 2 && selectedItems.stream().allMatch(item ->
+                    !item.isDirectory() && item.getName().toLowerCase().endsWith(".pdf")
+            );
+        }
         if ("convertMediaFile".equals(builtin)) {
-            List<FileItem> selectedItems = ctx.commander().filesPanesHelper.getSelectedItems();
             return ImageConversionSupport.areAllConvertibleImages(selectedItems)
                     || AudioConversionSupport.areAllConvertibleAudio(selectedItems);
         }
         if ("convertGraphicsFiles".equals(builtin)) {
-            return ImageConversionSupport.areAllConvertibleImages(ctx.commander().filesPanesHelper.getSelectedItems());
+            return ImageConversionSupport.areAllConvertibleImages(selectedItems);
         }
-        return AudioConversionSupport.areAllConvertibleAudio(ctx.commander().filesPanesHelper.getSelectedItems());
+        return AudioConversionSupport.areAllConvertibleAudio(selectedItems);
     }
 
     public List<AppAction> all() {

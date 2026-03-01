@@ -1,6 +1,7 @@
 package org.chaiware.acommander.commands;
 
 import javafx.application.Platform;
+import org.chaiware.acommander.helpers.ArchiveService;
 import org.chaiware.acommander.helpers.FilesPanesHelper;
 import org.chaiware.acommander.model.FileItem;
 import org.slf4j.Logger;
@@ -46,6 +47,26 @@ public abstract class ACommands {
 
     private boolean isValidSingleItem(FileItem item) {
         return !isParentFolder(item);
+    }
+
+    private boolean isArchive(FileItem item) {
+        if (item == null || item.isDirectory()) {
+            return false;
+        }
+        String name = item.getName();
+        int lastDot = name.lastIndexOf('.');
+        if (lastDot == -1 || lastDot == name.length() - 1) {
+            return false;
+        }
+        String extension = name.substring(lastDot + 1);
+        return ArchiveService.isSupportedArchiveExtension(extension);
+    }
+
+    private boolean isPdf(FileItem item) {
+        if (item == null || item.isDirectory()) {
+            return false;
+        }
+        return item.getName().toLowerCase().endsWith(".pdf");
     }
 
     // PUBLIC METHODS - These handle filtering automatically
@@ -109,15 +130,23 @@ public abstract class ACommands {
     }
 
     public final void unpack(FileItem selectedItem, String destinationPath) throws Exception {
-        if (isValidSingleItem(selectedItem)) {
-            doUnpack(selectedItem, destinationPath);
+        if (!isValidSingleItem(selectedItem)) {
+            return;
         }
+        if (!isArchive(selectedItem)) {
+            throw new IllegalArgumentException("The selected file is not a supported archive: " + selectedItem.getName());
+        }
+        doUnpack(selectedItem, destinationPath);
     }
 
     public final void extractAll(FileItem selectedItem, String destinationPath) throws Exception {
-        if (isValidSingleItem(selectedItem)) {
-            doExtractAll(selectedItem, destinationPath);
+        if (!isValidSingleItem(selectedItem)) {
+            return;
         }
+        if (!isArchive(selectedItem)) {
+            throw new IllegalArgumentException("The selected file is not a supported archive: " + selectedItem.getName());
+        }
+        doExtractAll(selectedItem, destinationPath);
     }
 
     public final void mergePDFs(List<FileItem> selectedItems, String newPdfFilenameWithPath) throws Exception {
@@ -128,9 +157,13 @@ public abstract class ACommands {
     }
 
     public final void extractPDFPages(FileItem selectedItem, String destinationPath) throws Exception {
-        if (isValidSingleItem(selectedItem)) {
-            doExtractPDFPages(selectedItem, destinationPath);
+        if (!isValidSingleItem(selectedItem)) {
+            return;
         }
+        if (!isPdf(selectedItem)) {
+            throw new IllegalArgumentException("The selected file is not a PDF: " + selectedItem.getName());
+        }
+        doExtractPDFPages(selectedItem, destinationPath);
     }
 
     // These methods don't need filtering as they don't operate on selected files
