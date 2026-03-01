@@ -80,9 +80,16 @@ public class FilePaneKeyHandlerImpl implements IKeyHandler {
     }
 
     private void goUpOneFolder() {
-        File parent = new File(commander.filesPanesHelper.getFocusedPath()).getParentFile();
-        if (parent != null)
-            commander.filesPanesHelper.setFocusedFileListPath(parent.getAbsolutePath());
+        // Check if we're in an archive
+        if (commander.filesPanesHelper.isInArchive(commander.filesPanesHelper.getFocusedSide())) {
+            // Use archive-aware navigation (works like ".." entry)
+            commander.filesPanesHelper.goUpInArchive(commander.filesPanesHelper.getFocusedSide());
+        } else {
+            // Regular folder navigation
+            File parent = new File(commander.filesPanesHelper.getFocusedPath()).getParentFile();
+            if (parent != null)
+                commander.filesPanesHelper.setFocusedFileListPath(parent.getAbsolutePath());
+        }
     }
 
     private Character extractFilterChar(KeyEvent event) {

@@ -208,7 +208,10 @@ public abstract class ACommands {
                     throw ex;
                 }
 
-                if (shouldUpdateUI) Platform.runLater(() -> fileListsLoader.refreshFileListViews());
+                if (shouldUpdateUI) Platform.runLater(() -> {
+                    fileListsLoader.markArchiveNeedsRepack(fileListsLoader.getFocusedSide());
+                    fileListsLoader.refreshFileListViews();
+                });
                 return output;
 
             } catch (IOException | InterruptedException e) {

@@ -6,6 +6,8 @@ import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 import org.chaiware.acommander.helpers.FilesPanesHelper;
 import org.chaiware.acommander.model.FileItem;
+import org.chaiware.acommander.vfs.ArchiveFileSystem;
+import org.chaiware.acommander.vfs.VFileSystem;
 
 import java.io.File;
 import java.io.IOException;
@@ -28,13 +30,19 @@ public class CommandsSimpleImpl extends ACommands {
             throw new Exception("No nice way to rename more than a single file using the simplest method");
 
         FileItem selectedItem = validItems.getFirst();
-        File currentFile = selectedItem.getFile();
-        File newFile = new File(currentFile.getParent(), newFilename);
-        Files.move(currentFile.toPath(), newFile.toPath());
+        String oldFileName = selectedItem.getName();
+        
+        VFileSystem fs = fileListsLoader.getFocusedFileSystem();
+        String oldInternalPath = fs.getInternalPath(selectedItem);
+        Path oldPath = Paths.get(oldInternalPath);
+        Path newInternalPath = oldPath.getParent() != null ? oldPath.getParent().resolve(newFilename) : Paths.get(newFilename);
+        
+        fs.rename(oldInternalPath, newInternalPath.toString());
+        
         fileListsLoader.refreshFileListViews();
-        log.debug("Renamed: {} to {}", currentFile.getName(), newFile.getName());
+        log.debug("Renamed: {} to {}", oldFileName, newFilename);
     }
-
+    
     @Override
     protected void doEdit(FileItem fileItem) throws Exception {
         throw new Exception("Not implemented yet");
@@ -47,26 +55,28 @@ public class CommandsSimpleImpl extends ACommands {
 
     @Override
     protected void doCopy(FileItem sourceFile, String targetFolder) throws Exception {
-        Path source = Paths.get(sourceFile.getFullPath());
-        if (sourceFile.isDirectory()) {
-            Path targetDir = Paths.get(targetFolder);
-            copyDirectory(source, targetDir);
-        } else {
-            Path target = Paths.get(targetFolder, sourceFile.getName());
-            Files.copy(source, target, StandardCopyOption.REPLACE_EXISTING);
-        }
+        VFileSystem sourceFs = fileListsLoader.getFocusedFileSystem();
+        VFileSystem targetFs = fileListsLoader.getUnfocusedFileSystem();
+
+        String sourceInternalPath = sourceFs.getInternalPath(sourceFile);
+        String targetInternalPath = targetFs.getInternalPath(new FileItem(new File(targetFolder, sourceFile.getName())));
+
+        sourceFs.copy(sourceInternalPath, targetFs, targetInternalPath);
+        
         fileListsLoader.refreshFileListViews();
         log.debug("Copied: {} to {}", sourceFile.getName(), targetFolder);
     }
 
     @Override
     protected void doMove(FileItem sourceFile, String targetFolder) throws Exception {
-        Path source = Paths.get(sourceFile.getFullPath());
-        Path target = Paths.get(targetFolder + "\\" + sourceFile.getName());
-        if (sourceFile.isDirectory())
-            target = Paths.get(targetFolder + "\\");
+        VFileSystem sourceFs = fileListsLoader.getFocusedFileSystem();
+        VFileSystem targetFs = fileListsLoader.getUnfocusedFileSystem();
 
-        Files.move(source, target, StandardCopyOption.REPLACE_EXISTING);
+        String sourceInternalPath = sourceFs.getInternalPath(sourceFile);
+        String targetInternalPath = targetFs.getInternalPath(new FileItem(new File(targetFolder, sourceFile.getName())));
+
+        sourceFs.move(sourceInternalPath, targetFs, targetInternalPath);
+        
         fileListsLoader.refreshFileListViews();
         log.debug("Moved: {} to {}", sourceFile.getName(), targetFolder);
     }
@@ -89,33 +99,74 @@ public class CommandsSimpleImpl extends ACommands {
 
     @Override
     public void mkdir(String parentDir, String newDirName) throws IOException {
-        Path path = Paths.get(parentDir, newDirName);
-        Files.createDirectories(path);
+        VFileSystem fs = fileListsLoader.getFocusedFileSystem();
+        String internalPath = Paths.get(parentDir, newDirName).toString();
+        
+        // If we're in an archive, we need to relativize the path
+        if (fs instanceof ArchiveFileSystem archiveFs) {
+            Path tempFolder = archiveFs.getSession().getTempFolder();
+            Path fullPath = Paths.get(parentDir, newDirName);
+            if (fullPath.startsWith(tempFolder)) {
+                internalPath = tempFolder.relativize(fullPath).toString();
+            }
+        }
+        
+        fs.makeDirectory(internalPath);
         fileListsLoader.refreshFileListViews();
         log.debug("Created Directory: {}", newDirName);
     }
 
     @Override
     public void mkFile(String parentDir, String newFileName) throws Exception {
-        Path path = Paths.get(parentDir, newFileName);
-        Files.createFile(path);
+        VFileSystem fs = fileListsLoader.getFocusedFileSystem();
+        String internalPath = Paths.get(parentDir, newFileName).toString();
+        
+        // If we're in an archive, we need to relativize the path
+        if (fs instanceof ArchiveFileSystem archiveFs) {
+            Path tempFolder = archiveFs.getSession().getTempFolder();
+            Path fullPath = Paths.get(parentDir, newFileName);
+            if (fullPath.startsWith(tempFolder)) {
+                internalPath = tempFolder.relativize(fullPath).toString();
+            }
+        }
+        
+        fs.makeFile(internalPath);
         fileListsLoader.refreshFileListViews();
         log.debug("Created File: {}", newFileName);
+    }
+    
+    /**
+     * Checks if a file is inside an archive temp folder.
+     */
+    private boolean isFileInArchive(FileItem fileItem) {
+        return fileListsLoader.isInArchive(fileListsLoader.getFocusedSide());
     }
 
     @Override
     protected void doDelete(List<FileItem> validItems) throws Exception {
-        throw new Exception("Not implemented yet");
+        VFileSystem fs = fileListsLoader.getFocusedFileSystem();
+        for (FileItem item : validItems) {
+            fs.delete(fs.getInternalPath(item));
+        }
+        fileListsLoader.refreshFileListViews();
     }
 
     @Override
     protected void doUnlockDelete(List<FileItem> validItems) throws Exception {
-        throw new Exception("Not implemented yet");
+        VFileSystem fs = fileListsLoader.getFocusedFileSystem();
+        for (FileItem item : validItems) {
+            fs.delete(fs.getInternalPath(item));
+        }
+        fileListsLoader.refreshFileListViews();
     }
 
     @Override
     protected void doWipeDelete(List<FileItem> validItems) throws Exception {
-        throw new Exception("Not implemented yet");
+        VFileSystem fs = fileListsLoader.getFocusedFileSystem();
+        for (FileItem item : validItems) {
+            fs.delete(fs.getInternalPath(item));
+        }
+        fileListsLoader.refreshFileListViews();
     }
 
     @Override

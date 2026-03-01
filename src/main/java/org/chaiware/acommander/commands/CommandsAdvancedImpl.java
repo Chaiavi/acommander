@@ -5,13 +5,12 @@ import org.chaiware.acommander.config.AppRegistry;
 import org.chaiware.acommander.helpers.FilesPanesHelper;
 import org.chaiware.acommander.model.FileItem;
 import org.chaiware.acommander.tools.ToolCommandBuilder;
+import org.chaiware.acommander.vfs.ArchiveFileSystem;
+import org.chaiware.acommander.vfs.VFileSystem;
 
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -62,47 +61,95 @@ public class CommandsAdvancedImpl extends ACommands {
 
     @Override
     protected void doView(FileItem fileItem) {
-        ActionDefinition action = requireAction("view");
-        List<String> selectedFiles = List.of(fileItem.getFullPath());
-        List<String> command = ToolCommandBuilder.buildCommand(
-                action.getPath(),
-                action.getArgs(),
-                fileListsLoader,
-                Map.of(),
-                selectedFiles
-        );
-        runExecutable(command, false);
-        log.debug("Viewed: {}", fileItem.getName());
+        try {
+            ActionDefinition action = requireAction("view");
+            List<String> selectedFiles = List.of(fileItem.getFullPath());
+            List<String> command = ToolCommandBuilder.buildCommand(
+                    action.getPath(),
+                    action.getArgs(),
+                    fileListsLoader,
+                    Map.of(),
+                    selectedFiles
+            );
+            runExecutable(command, false);
+            log.debug("Viewed: {}", fileItem.getName());
+        } catch (Exception e) {
+            log.error("Failed to view file: {}", fileItem.getName(), e);
+        }
     }
 
     @Override
     protected void doEdit(FileItem fileItem) {
-        ActionDefinition action = requireAction("edit");
-        List<String> selectedFiles = List.of(fileItem.getFullPath());
-        List<String> command = ToolCommandBuilder.buildCommand(
-                action.getPath(),
-                action.getArgs(),
-                fileListsLoader,
-                Map.of(),
-                selectedFiles
-        );
-        runExecutable(command, false);
-        log.debug("Edited: {}", fileItem.getName());
+        try {
+            ActionDefinition action = requireAction("edit");
+            List<String> selectedFiles = List.of(fileItem.getFullPath());
+            List<String> command = ToolCommandBuilder.buildCommand(
+                    action.getPath(),
+                    action.getArgs(),
+                    fileListsLoader,
+                    Map.of(),
+                    selectedFiles
+            );
+            // Edit the file - if it's in a read-write archive temp folder, mark archive for repack
+            runExecutable(command, false).thenRun(() -> {
+                // Only mark for repack if in a read-write archive
+                VFileSystem fs = fileListsLoader.getFocusedFileSystem();
+                if (fs != null) {
+                    fs.markModified();
+                }
+            });
+            log.debug("Edited: {}", fileItem.getName());
+        } catch (Exception e) {
+            log.error("Failed to edit file: {}", fileItem.getName(), e);
+        }
     }
 
     @Override
     protected void doCopy(FileItem sourceFile, String targetFolder) {
-        ActionDefinition action = requireAction("copy");
-        List<String> selectedFiles = List.of(sourceFile.getFullPath());
-        List<String> command = ToolCommandBuilder.buildCommand(
-                action.getPath(),
-                action.getArgs(),
-                fileListsLoader,
-                Map.of("${targetFolder}", targetFolder),
-                selectedFiles
-        );
-        runExecutable(command, true);
-        log.debug("Copied: {} To: {}", sourceFile, targetFolder);
+        try {
+            VFileSystem sourceFs = fileListsLoader.getFocusedFileSystem();
+            VFileSystem targetFs = fileListsLoader.getUnfocusedFileSystem();
+            
+            // If either side is an archive, use the VFS-based copy from simple implementation
+            if (sourceFs instanceof ArchiveFileSystem || targetFs instanceof ArchiveFileSystem) {
+                commandsSimpleImpl.doCopy(sourceFile, targetFolder);
+                return;
+            }
+
+            ActionDefinition action = requireAction("copy");
+            List<String> selectedFiles = List.of(sourceFile.getFullPath());
+            List<String> command = ToolCommandBuilder.buildCommand(
+                    action.getPath(),
+                    action.getArgs(),
+                    fileListsLoader,
+                    Map.of("${targetFolder}", targetFolder),
+                    selectedFiles
+            );
+            runExecutable(command, true).thenRun(() -> {
+                // Mark target archive for repack if target is in archive
+                markTargetArchiveForRepack(targetFolder);
+            });
+            log.debug("Copied: {} To: {}", sourceFile, targetFolder);
+        } catch (Exception e) {
+            log.error("Failed to copy file: {}", sourceFile.getName(), e);
+        }
+    }
+    
+    /**
+     * Marks the archive for repack if the target folder is inside an archive temp folder.
+     */
+    private void markTargetArchiveForRepack(String targetFolder) {
+        // Check if either pane has this target folder in its archive session
+        for (FilesPanesHelper.FocusSide side : FilesPanesHelper.FocusSide.values()) {
+            VFileSystem fs = fileListsLoader.getFileSystem(side);
+            if (fs instanceof ArchiveFileSystem archiveFs) {
+                if (targetFolder.startsWith(archiveFs.getSession().getTempFolderPath().toString())) {
+                    fs.markModified();
+                    log.debug("Marked archive for repack (copy target): {}", archiveFs.getSession().getArchivePath());
+                    return;
+                }
+            }
+        }
     }
 
     public void copyBatch(List<FileItem> selectedItems, String targetFolder) {
@@ -110,6 +157,7 @@ public class CommandsAdvancedImpl extends ACommands {
         if (validItems.isEmpty()) {
             return;
         }
+
         if (validItems.size() == 1) {
             doCopy(validItems.getFirst(), targetFolder);
             return;
@@ -132,6 +180,15 @@ public class CommandsAdvancedImpl extends ACommands {
 
     @Override
     protected void doMove(FileItem sourceFile, String targetFolder) throws Exception {
+        VFileSystem sourceFs = fileListsLoader.getFocusedFileSystem();
+        VFileSystem targetFs = fileListsLoader.getUnfocusedFileSystem();
+
+        // If either side is an archive, use the VFS-based move from simple implementation
+        if (sourceFs instanceof ArchiveFileSystem || targetFs instanceof ArchiveFileSystem) {
+            commandsSimpleImpl.doMove(sourceFile, targetFolder);
+            return;
+        }
+
         if (sourceFile.getFile().toPath().getRoot().toString().equalsIgnoreCase(Paths.get(targetFolder).getRoot().toString())) // Use FASTEST move in the case of moving file over same drive
             commandsSimpleImpl.doMove(sourceFile, targetFolder);
         else {
@@ -162,19 +219,16 @@ public class CommandsAdvancedImpl extends ACommands {
     @Override
     protected void doDelete(List<FileItem> validItems) throws Exception {
         List<FileItem> failedDeletes = new ArrayList<>();
+        VFileSystem fs = fileListsLoader.getFocusedFileSystem();
+        
         for (FileItem selectedItem : validItems) {
-            Path path = selectedItem.getFile().toPath();
-            Files.walk(path) // This is done for deleting folders recursively
-                    .sorted(Comparator.reverseOrder())
-                    .forEach(filePath -> {
-                        try {
-                            Files.delete(filePath);
-                            log.info("Deleted: {}", filePath);
-                        } catch (IOException e) {
-                            log.error("Failed deleting: {}", filePath, e);
-                            failedDeletes.add(new FileItem(filePath.toFile()));
-                        }
-                    });
+            try {
+                fs.delete(fs.getInternalPath(selectedItem));
+                log.info("Deleted: {}", selectedItem.getFullPath());
+            } catch (Exception e) {
+                log.error("Failed deleting: {}", selectedItem.getFullPath(), e);
+                failedDeletes.add(selectedItem);
+            }
         }
 
         if (!failedDeletes.isEmpty()) {
@@ -184,7 +238,7 @@ public class CommandsAdvancedImpl extends ACommands {
 
         fileListsLoader.refreshFileListViews();
     }
-
+    
     @Override
     protected void doUnlockDelete(List<FileItem> validItems) {
         ActionDefinition action = requireAction("unlockDelete");

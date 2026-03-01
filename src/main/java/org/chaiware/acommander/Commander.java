@@ -28,6 +28,8 @@ import org.chaiware.acommander.config.AppRegistry;
 import org.chaiware.acommander.helpers.*;
 import org.chaiware.acommander.keybinding.KeyBindingManager;
 import org.chaiware.acommander.keybinding.KeyBindingManager.KeyContext;
+import org.chaiware.acommander.model.ArchiveMode;
+import org.chaiware.acommander.model.ArchiveSession;
 import org.chaiware.acommander.model.FileItem;
 import org.chaiware.acommander.model.Folder;
 import org.chaiware.acommander.palette.CommandPaletteController;
@@ -543,10 +545,32 @@ public class Commander {
         if (filesPanesHelper == null)
             return;
 
-        properties.setProperty(LEFT_FOLDER_KEY, filesPanesHelper.getPath(LEFT));
-        properties.setProperty(RIGHT_FOLDER_KEY, filesPanesHelper.getPath(RIGHT));
+        // Save the archive file path (not temp folder) if currently in an archive
+        properties.setProperty(LEFT_FOLDER_KEY, getPersistPath(LEFT));
+        properties.setProperty(RIGHT_FOLDER_KEY, getPersistPath(RIGHT));
         properties.setProperty(THEME_MODE_KEY, currentThemeMode.configValue);
         saveConfigFile();
+    }
+    
+    /**
+     * Gets the path to persist for a pane.
+     * If in an archive, returns the archive file's parent folder.
+     * Otherwise returns the current path.
+     */
+    private String getPersistPath(FilesPanesHelper.FocusSide side) {
+        ArchiveSession session = filesPanesHelper.getArchiveSession(side);
+        if (session != null) {
+            // In archive - save the parent folder of the archive file
+            File archiveFile = new File(session.getArchivePath());
+            File parentFolder = archiveFile.getParentFile();
+            if (parentFolder != null) {
+                return parentFolder.getAbsolutePath();
+            }
+            // If no parent, use archive file's directory
+            return archiveFile.getParent();
+        }
+        // Not in archive - use current path
+        return filesPanesHelper.getPath(side);
     }
 
     private void configMouseDoubleClick() {
@@ -695,10 +719,8 @@ public class Commander {
     }
 
     private boolean isArchiveExtension(String extension) {
-        return switch (extension) {
-            case "zip", "rar", "7z", "tar", "gz", "tgz", "bz2", "xz" -> true;
-            default -> false;
-        };
+        // Use ArchiveMode for comprehensive list of supported archive formats
+        return ArchiveMode.isReadWriteExtension(extension) || ArchiveMode.isReadOnlyExtension(extension);
     }
 
     private boolean isTextExtension(String extension) {
@@ -797,25 +819,32 @@ public class Commander {
         logger.debug("User clicked ENTER (or mouse double-click)");
         clearCharFilter();
 
-        String currentPath = filesPanesHelper.getFocusedPath();
         FileItem selectedItem = filesPanesHelper.getSelectedItem();
         logger.debug("Running: {}", selectedItem.getName());
+
+        // Handle archive navigation
+        FilesPanesHelper.FocusSide focusedSide = filesPanesHelper.getFocusedSide();
+        if (filesPanesHelper.isInArchive(focusedSide)) {
+            handleArchiveEnter(selectedItem);
+            return;
+        }
+
         if ("..".equals(selectedItem.getPresentableFilename())) {
+            String currentPath = filesPanesHelper.getFocusedPath();
             File parent = new File(currentPath).getParentFile();
             if (parent != null)
                 filesPanesHelper.setFocusedFileListPath(parent.getAbsolutePath());
-        } else if (selectedItem.isDirectory())
+        } else if (selectedItem.isDirectory()) {
             filesPanesHelper.setFocusedFileListPath(selectedItem.getFullPath());
-        else {
-            try {
-                String extension = "";
-                String name = selectedItem.getName();
-                int lastDot = name.lastIndexOf('.');
-                if (lastDot >= 0 && lastDot < name.length() - 1) {
-                    extension = name.substring(lastDot + 1).toLowerCase(Locale.ROOT);
-                }
+        } else {
+            // It's a file - check if it's an archive we can enter
+            String extension = getFileExtension(selectedItem.getName());
 
-                if (isExecutableExtension(extension)) {
+            if (ArchiveMode.isReadWriteExtension(extension) || ArchiveMode.isReadOnlyExtension(extension)) {
+                // Enter the archive (extract to temp folder)
+                filesPanesHelper.enterArchive(focusedSide, selectedItem.getFullPath());
+            } else if (isExecutableExtension(extension)) {
+                try {
                     List<String> command = switch (extension) {
                         case "bat", "cmd" -> List.of("cmd.exe", "/c", selectedItem.getFullPath());
                         case "ps1" -> List.of("powershell.exe", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", selectedItem.getFullPath());
@@ -825,13 +854,80 @@ public class Commander {
                         logger.error("Failed running executable: {}", selectedItem.getName(), ex);
                         return Collections.emptyList();
                     });
-                } else {
-                    getDesktop().open(selectedItem.getFile());
+                } catch (Exception ex) {
+                    logger.error("Failed running executable: {}", selectedItem.getName(), ex);
                 }
-            } catch (Exception ex) {
-                logger.error("Failed opening: {}", selectedItem.getName(), ex);
+            } else {
+                // Open with default application
+                try {
+                    getDesktop().open(selectedItem.getFile());
+                } catch (Exception ex) {
+                    logger.error("Failed opening: {}", selectedItem.getName(), ex);
+                }
             }
         }
+    }
+    
+    /**
+     * Handles ENTER key when inside an archive.
+     */
+    private void handleArchiveEnter(FileItem selectedItem) {
+        FilesPanesHelper.FocusSide focusedSide = filesPanesHelper.getFocusedSide();
+
+        if ("..".equals(selectedItem.getPresentableFilename())) {
+            // Check if this is an archive parent item
+            if (selectedItem instanceof FilesPanesHelper.ArchiveParentItem api) {
+                if (api.isArchiveRoot()) {
+                    // At archive root - exit archive and show parent folder of archive file
+                    exitArchiveAndShowParent(focusedSide, api.getSession());
+                } else {
+                    // In subdirectory - go up one level in archive
+                    filesPanesHelper.goUpInArchive(focusedSide);
+                }
+            } else {
+                // Fallback - go up in archive
+                filesPanesHelper.goUpInArchive(focusedSide);
+            }
+        } else if (selectedItem.isDirectory()) {
+            // Enter subdirectory in archive
+            filesPanesHelper.enterArchiveSubdirectory(focusedSide, selectedItem.getName());
+        } else {
+            // It's a file - open it with default viewer
+            try {
+                getDesktop().open(selectedItem.getFile());
+            } catch (Exception ex) {
+                logger.error("Failed opening file in archive: {}", selectedItem.getName(), ex);
+            }
+        }
+    }
+    
+    /**
+     * Exits the archive and shows the parent folder of the archive file.
+     */
+    private void exitArchiveAndShowParent(FilesPanesHelper.FocusSide focusedSide, ArchiveSession session) {
+        String archivePath = session.getArchivePath();
+        
+        // Exit the archive (repack if needed, cleanup temp)
+        filesPanesHelper.exitArchive(focusedSide);
+        
+        // Show the parent folder of the archive file
+        File archiveFile = new File(archivePath);
+        File parentFolder = archiveFile.getParentFile();
+        if (parentFolder != null) {
+            filesPanesHelper.setFileListPath(focusedSide, parentFolder.getAbsolutePath());
+            logger.info("Exited archive, showing parent folder: {}", parentFolder.getAbsolutePath());
+        }
+    }
+    
+    /**
+     * Gets the file extension from a filename.
+     */
+    private String getFileExtension(String filename) {
+        int lastDot = filename.lastIndexOf('.');
+        if (lastDot >= 0 && lastDot < filename.length() - 1) {
+            return filename.substring(lastDot + 1).toLowerCase(Locale.ROOT);
+        }
+        return "";
     }
 
     @FXML
@@ -4032,6 +4128,62 @@ public class Commander {
 
             default -> throw new IllegalStateException("Which key was pressed?: " + whichKeyWasPressed);
         }
+    }
+
+    /**
+     * Checks if the focused pane is currently viewing an archive.
+     */
+    public boolean isInArchive() {
+        return filesPanesHelper.isInArchive(filesPanesHelper.getFocusedSide());
+    }
+
+    /**
+     * Checks if the focused pane is currently viewing a read-only archive.
+     */
+    public boolean isInReadOnlyArchive() {
+        return filesPanesHelper.isArchiveReadOnly(filesPanesHelper.getFocusedSide());
+    }
+    
+    /**
+     * Checks if the unfocused (target) pane is currently viewing a read-only archive.
+     */
+    public boolean isUnfocusedPaneInReadOnlyArchive() {
+        FilesPanesHelper.FocusSide unfocusedSide = filesPanesHelper.getFocusedSide() == FilesPanesHelper.FocusSide.LEFT 
+            ? FilesPanesHelper.FocusSide.RIGHT 
+            : FilesPanesHelper.FocusSide.LEFT;
+        return filesPanesHelper.isArchiveReadOnly(unfocusedSide);
+    }
+    
+    /**
+     * Checks if either pane is currently viewing a read-only archive.
+     */
+    public boolean isAnyPaneInReadOnlyArchive() {
+        return filesPanesHelper.isArchiveReadOnly(FilesPanesHelper.FocusSide.LEFT) ||
+               filesPanesHelper.isArchiveReadOnly(FilesPanesHelper.FocusSide.RIGHT);
+    }
+    
+    /**
+     * Shows a warning dialog when attempting to modify a read-only archive.
+     */
+    public void showReadOnlyLocationWarning() {
+        Alert alert = new Alert(Alert.AlertType.WARNING);
+        alert.setTitle("Read-Only Location");
+        alert.setHeaderText("Cannot Modify Read-Only Location");
+        alert.setContentText(
+            "This location is read-only.\n\n" +
+            "Any changes cannot be saved back to the source."
+        );
+        alert.getDialogPane().getStyleClass().removeAll("theme-dark", "theme-light");
+        alert.getDialogPane().getStyleClass().add(currentThemeMode.styleClass);
+        alert.showAndWait();
+    }
+    
+    /**
+     * Marks the current archive as needing repack if a file was modified.
+     * Call this after operations that modify files in an archive.
+     */
+    public void markArchiveModified() {
+        filesPanesHelper.markArchiveNeedsRepack(filesPanesHelper.getFocusedSide());
     }
 
     private void applyTheme(Scene scene, ThemeMode themeMode, boolean persist) {

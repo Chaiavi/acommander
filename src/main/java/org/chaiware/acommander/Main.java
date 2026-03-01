@@ -28,7 +28,10 @@ public class Main extends Application {
         Commander commander = loader.getController();
         commander.initializeTheme(scene);
         stage.show();
-        stage.setOnCloseRequest(event -> commander.persistCurrentPaths());
+        stage.setOnCloseRequest(event -> {
+            commander.persistCurrentPaths();
+            commander.filesPanesHelper.cleanup();  // Clean up archive sessions
+        });
         commander.setupBindings();
     }
 

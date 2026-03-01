@@ -16,11 +16,12 @@ import java.time.format.DateTimeFormatter;
 public class FileItem {
     private final File file;
     private String presentableFilename;
-    private long size = 0;
+    private long size = -1;
+    private Long lastModified = null;
 
     public FileItem(File file) {
         this.file = file;
-        presentableFilename = file.getName();
+        this.presentableFilename = file.getName();
     }
 
     public FileItem(File folder, String filenameStr) {
@@ -28,17 +29,24 @@ public class FileItem {
         this.presentableFilename = filenameStr;
     }
 
+    public FileItem(File file, String presentableFilename, long size, long lastModified) {
+        this.file = file;
+        this.presentableFilename = presentableFilename;
+        this.size = size;
+        this.lastModified = lastModified;
+    }
+
     public String getName() {
-        return file.getName();
+        return file != null ? file.getName() : presentableFilename;
     }
 
     public String getFullPath() {
-        return file.getAbsolutePath();
+        return file != null ? file.getAbsolutePath() : "";
     }
 
     public String getHumanReadableSize() {
         long sizeInBytes = getSizeInBytes();
-        if (sizeInBytes == 0) return "";
+        if (sizeInBytes <= 0) return "";
 
         if (sizeInBytes < 1024) return sizeInBytes + " B";
         int exp = (int) (Math.log(sizeInBytes) / Math.log(1024));
@@ -53,18 +61,27 @@ public class FileItem {
         this.size = sizeInBytes;
     }
 
-    private long getSizeInBytes() {
-        if (!isDirectory())
+    public long getSizeInBytes() {
+        if (size != -1 && (size != 0 || isDirectory())) return size;
+        if (file != null && !isDirectory())
             return file.length();
 
-        return size;
+        return size == -1 ? 0 : size;
     }
 
     public String getDate() {
         try {
             if (getPresentableFilename().equals("..")) return "";
 
-            Instant instant = Files.getLastModifiedTime(file.toPath()).toInstant();
+            Instant instant;
+            if (lastModified != null) {
+                instant = Instant.ofEpochMilli(lastModified);
+            } else if (file != null) {
+                instant = Files.getLastModifiedTime(file.toPath()).toInstant();
+            } else {
+                return "";
+            }
+            
             LocalDateTime ldt = instant.atZone(ZoneId.systemDefault()).toLocalDateTime();
 
             return ldt.format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm"));
@@ -74,7 +91,7 @@ public class FileItem {
     }
 
     public boolean isDirectory() {
-        return file.isDirectory();
+        return file != null ? file.isDirectory() : false;
     }
 
     @Override
