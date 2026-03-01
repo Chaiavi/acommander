@@ -12,7 +12,7 @@ import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 
 @Getter
-@EqualsAndHashCode
+@EqualsAndHashCode(of = {"file", "presentableFilename"})
 public class FileItem {
     private final File file;
     private String presentableFilename;

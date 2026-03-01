@@ -146,8 +146,8 @@ public class CommandPaletteController {
             return;
         }
         logger.info("Executing action from command palette: {}", action.id());
-        close();
         action.run(actionContext);
+        close();
     }
 
     private void refreshResults() {

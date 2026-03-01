@@ -362,6 +362,7 @@ public class Commander {
         FilesPanesHelper.FocusSide side = filesPanesHelper.getFocusedSide();
         filesPanesHelper.toggleSort(side, column);
         updateSortHeaderTexts(side);
+        requestFocusedFileListFocus();
     }
 
     private void updateSortHeaderTexts(FilesPanesHelper.FocusSide side) {
@@ -842,7 +843,23 @@ public class Commander {
 
             if (ArchiveMode.isReadWriteExtension(extension) || ArchiveMode.isReadOnlyExtension(extension)) {
                 // Enter the archive (extract to temp folder)
-                filesPanesHelper.enterArchive(focusedSide, selectedItem.getFullPath());
+                int active = runningExternalCommands.incrementAndGet();
+                showExternalProgress(active, "VFS: Opening " + selectedItem.getName());
+                
+                CompletableFuture.runAsync(() -> {
+                    filesPanesHelper.enterArchive(focusedSide, selectedItem.getFullPath());
+                }).thenRun(() -> {
+                    int remaining = runningExternalCommands.updateAndGet(current -> Math.max(0, current - 1));
+                    Platform.runLater(() -> {
+                        hideOrUpdateExternalProgress(remaining);
+                        focusCurrentFileList();
+                    });
+                }).exceptionally(ex -> {
+                    logger.error("Failed to enter archive: {}", selectedItem.getName(), ex);
+                    int remaining = runningExternalCommands.updateAndGet(current -> Math.max(0, current - 1));
+                    Platform.runLater(() -> hideOrUpdateExternalProgress(remaining));
+                    return null;
+                });
             } else if (isExecutableExtension(extension)) {
                 try {
                     List<String> command = switch (extension) {
@@ -882,15 +899,60 @@ public class Commander {
                     exitArchiveAndShowParent(focusedSide, api.getSession());
                 } else {
                     // In subdirectory - go up one level in archive
-                    filesPanesHelper.goUpInArchive(focusedSide);
+                    int active = runningExternalCommands.incrementAndGet();
+                    showExternalProgress(active, "VFS: Navigating up");
+                    CompletableFuture.runAsync(() -> {
+                        filesPanesHelper.goUpInArchive(focusedSide);
+                    }).thenRun(() -> {
+                        int remaining = runningExternalCommands.updateAndGet(current -> Math.max(0, current - 1));
+                        Platform.runLater(() -> {
+                            hideOrUpdateExternalProgress(remaining);
+                            focusCurrentFileList();
+                        });
+                    }).exceptionally(ex -> {
+                        logger.error("Failed to navigate up in archive", ex);
+                        int remaining = runningExternalCommands.updateAndGet(current -> Math.max(0, current - 1));
+                        Platform.runLater(() -> hideOrUpdateExternalProgress(remaining));
+                        return null;
+                    });
                 }
             } else {
                 // Fallback - go up in archive
-                filesPanesHelper.goUpInArchive(focusedSide);
+                int active = runningExternalCommands.incrementAndGet();
+                showExternalProgress(active, "VFS: Navigating up");
+                CompletableFuture.runAsync(() -> {
+                    filesPanesHelper.goUpInArchive(focusedSide);
+                }).thenRun(() -> {
+                    int remaining = runningExternalCommands.updateAndGet(current -> Math.max(0, current - 1));
+                    Platform.runLater(() -> {
+                        hideOrUpdateExternalProgress(remaining);
+                        focusCurrentFileList();
+                    });
+                }).exceptionally(ex -> {
+                    logger.error("Failed to navigate up in archive", ex);
+                    int remaining = runningExternalCommands.updateAndGet(current -> Math.max(0, current - 1));
+                    Platform.runLater(() -> hideOrUpdateExternalProgress(remaining));
+                    return null;
+                });
             }
         } else if (selectedItem.isDirectory()) {
             // Enter subdirectory in archive
-            filesPanesHelper.enterArchiveSubdirectory(focusedSide, selectedItem.getName());
+            int active = runningExternalCommands.incrementAndGet();
+            showExternalProgress(active, "VFS: Entering " + selectedItem.getName());
+            CompletableFuture.runAsync(() -> {
+                filesPanesHelper.enterArchiveSubdirectory(focusedSide, selectedItem.getName());
+            }).thenRun(() -> {
+                int remaining = runningExternalCommands.updateAndGet(current -> Math.max(0, current - 1));
+                Platform.runLater(() -> {
+                    hideOrUpdateExternalProgress(remaining);
+                    focusCurrentFileList();
+                });
+            }).exceptionally(ex -> {
+                logger.error("Failed to enter archive subdirectory: {}", selectedItem.getName(), ex);
+                int remaining = runningExternalCommands.updateAndGet(current -> Math.max(0, current - 1));
+                Platform.runLater(() -> hideOrUpdateExternalProgress(remaining));
+                return null;
+            });
         } else {
             // It's a file - open it with default viewer
             try {
@@ -908,15 +970,29 @@ public class Commander {
         String archivePath = session.getArchivePath();
         
         // Exit the archive (repack if needed, cleanup temp)
-        filesPanesHelper.exitArchive(focusedSide);
-        
-        // Show the parent folder of the archive file
-        File archiveFile = new File(archivePath);
-        File parentFolder = archiveFile.getParentFile();
-        if (parentFolder != null) {
-            filesPanesHelper.setFileListPath(focusedSide, parentFolder.getAbsolutePath());
-            logger.info("Exited archive, showing parent folder: {}", parentFolder.getAbsolutePath());
-        }
+        int active = runningExternalCommands.incrementAndGet();
+        showExternalProgress(active, "VFS: Closing archive");
+
+        CompletableFuture.runAsync(() -> {
+            filesPanesHelper.exitArchive(focusedSide);
+        }).thenRun(() -> {
+            int remaining = runningExternalCommands.updateAndGet(current -> Math.max(0, current - 1));
+            Platform.runLater(() -> {
+                hideOrUpdateExternalProgress(remaining);
+                // Show the parent folder of the archive file
+                File archiveFile = new File(archivePath);
+                File parentFolder = archiveFile.getParentFile();
+                if (parentFolder != null) {
+                    filesPanesHelper.setFileListPath(focusedSide, parentFolder.getAbsolutePath());
+                    logger.info("Exited archive, showing parent folder: {}", parentFolder.getAbsolutePath());
+                }
+            });
+        }).exceptionally(ex -> {
+            logger.error("Failed to exit archive: {}", archivePath, ex);
+            int remaining = runningExternalCommands.updateAndGet(current -> Math.max(0, current - 1));
+            Platform.runLater(() -> hideOrUpdateExternalProgress(remaining));
+            return null;
+        });
     }
     
     /**

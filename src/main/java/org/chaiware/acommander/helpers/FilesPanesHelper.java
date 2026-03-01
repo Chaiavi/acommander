@@ -1,5 +1,6 @@
 package org.chaiware.acommander.helpers;
 
+import javafx.application.Platform;
 import javafx.collections.ObservableList;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.ListView;
@@ -87,12 +88,20 @@ public class FilesPanesHelper {
     }
 
     public void selectFileItem(boolean isFocused, FileItem fileItem) {
+        if (!Platform.isFxApplicationThread()) {
+            Platform.runLater(() -> selectFileItem(isFocused, fileItem));
+            return;
+        }
         getFileList(isFocused).getSelectionModel().clearSelection();
         getFileList(isFocused).getSelectionModel().select(fileItem);
     }
 
     /** Sets the current file list's path */
     public void setFileListPath(FocusSide focusSide, String path) {
+        if (!Platform.isFxApplicationThread()) {
+            Platform.runLater(() -> setFileListPath(focusSide, path));
+            return;
+        }
         ComboBox<Folder> pathComboBox = filePanes.get(focusSide).getPathComboBox();
         
         VFileSystem fs = fileSystems.get(focusSide);
@@ -124,11 +133,13 @@ public class FilesPanesHelper {
                 
                 fileSystems.put(focusSide, fs);
                 
-                ComboBox<Folder> pathComboBox = filePanes.get(focusSide).getPathComboBox();
-                pathComboBox.setValue(new ArchiveFolder(fs.getDisplayName()));
-                
-                refreshFileListView(focusSide);
-                ensureFirstEntrySelected(focusSide);
+                Platform.runLater(() -> {
+                    ComboBox<Folder> pathComboBox = filePanes.get(focusSide).getPathComboBox();
+                    pathComboBox.setValue(new ArchiveFolder(fs.getDisplayName()));
+                    
+                    refreshFileListView(focusSide);
+                    ensureFirstEntrySelected(focusSide);
+                });
                 
                 logger.info("Entered archive ({} mode): {}", fs.isReadOnly() ? "READ_ONLY" : "READ_WRITE", archivePath);
             }
@@ -162,11 +173,13 @@ public class FilesPanesHelper {
         ArchiveFileSystem newFs = new ArchiveFileSystem(newSession, vfsManager.getArchiveManager());
         fileSystems.put(focusSide, newFs);
         
-        ComboBox<Folder> pathComboBox = filePanes.get(focusSide).getPathComboBox();
-        pathComboBox.setValue(new ArchiveFolder(newFs.getDisplayName()));
-        
-        refreshFileListView(focusSide);
-        ensureFirstEntrySelected(focusSide);
+        Platform.runLater(() -> {
+            ComboBox<Folder> pathComboBox = filePanes.get(focusSide).getPathComboBox();
+            pathComboBox.setValue(new ArchiveFolder(newFs.getDisplayName()));
+            
+            refreshFileListView(focusSide);
+            ensureFirstEntrySelected(focusSide);
+        });
         
         logger.debug("Entered archive subdirectory: {}", dirName);
     }
@@ -210,11 +223,13 @@ public class FilesPanesHelper {
             ArchiveFileSystem parentFs = new ArchiveFileSystem(parentSession, vfsManager.getArchiveManager());
             fileSystems.put(focusSide, parentFs);
 
-            ComboBox<Folder> pathComboBox = filePanes.get(focusSide).getPathComboBox();
-            pathComboBox.setValue(new ArchiveFolder(parentFs.getDisplayName()));
+            Platform.runLater(() -> {
+                ComboBox<Folder> pathComboBox = filePanes.get(focusSide).getPathComboBox();
+                pathComboBox.setValue(new ArchiveFolder(parentFs.getDisplayName()));
 
-            refreshFileListView(focusSide);
-            ensureFirstEntrySelected(focusSide);
+                refreshFileListView(focusSide);
+                ensureFirstEntrySelected(focusSide);
+            });
         }
 
         logger.debug("Navigated up in archive hierarchy");
@@ -282,6 +297,11 @@ public class FilesPanesHelper {
      * For archives, loads from the temp folder.
      */
     public void refreshFileListView(FocusSide focusSide) {
+        if (!Platform.isFxApplicationThread()) {
+            Platform.runLater(() -> refreshFileListView(focusSide));
+            return;
+        }
+
         ListView<FileItem> listView = filePanes.get(focusSide).getFileListView();
         FileItem previouslySelected = listView.getSelectionModel().getSelectedItem();
 
@@ -338,7 +358,11 @@ public class FilesPanesHelper {
         }
     }
 
-    private void ensureFirstEntrySelected(FocusSide focusSide) {
+    public void ensureFirstEntrySelected(FocusSide focusSide) {
+        if (!Platform.isFxApplicationThread()) {
+            Platform.runLater(() -> ensureFirstEntrySelected(focusSide));
+            return;
+        }
         ListView<FileItem> listView = filePanes.get(focusSide).getFileListView();
         if (listView.getItems().isEmpty()) {
             return;
@@ -370,6 +394,10 @@ public class FilesPanesHelper {
     }
 
     private void applySort(FocusSide focusSide) {
+        if (!Platform.isFxApplicationThread()) {
+            Platform.runLater(() -> applySort(focusSide));
+            return;
+        }
         ObservableList<FileItem> items = filePanes.get(focusSide).getFileListView().getItems();
         FileItem parent = items.stream()
                 .filter(this::isParentFolder)

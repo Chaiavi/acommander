@@ -24,3 +24,4 @@ replay_pid*
 # OS-generated files
 .DS_Store
 Thumbs.db
+/apps/extract_all/UniExtract/batch.queue
