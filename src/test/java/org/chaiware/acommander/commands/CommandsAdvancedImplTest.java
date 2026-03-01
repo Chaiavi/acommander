@@ -6,6 +6,8 @@ import org.chaiware.acommander.config.AppConfig;
 import org.chaiware.acommander.config.AppRegistry;
 import org.chaiware.acommander.helpers.FilesPanesHelper;
 import org.chaiware.acommander.model.FileItem;
+import org.chaiware.acommander.vfs.LocalFileSystem;
+import org.chaiware.acommander.vfs.VFileSystem;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledOnOs;
 import org.junit.jupiter.api.condition.OS;
@@ -169,6 +171,9 @@ class CommandsAdvancedImplTest {
         Path outputZip = tempDir.resolve("out.zip");
 
         FilesPanesHelper panesHelper = mock(FilesPanesHelper.class);
+        VFileSystem localFs = new LocalFileSystem("");
+        when(panesHelper.getFocusedFileSystem()).thenReturn(localFs);
+        when(panesHelper.getUnfocusedFileSystem()).thenReturn(localFs);
         AppRegistry registry = new AppRegistry(configWithAction(
                 action(
                         "pack",
@@ -209,6 +214,9 @@ class CommandsAdvancedImplTest {
         Files.createDirectories(destination);
 
         FilesPanesHelper panesHelper = mock(FilesPanesHelper.class);
+        VFileSystem localFs = new LocalFileSystem("");
+        when(panesHelper.getFocusedFileSystem()).thenReturn(localFs);
+        when(panesHelper.getUnfocusedFileSystem()).thenReturn(localFs);
         AppRegistry registry = new AppRegistry(configWithAction(
                 action(
                         "unpack",
@@ -238,6 +246,9 @@ class CommandsAdvancedImplTest {
         Path destination = Files.createDirectory(tempDir.resolve("dest"));
 
         FilesPanesHelper panesHelper = mock(FilesPanesHelper.class);
+        VFileSystem localFs = new LocalFileSystem("");
+        when(panesHelper.getFocusedFileSystem()).thenReturn(localFs);
+        when(panesHelper.getUnfocusedFileSystem()).thenReturn(localFs);
         AppRegistry registry = new AppRegistry(configWithAction(
                 action(
                         "extractAll",
@@ -269,6 +280,9 @@ class CommandsAdvancedImplTest {
         Path output = tempDir.resolve("merged.pdf");
 
         FilesPanesHelper panesHelper = mock(FilesPanesHelper.class);
+        VFileSystem localFs = new LocalFileSystem("");
+        when(panesHelper.getFocusedFileSystem()).thenReturn(localFs);
+        when(panesHelper.getUnfocusedFileSystem()).thenReturn(localFs);
         AppRegistry registry = new AppRegistry(configWithAction(
                 action(
                         "mergePdf",
@@ -298,6 +312,9 @@ class CommandsAdvancedImplTest {
         Path destination = Files.createDirectory(tempDir.resolve("dest"));
 
         FilesPanesHelper panesHelper = mock(FilesPanesHelper.class);
+        VFileSystem localFs = new LocalFileSystem("");
+        when(panesHelper.getFocusedFileSystem()).thenReturn(localFs);
+        when(panesHelper.getUnfocusedFileSystem()).thenReturn(localFs);
         AppRegistry registry = new AppRegistry(configWithAction(
                 action(
                         "extractPdfPages",

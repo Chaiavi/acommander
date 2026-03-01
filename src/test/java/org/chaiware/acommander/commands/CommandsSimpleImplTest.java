@@ -3,6 +3,8 @@ package org.chaiware.acommander.commands;
 import org.assertj.core.api.Assertions;
 import org.chaiware.acommander.helpers.FilesPanesHelper;
 import org.chaiware.acommander.model.FileItem;
+import org.chaiware.acommander.vfs.LocalFileSystem;
+import org.chaiware.acommander.vfs.VFileSystem;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -10,8 +12,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.*;
 
 class CommandsSimpleImplTest {
 
@@ -26,6 +27,9 @@ class CommandsSimpleImplTest {
         Files.writeString(sourceFile, "hello");
 
         FilesPanesHelper panesHelper = mock(FilesPanesHelper.class);
+        VFileSystem localFs = new LocalFileSystem("");
+        when(panesHelper.getFocusedFileSystem()).thenReturn(localFs);
+        when(panesHelper.getUnfocusedFileSystem()).thenReturn(localFs);
         CommandsSimpleImpl commands = new CommandsSimpleImpl(panesHelper);
 
         commands.copy(new FileItem(sourceFile.toFile()), targetDir.toString());
@@ -45,12 +49,15 @@ class CommandsSimpleImplTest {
         Path targetDir = tempDir.resolve("target");
 
         FilesPanesHelper panesHelper = mock(FilesPanesHelper.class);
+        VFileSystem localFs = new LocalFileSystem("");
+        when(panesHelper.getFocusedFileSystem()).thenReturn(localFs);
+        when(panesHelper.getUnfocusedFileSystem()).thenReturn(localFs);
         CommandsSimpleImpl commands = new CommandsSimpleImpl(panesHelper);
 
         commands.copy(new FileItem(sourceDir.toFile()), targetDir.toString());
 
-        Assertions.assertThat(targetDir.resolve("child").resolve("data.txt")).exists();
-        Assertions.assertThat(Files.readString(targetDir.resolve("child").resolve("data.txt"))).isEqualTo("nested");
+        Assertions.assertThat(targetDir.resolve("source").resolve("child").resolve("data.txt")).exists();
+        Assertions.assertThat(Files.readString(targetDir.resolve("source").resolve("child").resolve("data.txt"))).isEqualTo("nested");
         verify(panesHelper).refreshFileListViews();
     }
 
@@ -62,6 +69,9 @@ class CommandsSimpleImplTest {
         Files.writeString(sourceFile, "move");
 
         FilesPanesHelper panesHelper = mock(FilesPanesHelper.class);
+        VFileSystem localFs = new LocalFileSystem("");
+        when(panesHelper.getFocusedFileSystem()).thenReturn(localFs);
+        when(panesHelper.getUnfocusedFileSystem()).thenReturn(localFs);
         CommandsSimpleImpl commands = new CommandsSimpleImpl(panesHelper);
 
         commands.move(new FileItem(sourceFile.toFile()), targetDir.toString());
@@ -78,6 +88,8 @@ class CommandsSimpleImplTest {
         Files.writeString(sourceFile, "rename");
 
         FilesPanesHelper panesHelper = mock(FilesPanesHelper.class);
+        VFileSystem localFs = new LocalFileSystem("");
+        when(panesHelper.getFocusedFileSystem()).thenReturn(localFs);
         CommandsSimpleImpl commands = new CommandsSimpleImpl(panesHelper);
 
         commands.rename(List.of(new FileItem(sourceFile.toFile())), "new.txt");
@@ -90,6 +102,8 @@ class CommandsSimpleImplTest {
     @Test
     void mkdirCreatesDirectory() throws Exception {
         FilesPanesHelper panesHelper = mock(FilesPanesHelper.class);
+        VFileSystem localFs = new LocalFileSystem("");
+        when(panesHelper.getFocusedFileSystem()).thenReturn(localFs);
         CommandsSimpleImpl commands = new CommandsSimpleImpl(panesHelper);
 
         commands.mkdir(tempDir.toString(), "created");
@@ -101,6 +115,8 @@ class CommandsSimpleImplTest {
     @Test
     void mkFileCreatesFile() throws Exception {
         FilesPanesHelper panesHelper = mock(FilesPanesHelper.class);
+        VFileSystem localFs = new LocalFileSystem("");
+        when(panesHelper.getFocusedFileSystem()).thenReturn(localFs);
         CommandsSimpleImpl commands = new CommandsSimpleImpl(panesHelper);
 
         commands.mkFile(tempDir.toString(), "file.txt");

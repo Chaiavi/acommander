@@ -77,6 +77,7 @@ class ActionRegistryTest {
     @Test
     void compareFilesActionVisibleWhenCommanderAllowsComparison() {
         Commander commander = mock(Commander.class);
+        commander.filesPanesHelper = mock(FilesPanesHelper.class);
         when(commander.canCompareSelectedFiles()).thenReturn(true);
 
         AppRegistry registry = new AppRegistry(configWithCompareAction());

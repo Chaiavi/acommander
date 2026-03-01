@@ -106,6 +106,13 @@ public class LocalFileSystem implements VFileSystem {
                 Files.copy(source, targetPathInTemp, StandardCopyOption.REPLACE_EXISTING);
             }
             archiveFs.markModified();
+        } else if (targetFs instanceof FtpFileSystem targetFtpFs) {
+            // Upload to FTP
+            List<String> uploadCmd = targetFtpFs.createBaseCurlCommand();
+            uploadCmd.add("-T");
+            uploadCmd.add(sourceInternalPath);
+            uploadCmd.add(targetFtpFs.getOptions().getFullUrl(targetInternalPath));
+            targetFtpFs.runCurl(uploadCmd);
         }
     }
 
@@ -170,6 +177,11 @@ public class LocalFileSystem implements VFileSystem {
     public VFileSystem enterVirtualFolder(FileItem item) throws IOException {
         // This will be handled by VfsManager to create an ArchiveFileSystem
         return null; 
+    }
+
+    @Override
+    public String getSeparator() {
+        return "\\";
     }
 
     @Override
