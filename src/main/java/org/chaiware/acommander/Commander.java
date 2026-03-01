@@ -33,6 +33,10 @@ import org.chaiware.acommander.model.ArchiveSession;
 import org.chaiware.acommander.model.FileItem;
 import org.chaiware.acommander.model.Folder;
 import org.chaiware.acommander.palette.CommandPaletteController;
+import org.chaiware.acommander.vfs.FtpConnectionOptions;
+import org.chaiware.acommander.vfs.FtpFileSystem;
+import org.chaiware.acommander.vfs.LocalFileSystem;
+import org.chaiware.acommander.vfs.VFileSystem;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -62,6 +66,7 @@ public class Commander {
     private static final String RIGHT_FOLDER_KEY = "right_folder";
     private static final String THEME_MODE_KEY = "theme_mode";
     private static final String BOOKMARK_KEY_PREFIX = "bookmark.";
+    private static final String FTP_KEY_PREFIX = "ftp.";
     private static final String THEME_DARK_CLASS = "theme-dark";
     private static final String THEME_LIGHT_CLASS = "theme-light";
 
@@ -101,6 +106,7 @@ public class Commander {
     private AppRegistry appRegistry;
     private ActionExecutor actionExecutor;
     private final Map<String, String> bookmarks = new LinkedHashMap<>();
+    private final Map<String, FtpConnectionOptions> ftpConnections = new LinkedHashMap<>();
 
     private static final Logger logger = LoggerFactory.getLogger(Commander.class);
     public FilesPanesHelper filesPanesHelper;
@@ -120,14 +126,17 @@ public class Commander {
     public void initialize() {
         logger.debug("Loading Properties");
         loadConfigFile();
+        loadFtpConnectionsFromProperties();
 
         // Configure left & right defaults
         filesPanesHelper = new FilesPanesHelper(leftFileList, leftPathComboBox, rightFileList, rightPathComboBox);
+        ExternalCommandListener externalCommandListener = buildExternalCommandListener();
+        filesPanesHelper.setExternalCommandListener(externalCommandListener);
         appRegistry = loadAppRegistry();
         actionExecutor = new ActionExecutor(this, appRegistry);
         commands = new CommandsAdvancedImpl(filesPanesHelper, appRegistry);
         configureExternalProgressUi();
-        commands.setExternalCommandListener(buildExternalCommandListener());
+        commands.setExternalCommandListener(externalCommandListener);
         configMouseDoubleClick();
 
         logger.debug("Loading file lists into the double panes file views");
@@ -390,7 +399,19 @@ public class Commander {
             return;
         }
 
-        properties.setProperty(side == LEFT ? LEFT_FOLDER_KEY : RIGHT_FOLDER_KEY, newValue.getPath());
+        String path = newValue.getPath();
+        VFileSystem currentFs = filesPanesHelper.getFileSystem(side);
+        if (!(currentFs instanceof LocalFileSystem) && isLocalPath(path)) {
+            try {
+                filesPanesHelper.setFileSystem(side, filesPanesHelper.getVfsManager().createLocalFileSystem(""), path);
+            } catch (IOException e) {
+                logger.error("Failed to switch back to local file system for path: {}", path, e);
+                showError("Navigation Error", "Could not switch to local path: " + path);
+                return;
+            }
+        }
+
+        properties.setProperty(side == LEFT ? LEFT_FOLDER_KEY : RIGHT_FOLDER_KEY, path);
         saveConfigFile();
         clearCharFilter(side);
         clearFolderCompareHighlights(false);
@@ -518,7 +539,7 @@ public class Commander {
         }
     }
 
-    private String getDefaultRootPath() {
+    public String getDefaultRootPath() {
         File[] roots = File.listRoots();
         if (roots != null && roots.length > 0)
             return roots[0].getPath();
@@ -789,20 +810,20 @@ public class Commander {
         }
 
         ListView<FileItem> listView = side == LEFT ? leftFileList : rightFileList;
+        int fileCount = (int) listView.getItems().stream()
+                .filter(item -> item != null && !"..".equals(item.getPresentableFilename()) && !item.isDirectory())
+                .count();
+
         long totalFilesSize = listView.getItems().stream()
                 .filter(item -> item != null && !"..".equals(item.getPresentableFilename()) && !item.isDirectory())
-                .mapToLong(item -> item.getFile().length())
+                .mapToLong(FileItem::getSizeInBytes)
                 .sum();
 
         long selectedFilesSize = listView.getSelectionModel().getSelectedItems().stream()
                 .filter(item -> item != null && !"..".equals(item.getPresentableFilename()) && !item.isDirectory())
-                .mapToLong(item -> item.getFile().length())
+                .mapToLong(FileItem::getSizeInBytes)
                 .sum();
         int selectedFileCount = (int) listView.getSelectionModel().getSelectedItems().stream()
-                .filter(item -> item != null && !"..".equals(item.getPresentableFilename()) && !item.isDirectory())
-                .count();
-
-        int fileCount = (int) listView.getItems().stream()
                 .filter(item -> item != null && !"..".equals(item.getPresentableFilename()) && !item.isDirectory())
                 .count();
 
@@ -827,6 +848,25 @@ public class Commander {
         FilesPanesHelper.FocusSide focusedSide = filesPanesHelper.getFocusedSide();
         if (filesPanesHelper.isInArchive(focusedSide)) {
             handleArchiveEnter(selectedItem);
+            return;
+        }
+
+        // Handle FTP navigation
+        VFileSystem fs = filesPanesHelper.getFileSystem(focusedSide);
+        if (fs instanceof FtpFileSystem ftpFs) {
+            if ("..".equals(selectedItem.getPresentableFilename())) {
+                String currentPath = filesPanesHelper.getFocusedPath();
+                if ("/".equals(currentPath) || currentPath.isEmpty()) {
+                    // Back to local filesystem
+                    ftpDisconnect();
+                } else {
+                    // Go up one level in FTP
+                    String parentPath = ftpFs.getParent(currentPath);
+                    filesPanesHelper.setFileListPath(focusedSide, parentPath);
+                }
+            } else if (selectedItem.isDirectory()) {
+                filesPanesHelper.setFileListPath(focusedSide, ftpFs.getInternalPath(selectedItem));
+            }
             return;
         }
 
@@ -1076,11 +1116,48 @@ public class Commander {
                 return;
             if (selectedItems.size() == 1) {
                 FileItem selectedItem = selectedItems.getFirst();
-                Optional<String> result = getUserFeedback(selectedItem.getFile().getName(), "File Rename", "New name");
+                Optional<String> result = getUserFeedback(selectedItem.getName(), "File Rename", "New name");
                 if (result.isPresent()) { // if user dismisses the dialog it won't rename...
-                    commands.rename(Collections.singletonList(selectedItem), result.get());
-                    FileItem renamedFileItem = new FileItem(new File(filesPanesHelper.getFocusedPath() + "\\" + result.get()));
-                    filesPanesHelper.selectFileItem(true, renamedFileItem);
+                    String newName = result.get();
+                    
+                    VFileSystem fs = filesPanesHelper.getFocusedFileSystem();
+                    if (fs instanceof FtpFileSystem) {
+                        CompletableFuture.runAsync(() -> {
+                            try {
+                                commands.rename(Collections.singletonList(selectedItem), newName);
+                            } catch (Exception e) {
+                                Platform.runLater(() -> error("Failed Renaming file/s", e));
+                            }
+                        }).thenRun(() -> Platform.runLater(() -> {
+                            String currentPath = filesPanesHelper.getFocusedPath();
+                            String separator = fs.getSeparator();
+                            
+                            String newPath;
+                            if (currentPath.endsWith(separator) || currentPath.isEmpty()) {
+                                newPath = currentPath + newName;
+                            } else {
+                                newPath = currentPath + separator + newName;
+                            }
+                            
+                            FileItem renamedFileItem = new FileItem(new File(newPath), newName, selectedItem.getSizeInBytes(), selectedItem.getLastModified() != null ? selectedItem.getLastModified() : -1, selectedItem.isDirectory());
+                            filesPanesHelper.selectFileItem(true, renamedFileItem);
+                        }));
+                    } else {
+                        commands.rename(Collections.singletonList(selectedItem), newName);
+                        
+                        String currentPath = filesPanesHelper.getFocusedPath();
+                        String separator = fs.getSeparator();
+                        
+                        String newPath;
+                        if (currentPath.endsWith(separator) || currentPath.isEmpty()) {
+                            newPath = currentPath + newName;
+                        } else {
+                            newPath = currentPath + separator + newName;
+                        }
+                        
+                        FileItem renamedFileItem = new FileItem(new File(newPath), newName, selectedItem.getSizeInBytes(), selectedItem.getLastModified() != null ? selectedItem.getLastModified() : -1, selectedItem.isDirectory());
+                        filesPanesHelper.selectFileItem(true, renamedFileItem);
+                    }
                 }
             } else // Multi files selected (multi rename)
                 commands.rename(selectedItems, "");
@@ -1095,8 +1172,21 @@ public class Commander {
 
         try {
             List<FileItem> selectedItems = filesPanesHelper.getSelectedItems();
-            for (FileItem selectedItem : selectedItems)
-                commands.view(selectedItem);
+            VFileSystem fs = filesPanesHelper.getFocusedFileSystem();
+
+            if (fs instanceof FtpFileSystem) {
+                CompletableFuture.runAsync(() -> {
+                    try {
+                        for (FileItem selectedItem : selectedItems)
+                            commands.view(selectedItem);
+                    } catch (Exception e) {
+                        Platform.runLater(() -> error("Failed Viewing file", e));
+                    }
+                });
+            } else {
+                for (FileItem selectedItem : selectedItems)
+                    commands.view(selectedItem);
+            }
         } catch (Exception ex) {
             error("Failed Viewing file", ex);
         }
@@ -1137,11 +1227,29 @@ public class Commander {
 
         try {
             List<FileItem> fileItems = filesPanesHelper.getSelectedItems();
-            for (FileItem fileItem : fileItems) {
-                if (org.chaiware.acommander.helpers.FileHelper.isTextFile(fileItem)) {
-                    commands.edit(fileItem);
-                } else {
-                    showError("Edit File", "Cannot edit binary file: " + fileItem.getName());
+            VFileSystem fs = filesPanesHelper.getFocusedFileSystem();
+            
+            if (fs instanceof FtpFileSystem) {
+                CompletableFuture.runAsync(() -> {
+                    try {
+                        for (FileItem fileItem : fileItems) {
+                            if (org.chaiware.acommander.helpers.FileHelper.isTextFile(fileItem, fs)) {
+                                commands.edit(fileItem);
+                            } else {
+                                Platform.runLater(() -> showError("Edit File", "Cannot edit binary file: " + fileItem.getName()));
+                            }
+                        }
+                    } catch (Exception e) {
+                        Platform.runLater(() -> error("Failed Editing file", e));
+                    }
+                });
+            } else {
+                for (FileItem fileItem : fileItems) {
+                    if (org.chaiware.acommander.helpers.FileHelper.isTextFile(fileItem, fs)) {
+                        commands.edit(fileItem);
+                    } else {
+                        showError("Edit File", "Cannot edit binary file: " + fileItem.getName());
+                    }
                 }
             }
         } catch (Exception ex) {
@@ -1159,27 +1267,55 @@ public class Commander {
                 return;
             }
 
-            String targetFolder = filesPanesHelper.getUnfocusedPath();
-            if (selectedItems.size() > 1 && commands instanceof CommandsAdvancedImpl advancedCommands) {
-                advancedCommands.copyBatch(selectedItems, targetFolder);
+            String targetFolderSnapshot = filesPanesHelper.getUnfocusedPath();
+            VFileSystem fs = filesPanesHelper.getFocusedFileSystem();
+            
+            if (fs instanceof FtpFileSystem) {
+                CompletableFuture.runAsync(() -> {
+                    try {
+                        if (selectedItems.size() > 1 && commands instanceof CommandsAdvancedImpl advancedCommands) {
+                            advancedCommands.copyBatch(selectedItems, targetFolderSnapshot);
+                        } else {
+                            for (FileItem selectedItem : selectedItems) {
+                                String target = targetFolderSnapshot;
+                                if (selectedItem.isDirectory())
+                                    target += "\\" + selectedItem.getName();
+                                commands.copy(selectedItem, target);
+                            }
+                        }
+                    } catch (Exception e) {
+                        Platform.runLater(() -> error("Failed Copying file", e));
+                    }
+                }).thenRun(() -> Platform.runLater(() -> {
+                    for (FileItem selectedItem : selectedItems) {
+                        File target = selectedItem.isDirectory()
+                                ? new File(targetFolderSnapshot + "\\" + selectedItem.getName())
+                                : new File(targetFolderSnapshot, selectedItem.getName());
+                        filesPanesHelper.selectFileItem(false, new FileItem(target));
+                    }
+                }));
+            } else {
+                if (selectedItems.size() > 1 && commands instanceof CommandsAdvancedImpl advancedCommands) {
+                    advancedCommands.copyBatch(selectedItems, targetFolderSnapshot);
+                    for (FileItem selectedItem : selectedItems) {
+                        File target = new File(targetFolderSnapshot, selectedItem.getName());
+                        filesPanesHelper.selectFileItem(false, new FileItem(target));
+                    }
+                    return;
+                }
+
                 for (FileItem selectedItem : selectedItems) {
-                    File target = new File(targetFolder, selectedItem.getName());
+                    String targetFolder = filesPanesHelper.getUnfocusedPath();
+                    if (selectedItem.isDirectory())
+                        targetFolder += "\\" + selectedItem.getName();
+                    commands.copy(selectedItem, targetFolder);
+
+                    // taking care of the selected files
+                    File target = selectedItem.isDirectory()
+                            ? new File(targetFolder)
+                            : new File(targetFolder, selectedItem.getName());
                     filesPanesHelper.selectFileItem(false, new FileItem(target));
                 }
-                return;
-            }
-
-            for (FileItem selectedItem : selectedItems) {
-                targetFolder = filesPanesHelper.getUnfocusedPath();
-                if (selectedItem.isDirectory())
-                    targetFolder += "\\" + selectedItem.getName();
-                commands.copy(selectedItem, targetFolder);
-
-                // taking care of the selected files
-                File target = selectedItem.isDirectory()
-                        ? new File(targetFolder)
-                        : new File(targetFolder, selectedItem.getName());
-                filesPanesHelper.selectFileItem(false, new FileItem(target));
             }
         } catch (Exception e) {
             error("Failed Copying file", e);
@@ -1200,21 +1336,53 @@ public class Commander {
         logger.info("Move (F6)");
 
         try {
-            List<FileItem> selectedItems = new ArrayList<>(filesPanesHelper.getSelectedItems());
-            for (FileItem selectedItem : selectedItems) {
-                String targetFolder = filesPanesHelper.getUnfocusedPath();
-                if (selectedItem.isDirectory())
-                    targetFolder += "\\" + selectedItem.getName();
-                commands.move(selectedItem, targetFolder);
+            List<FileItem> selectedItems = new ArrayList<>(commands.filterValidItems(filesPanesHelper.getSelectedItems()));
+            if (selectedItems.isEmpty()) {
+                return;
+            }
 
-                // taking care of the selected files
-                filesPanesHelper.getFileList(true)
-                        .getSelectionModel()
-                        .selectFirst();
-                File target = selectedItem.isDirectory()
-                        ? new File(targetFolder)
-                        : new File(targetFolder, selectedItem.getName());
-                filesPanesHelper.selectFileItem(false, new FileItem(target));
+            String targetFolderSnapshot = filesPanesHelper.getUnfocusedPath();
+            VFileSystem fs = filesPanesHelper.getFocusedFileSystem();
+
+            if (fs instanceof FtpFileSystem) {
+                CompletableFuture.runAsync(() -> {
+                    try {
+                        for (FileItem selectedItem : selectedItems) {
+                            String target = targetFolderSnapshot;
+                            if (selectedItem.isDirectory())
+                                target += "\\" + selectedItem.getName();
+                            commands.move(selectedItem, target);
+                        }
+                    } catch (Exception e) {
+                        Platform.runLater(() -> error("Failed Moving file", e));
+                    }
+                }).thenRun(() -> Platform.runLater(() -> {
+                    filesPanesHelper.getFileList(true)
+                            .getSelectionModel()
+                            .selectFirst();
+                    for (FileItem selectedItem : selectedItems) {
+                        File target = selectedItem.isDirectory()
+                                ? new File(targetFolderSnapshot + "\\" + selectedItem.getName())
+                                : new File(targetFolderSnapshot, selectedItem.getName());
+                        filesPanesHelper.selectFileItem(false, new FileItem(target));
+                    }
+                }));
+            } else {
+                for (FileItem selectedItem : selectedItems) {
+                    String targetFolder = filesPanesHelper.getUnfocusedPath();
+                    if (selectedItem.isDirectory())
+                        targetFolder += "\\" + selectedItem.getName();
+                    commands.move(selectedItem, targetFolder);
+
+                    // taking care of the selected files
+                    filesPanesHelper.getFileList(true)
+                            .getSelectionModel()
+                            .selectFirst();
+                    File target = selectedItem.isDirectory()
+                            ? new File(targetFolder)
+                            : new File(targetFolder, selectedItem.getName());
+                    filesPanesHelper.selectFileItem(false, new FileItem(target));
+                }
             }
         } catch (Exception ex) {
             error("Failed Moving file", ex);
@@ -1228,9 +1396,26 @@ public class Commander {
         try {
             Optional<String> result = getUserFeedback("", "Make Directory", "New Directory Name");
             if (result.isPresent()) { // if user dismisses the dialog it won't create a directory...
-                commands.mkdir((filesPanesHelper.getFocusedPath()), result.get());
-                FileItem newFolder = new FileItem(new File(filesPanesHelper.getFocusedPath() + "\\" + result.get()));
-                filesPanesHelper.selectFileItem(true, newFolder);
+                String dirName = result.get();
+                String focusedPath = filesPanesHelper.getFocusedPath();
+                VFileSystem fs = filesPanesHelper.getFocusedFileSystem();
+                
+                if (fs instanceof FtpFileSystem) {
+                    CompletableFuture.runAsync(() -> {
+                        try {
+                            commands.mkdir(focusedPath, dirName);
+                        } catch (Exception e) {
+                            Platform.runLater(() -> error("Failed Creating Directory", e));
+                        }
+                    }).thenRun(() -> Platform.runLater(() -> {
+                        FileItem newFolder = new FileItem(new File(focusedPath + "\\" + dirName));
+                        filesPanesHelper.selectFileItem(true, newFolder);
+                    }));
+                } else {
+                    commands.mkdir(focusedPath, dirName);
+                    FileItem newFolder = new FileItem(new File(focusedPath + "\\" + dirName));
+                    filesPanesHelper.selectFileItem(true, newFolder);
+                }
             }
         } catch (Exception e) {
             error("Failed Creating Directory", e);
@@ -1243,9 +1428,26 @@ public class Commander {
         try {
             Optional<String> result = getUserFeedback("", "Make File", "New File Name");
             if (result.isPresent()) {// if user dismisses the dialog it won't create a file...
-                commands.mkFile((filesPanesHelper.getFocusedPath()), result.get());
-                FileItem newFile = new FileItem(new File(filesPanesHelper.getFocusedPath() + "\\" + result.get()));
-                filesPanesHelper.selectFileItem(true, newFile);
+                String fileName = result.get();
+                String focusedPath = filesPanesHelper.getFocusedPath();
+                VFileSystem fs = filesPanesHelper.getFocusedFileSystem();
+                
+                if (fs instanceof FtpFileSystem) {
+                    CompletableFuture.runAsync(() -> {
+                        try {
+                            commands.mkFile(focusedPath, fileName);
+                        } catch (Exception e) {
+                            Platform.runLater(() -> error("Failed Creating File", e));
+                        }
+                    }).thenRun(() -> Platform.runLater(() -> {
+                        FileItem newFile = new FileItem(new File(focusedPath + "\\" + fileName));
+                        filesPanesHelper.selectFileItem(true, newFile);
+                    }));
+                } else {
+                    commands.mkFile(focusedPath, fileName);
+                    FileItem newFile = new FileItem(new File(focusedPath + "\\" + fileName));
+                    filesPanesHelper.selectFileItem(true, newFile);
+                }
             }
         } catch (Exception e) {
             error("Failed Creating File", e);
@@ -1256,8 +1458,26 @@ public class Commander {
     public void deleteFile() {
         logger.info("Delete (F8/DEL)");
         try {
-            commands.delete(new ArrayList<>(filesPanesHelper.getSelectedItems()));
-            filesPanesHelper.getFileList(true).getSelectionModel().selectFirst();
+            List<FileItem> selectedItems = new ArrayList<>(commands.filterValidItems(filesPanesHelper.getSelectedItems()));
+            if (selectedItems.isEmpty()) {
+                return;
+            }
+            
+            VFileSystem fs = filesPanesHelper.getFocusedFileSystem();
+            if (fs instanceof FtpFileSystem) {
+                CompletableFuture.runAsync(() -> {
+                    try {
+                        commands.delete(selectedItems);
+                    } catch (Exception e) {
+                        Platform.runLater(() -> error("Failed to delete", e));
+                    }
+                }).thenRun(() -> Platform.runLater(() -> {
+                    filesPanesHelper.getFileList(true).getSelectionModel().selectFirst();
+                }));
+            } else {
+                commands.delete(selectedItems);
+                filesPanesHelper.getFileList(true).getSelectionModel().selectFirst();
+            }
         } catch (Exception ex) {
             error("Failed to delete", ex);
         }
@@ -1266,8 +1486,26 @@ public class Commander {
     public void deleteWipe() {
         logger.info("Delete & Wipe (Shift+F8/DEL)");
         try {
-            commands.wipeDelete(new ArrayList<>(filesPanesHelper.getSelectedItems()));
-            filesPanesHelper.getFileList(true).getSelectionModel().selectFirst();
+            List<FileItem> selectedItems = new ArrayList<>(commands.filterValidItems(filesPanesHelper.getSelectedItems()));
+            if (selectedItems.isEmpty()) {
+                return;
+            }
+
+            VFileSystem fs = filesPanesHelper.getFocusedFileSystem();
+            if (fs instanceof FtpFileSystem) {
+                CompletableFuture.runAsync(() -> {
+                    try {
+                        commands.wipeDelete(selectedItems);
+                    } catch (Exception e) {
+                        Platform.runLater(() -> error("Failed to delete", e));
+                    }
+                }).thenRun(() -> Platform.runLater(() -> {
+                    filesPanesHelper.getFileList(true).getSelectionModel().selectFirst();
+                }));
+            } else {
+                commands.wipeDelete(selectedItems);
+                filesPanesHelper.getFileList(true).getSelectionModel().selectFirst();
+            }
         } catch (Exception ex) {
             error("Failed to delete", ex);
         }
@@ -1511,7 +1749,10 @@ public class Commander {
     public void pack() {
         logger.info("Pack (F11)");
         try {
-            List<FileItem> selectedItems = filesPanesHelper.getSelectedItems();
+            List<FileItem> selectedItems = new ArrayList<>(commands.filterValidItems(filesPanesHelper.getSelectedItems()));
+            if (selectedItems.isEmpty()) {
+                return;
+            }
             String firstFilename = selectedItems.getFirst().getName();
             String zipFilename = firstFilename.contains(".")
                     ? firstFilename.substring(0, firstFilename.lastIndexOf('.')) + ".zip"
@@ -2611,7 +2852,8 @@ public class Commander {
         if (leftSelected == null || rightSelected == null) {
             return false;
         }
-        return org.chaiware.acommander.helpers.FileHelper.isTextFile(leftSelected) && org.chaiware.acommander.helpers.FileHelper.isTextFile(rightSelected);
+        return org.chaiware.acommander.helpers.FileHelper.isTextFile(leftSelected, filesPanesHelper.getFileSystem(LEFT)) && 
+               org.chaiware.acommander.helpers.FileHelper.isTextFile(rightSelected, filesPanesHelper.getFileSystem(RIGHT));
     }
 
     public void compareFiles() {
@@ -2630,7 +2872,8 @@ public class Commander {
             return;
         }
 
-        if (!org.chaiware.acommander.helpers.FileHelper.isTextFile(leftSelected) || !org.chaiware.acommander.helpers.FileHelper.isTextFile(rightSelected)) {
+        if (!org.chaiware.acommander.helpers.FileHelper.isTextFile(leftSelected, filesPanesHelper.getFileSystem(LEFT)) || 
+            !org.chaiware.acommander.helpers.FileHelper.isTextFile(rightSelected, filesPanesHelper.getFileSystem(RIGHT))) {
             showError("Compare Files", "Only text files can be compared. One of the selected files appears to be binary.");
             restoreFocusToFile(lastSelectedSide, lastSelectedFile);
             return;
@@ -2971,12 +3214,62 @@ public class Commander {
     }
 
     public void syncToOtherPane() {
+        FilesPanesHelper.FocusSide focusedSide = filesPanesHelper.getFocusedSide();
+        FilesPanesHelper.FocusSide targetSide = (focusedSide == LEFT) ? RIGHT : LEFT;
+        VFileSystem focusedFs = filesPanesHelper.getFocusedFileSystem();
         String focusedPath = filesPanesHelper.getFocusedPath();
-        if (filesPanesHelper.getFocusedSide() == LEFT)
-            filesPanesHelper.setFileListPath(RIGHT, focusedPath);
-        else
-            filesPanesHelper.setFileListPath(LEFT, focusedPath);
+
+        try {
+            if (!(focusedFs instanceof LocalFileSystem)) {
+                // For VFS (FTP/Archive), we should ideally sync the filesystem too
+                // But the requirement says "go to that filelist in the regular file system"
+                // which implies the OTHER pane should be LocalFileSystem and show that path?
+                // Wait, if I'm on FTP in LEFT, and I run "goto same folder on RIGHT", 
+                // what should RIGHT show? If it shows the FTP path as a local path, it fails.
+                // The issue says: "also going to the other pane and running "goto same folder on..." should also go to that filelist in the regular file system"
+                // This means if I am on the OTHER pane (local) and I want to sync FROM the FTP pane,
+                // it should probably switch the FTP pane back to local or just show the same as some local default?
+                // Actually, reading again: "also going to the other pane and running "goto same folder on..." 
+                // should also go to that filelist in the regular file system"
+                // This means if LEFT=FTP, RIGHT=Local. I go to RIGHT, run "Sync". 
+                // RIGHT should now show what? 
+                // If the user meant they want to EXIT FTP by syncing, then LEFT should become local.
+                // But typically "Sync" means "Target = Source Path".
+                // If Source is FTP, Target can't easily be "same folder" in local unless it's a very specific path.
+                // Given "backspace shuld go back to the regular filesystem", it seems the user wants easy ways to exit FTP.
+                
+                // Let's assume they mean: if I sync FROM FTP, the TARGET should switch to Local FS.
+                // But if they are ON the other pane (Local) and sync FROM FTP, 
+                // then the Target (Local) remains Local and gets the path.
+                // If the path is "/" (FTP root), Local FS will try to list "/" which is root on Unix or invalid-ish on Windows.
+                
+                // Re-reading: "also going to the other pane and running "goto same folder on..." should also go to that filelist in the regular file system"
+                // This might mean: if I'm on FTP (Pane A), and I go to Pane B (Local), and I want Pane B to be "Same as A", 
+                // then Pane B should probably stay Local but maybe go to a default local path? 
+                // No, that doesn't make sense.
+                
+                // Maybe they mean: if I'm on FTP, and I use a command to "sync", it should go back to local?
+                // Let's look at the implementation of setFileListPath again.
+                filesPanesHelper.setFileSystem(targetSide, filesPanesHelper.getVfsManager().createLocalFileSystem(""), getDefaultRootPath());
+            } else {
+                filesPanesHelper.setFileListPath(targetSide, focusedPath);
+            }
+        } catch (IOException e) {
+            logger.error("Failed to sync panes", e);
+        }
         Platform.runLater(() -> filesPanesHelper.getFileList(true).requestFocus());
+    }
+
+    private boolean isLocalPath(String path) {
+        if (path == null || path.isEmpty()) return false;
+        // Windows path: C:\ or \\network\
+        if (path.length() >= 2 && path.charAt(1) == ':') return true;
+        if (path.startsWith("\\\\")) return true;
+        // Unix path: /home/user (but FTP root is also /)
+        // If it's a single /, we treat it as VFS if we are already in VFS.
+        // If it's more than just /, and starts with /, it's likely local on Unix.
+        // On Windows, / is not a typical local path start unless using cygwin/gitbash style.
+        return false; 
     }
 
     public void bookmarkCurrentPath() {
@@ -3032,6 +3325,215 @@ public class Commander {
         }
         bookmarks.remove(selected.get());
         saveConfigFile();
+    }
+
+    public void ftpDisconnect() {
+        FilesPanesHelper.FocusSide side = filesPanesHelper.getFocusedSide();
+        VFileSystem currentFs = filesPanesHelper.getFileSystem(side);
+        if (!(currentFs instanceof LocalFileSystem)) {
+            try {
+                String localPath = getDefaultRootPath();
+                filesPanesHelper.setFileSystem(side, filesPanesHelper.getVfsManager().createLocalFileSystem(""), localPath);
+                logger.info("Disconnected from VFS on {} side, switched back to local path: {}", side, localPath);
+            } catch (IOException e) {
+                logger.error("Failed to disconnect and switch to local file system", e);
+                showError("Disconnect Error", "Could not switch back to local file system: " + e.getMessage());
+            }
+        }
+    }
+
+    public void ftpConnect() {
+        Dialog<FtpConnectionOptions> dialog = new Dialog<>();
+        dialog.setTitle("FTP Connection");
+        dialog.setHeaderText("Enter FTP Connection Details");
+        applyThemeToDialog(dialog);
+
+        ButtonType connectButtonType = new ButtonType("Connect", ButtonBar.ButtonData.OK_DONE);
+        dialog.getDialogPane().getButtonTypes().addAll(connectButtonType, ButtonType.CANCEL);
+
+        GridPane grid = new GridPane();
+        grid.setHgap(10);
+        grid.setVgap(10);
+        grid.setPadding(new Insets(20, 150, 10, 10));
+
+        TextField hostField = new TextField();
+        hostField.setPromptText("Host");
+        TextField portField = new TextField("21");
+        portField.setPromptText("Port");
+        TextField userField = new TextField();
+        userField.setPromptText("Username");
+        PasswordField passField = new PasswordField();
+        passField.setPromptText("Password");
+        TextField nameField = new TextField();
+        nameField.setPromptText("Connection Name (optional)");
+        CheckBox saveCheckBox = new CheckBox("Save for next time");
+        saveCheckBox.setSelected(true);
+
+        ComboBox<String> savedConnectionsCombo = new ComboBox<>();
+        savedConnectionsCombo.getItems().addAll(ftpConnections.keySet());
+        savedConnectionsCombo.setPromptText("Saved Connections");
+        savedConnectionsCombo.setMaxWidth(Double.MAX_VALUE);
+
+        Button removeSavedButton = new Button("Remove");
+        removeSavedButton.setDisable(true);
+
+        savedConnectionsCombo.setOnAction(e -> {
+            String selectedConn = savedConnectionsCombo.getSelectionModel().getSelectedItem();
+            if (selectedConn != null && ftpConnections.containsKey(selectedConn)) {
+                FtpConnectionOptions opt = ftpConnections.get(selectedConn);
+                hostField.setText(opt.getHost());
+                portField.setText(String.valueOf(opt.getPort()));
+                userField.setText(opt.getUsername());
+                passField.setText(opt.getPassword());
+                nameField.setText(opt.getName());
+                saveCheckBox.setSelected(true);
+                removeSavedButton.setDisable(false);
+            } else {
+                removeSavedButton.setDisable(true);
+            }
+        });
+
+        removeSavedButton.setOnAction(e -> {
+            String selectedConn = savedConnectionsCombo.getSelectionModel().getSelectedItem();
+            if (selectedConn != null) {
+                ftpConnections.remove(selectedConn);
+                savedConnectionsCombo.getItems().remove(selectedConn);
+                savedConnectionsCombo.getSelectionModel().clearSelection();
+                syncFtpConnectionsToProperties();
+                saveConfigFile();
+                removeSavedButton.setDisable(true);
+            }
+        });
+
+        grid.add(new Label("Saved:"), 0, 0);
+        HBox savedBox = new HBox(10);
+        savedBox.getChildren().addAll(savedConnectionsCombo, removeSavedButton);
+        grid.add(savedBox, 1, 0);
+        grid.add(new Label("Host:"), 0, 1);
+        grid.add(hostField, 1, 1);
+        grid.add(new Label("Port:"), 0, 2);
+        grid.add(portField, 1, 2);
+        grid.add(new Label("Username:"), 0, 3);
+        grid.add(userField, 1, 3);
+        grid.add(new Label("Password:"), 0, 4);
+        grid.add(passField, 1, 4);
+        grid.add(new Label("Name:"), 0, 5);
+        grid.add(nameField, 1, 5);
+        grid.add(saveCheckBox, 1, 6);
+
+        dialog.getDialogPane().setContent(grid);
+
+        Platform.runLater(hostField::requestFocus);
+
+        dialog.setResultConverter(dialogButton -> {
+            if (dialogButton == connectButtonType) {
+                int port = 21;
+                try {
+                    port = Integer.parseInt(portField.getText());
+                } catch (NumberFormatException ignored) {}
+
+                String name = nameField.getText().trim();
+                if (name.isEmpty()) {
+                    name = hostField.getText();
+                }
+
+                FtpConnectionOptions options = FtpConnectionOptions.builder()
+                        .host(hostField.getText())
+                        .port(port)
+                        .username(userField.getText())
+                        .password(passField.getText())
+                        .name(name)
+                        .build();
+
+                if (saveCheckBox.isSelected()) {
+                    ftpConnections.put(name, options);
+                    syncFtpConnectionsToProperties();
+                    saveConfigFile();
+                }
+                return options;
+            }
+            return null;
+        });
+
+        Optional<FtpConnectionOptions> result = dialog.showAndWait();
+        result.ifPresent(options -> {
+            logger.info("Attempting to connect to FTP: {} ({}:{})", options.getName(), options.getHost(), options.getPort());
+            
+            // Show progress
+            showExternalProgress(1, "FTP: " + options.getName());
+            
+            CompletableFuture.runAsync(() -> {
+                try {
+                    VFileSystem ftpFs = filesPanesHelper.getVfsManager().createFtpFileSystem(options);
+                    // Validation: attempt to list root
+                    ftpFs.listContents("/");
+                    
+                    Platform.runLater(() -> {
+                        try {
+                            filesPanesHelper.setFileSystem(filesPanesHelper.getFocusedSide(), ftpFs);
+                            logger.info("Successfully connected to FTP: {}", options.getName());
+                            hideOrUpdateExternalProgress(0);
+                            filesPanesHelper.getFileList(true).requestFocus();
+                        } catch (Exception e) {
+                            handleFtpConnectionError(options, e);
+                        }
+                    });
+                } catch (Exception e) {
+                    Platform.runLater(() -> handleFtpConnectionError(options, e));
+                }
+            });
+        });
+    }
+
+    private void handleFtpConnectionError(FtpConnectionOptions options, Exception e) {
+        hideOrUpdateExternalProgress(0);
+        logger.error("FTP Connection Failed for {}: {}", options.getName(), e.getMessage());
+        String message = e.getMessage();
+        if (message != null && message.contains("FTP operation failed:")) {
+            message = message.replace("FTP operation failed:", "").trim();
+        }
+        showError("FTP Connection Failed", (message == null || message.isEmpty()) ? "Unknown error" : message);
+    }
+
+    private void syncFtpConnectionsToProperties() {
+        // Clear old ones
+        properties.keySet().removeIf(k -> k.toString().startsWith(FTP_KEY_PREFIX));
+        for (Map.Entry<String, FtpConnectionOptions> entry : ftpConnections.entrySet()) {
+            String prefix = FTP_KEY_PREFIX + entry.getKey() + ".";
+            FtpConnectionOptions opt = entry.getValue();
+            properties.setProperty(prefix + "host", opt.getHost());
+            properties.setProperty(prefix + "port", String.valueOf(opt.getPort()));
+            properties.setProperty(prefix + "username", opt.getUsername());
+            properties.setProperty(prefix + "password", opt.getPassword());
+        }
+    }
+
+    private void loadFtpConnectionsFromProperties() {
+        Map<String, FtpConnectionOptions.FtpConnectionOptionsBuilder> builders = new HashMap<>();
+        for (String key : properties.stringPropertyNames()) {
+            if (key.startsWith(FTP_KEY_PREFIX)) {
+                String sub = key.substring(FTP_KEY_PREFIX.length());
+                int lastDot = sub.lastIndexOf('.');
+                if (lastDot > 0) {
+                    String name = sub.substring(0, lastDot);
+                    String field = sub.substring(lastDot + 1);
+                    FtpConnectionOptions.FtpConnectionOptionsBuilder builder = builders.computeIfAbsent(name, n -> FtpConnectionOptions.builder().name(n));
+                    String val = properties.getProperty(key);
+                    switch (field) {
+                        case "host" -> builder.host(val);
+                        case "port" -> {
+                            try {
+                                builder.port(Integer.parseInt(val));
+                            } catch (NumberFormatException ignored) {}
+                        }
+                        case "username" -> builder.username(val);
+                        case "password" -> builder.password(val);
+                    }
+                }
+            }
+        }
+        ftpConnections.clear();
+        builders.forEach((name, builder) -> ftpConnections.put(name, builder.build()));
     }
 
     public void filterByChar(char selectedChar) {
@@ -3919,7 +4421,7 @@ public class Commander {
         return outputDirectory.resolve(fileName);
     }
 
-    private void showError(String title, String message) {
+    public void showError(String title, String message) {
         Alert alert = new Alert(Alert.AlertType.ERROR);
         alert.setTitle(title);
         alert.setHeaderText(null);
@@ -3930,7 +4432,7 @@ public class Commander {
         alert.showAndWait();
     }
 
-    private void showInfo(String title, String message) {
+    public void showInfo(String title, String message) {
         Alert alert = new Alert(Alert.AlertType.INFORMATION);
         alert.setTitle(title);
         alert.setHeaderText(null);

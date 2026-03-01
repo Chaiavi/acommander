@@ -437,6 +437,22 @@
       "selection": "none",
       "type": "builtin",
       "builtin": "syncOtherPane"
+    },
+    {
+      "id": "ftpConnect",
+      "label": "Connect to FTP",
+      "aliases": ["ftp", "remote", "connect"],
+      "contexts": ["global", "commandPalette"],
+      "selection": "none",
+      "type": "builtin"
+    },
+    {
+      "id": "ftpDisconnect",
+      "label": "Disconnect from FTP",
+      "aliases": ["exit ftp", "quit ftp", "local", "disconnect"],
+      "contexts": ["global", "commandPalette"],
+      "selection": "none",
+      "type": "builtin"
     }
   ]
 }

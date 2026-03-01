@@ -5,18 +5,16 @@ import javafx.collections.ObservableList;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.ListView;
 import lombok.Data;
+import org.chaiware.acommander.commands.ExternalCommandListener;
 import org.chaiware.acommander.model.ArchiveSession;
 import org.chaiware.acommander.model.FileItem;
 import org.chaiware.acommander.model.Folder;
-import org.chaiware.acommander.vfs.ArchiveFileSystem;
-import org.chaiware.acommander.vfs.VFileSystem;
-import org.chaiware.acommander.vfs.VfsManager;
+import org.chaiware.acommander.vfs.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.Path;
 import java.util.*;
 
 import static org.chaiware.acommander.helpers.FilesPanesHelper.FocusSide.LEFT;
@@ -32,7 +30,19 @@ public class FilesPanesHelper {
     Map<FocusSide, FilePane> filePanes = new HashMap<>();
     private final Map<FocusSide, SortState> sortStates = new HashMap<>();
     private final Map<FocusSide, VFileSystem> fileSystems = new EnumMap<>(FocusSide.class);
+    private final Map<FocusSide, String> currentInternalPaths = new EnumMap<>(FocusSide.class);
     private FocusSide focusedSide;
+    private ExternalCommandListener externalCommandListener;
+
+    public void setExternalCommandListener(ExternalCommandListener listener) {
+        this.externalCommandListener = listener;
+        // Apply to existing file systems
+        for (VFileSystem fs : fileSystems.values()) {
+            if (fs != null) {
+                fs.setExternalCommandListener(listener);
+            }
+        }
+    }
 
     public FocusSide getFocusedSide() {
         return focusedSide;
@@ -58,6 +68,35 @@ public class FilesPanesHelper {
         return fileSystems.get(focusedSide == LEFT ? RIGHT : LEFT);
     }
 
+    public void setFileSystem(FocusSide side, VFileSystem fs) throws IOException {
+        setFileSystem(side, fs, "/");
+    }
+
+    public void setFileSystem(FocusSide side, VFileSystem fs, String initialPath) throws IOException {
+        logger.info("Switching {} pane to file system: {}", side, fs.getIdentifier());
+        
+        // Try to list the initial path before fully switching
+        if (initialPath != null) {
+            fs.listContents(initialPath);
+        } else {
+            fs.listContents("/"); // Default check
+        }
+
+        VFileSystem oldFs = fileSystems.put(side, fs);
+        if (fs != null) {
+            fs.setExternalCommandListener(externalCommandListener);
+        }
+        if (oldFs != null) {
+            vfsManager.closeFileSystem(oldFs);
+        }
+        
+        if (initialPath != null) {
+            setFileListPath(side, initialPath);
+        } else {
+            refreshFileListView(side);
+        }
+    }
+
     public FilesPanesHelper(ListView<FileItem> leftFileList, ComboBox<Folder> leftPathComboBox, ListView<FileItem> rightFileList, ComboBox<Folder> rightPathComboBox) {
         setFocusedFileList(LEFT);
 
@@ -69,6 +108,8 @@ public class FilesPanesHelper {
         // Initialize with default local file systems
         fileSystems.put(LEFT, vfsManager.createLocalFileSystem(""));
         fileSystems.put(RIGHT, vfsManager.createLocalFileSystem(""));
+        currentInternalPaths.put(LEFT, "");
+        currentInternalPaths.put(RIGHT, "");
     }
     
     /**
@@ -102,19 +143,31 @@ public class FilesPanesHelper {
             Platform.runLater(() -> setFileListPath(focusSide, path));
             return;
         }
-        ComboBox<Folder> pathComboBox = filePanes.get(focusSide).getPathComboBox();
+        currentInternalPaths.put(focusSide, path);
         
         VFileSystem fs = fileSystems.get(focusSide);
-        if (fs instanceof ArchiveFileSystem archiveFs && path.equals(archiveFs.getSession().getArchivePath())) {
-            // Stay in archive mode
-            pathComboBox.setValue(new ArchiveFolder(archiveFs.getDisplayName()));
-        } else {
+        if (fs instanceof LocalFileSystem) {
             // Regular folder - exit archive mode if active
             exitArchive(focusSide);
-            pathComboBox.setValue(new Folder(path));
         }
 
         refreshFileListView(focusSide);
+
+        ComboBox<Folder> pathComboBox = filePanes.get(focusSide).getPathComboBox();
+        if (fs instanceof ArchiveFileSystem archiveFs && path.equals(archiveFs.getSession().getArchivePath())) {
+            // Stay in archive mode
+            pathComboBox.setValue(new ArchiveFolder(archiveFs.getDisplayName()));
+        } else if (fs instanceof FtpFileSystem ftpFs) {
+            // FTP filesystem - display name updated after refreshFileListView
+            pathComboBox.setValue(new ArchiveFolder(ftpFs.getDisplayName()));
+        } else if (!(fs instanceof LocalFileSystem)) {
+            // Use virtual folder for display if not local FS (e.g. other VFS)
+            pathComboBox.setValue(new ArchiveFolder(fs.getDisplayName()));
+        } else {
+            // Local file system
+            pathComboBox.setValue(new Folder(path));
+        }
+
         ensureFirstEntrySelected(focusSide);
     }
     
@@ -128,20 +181,22 @@ public class FilesPanesHelper {
             VFileSystem fs = vfsManager.enterVirtualFolder(fileSystems.get(focusSide), new FileItem(new File(archivePath)));
             
             if (fs != null) {
-                // Close any existing session for this side
-                exitArchive(focusSide);
-                
-                fileSystems.put(focusSide, fs);
-                
-                Platform.runLater(() -> {
-                    ComboBox<Folder> pathComboBox = filePanes.get(focusSide).getPathComboBox();
-                    pathComboBox.setValue(new ArchiveFolder(fs.getDisplayName()));
+                // setFileSystem handles closing oldFs if any
+                try {
+                    setFileSystem(focusSide, fs, null);
                     
-                    refreshFileListView(focusSide);
-                    ensureFirstEntrySelected(focusSide);
-                });
-                
-                logger.info("Entered archive ({} mode): {}", fs.isReadOnly() ? "READ_ONLY" : "READ_WRITE", archivePath);
+                    Platform.runLater(() -> {
+                        ComboBox<Folder> pathComboBox = filePanes.get(focusSide).getPathComboBox();
+                        pathComboBox.setValue(new ArchiveFolder(fs.getDisplayName()));
+                        
+                        refreshFileListView(focusSide);
+                        ensureFirstEntrySelected(focusSide);
+                    });
+                    
+                    logger.info("Entered archive ({} mode): {}", fs.isReadOnly() ? "READ_ONLY" : "READ_WRITE", archivePath);
+                } catch (IOException e) {
+                    logger.error("Failed to list archive contents: {}", archivePath, e);
+                }
             }
         } catch (IOException e) {
             logger.error("Failed to enter archive: {}", archivePath, e);
@@ -154,9 +209,12 @@ public class FilesPanesHelper {
     public void exitArchive(FocusSide focusSide) {
         VFileSystem fs = fileSystems.get(focusSide);
         if (fs instanceof ArchiveFileSystem) {
-            vfsManager.closeFileSystem(fs);
-            // Revert to local file system
-            fileSystems.put(focusSide, vfsManager.createLocalFileSystem(""));
+            // setFileSystem handles closing the old FS
+            try {
+                setFileSystem(focusSide, vfsManager.createLocalFileSystem(""), null);
+            } catch (IOException e) {
+                logger.error("Failed to exit archive: {}", e.getMessage());
+            }
         }
     }
     
@@ -172,6 +230,7 @@ public class FilesPanesHelper {
         ArchiveSession newSession = currentArchiveFs.getSession().createChild(dirName);
         ArchiveFileSystem newFs = new ArchiveFileSystem(newSession, vfsManager.getArchiveManager());
         fileSystems.put(focusSide, newFs);
+        currentInternalPaths.put(focusSide, newSession.getEntryPath());
         
         Platform.runLater(() -> {
             ComboBox<Folder> pathComboBox = filePanes.get(focusSide).getPathComboBox();
@@ -222,6 +281,7 @@ public class FilesPanesHelper {
         } else {
             ArchiveFileSystem parentFs = new ArchiveFileSystem(parentSession, vfsManager.getArchiveManager());
             fileSystems.put(focusSide, parentFs);
+            currentInternalPaths.put(focusSide, parentSession.getEntryPath());
 
             Platform.runLater(() -> {
                 ComboBox<Folder> pathComboBox = filePanes.get(focusSide).getPathComboBox();
@@ -308,45 +368,18 @@ public class FilesPanesHelper {
         ObservableList<FileItem> items = listView.getItems();
         items.clear();
 
-        // Check if we're in an archive
         VFileSystem fs = fileSystems.get(focusSide);
-        if (fs instanceof ArchiveFileSystem archiveFs) {
-            ArchiveSession session = archiveFs.getSession();
-            // Load from temp folder
-            Path tempPath = session.getTempFolderPath();
-            File folder = tempPath.toFile();
-
-            if (!folder.exists()) {
-                logger.error("Temp folder doesn't exist: {}", tempPath);
-                // Exit archive mode
-                exitArchive(focusSide);
-                return;
+        try {
+            String path = currentInternalPaths.get(focusSide);
+            if (path == null) {
+                path = filePanes.get(focusSide).getPath();
             }
-
-            File[] files = folder.listFiles();
-
-            // Always add ".." entry when in archive
-            // At root level: ".." exits archive and shows parent folder of archive file
-            // In subdirectory: ".." goes up one level in archive
-            items.add(new ArchiveParentItem(folder, "..", session));
-
-            if (files != null) {
-                for (File f : files) {
-                    items.add(new FileItem(f));
-                }
-            }
-
-            logger.debug("Loaded {} items from archive temp folder: {}", files != null ? files.length : 0, session.getDisplayPath());
-        } else {
-            // Regular folder loading
-            File folder = new File(filePanes.get(focusSide).getPath());
-            File[] files = folder.listFiles();
-
-            if (folder.getParentFile() != null)
-                items.add(new FileItem(folder, ".."));
-            if (files != null)
-                for (File f : files)
-                    items.add(new FileItem(f));
+            logger.debug("Refreshing file list using VFS {}: {}", fs.getIdentifier(), path);
+            List<FileItem> contents = fs.listContents(path);
+            items.addAll(contents);
+            logger.debug("Loaded {} items using VFS", contents.size());
+        } catch (IOException e) {
+            logger.error("Failed to list contents of {} using {}: {}", filePanes.get(focusSide).getPath(), fs.getIdentifier(), e.getMessage());
         }
 
         applySort(focusSide);
@@ -441,11 +474,14 @@ public class FilesPanesHelper {
     }
 
     private long sizeForSort(FileItem item) {
-        return item.isDirectory() ? 0L : item.getFile().length();
+        return item.isDirectory() ? 0L : item.getSizeInBytes();
     }
 
     private long modifiedForSort(FileItem item) {
-        return item.getFile().lastModified();
+        if (item.getLastModified() != null) {
+            return item.getLastModified();
+        }
+        return (item.getFile() != null) ? item.getFile().lastModified() : 0L;
     }
 
     private boolean isParentFolder(FileItem item) {
@@ -454,6 +490,9 @@ public class FilesPanesHelper {
 
     public String getFocusedPath() {
         VFileSystem fs = fileSystems.get(focusedSide);
+        if (fs instanceof LocalFileSystem || fs instanceof FtpFileSystem) {
+            return currentInternalPaths.get(focusedSide);
+        }
         if (fs instanceof ArchiveFileSystem archiveFs) {
             return archiveFs.getSession().getTempFolderPath().toString();
         }
@@ -462,6 +501,9 @@ public class FilesPanesHelper {
 
     public String getPath(FocusSide focusSide) {
         VFileSystem fs = fileSystems.get(focusSide);
+        if (fs instanceof LocalFileSystem || fs instanceof FtpFileSystem) {
+            return currentInternalPaths.get(focusSide);
+        }
         if (fs instanceof ArchiveFileSystem archiveFs) {
             return archiveFs.getSession().getTempFolderPath().toString();
         }
@@ -471,6 +513,9 @@ public class FilesPanesHelper {
     public String getUnfocusedPath() {
         FocusSide unfocusedSide = focusedSide == LEFT ? RIGHT : LEFT;
         VFileSystem fs = fileSystems.get(unfocusedSide);
+        if (fs instanceof LocalFileSystem || fs instanceof FtpFileSystem) {
+            return currentInternalPaths.get(unfocusedSide);
+        }
         if (fs instanceof ArchiveFileSystem archiveFs) {
             return archiveFs.getSession().getTempFolderPath().toString();
         }

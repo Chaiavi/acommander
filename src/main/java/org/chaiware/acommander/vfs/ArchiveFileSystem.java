@@ -1,6 +1,7 @@
 package org.chaiware.acommander.vfs;
 
 import org.chaiware.acommander.helpers.ArchiveManager;
+import org.chaiware.acommander.helpers.FilesPanesHelper;
 import org.chaiware.acommander.model.ArchiveMode;
 import org.chaiware.acommander.model.ArchiveSession;
 import org.chaiware.acommander.model.FileItem;
@@ -45,7 +46,14 @@ public class ArchiveFileSystem implements VFileSystem {
         // The internalPath is relative to the archive root
         Path tempPath = session.getTempFolder();
         if (internalPath != null && !internalPath.isEmpty()) {
-            tempPath = tempPath.resolve(internalPath);
+            // Check if internalPath already contains archive prefix which it shouldn't
+            String cleanPath = internalPath;
+            String archiveName = new File(session.getArchivePath()).getName();
+            if (cleanPath.startsWith(archiveName + "://")) {
+                cleanPath = cleanPath.substring((archiveName + "://").length());
+            }
+
+            tempPath = tempPath.resolve(cleanPath);
         }
         
         File folder = tempPath.toFile();
@@ -53,10 +61,7 @@ public class ArchiveFileSystem implements VFileSystem {
         List<FileItem> items = new ArrayList<>();
 
         // Add ".." entry
-        // We need a special way to represent the "up" action in archives
-        // But for now let's use ArchiveParentItem if we want to maintain compatibility
-        // Or just a regular FileItem with ".."
-        items.add(new FileItem(folder, ".."));
+        items.add(new FilesPanesHelper.ArchiveParentItem(folder, "..", session));
 
         if (files != null) {
             for (File f : files) {
@@ -133,6 +138,13 @@ public class ArchiveFileSystem implements VFileSystem {
                 Files.copy(source, target, StandardCopyOption.REPLACE_EXISTING);
             }
             targetArchiveFs.markModified();
+        } else if (targetFs instanceof FtpFileSystem targetFtpFs) {
+            // Upload from archive to FTP
+            List<String> uploadCmd = targetFtpFs.createBaseCurlCommand();
+            uploadCmd.add("-T");
+            uploadCmd.add(source.toString());
+            uploadCmd.add(targetFtpFs.getOptions().getFullUrl(targetInternalPath));
+            targetFtpFs.runCurl(uploadCmd);
         }
     }
 

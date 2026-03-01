@@ -94,4 +94,16 @@ public interface VFileSystem {
      * Marks the file system as needing repack.
      */
     void markModified();
+
+    /**
+     * Returns the separator used by this file system.
+     */
+    default String getSeparator() {
+        return "/";
+    }
+
+    /**
+     * Sets a listener for external command execution.
+     */
+    default void setExternalCommandListener(org.chaiware.acommander.commands.ExternalCommandListener listener) {}
 }

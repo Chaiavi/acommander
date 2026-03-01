@@ -25,10 +25,20 @@ public class ActionExecutor {
         if (action == null) {
             return;
         }
+        logger.info("Executing action: {} (Type: {})", action.getId(), action.getType());
 
         // Check if we're in a read-only location and this is a write action
         // Use the builtin ID if available (for actions like renameShift -> rename)
         String actionIdForCheck = action.getBuiltin() != null ? action.getBuiltin() : action.getId();
+        
+        // Check for FTP compatibility
+        if (commander.filesPanesHelper.getFocusedFileSystem() instanceof org.chaiware.acommander.vfs.FtpFileSystem) {
+            if (!isActionSupportedOnFtp(actionIdForCheck)) {
+                commander.showError(action.getLabel(), "The '" + action.getLabel() + "' action is not supported on FTP folders.");
+                return;
+            }
+        }
+
         if (isReadOnlyWriteAttempt(actionIdForCheck)) {
             commander.showReadOnlyLocationWarning();
             return;
@@ -40,6 +50,17 @@ public class ActionExecutor {
         } else {
             executeBuiltin(action);
         }
+    }
+
+    public boolean isActionSupportedOnFtp(String actionId) {
+        return switch (actionId) {
+            case "help", "settings", "rename", "view", "edit", "copy", "move", "mkdir", "mkfile", 
+                 "delete", "refresh", "openCommandPalette", "leftPathCombo", 
+                 "rightPathCombo", "setDarkMode", "setLightMode", 
+                 "setRegularMode", "toggleDarkMode", "sortByName", "sortBySize", "sortByDate", 
+                 "gotoBookmark", "removeBookmark", "ftpConnect", "ftpDisconnect" -> true;
+            default -> false;
+        };
     }
 
     /**
@@ -139,6 +160,8 @@ public class ActionExecutor {
             case "bookmarkThisPath" -> commander.bookmarkCurrentPath();
             case "gotoBookmark" -> commander.gotoBookmark();
             case "removeBookmark" -> commander.removeBookmark();
+            case "ftpConnect" -> commander.ftpConnect();
+            case "ftpDisconnect" -> commander.ftpDisconnect();
             default -> logger.warn("Unknown builtin action id: {}", builtin);
         }
     }

@@ -6,14 +6,13 @@ import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 import org.chaiware.acommander.helpers.FilesPanesHelper;
 import org.chaiware.acommander.model.FileItem;
-import org.chaiware.acommander.vfs.ArchiveFileSystem;
+import org.chaiware.acommander.vfs.LocalFileSystem;
 import org.chaiware.acommander.vfs.VFileSystem;
 
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.Arrays;
 import java.util.List;
@@ -34,10 +33,17 @@ public class CommandsSimpleImpl extends ACommands {
         
         VFileSystem fs = fileListsLoader.getFocusedFileSystem();
         String oldInternalPath = fs.getInternalPath(selectedItem);
-        Path oldPath = Paths.get(oldInternalPath);
-        Path newInternalPath = oldPath.getParent() != null ? oldPath.getParent().resolve(newFilename) : Paths.get(newFilename);
+        String separator = fs.getSeparator();
         
-        fs.rename(oldInternalPath, newInternalPath.toString());
+        String newInternalPath;
+        int lastSlash = oldInternalPath.lastIndexOf(separator);
+        if (lastSlash >= 0) {
+            newInternalPath = oldInternalPath.substring(0, lastSlash + 1) + newFilename;
+        } else {
+            newInternalPath = newFilename;
+        }
+        
+        fs.rename(oldInternalPath, newInternalPath);
         
         fileListsLoader.refreshFileListViews();
         log.debug("Renamed: {} to {}", oldFileName, newFilename);
@@ -59,7 +65,26 @@ public class CommandsSimpleImpl extends ACommands {
         VFileSystem targetFs = fileListsLoader.getUnfocusedFileSystem();
 
         String sourceInternalPath = sourceFs.getInternalPath(sourceFile);
-        String targetInternalPath = targetFs.getInternalPath(new FileItem(new File(targetFolder, sourceFile.getName())));
+        
+        String targetInternalPath;
+        if (targetFs instanceof LocalFileSystem) {
+            targetInternalPath = targetFs.getInternalPath(new FileItem(new File(targetFolder, sourceFile.getName())));
+        } else {
+            // Virtual file system: join targetFolder and name using VFS-appropriate separator
+            String separator = "/"; // Most VFS use /
+            String path = targetFolder;
+            if (path.endsWith(separator)) {
+                targetInternalPath = path + sourceFile.getName();
+            } else {
+                targetInternalPath = path + separator + sourceFile.getName();
+            }
+            
+            // Still call getInternalPath to let the VFS sanitize it (e.g. strip URL prefix)
+            targetInternalPath = targetFs.getInternalPath(new FileItem(null, sourceFile.getName(), -1, -1, sourceFile.isDirectory()));
+            // Wait, the above line is not quite right if targetFolder is not the root.
+            // Let's create a pseudo-file with the full path if targetFolder contains info.
+            targetInternalPath = targetFs.getInternalPath(new FileItem(new File(targetFolder, sourceFile.getName())));
+        }
 
         sourceFs.copy(sourceInternalPath, targetFs, targetInternalPath);
         
@@ -73,7 +98,13 @@ public class CommandsSimpleImpl extends ACommands {
         VFileSystem targetFs = fileListsLoader.getUnfocusedFileSystem();
 
         String sourceInternalPath = sourceFs.getInternalPath(sourceFile);
-        String targetInternalPath = targetFs.getInternalPath(new FileItem(new File(targetFolder, sourceFile.getName())));
+        
+        String targetInternalPath;
+        if (targetFs instanceof LocalFileSystem) {
+            targetInternalPath = targetFs.getInternalPath(new FileItem(new File(targetFolder, sourceFile.getName())));
+        } else {
+            targetInternalPath = targetFs.getInternalPath(new FileItem(new File(targetFolder, sourceFile.getName())));
+        }
 
         sourceFs.move(sourceInternalPath, targetFs, targetInternalPath);
         
@@ -100,14 +131,23 @@ public class CommandsSimpleImpl extends ACommands {
     @Override
     public void mkdir(String parentDir, String newDirName) throws IOException {
         VFileSystem fs = fileListsLoader.getFocusedFileSystem();
-        String internalPath = Paths.get(parentDir, newDirName).toString();
+        String internalPath;
         
-        // If we're in an archive, we need to relativize the path
-        if (fs instanceof ArchiveFileSystem archiveFs) {
-            Path tempFolder = archiveFs.getSession().getTempFolder();
-            Path fullPath = Paths.get(parentDir, newDirName);
-            if (fullPath.startsWith(tempFolder)) {
-                internalPath = tempFolder.relativize(fullPath).toString();
+        if (fs instanceof LocalFileSystem) {
+            String separator = fs.getSeparator();
+            if (parentDir.endsWith(separator)) {
+                internalPath = parentDir + newDirName;
+            } else {
+                internalPath = parentDir + separator + newDirName;
+            }
+        } else {
+            // For FTP/Archive, construct absolute internal path from parent and new name
+            String separator = fs.getSeparator();
+            String parentInternalPath = fs.getInternalPath(new FileItem(new File(parentDir)));
+            if (parentInternalPath.endsWith(separator)) {
+                internalPath = parentInternalPath + newDirName;
+            } else {
+                internalPath = parentInternalPath + separator + newDirName;
             }
         }
         
@@ -119,14 +159,23 @@ public class CommandsSimpleImpl extends ACommands {
     @Override
     public void mkFile(String parentDir, String newFileName) throws Exception {
         VFileSystem fs = fileListsLoader.getFocusedFileSystem();
-        String internalPath = Paths.get(parentDir, newFileName).toString();
-        
-        // If we're in an archive, we need to relativize the path
-        if (fs instanceof ArchiveFileSystem archiveFs) {
-            Path tempFolder = archiveFs.getSession().getTempFolder();
-            Path fullPath = Paths.get(parentDir, newFileName);
-            if (fullPath.startsWith(tempFolder)) {
-                internalPath = tempFolder.relativize(fullPath).toString();
+        String internalPath;
+
+        if (fs instanceof LocalFileSystem) {
+            String separator = fs.getSeparator();
+            if (parentDir.endsWith(separator)) {
+                internalPath = parentDir + newFileName;
+            } else {
+                internalPath = parentDir + separator + newFileName;
+            }
+        } else {
+            // For FTP/Archive, construct absolute internal path from parent and new name
+            String separator = fs.getSeparator();
+            String parentInternalPath = fs.getInternalPath(new FileItem(new File(parentDir)));
+            if (parentInternalPath.endsWith(separator)) {
+                internalPath = parentInternalPath + newFileName;
+            } else {
+                internalPath = parentInternalPath + separator + newFileName;
             }
         }
         

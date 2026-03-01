@@ -18,10 +18,12 @@ public class FileItem {
     private String presentableFilename;
     private long size = -1;
     private Long lastModified = null;
+    private boolean isDirectory = false;
 
     public FileItem(File file) {
         this.file = file;
         this.presentableFilename = file.getName();
+        this.isDirectory = file != null && file.isDirectory();
     }
 
     public FileItem(File folder, String filenameStr) {
@@ -30,10 +32,15 @@ public class FileItem {
     }
 
     public FileItem(File file, String presentableFilename, long size, long lastModified) {
+        this(file, presentableFilename, size, lastModified, file != null && file.isDirectory());
+    }
+
+    public FileItem(File file, String presentableFilename, long size, long lastModified, boolean isDirectory) {
         this.file = file;
         this.presentableFilename = presentableFilename;
         this.size = size;
         this.lastModified = lastModified;
+        this.isDirectory = isDirectory;
     }
 
     public String getName() {
@@ -91,7 +98,11 @@ public class FileItem {
     }
 
     public boolean isDirectory() {
-        return file != null ? file.isDirectory() : false;
+        return isDirectory;
+    }
+
+    public void setDirectory(boolean isDirectory) {
+        this.isDirectory = isDirectory;
     }
 
     @Override

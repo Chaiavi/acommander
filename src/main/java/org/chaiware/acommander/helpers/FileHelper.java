@@ -1,13 +1,14 @@
 package org.chaiware.acommander.helpers;
 
 import org.chaiware.acommander.model.FileItem;
+import org.chaiware.acommander.vfs.LocalFileSystem;
+import org.chaiware.acommander.vfs.VFileSystem;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
 
 public class FileHelper {
     private static final Logger logger = LoggerFactory.getLogger(FileHelper.class);
@@ -17,13 +18,33 @@ public class FileHelper {
      * Uses null byte detection and suspicious character ratio analysis.
      */
     public static boolean isTextFile(FileItem fileItem) {
+        return isTextFile(fileItem, new LocalFileSystem(""));
+    }
+
+    /**
+     * Checks if a file appears to be a text file (non-binary).
+     * Uses null byte detection and suspicious character ratio analysis.
+     */
+    public static boolean isTextFile(FileItem fileItem, VFileSystem fs) {
         if (fileItem == null || fileItem.isDirectory()) {
             return false;
         }
 
-        Path path = fileItem.getFile().toPath();
-        if (!Files.isRegularFile(path) || !Files.isReadable(path)) {
-            return false;
+        File file;
+        if (fs instanceof LocalFileSystem) {
+            file = fileItem.getFile();
+            if (file == null || !file.exists() || !file.canRead()) {
+                return false;
+            }
+        } else {
+            // For non-local, we'd have to download to check. 
+            // For now, let's assume it's text based on extension or just return true to allow trying to edit.
+            String name = fileItem.getName().toLowerCase();
+            return name.endsWith(".txt") || name.endsWith(".java") || name.endsWith(".xml") || 
+                   name.endsWith(".json") || name.endsWith(".properties") || name.endsWith(".md") ||
+                   name.endsWith(".html") || name.endsWith(".css") || name.endsWith(".js") ||
+                   name.endsWith(".c") || name.endsWith(".cpp") || name.endsWith(".h") ||
+                   name.endsWith(".py") || name.endsWith(".sh") || name.endsWith(".bat");
         }
 
         byte[] buffer = new byte[8192];

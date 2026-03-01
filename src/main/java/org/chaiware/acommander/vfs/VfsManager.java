@@ -24,7 +24,13 @@ public class VfsManager {
      * Currently supports local paths.
      */
     public VFileSystem createLocalFileSystem(String rootPath) {
+        logger.debug("Creating LocalFileSystem for path: {}", rootPath);
         return new LocalFileSystem(rootPath);
+    }
+
+    public VFileSystem createFtpFileSystem(FtpConnectionOptions options) {
+        logger.debug("Creating FtpFileSystem for host: {}", options.getHost());
+        return new FtpFileSystem(options);
     }
 
     /**
@@ -33,6 +39,7 @@ public class VfsManager {
     public VFileSystem enterVirtualFolder(VFileSystem currentFs, FileItem item) throws IOException {
         if (currentFs.isVirtualFolder(item)) {
             String archivePath = item.getFullPath();
+            logger.info("Entering virtual folder (archive): {}", archivePath);
             ArchiveSession session = archiveManager.openArchive(archivePath);
             return new ArchiveFileSystem(session, archiveManager);
         }
@@ -44,6 +51,7 @@ public class VfsManager {
      */
     public void closeFileSystem(VFileSystem fs) {
         if (fs != null) {
+            logger.debug("Closing file system: {}", fs.getIdentifier());
             try {
                 fs.close();
             } catch (IOException e) {

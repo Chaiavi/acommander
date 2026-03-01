@@ -7,6 +7,8 @@ import org.chaiware.acommander.actions.SelectionRule;
 import org.chaiware.acommander.config.ActionDefinition;
 import org.chaiware.acommander.config.ActionScope;
 import org.chaiware.acommander.config.AppRegistry;
+import org.chaiware.acommander.helpers.FilesPanesHelper;
+import org.chaiware.acommander.vfs.FtpFileSystem;
 
 import java.io.File;
 
@@ -80,10 +82,26 @@ public class FilePaneKeyHandlerImpl implements IKeyHandler {
     }
 
     private void goUpOneFolder() {
+        FilesPanesHelper.FocusSide side = commander.filesPanesHelper.getFocusedSide();
+        // Check if we're in FTP
+        if (commander.filesPanesHelper.getFileSystem(side) instanceof FtpFileSystem ftpFs) {
+            String currentPath = commander.filesPanesHelper.getPath(side);
+
+            if ("/".equals(currentPath) || currentPath.isEmpty()) {
+                // At FTP root, backspace disconnects and goes back to local
+                commander.ftpDisconnect();
+            } else {
+                // Not at root, go up one level in FTP
+                String parentPath = ftpFs.getParent(currentPath);
+                commander.filesPanesHelper.setFileListPath(side, parentPath);
+            }
+            return;
+        }
+
         // Check if we're in an archive
-        if (commander.filesPanesHelper.isInArchive(commander.filesPanesHelper.getFocusedSide())) {
+        if (commander.filesPanesHelper.isInArchive(side)) {
             // Use archive-aware navigation (works like ".." entry)
-            commander.filesPanesHelper.goUpInArchive(commander.filesPanesHelper.getFocusedSide());
+            commander.filesPanesHelper.goUpInArchive(side);
         } else {
             // Regular folder navigation
             File parent = new File(commander.filesPanesHelper.getFocusedPath()).getParentFile();

@@ -43,6 +43,32 @@ public class ActionRegistry {
     }
 
     private boolean isSelectionAllowedForBuiltin(String builtin, ActionContext ctx) {
+        if (ctx != null && ctx.commander() != null && ctx.commander().filesPanesHelper != null) {
+            var fs = ctx.commander().filesPanesHelper.getFocusedFileSystem();
+            if (fs instanceof org.chaiware.acommander.vfs.FtpFileSystem) {
+                // List of supported FTP actions
+                boolean supported = switch (builtin) {
+                    case "help", "settings", "rename", "view", "edit", "copy", "move", "mkdir", "mkfile", 
+                         "delete", "refresh", "openCommandPalette", "leftPathCombo", 
+                         "rightPathCombo", "setDarkMode", "setLightMode", 
+                         "setRegularMode", "toggleDarkMode", "sortByName", "sortBySize", "sortByDate", 
+                         "gotoBookmark", "removeBookmark", "ftpConnect", "ftpDisconnect" -> true;
+                    default -> false;
+                };
+                if (!supported) return false;
+            }
+        }
+
+        // Additional checks for specific actions regardless of FS
+        if ("ftpDisconnect".equals(builtin)) {
+            if (ctx == null || ctx.commander() == null || ctx.commander().filesPanesHelper == null) {
+                return false;
+            }
+            var filesPanesHelper = ctx.commander().filesPanesHelper;
+            var currentFs = filesPanesHelper.getFileSystem(filesPanesHelper.getFocusedSide());
+            return currentFs instanceof org.chaiware.acommander.vfs.FtpFileSystem;
+        }
+
         if (!"convertGraphicsFiles".equals(builtin)
                 && !"convertAudioFiles".equals(builtin)
                 && !"convertMediaFile".equals(builtin)
