@@ -220,6 +220,10 @@ public class CommandsAdvancedImpl extends ACommands {
     protected void doDelete(List<FileItem> validItems) throws Exception {
         List<FileItem> failedDeletes = new ArrayList<>();
         VFileSystem fs = fileListsLoader.getFocusedFileSystem();
+        if (fs == null) {
+            log.error("Cannot delete: Focused file system is null");
+            return;
+        }
         
         for (FileItem selectedItem : validItems) {
             try {

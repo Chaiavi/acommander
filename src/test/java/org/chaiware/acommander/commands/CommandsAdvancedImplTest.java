@@ -33,6 +33,27 @@ class CommandsAdvancedImplTest {
         Files.writeString(nested.resolve("data.txt"), "delete");
 
         FilesPanesHelper panesHelper = mock(FilesPanesHelper.class);
+        org.chaiware.acommander.vfs.VFileSystem fs = mock(org.chaiware.acommander.vfs.VFileSystem.class);
+        when(panesHelper.getFocusedFileSystem()).thenReturn(fs);
+        when(fs.getInternalPath(any())).thenAnswer(invocation -> {
+            FileItem item = invocation.getArgument(0);
+            return item.getFile().getAbsolutePath();
+        });
+        doAnswer(invocation -> {
+            String pathStr = invocation.getArgument(0);
+            Path path = Path.of(pathStr);
+            if (Files.isDirectory(path)) {
+                try (java.util.stream.Stream<Path> walk = Files.walk(path)) {
+                    walk.sorted(java.util.Comparator.reverseOrder())
+                        .map(Path::toFile)
+                        .forEach(java.io.File::delete);
+                }
+            } else {
+                Files.deleteIfExists(path);
+            }
+            return null;
+        }).when(fs).delete(any());
+
         AppRegistry registry = new AppRegistry(new AppConfig());
         CommandsAdvancedImpl commands = new CommandsAdvancedImpl(panesHelper, registry);
 

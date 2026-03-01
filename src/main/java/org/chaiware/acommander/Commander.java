@@ -1137,8 +1137,13 @@ public class Commander {
 
         try {
             List<FileItem> fileItems = filesPanesHelper.getSelectedItems();
-            for (FileItem fileItem : fileItems)
-                commands.edit(fileItem);
+            for (FileItem fileItem : fileItems) {
+                if (org.chaiware.acommander.helpers.FileHelper.isTextFile(fileItem)) {
+                    commands.edit(fileItem);
+                } else {
+                    showError("Edit File", "Cannot edit binary file: " + fileItem.getName());
+                }
+            }
         } catch (Exception ex) {
             error("Failed Editing file", ex);
         }
@@ -2600,7 +2605,7 @@ public class Commander {
         if (leftSelected == null || rightSelected == null) {
             return false;
         }
-        return isComparableTextFile(leftSelected) && isComparableTextFile(rightSelected);
+        return org.chaiware.acommander.helpers.FileHelper.isTextFile(leftSelected) && org.chaiware.acommander.helpers.FileHelper.isTextFile(rightSelected);
     }
 
     public void compareFiles() {
@@ -2619,7 +2624,7 @@ public class Commander {
             return;
         }
 
-        if (!isComparableTextFile(leftSelected) || !isComparableTextFile(rightSelected)) {
+        if (!org.chaiware.acommander.helpers.FileHelper.isTextFile(leftSelected) || !org.chaiware.acommander.helpers.FileHelper.isTextFile(rightSelected)) {
             showError("Compare Files", "Only text files can be compared. One of the selected files appears to be binary.");
             restoreFocusToFile(lastSelectedSide, lastSelectedFile);
             return;
@@ -3606,49 +3611,6 @@ public class Commander {
         return item;
     }
 
-    private boolean isComparableTextFile(FileItem fileItem) {
-        if (fileItem == null || fileItem.isDirectory()) {
-            return false;
-        }
-
-        Path path = fileItem.getFile().toPath();
-        if (!Files.isRegularFile(path) || !Files.isReadable(path)) {
-            return false;
-        }
-
-        byte[] buffer = new byte[8192];
-        int read;
-        try (FileInputStream inputStream = new FileInputStream(fileItem.getFile())) {
-            read = inputStream.read(buffer);
-        } catch (IOException ex) {
-            logger.debug("Failed reading file while checking if it is text: {}", fileItem.getFullPath(), ex);
-            return false;
-        }
-
-        if (read <= 0) {
-            return true;
-        }
-        if (read >= 2) {
-            boolean utf16LeBom = (buffer[0] & 0xFF) == 0xFF && (buffer[1] & 0xFF) == 0xFE;
-            boolean utf16BeBom = (buffer[0] & 0xFF) == 0xFE && (buffer[1] & 0xFF) == 0xFF;
-            if (utf16LeBom || utf16BeBom) {
-                return true;
-            }
-        }
-
-        int suspicious = 0;
-        for (int i = 0; i < read; i++) {
-            int value = buffer[i] & 0xFF;
-            if (value == 0) {
-                return false;
-            }
-            if (value < 0x09 || (value > 0x0D && value < 0x20)) {
-                suspicious++;
-            }
-        }
-        double suspiciousRatio = (double) suspicious / read;
-        return suspiciousRatio <= 0.30d;
-    }
 
     private void restoreFocusToFile(FilesPanesHelper.FocusSide side, FileItem fileItem) {
         Runnable restore = () -> {
