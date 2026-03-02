@@ -5,6 +5,7 @@ import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.lang.reflect.Method;
+import java.util.ArrayList;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -254,18 +255,193 @@ class FtpFileSystemTest {
     }
 
     @Test
-    void testGetDisplayName() throws Exception {
+    void testCopyRecursiveLogic() throws Exception {
         FtpConnectionOptions options = FtpConnectionOptions.builder()
                 .host("host").port(21).username("u").password("p").build();
-        FtpFileSystem fs = new FtpFileSystem(options);
+
+        final List<String> commands = new ArrayList<>();
+        FtpFileSystem fs = new FtpFileSystem(options) {
+            @Override
+            public List<String> runCurl(List<String> command) throws IOException {
+                String cmdStr = String.join(" ", command);
+                commands.add(cmdStr);
+                if (cmdStr.contains("/source/sub")) {
+                    return List.of("-rw-r--r--    1 u u  456 Mar 01 16:39 subfile.txt");
+                }
+                if (cmdStr.contains("/source")) {
+                    return List.of("drwxr-xr-x    2 u u 4096 Mar 01 16:39 .",
+                                   "drwxr-xr-x    2 u u 4096 Mar 01 16:39 ..",
+                                   "-rw-r--r--    1 u u  123 Mar 01 16:39 file.txt",
+                                   "drwxr-xr-x    2 u u 4096 Mar 01 16:39 sub");
+                }
+                if (cmdStr.contains("ftp://host:21/")) {
+                    return List.of("drwxr-xr-x    2 u u 4096 Mar 01 16:39 source");
+                }
+                return List.of();
+            }
+        };
+
+        FtpFileSystem targetFs = new FtpFileSystem(options) {
+            @Override
+            public List<String> runCurl(List<String> command) throws IOException {
+                commands.add("TARGET: " + String.join(" ", command));
+                return List.of();
+            }
+        };
+
+        fs.copy("/source", targetFs, "/target");
+
+        // Verify MKD (makeDirectory) calls
+        assertTrue(commands.stream().anyMatch(c -> c.contains("MKD /target")), "Should create target dir");
+        assertTrue(commands.stream().anyMatch(c -> c.contains("MKD /target/sub")), "Should create target subdir");
         
-        java.lang.reflect.Field field = FtpFileSystem.class.getDeclaredField("currentInternalPath");
-        field.setAccessible(true);
+        // Verify file copies (will involve temp files, but we check curl -T)
+        assertTrue(commands.stream().anyMatch(c -> c.contains("-T") && c.contains("/target/file.txt")), "Should upload file.txt");
+        assertTrue(commands.stream().anyMatch(c -> c.contains("-T") && c.contains("/target/sub/subfile.txt")), "Should upload subfile.txt");
+    }
+
+    @Test
+    void testMoveSameServerOptimized() throws Exception {
+        FtpConnectionOptions options = FtpConnectionOptions.builder()
+                .host("host").port(21).username("u").password("p").build();
+
+        final List<String> commands = new ArrayList<>();
+        FtpFileSystem fs = new FtpFileSystem(options) {
+            @Override
+            public List<String> runCurl(List<String> command) throws IOException {
+                commands.add(String.join(" ", command));
+                return List.of();
+            }
+        };
+
+        fs.move("/source.txt", fs, "/dest.txt");
+
+        // Should use rename (RNFR/RNTO)
+        assertTrue(commands.stream().anyMatch(c -> c.contains("RNFR /source.txt")), "Should use RNFR");
+        assertTrue(commands.stream().anyMatch(c -> c.contains("RNTO /dest.txt")), "Should use RNTO");
+        // Should NOT use DELE or -T
+        assertFalse(commands.stream().anyMatch(c -> c.contains("DELE")), "Should not delete");
+        assertFalse(commands.stream().anyMatch(c -> c.contains("-T")), "Should not upload");
+    }
+    @Test
+    void testMoveDifferentServers() throws Exception {
+        FtpConnectionOptions options1 = FtpConnectionOptions.builder()
+                .host("host1").port(21).username("u").password("p").build();
+        FtpConnectionOptions options2 = FtpConnectionOptions.builder()
+                .host("host2").port(21).username("u").password("p").build();
+
+        final List<String> commands = new ArrayList<>();
+        FtpFileSystem fs1 = new FtpFileSystem(options1) {
+            @Override
+            public List<String> runCurl(List<String> command) throws IOException {
+                String cmdStr = String.join(" ", command);
+                commands.add("FS1: " + cmdStr);
+                if (cmdStr.contains("LIST") || (cmdStr.contains("ftp://host1") && !cmdStr.contains("-Q") && !cmdStr.contains("-T") && !cmdStr.contains("-X") && !cmdStr.contains("-o"))) {
+                    return List.of("-rw-r--r--    1 u u  123 Mar 01 16:39 source.txt");
+                }
+                return List.of();
+            }
+        };
+
+        FtpFileSystem fs2 = new FtpFileSystem(options2) {
+            @Override
+            public List<String> runCurl(List<String> command) throws IOException {
+                commands.add("FS2: " + String.join(" ", command));
+                return List.of();
+            }
+        };
+
+        fs1.move("/source.txt", fs2, "/dest.txt");
+
+        // System.out.println("[DEBUG_LOG] Commands: " + String.join("\n", commands));
         
-        field.set(fs, "/");
-        assertEquals("ftp://host/", fs.getDisplayName());
+        // Should NOT use rename
+        assertFalse(commands.stream().anyMatch(c -> c.contains("RNFR")), "Should not use RNFR for different servers");
         
-        field.set(fs, "/home/user");
-        assertEquals("ftp://host/home/user", fs.getDisplayName());
+        // Should use:
+        // 1. Download from FS1 to temp
+        // 2. Upload from temp to FS2
+        // 3. Delete from FS1
+        
+        assertTrue(commands.stream().anyMatch(c -> c.contains("FS1:") && c.contains("-o") && c.contains("source.txt")), "Should download from FS1");
+        assertTrue(commands.stream().anyMatch(c -> c.contains("FS2:") && c.contains("-T") && c.contains("dest.txt")), "Should upload to FS2");
+        assertTrue(commands.stream().anyMatch(c -> c.contains("FS1:") && c.contains("DELE /source.txt")), "Should delete from FS1");
+    }
+
+    @Test
+    void testMoveDifferentServersWithUnsanitizedTarget() throws Exception {
+        FtpConnectionOptions options1 = FtpConnectionOptions.builder()
+                .host("host1").port(21).username("u").password("p").build();
+        FtpConnectionOptions options2 = FtpConnectionOptions.builder()
+                .host("host2").port(21).username("u").password("p").build();
+
+        final List<String> commands = new ArrayList<>();
+        FtpFileSystem fs1 = new FtpFileSystem(options1) {
+            @Override
+            public List<String> runCurl(List<String> command) throws IOException {
+                String cmdStr = String.join(" ", command);
+                commands.add("FS1: " + cmdStr);
+                if (cmdStr.contains("LIST") || (cmdStr.contains("ftp://host1") && !cmdStr.contains("-Q") && !cmdStr.contains("-T") && !cmdStr.contains("-X") && !cmdStr.contains("-o"))) {
+                    return List.of("-rw-r--r--    1 u u  123 Mar 01 16:39 source.txt");
+                }
+                return List.of();
+            }
+        };
+
+        FtpFileSystem fs2 = new FtpFileSystem(options2) {
+            @Override
+            public List<String> runCurl(List<String> command) throws IOException {
+                commands.add("FS2: " + String.join(" ", command));
+                return List.of();
+            }
+        };
+
+        // UI might pass a full URL as target path when dragging between panes
+        String unsanitizedTarget = "ftp://host2:21/dest.txt";
+        fs1.move("/source.txt", fs2, unsanitizedTarget);
+
+        // Verify that target path was sanitized before being used in FS2
+        assertTrue(commands.stream().anyMatch(c -> c.contains("FS2:") && c.contains("-T") && c.contains("ftp://host2:21/dest.txt")), "Should upload to sanitized FS2 URL");
+        // Verify we didn't end up with ftp://host2:21//ftp://host2:21/dest.txt
+        assertFalse(commands.stream().anyMatch(c -> c.contains("FS2:") && c.contains("ftp://host2:21//ftp:")), "Should not have double URL in target");
+    }
+
+    @Test
+    void testMoveSameHostDifferentUser() throws Exception {
+        FtpConnectionOptions options1 = FtpConnectionOptions.builder()
+                .host("host").port(21).username("user1").password("pass1").build();
+        FtpConnectionOptions options2 = FtpConnectionOptions.builder()
+                .host("host").port(21).username("user2").password("pass2").build();
+
+        final List<String> commands = new ArrayList<>();
+        FtpFileSystem fs1 = new FtpFileSystem(options1) {
+            @Override
+            public List<String> runCurl(List<String> command) throws IOException {
+                String cmdStr = String.join(" ", command);
+                commands.add("FS1: " + cmdStr);
+                if (cmdStr.contains("LIST") || (cmdStr.contains("ftp://host") && !cmdStr.contains("-Q") && !cmdStr.contains("-T") && !cmdStr.contains("-X") && !cmdStr.contains("-o"))) {
+                    return List.of("-rw-r--r--    1 user1 user1  123 Mar 01 16:39 file.txt");
+                }
+                return List.of();
+            }
+        };
+
+        FtpFileSystem fs2 = new FtpFileSystem(options2) {
+            @Override
+            public List<String> runCurl(List<String> command) throws IOException {
+                commands.add("FS2: " + String.join(" ", command));
+                return List.of();
+            }
+        };
+
+        fs1.move("/file.txt", fs2, "/file.txt");
+
+        // Should NOT use rename (RNFR/RNTO) because credentials differ
+        assertFalse(commands.stream().anyMatch(c -> c.contains("RNFR")), "Should not use RNFR for different users on same host");
+        
+        // Should use copy + delete
+        assertTrue(commands.stream().anyMatch(c -> c.contains("FS1:") && c.contains("-o")), "Should download from user1");
+        assertTrue(commands.stream().anyMatch(c -> c.contains("FS2:") && c.contains("-T")), "Should upload to user2");
+        assertTrue(commands.stream().anyMatch(c -> c.contains("FS1:") && c.contains("DELE /file.txt")), "Should delete from user1");
     }
 }

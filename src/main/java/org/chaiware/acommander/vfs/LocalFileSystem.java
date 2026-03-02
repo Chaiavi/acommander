@@ -108,6 +108,7 @@ public class LocalFileSystem implements VFileSystem {
             archiveFs.markModified();
         } else if (targetFs instanceof FtpFileSystem targetFtpFs) {
             // Upload to FTP
+            targetInternalPath = targetFtpFs.sanitizePath(targetInternalPath);
             List<String> uploadCmd = targetFtpFs.createBaseCurlCommand();
             uploadCmd.add("-T");
             uploadCmd.add(sourceInternalPath);

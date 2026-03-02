@@ -423,10 +423,13 @@ public class FtpFileSystem implements VFileSystem {
     @Override
     public void move(String sourceInternalPath, VFileSystem targetFs, String targetInternalPath) throws IOException {
         sourceInternalPath = sanitizePath(sourceInternalPath);
-        if (targetFs == this) {
+        if (targetFs instanceof FtpFileSystem targetFtpFs && 
+            targetFtpFs.getOptions().equals(this.getOptions())) {
+            // Same server AND same user - use RENAME (RNFR/RNTO)
             targetInternalPath = sanitizePath(targetInternalPath);
             rename(sourceInternalPath, targetInternalPath);
         } else {
+            // For different servers or different users, copy will handle sanitization of targetInternalPath
             copy(sourceInternalPath, targetFs, targetInternalPath);
             delete(sourceInternalPath);
         }
@@ -435,11 +438,47 @@ public class FtpFileSystem implements VFileSystem {
     @Override
     public void copy(String sourceInternalPath, VFileSystem targetFs, String targetInternalPath) throws IOException {
         sourceInternalPath = sanitizePath(sourceInternalPath);
-        if (targetFs == this) {
-            targetInternalPath = sanitizePath(targetInternalPath);
-        }
-        logger.info("Copying item from {}:{} to {}:{}", this.getDisplayName(), sourceInternalPath, targetFs.getDisplayName(), targetInternalPath);
+        boolean isDir = isDirectory(sourceInternalPath);
         
+        if (targetFs instanceof FtpFileSystem targetFtpFs) {
+            targetInternalPath = targetFtpFs.sanitizePath(targetInternalPath);
+        }
+        
+        logger.info("Copying {} item from {}:{} to {}:{}", 
+                isDir ? "directory" : "file",
+                this.getDisplayName(), sourceInternalPath, targetFs.getDisplayName(), targetInternalPath);
+        
+        if (isDir) {
+            copyDirectoryRecursive(sourceInternalPath, targetFs, targetInternalPath);
+            return;
+        }
+
+        // Single file copy
+        copyFile(sourceInternalPath, targetFs, targetInternalPath);
+    }
+
+    private boolean isDirectory(String internalPath) throws IOException {
+        if ("/".equals(internalPath) || internalPath.isEmpty()) return true;
+        
+        String parent = getParent(internalPath);
+        String name = getName(internalPath);
+
+        List<FileItem> items = listContents(parent);
+        for (FileItem item : items) {
+            if (name.equals(item.getPresentableFilename())) {
+                return item.isDirectory();
+            }
+        }
+        // Fallback: try to list it as a directory. If it succeeds, it's a directory.
+        try {
+            listContents(internalPath);
+            return true;
+        } catch (IOException e) {
+            return false;
+        }
+    }
+
+    private void copyFile(String sourceInternalPath, VFileSystem targetFs, String targetInternalPath) throws IOException {
         if (targetFs instanceof LocalFileSystem) {
             // Download from FTP to local
             logger.debug("Downloading {} to {}", sourceInternalPath, targetInternalPath);
@@ -453,7 +492,7 @@ public class FtpFileSystem implements VFileSystem {
             File tempFile = File.createTempFile("acommander_ftp_transfer", ".tmp");
             try {
                 // 1. Download to local temp
-                this.copy(sourceInternalPath, new LocalFileSystem(""), tempFile.getAbsolutePath());
+                this.copyFile(sourceInternalPath, new LocalFileSystem(""), tempFile.getAbsolutePath());
                 // 2. Upload from local temp to target FTP
                 List<String> uploadCmd = targetFtpFs.createBaseCurlCommand();
                 uploadCmd.add("-T");
@@ -467,17 +506,37 @@ public class FtpFileSystem implements VFileSystem {
             // Download from FTP to archive temp folder
             Path targetPathInTemp = archiveFs.getSession().getTempFolder().resolve(targetInternalPath);
             Files.createDirectories(targetPathInTemp.getParent());
-            this.copy(sourceInternalPath, new LocalFileSystem(""), targetPathInTemp.toString());
+            this.copyFile(sourceInternalPath, new LocalFileSystem(""), targetPathInTemp.toString());
             archiveFs.markModified();
         } else {
             // Generic target FS: download to temp and let targetFs handle it if it can
-            // (But typically targetFs should implement its own copy if it's the target)
             File tempFile = File.createTempFile("acommander_generic_transfer", ".tmp");
             try {
-                this.copy(sourceInternalPath, new LocalFileSystem(""), tempFile.getAbsolutePath());
+                this.copyFile(sourceInternalPath, new LocalFileSystem(""), tempFile.getAbsolutePath());
                 targetFs.copy(tempFile.getAbsolutePath(), targetFs, targetInternalPath);
             } finally {
                 tempFile.delete();
+            }
+        }
+    }
+
+    private void copyDirectoryRecursive(String sourceInternalPath, VFileSystem targetFs, String targetInternalPath) throws IOException {
+        // Create target directory
+        targetFs.makeDirectory(targetInternalPath);
+
+        // List contents of source directory
+        List<FileItem> items = listContents(sourceInternalPath);
+        for (FileItem item : items) {
+            if ("..".equals(item.getPresentableFilename())) continue;
+
+            String itemName = item.getPresentableFilename();
+            String subSource = sourceInternalPath + (sourceInternalPath.endsWith("/") ? "" : "/") + itemName;
+            String subTarget = targetInternalPath + (targetFs.getSeparator().equals("/") ? "/" : targetFs.getSeparator()) + itemName;
+
+            if (item.isDirectory()) {
+                copyDirectoryRecursive(subSource, targetFs, subTarget);
+            } else {
+                copyFile(subSource, targetFs, subTarget);
             }
         }
     }
@@ -566,7 +625,7 @@ public class FtpFileSystem implements VFileSystem {
         }
     }
 
-    private String sanitizePath(String path) {
+    public String sanitizePath(String path) {
         if (path == null) return "";
         String sanitized = path.replace('\\', '/');
         
