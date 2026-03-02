@@ -10,28 +10,38 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+/**
+ * Unit tests for FtpFileSystem.
+ * <p>
+ * SECURITY NOTE: All credentials below are MOCK values for testing only.
+ * Never commit real passwords, API keys, or production server addresses.
+ */
 class FtpFileSystemTest {
+
+    // Mock credentials for testing - never use real credentials in tests
+    private static final String MOCK_HOST = "ftp.example.com";
+    private static final String MOCK_PASSWORD = "test_password_123";
 
     @Test
     void testUrlGeneration() {
         FtpConnectionOptions options = FtpConnectionOptions.builder()
-                .host("51.38.67.129")
+                .host(MOCK_HOST)
                 .port(21)
-                .username("temp@haifaport.com")
-                .password("password")
+                .username("testuser@example.com")
+                .password(MOCK_PASSWORD)
                 .build();
-        
-        assertEquals("ftp://51.38.67.129:21/path", options.getFullUrl("/path"));
-        assertEquals("ftp://51.38.67.129:21/path", options.getFullUrl("path"));
+
+        assertEquals("ftp://ftp.example.com:21/path", options.getFullUrl("/path"));
+        assertEquals("ftp://ftp.example.com:21/path", options.getFullUrl("path"));
     }
 
     @Test
     void testSanitizePath() throws Exception {
         FtpConnectionOptions options = FtpConnectionOptions.builder()
-                .host("51.38.67.129")
+                .host(MOCK_HOST)
                 .port(21)
                 .username("user")
-                .password("pass")
+                .password(MOCK_PASSWORD)
                 .build();
         FtpFileSystem fs = new FtpFileSystem(options);
         
@@ -43,14 +53,14 @@ class FtpFileSystemTest {
         assertEquals("/path/to/folder", sanitizeMethod.invoke(fs, "\\path\\to\\folder"));
         assertEquals("/path/to/folder", sanitizeMethod.invoke(fs, "//path///to/folder"));
         
-        // Host IP prefix
-        assertEquals("/12345678", sanitizeMethod.invoke(fs, "/51.38.67.129/12345678"));
-        assertEquals("/", sanitizeMethod.invoke(fs, "/51.38.67.129"));
-        assertEquals("/", sanitizeMethod.invoke(fs, "/51.38.67.129/"));
-        
+        // Host IP prefix (test with mock host)
+        assertEquals("/12345678", sanitizeMethod.invoke(fs, "/ftp.example.com/12345678"));
+        assertEquals("/", sanitizeMethod.invoke(fs, "/ftp.example.com"));
+        assertEquals("/", sanitizeMethod.invoke(fs, "/ftp.example.com/"));
+
         // Full URL
-        assertEquals("/path", sanitizeMethod.invoke(fs, "ftp://51.38.67.129:21/path"));
-        assertEquals("/path", sanitizeMethod.invoke(fs, "ftp://51.38.67.129/path"));
+        assertEquals("/path", sanitizeMethod.invoke(fs, "ftp://ftp.example.com:21/path"));
+        assertEquals("/path", sanitizeMethod.invoke(fs, "ftp://ftp.example.com/path"));
         
         // Double slash at start (common when joining URLs)
         assertEquals("/path", sanitizeMethod.invoke(fs, "//path"));
@@ -62,7 +72,7 @@ class FtpFileSystemTest {
     @Test
     void testGetParent() {
         FtpConnectionOptions options = FtpConnectionOptions.builder()
-                .host("host").port(21).username("u").password("p").build();
+                .host(MOCK_HOST).port(21).username("u").password(MOCK_PASSWORD).build();
         FtpFileSystem fs = new FtpFileSystem(options);
         
         assertEquals("/", fs.getParent("/"));
@@ -77,10 +87,10 @@ class FtpFileSystemTest {
     @Test
     void testSanitizePathLocalPath() throws Exception {
         FtpConnectionOptions options = FtpConnectionOptions.builder()
-                .host("51.38.67.129")
+                .host(MOCK_HOST)
                 .port(21)
                 .username("user")
-                .password("pass")
+                .password(MOCK_PASSWORD)
                 .build();
         FtpFileSystem fs = new FtpFileSystem(options);
         
@@ -97,10 +107,10 @@ class FtpFileSystemTest {
     @Test
     void testSanitizePathUnnecessaryForLocalPaths() throws Exception {
         FtpConnectionOptions options = FtpConnectionOptions.builder()
-                .host("51.38.67.129")
+                .host(MOCK_HOST)
                 .port(21)
                 .username("user")
-                .password("pass")
+                .password(MOCK_PASSWORD)
                 .build();
         FtpFileSystem fs = new FtpFileSystem(options);
         
@@ -120,10 +130,10 @@ class FtpFileSystemTest {
     @Test
     void testDeleteRecursiveLogic() throws Exception {
         FtpConnectionOptions options = FtpConnectionOptions.builder()
-                .host("51.38.67.129")
+                .host(MOCK_HOST)
                 .port(21)
                 .username("user")
-                .password("pass")
+                .password(MOCK_PASSWORD)
                 .build();
 
         // Subclass to mock/verify behavior
@@ -163,7 +173,7 @@ class FtpFileSystemTest {
     @Test
     void testParseLineUnix() throws Exception {
         FtpConnectionOptions options = FtpConnectionOptions.builder()
-                .host("host").port(21).username("u").password("p").build();
+                .host(MOCK_HOST).port(21).username("u").password(MOCK_PASSWORD).build();
         FtpFileSystem fs = new FtpFileSystem(options);
         Method parseLine = FtpFileSystem.class.getDeclaredMethod("parseLine", String.class);
         parseLine.setAccessible(true);
@@ -197,7 +207,7 @@ class FtpFileSystemTest {
     @Test
     void testParseLineDos() throws Exception {
         FtpConnectionOptions options = FtpConnectionOptions.builder()
-                .host("host").port(21).username("u").password("p").build();
+                .host(MOCK_HOST).port(21).username("u").password(MOCK_PASSWORD).build();
         FtpFileSystem fs = new FtpFileSystem(options);
         Method parseLine = FtpFileSystem.class.getDeclaredMethod("parseLine", String.class);
         parseLine.setAccessible(true);
@@ -230,7 +240,7 @@ class FtpFileSystemTest {
     @Test
     void testGetInternalPath() throws Exception {
         FtpConnectionOptions options = FtpConnectionOptions.builder()
-                .host("host").port(21).username("u").password("p").build();
+                .host(MOCK_HOST).port(21).username("u").password(MOCK_PASSWORD).build();
         FtpFileSystem fs = new FtpFileSystem(options);
         
         // Mock currentInternalPath by listing (which sets it)
@@ -257,7 +267,7 @@ class FtpFileSystemTest {
     @Test
     void testCopyRecursiveLogic() throws Exception {
         FtpConnectionOptions options = FtpConnectionOptions.builder()
-                .host("host").port(21).username("u").password("p").build();
+                .host(MOCK_HOST).port(21).username("u").password(MOCK_PASSWORD).build();
 
         final List<String> commands = new ArrayList<>();
         FtpFileSystem fs = new FtpFileSystem(options) {
@@ -274,7 +284,7 @@ class FtpFileSystemTest {
                                    "-rw-r--r--    1 u u  123 Mar 01 16:39 file.txt",
                                    "drwxr-xr-x    2 u u 4096 Mar 01 16:39 sub");
                 }
-                if (cmdStr.contains("ftp://host:21/")) {
+                if (cmdStr.contains("ftp://" + MOCK_HOST + ":21/")) {
                     return List.of("drwxr-xr-x    2 u u 4096 Mar 01 16:39 source");
                 }
                 return List.of();
@@ -303,7 +313,7 @@ class FtpFileSystemTest {
     @Test
     void testMoveSameServerOptimized() throws Exception {
         FtpConnectionOptions options = FtpConnectionOptions.builder()
-                .host("host").port(21).username("u").password("p").build();
+                .host(MOCK_HOST).port(21).username("u").password(MOCK_PASSWORD).build();
 
         final List<String> commands = new ArrayList<>();
         FtpFileSystem fs = new FtpFileSystem(options) {
@@ -326,9 +336,9 @@ class FtpFileSystemTest {
     @Test
     void testMoveDifferentServers() throws Exception {
         FtpConnectionOptions options1 = FtpConnectionOptions.builder()
-                .host("host1").port(21).username("u").password("p").build();
+                .host(MOCK_HOST).port(21).username("u").password(MOCK_PASSWORD).build();
         FtpConnectionOptions options2 = FtpConnectionOptions.builder()
-                .host("host2").port(21).username("u").password("p").build();
+                .host("ftp2.example.com").port(21).username("u").password(MOCK_PASSWORD).build();
 
         final List<String> commands = new ArrayList<>();
         FtpFileSystem fs1 = new FtpFileSystem(options1) {
@@ -336,7 +346,7 @@ class FtpFileSystemTest {
             public List<String> runCurl(List<String> command) throws IOException {
                 String cmdStr = String.join(" ", command);
                 commands.add("FS1: " + cmdStr);
-                if (cmdStr.contains("LIST") || (cmdStr.contains("ftp://host1") && !cmdStr.contains("-Q") && !cmdStr.contains("-T") && !cmdStr.contains("-X") && !cmdStr.contains("-o"))) {
+                if (cmdStr.contains("LIST") || (cmdStr.contains("ftp://") && cmdStr.contains("ftp.example.com") && !cmdStr.contains("-Q") && !cmdStr.contains("-T") && !cmdStr.contains("-X") && !cmdStr.contains("-o"))) {
                     return List.of("-rw-r--r--    1 u u  123 Mar 01 16:39 source.txt");
                 }
                 return List.of();
@@ -354,15 +364,15 @@ class FtpFileSystemTest {
         fs1.move("/source.txt", fs2, "/dest.txt");
 
         // System.out.println("[DEBUG_LOG] Commands: " + String.join("\n", commands));
-        
+
         // Should NOT use rename
         assertFalse(commands.stream().anyMatch(c -> c.contains("RNFR")), "Should not use RNFR for different servers");
-        
+
         // Should use:
         // 1. Download from FS1 to temp
         // 2. Upload from temp to FS2
         // 3. Delete from FS1
-        
+
         assertTrue(commands.stream().anyMatch(c -> c.contains("FS1:") && c.contains("-o") && c.contains("source.txt")), "Should download from FS1");
         assertTrue(commands.stream().anyMatch(c -> c.contains("FS2:") && c.contains("-T") && c.contains("dest.txt")), "Should upload to FS2");
         assertTrue(commands.stream().anyMatch(c -> c.contains("FS1:") && c.contains("DELE /source.txt")), "Should delete from FS1");
@@ -371,9 +381,9 @@ class FtpFileSystemTest {
     @Test
     void testMoveDifferentServersWithUnsanitizedTarget() throws Exception {
         FtpConnectionOptions options1 = FtpConnectionOptions.builder()
-                .host("host1").port(21).username("u").password("p").build();
+                .host(MOCK_HOST).port(21).username("u").password(MOCK_PASSWORD).build();
         FtpConnectionOptions options2 = FtpConnectionOptions.builder()
-                .host("host2").port(21).username("u").password("p").build();
+                .host("ftp2.example.com").port(21).username("u").password(MOCK_PASSWORD).build();
 
         final List<String> commands = new ArrayList<>();
         FtpFileSystem fs1 = new FtpFileSystem(options1) {
@@ -381,7 +391,7 @@ class FtpFileSystemTest {
             public List<String> runCurl(List<String> command) throws IOException {
                 String cmdStr = String.join(" ", command);
                 commands.add("FS1: " + cmdStr);
-                if (cmdStr.contains("LIST") || (cmdStr.contains("ftp://host1") && !cmdStr.contains("-Q") && !cmdStr.contains("-T") && !cmdStr.contains("-X") && !cmdStr.contains("-o"))) {
+                if (cmdStr.contains("LIST") || (cmdStr.contains("ftp://") && cmdStr.contains("ftp.example.com") && !cmdStr.contains("-Q") && !cmdStr.contains("-T") && !cmdStr.contains("-X") && !cmdStr.contains("-o"))) {
                     return List.of("-rw-r--r--    1 u u  123 Mar 01 16:39 source.txt");
                 }
                 return List.of();
@@ -397,21 +407,21 @@ class FtpFileSystemTest {
         };
 
         // UI might pass a full URL as target path when dragging between panes
-        String unsanitizedTarget = "ftp://host2:21/dest.txt";
+        String unsanitizedTarget = "ftp://ftp2.example.com:21/dest.txt";
         fs1.move("/source.txt", fs2, unsanitizedTarget);
 
         // Verify that target path was sanitized before being used in FS2
-        assertTrue(commands.stream().anyMatch(c -> c.contains("FS2:") && c.contains("-T") && c.contains("ftp://host2:21/dest.txt")), "Should upload to sanitized FS2 URL");
-        // Verify we didn't end up with ftp://host2:21//ftp://host2:21/dest.txt
-        assertFalse(commands.stream().anyMatch(c -> c.contains("FS2:") && c.contains("ftp://host2:21//ftp:")), "Should not have double URL in target");
+        assertTrue(commands.stream().anyMatch(c -> c.contains("FS2:") && c.contains("-T") && c.contains("ftp2.example.com")), "Should upload to sanitized FS2 URL");
+        // Verify we didn't end up with double URL in target
+        assertFalse(commands.stream().anyMatch(c -> c.contains("FS2:") && c.contains("ftp2.example.com//ftp:")), "Should not have double URL in target");
     }
 
     @Test
     void testMoveSameHostDifferentUser() throws Exception {
         FtpConnectionOptions options1 = FtpConnectionOptions.builder()
-                .host("host").port(21).username("user1").password("pass1").build();
+                .host(MOCK_HOST).port(21).username("user1").password(MOCK_PASSWORD).build();
         FtpConnectionOptions options2 = FtpConnectionOptions.builder()
-                .host("host").port(21).username("user2").password("pass2").build();
+                .host(MOCK_HOST).port(21).username("user2").password(MOCK_PASSWORD).build();
 
         final List<String> commands = new ArrayList<>();
         FtpFileSystem fs1 = new FtpFileSystem(options1) {
@@ -419,7 +429,7 @@ class FtpFileSystemTest {
             public List<String> runCurl(List<String> command) throws IOException {
                 String cmdStr = String.join(" ", command);
                 commands.add("FS1: " + cmdStr);
-                if (cmdStr.contains("LIST") || (cmdStr.contains("ftp://host") && !cmdStr.contains("-Q") && !cmdStr.contains("-T") && !cmdStr.contains("-X") && !cmdStr.contains("-o"))) {
+                if (cmdStr.contains("LIST") || (cmdStr.contains("ftp://") && cmdStr.contains(MOCK_HOST) && !cmdStr.contains("-Q") && !cmdStr.contains("-T") && !cmdStr.contains("-X") && !cmdStr.contains("-o"))) {
                     return List.of("-rw-r--r--    1 user1 user1  123 Mar 01 16:39 file.txt");
                 }
                 return List.of();
