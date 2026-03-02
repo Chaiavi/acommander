@@ -27,3 +27,4 @@ replay_pid*
 Thumbs.db
 /apps/extract_all/UniExtract/batch.queue
 /config/acommander.properties
+/apps/extract_all/UniExtract/log/teelog.txt

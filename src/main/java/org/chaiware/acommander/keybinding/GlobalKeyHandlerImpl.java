@@ -1,5 +1,6 @@
 package org.chaiware.acommander.keybinding;
 
+import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 import org.chaiware.acommander.Commander;
 import org.chaiware.acommander.actions.ActionExecutor;
@@ -28,6 +29,9 @@ public class GlobalKeyHandlerImpl implements IKeyHandler {
         logger.trace("Event target: {}", event.getTarget());
         logger.trace("Event source: {}", event.getSource());
 
+        // Sync tracked state with actual event state to prevent "stuck" modifiers
+        syncModifierState(event);
+
         ActionDefinition action = appRegistry.matchShortcut(ActionScope.GLOBAL, event).orElse(null);
         if (action != null) {
             SelectionRule rule = SelectionRule.fromString(action.getSelection());
@@ -51,10 +55,48 @@ public class GlobalKeyHandlerImpl implements IKeyHandler {
 
 
     public void handleKeyReleased(KeyEvent event) {
+        // Remove the released modifier key
         if (event.getCode() == ALT || event.getCode() == SHIFT || event.getCode() == CONTROL) {
             commander.activeModifiers.remove(event.getCode());
         }
+        
+        // Sync tracked state with actual event state to prevent "stuck" modifiers
+        // This handles cases where focus changes might cause key release events to be missed
+        syncModifierState(event);
+        
         commander.updateBottomButtons();
+    }
+    
+    /**
+     * Syncs the tracked modifier state with the actual state from the event.
+     * This prevents "stuck" modifier states when key events are missed due to focus changes.
+     */
+    private void syncModifierState(KeyEvent event) {
+        boolean altDown = event.isAltDown();
+        boolean shiftDown = event.isShiftDown();
+        boolean controlDown = event.isControlDown();
+        
+        if (altDown != commander.activeModifiers.contains(KeyCode.ALT)) {
+            if (altDown) {
+                commander.activeModifiers.add(KeyCode.ALT);
+            } else {
+                commander.activeModifiers.remove(KeyCode.ALT);
+            }
+        }
+        if (shiftDown != commander.activeModifiers.contains(KeyCode.SHIFT)) {
+            if (shiftDown) {
+                commander.activeModifiers.add(KeyCode.SHIFT);
+            } else {
+                commander.activeModifiers.remove(KeyCode.SHIFT);
+            }
+        }
+        if (controlDown != commander.activeModifiers.contains(KeyCode.CONTROL)) {
+            if (controlDown) {
+                commander.activeModifiers.add(KeyCode.CONTROL);
+            } else {
+                commander.activeModifiers.remove(KeyCode.CONTROL);
+            }
+        }
     }
 
     /** Changes focus between file lists */

@@ -179,20 +179,22 @@ public class FilesPanesHelper {
         try {
             // Open new archive session via VFS manager first
             VFileSystem fs = vfsManager.enterVirtualFolder(fileSystems.get(focusSide), new FileItem(new File(archivePath)));
-            
+
             if (fs != null) {
                 // setFileSystem handles closing oldFs if any
                 try {
+                    // Update internal path to archive root before refreshing
+                    currentInternalPaths.put(focusSide, "");
                     setFileSystem(focusSide, fs, null);
-                    
+
                     Platform.runLater(() -> {
                         ComboBox<Folder> pathComboBox = filePanes.get(focusSide).getPathComboBox();
                         pathComboBox.setValue(new ArchiveFolder(fs.getDisplayName()));
-                        
+
                         refreshFileListView(focusSide);
                         ensureFirstEntrySelected(focusSide);
                     });
-                    
+
                     logger.info("Entered archive ({} mode): {}", fs.isReadOnly() ? "READ_ONLY" : "READ_WRITE", archivePath);
                 } catch (IOException e) {
                     logger.error("Failed to list archive contents: {}", archivePath, e);
