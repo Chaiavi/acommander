@@ -112,7 +112,7 @@ public class Commander {
     public FilesPanesHelper filesPanesHelper;
     private final FileAttributesHelper attributesHelper = new FileAttributesHelper();
     private ThemeMode currentThemeMode = ThemeMode.REGULAR;
-    private KeyCode bottomButtonModifier;
+    public final Set<KeyCode> activeModifiers = EnumSet.noneOf(KeyCode.class);
     private final AtomicInteger runningExternalCommands = new AtomicInteger(0);
     private volatile boolean restoreFileListFocusAfterSettingsEdit = false;
     private final Map<FilesPanesHelper.FocusSide, String> incrementalCharFilters = new EnumMap<>(FilesPanesHelper.FocusSide.class);
@@ -157,7 +157,7 @@ public class Commander {
         configurePaneSummary();
         commandPaletteController.configure(new ActionRegistry(appRegistry, actionExecutor), new ActionContext(this));
 
-        updateBottomButtons(null);
+        updateBottomButtons();
         filesPanesHelper.refreshFileListViews();
         updatePaneSummary(LEFT);
         updatePaneSummary(RIGHT);
@@ -1326,7 +1326,7 @@ public class Commander {
 
     @FXML
     public void handleF5Button() {
-        if (bottomButtonModifier == KeyCode.ALT) {
+        if (activeModifiers.contains(KeyCode.ALT)) {
             convertMediaFile();
             return;
         }
@@ -1551,7 +1551,7 @@ public class Commander {
 
     @FXML
     public void handleF10Button() {
-        if (bottomButtonModifier == KeyCode.ALT) {
+        if (activeModifiers.contains(KeyCode.ALT)) {
             findInFiles();
             return;
         }
@@ -4776,55 +4776,53 @@ public class Commander {
         alert.showAndWait();
     }
 
-    public void updateBottomButtons(KeyCode whichKeyWasPressed) {
-        bottomButtonModifier = whichKeyWasPressed;
-        switch (whichKeyWasPressed) {
-            case null -> {
-                btnF1.setText("F1 Help");
-                btnF2.setText("F2 Rename");
-                btnF3.setText("F3 View");
-                btnF4.setText("F4 Edit");
-                btnF5.setText("F5 Copy");
-                btnF6.setText("F6 Move");
-                btnF7.setText("F7 MkDir");
-                btnF8.setText("F8 Delete");
-                btnF9.setText("F9 Terminal");
-                btnF10.setText("F10 Search for Files");
-                btnF11.setText("F11 Pack");
-                btnF12.setText("F12 UnPack");
-            }
-            case ALT -> {
-                btnF1.setText("ALT+F1 Left Folder");
-                btnF2.setText("ALT+F2 Right Folder");
-                btnF3.setText("");
-                btnF4.setText("ALT+F4 Exit");
-                btnF5.setText("ALT+F5 Convert Media File");
-                btnF6.setText("");
-                btnF7.setText("ALT+F7 MkFile");
-                btnF8.setText("");
-                btnF9.setText("ALT+F9 Explorer");
-                btnF10.setText("ALT+F10 Find in Files");
-                btnF11.setText("ALT+F11 Split");
-                btnF12.setText("ALT+F12 Extract Anything");
-            }
-            case SHIFT -> {
-                btnF1.setText("");
-                btnF2.setText("");
-                btnF3.setText("");
-                btnF4.setText("");
-                btnF5.setText("");
-                btnF6.setText("SHIFT+F6 Rename");
-                btnF7.setText("");
-                btnF8.setText("SHIFT+F8 Delete & Wipe");
-                btnF9.setText("");
-                btnF10.setText("");
-                btnF11.setText("");
-                btnF12.setText("");
-            }
-            case CONTROL -> {
-            }
-
-            default -> throw new IllegalStateException("Which key was pressed?: " + whichKeyWasPressed);
+    public void updateBottomButtons() {
+        // Check the actual current modifier key state from the tracked set
+        // This prevents the "stuck titles" bug where alternate titles don't reset properly
+        boolean altDown = activeModifiers.contains(KeyCode.ALT);
+        boolean shiftDown = activeModifiers.contains(KeyCode.SHIFT);
+        
+        // Update buttons based on ACTUAL current state, not tracked state
+        if (altDown) {
+            btnF1.setText("ALT+F1 Left Folder");
+            btnF2.setText("ALT+F2 Right Folder");
+            btnF3.setText("");
+            btnF4.setText("ALT+F4 Exit");
+            btnF5.setText("ALT+F5 Convert Media File");
+            btnF6.setText("");
+            btnF7.setText("ALT+F7 MkFile");
+            btnF8.setText("");
+            btnF9.setText("ALT+F9 Explorer");
+            btnF10.setText("ALT+F10 Find in Files");
+            btnF11.setText("ALT+F11 Split");
+            btnF12.setText("ALT+F12 Extract Anything");
+        } else if (shiftDown) {
+            btnF1.setText("");
+            btnF2.setText("");
+            btnF3.setText("");
+            btnF4.setText("");
+            btnF5.setText("");
+            btnF6.setText("SHIFT+F6 Rename");
+            btnF7.setText("");
+            btnF8.setText("SHIFT+F8 Delete & Wipe");
+            btnF9.setText("");
+            btnF10.setText("");
+            btnF11.setText("");
+            btnF12.setText("");
+        } else {
+            // No modifier pressed - always show default titles
+            btnF1.setText("F1 Help");
+            btnF2.setText("F2 Rename");
+            btnF3.setText("F3 View");
+            btnF4.setText("F4 Edit");
+            btnF5.setText("F5 Copy");
+            btnF6.setText("F6 Move");
+            btnF7.setText("F7 MkDir");
+            btnF8.setText("F8 Delete");
+            btnF9.setText("F9 Terminal");
+            btnF10.setText("F10 Search for Files");
+            btnF11.setText("F11 Pack");
+            btnF12.setText("F12 UnPack");
         }
     }
 

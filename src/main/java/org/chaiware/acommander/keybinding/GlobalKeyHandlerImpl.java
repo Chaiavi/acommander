@@ -38,7 +38,8 @@ public class GlobalKeyHandlerImpl implements IKeyHandler {
         }
         // ALT or SHIFT for bottom buttons
         if (event.getCode() == ALT || event.getCode() == SHIFT || event.getCode() == CONTROL) {
-            commander.updateBottomButtons(event.getCode());
+            commander.activeModifiers.add(event.getCode());
+            commander.updateBottomButtons();
             return false;
         }
 
@@ -50,7 +51,10 @@ public class GlobalKeyHandlerImpl implements IKeyHandler {
 
 
     public void handleKeyReleased(KeyEvent event) {
-        commander.updateBottomButtons(null);
+        if (event.getCode() == ALT || event.getCode() == SHIFT || event.getCode() == CONTROL) {
+            commander.activeModifiers.remove(event.getCode());
+        }
+        commander.updateBottomButtons();
     }
 
     /** Changes focus between file lists */

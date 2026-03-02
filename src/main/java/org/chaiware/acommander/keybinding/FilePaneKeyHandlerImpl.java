@@ -54,7 +54,8 @@ public class FilePaneKeyHandlerImpl implements IKeyHandler {
 
         // ALT or SHIFT for bottom buttons
         if (event.getCode() == ALT || event.getCode() == SHIFT || event.getCode() == CONTROL) {
-            commander.updateBottomButtons(event.getCode());
+            commander.activeModifiers.add(event.getCode());
+            commander.updateBottomButtons();
             return false;
         }
 
