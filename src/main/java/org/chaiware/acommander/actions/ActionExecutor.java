@@ -54,11 +54,12 @@ public class ActionExecutor {
 
     public boolean isActionSupportedOnFtp(String actionId) {
         return switch (actionId) {
-            case "help", "settings", "rename", "view", "edit", "copy", "move", "mkdir", "mkfile", 
-                 "delete", "refresh", "openCommandPalette", "leftPathCombo", 
-                 "rightPathCombo", "setDarkMode", "setLightMode", 
-                 "setRegularMode", "toggleDarkMode", "sortByName", "sortBySize", "sortByDate", 
-                 "gotoBookmark", "removeBookmark", "ftpConnect", "ftpDisconnect" -> true;
+            case "help", "settings", "rename", "view", "edit", "copy", "move", "mkdir", "mkfile",
+                 "delete", "refresh", "openCommandPalette", "leftPathCombo",
+                 "rightPathCombo", "setDarkMode", "setLightMode",
+                 "setRegularMode", "toggleDarkMode", "sortByName", "sortBySize", "sortByDate",
+                 "gotoBookmark", "removeBookmark", "ftpConnect", "ftpDisconnect",
+                 "selectAll", "unselectAll", "invertSelection", "selectByPattern" -> true;
             default -> false;
         };
     }
@@ -162,6 +163,10 @@ public class ActionExecutor {
             case "removeBookmark" -> commander.removeBookmark();
             case "ftpConnect" -> commander.ftpConnect();
             case "ftpDisconnect" -> commander.ftpDisconnect();
+            case "selectAll" -> commander.selectAll();
+            case "unselectAll" -> commander.unselectAll();
+            case "invertSelection" -> commander.invertSelection();
+            case "selectByPattern" -> commander.selectByPattern();
             default -> logger.warn("Unknown builtin action id: {}", builtin);
         }
     }

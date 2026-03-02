@@ -43,6 +43,11 @@ public class FilePaneKeyHandlerImpl implements IKeyHandler {
             return true;
         }
 
+        // Handle numpad operator keys for selection operations
+        if (handleNumpadSelectionKeys(event)) {
+            return true;
+        }
+
         if (event.isAltDown() || event.isShiftDown() || event.isControlDown()) {
             return false;
         }
@@ -138,6 +143,35 @@ public class FilePaneKeyHandlerImpl implements IKeyHandler {
             case DIGIT8, NUMPAD8 -> '8';
             case DIGIT9, NUMPAD9 -> '9';
             default -> null;
+        };
+    }
+
+    /**
+     * Handles numpad operator keys for selection operations.
+     * Num + → select by pattern
+     * Num - → unselect all
+     * Num * → invert selection
+     */
+    private boolean handleNumpadSelectionKeys(KeyEvent event) {
+        // Only handle if no modifiers are pressed
+        if (event.isAltDown() || event.isShiftDown() || event.isControlDown()) {
+            return false;
+        }
+
+        return switch (event.getCode()) {
+            case ADD -> {
+                commander.selectByPattern();
+                yield true;
+            }
+            case SUBTRACT -> {
+                commander.unselectAll();
+                yield true;
+            }
+            case MULTIPLY -> {
+                commander.invertSelection();
+                yield true;
+            }
+            default -> false;
         };
     }
 }

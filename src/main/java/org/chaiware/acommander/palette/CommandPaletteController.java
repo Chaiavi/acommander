@@ -147,7 +147,21 @@ public class CommandPaletteController {
         }
         logger.info("Executing action from command palette: {}", action.id());
         action.run(actionContext);
+        closeAndRestoreFocus();
+    }
+
+    public void closeAndRestoreFocus() {
         close();
+        // Restore focus to the focused file list
+        if (actionContext != null && actionContext.commander() != null) {
+            Platform.runLater(() -> {
+                if (actionContext.commander().filesPanesHelper.getFocusedSide() == org.chaiware.acommander.helpers.FilesPanesHelper.FocusSide.LEFT) {
+                    actionContext.commander().leftFileList.requestFocus();
+                } else {
+                    actionContext.commander().rightFileList.requestFocus();
+                }
+            });
+        }
     }
 
     private void refreshResults() {

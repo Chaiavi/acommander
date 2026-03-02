@@ -3329,6 +3329,84 @@ public class Commander {
         saveConfigFile();
     }
 
+    public void selectAll() {
+        filesPanesHelper.selectAllItems();
+        updatePaneSummary(filesPanesHelper.getFocusedSide());
+    }
+
+    public void unselectAll() {
+        filesPanesHelper.unselectAllItems();
+        updatePaneSummary(filesPanesHelper.getFocusedSide());
+    }
+
+    public void invertSelection() {
+        filesPanesHelper.invertSelection();
+        updatePaneSummary(filesPanesHelper.getFocusedSide());
+    }
+
+    public void selectByPattern() {
+        selectByPatternWithDialog();
+    }
+
+    private void selectByPatternWithDialog() {
+        Dialog<SelectPatternResult> dialog = new Dialog<>();
+        dialog.setTitle("Select by Pattern");
+        dialog.setHeaderText("Select files matching a pattern");
+        applyThemeToDialog(dialog);
+
+        dialog.getDialogPane().getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
+
+        GridPane grid = new GridPane();
+        grid.setHgap(10);
+        grid.setVgap(10);
+        grid.setPadding(new Insets(20, 10, 10, 10));
+
+        Label patternLabel = new Label("Pattern:");
+        TextField patternField = new TextField();
+        patternField.setText(getLastUsedPattern());
+        patternField.setPromptText("*.java, file_??.txt, *.log");
+        
+        CheckBox regexCheckBox = new CheckBox("Regular expression");
+        regexCheckBox.setSelected(false);
+
+        grid.add(patternLabel, 0, 0);
+        grid.add(patternField, 1, 0);
+        grid.add(regexCheckBox, 1, 1);
+
+        dialog.getDialogPane().setContent(grid);
+
+        Platform.runLater(patternField::requestFocus);
+
+        dialog.setResultConverter(dialogButton -> {
+            if (dialogButton == ButtonType.OK) {
+                String pattern = patternField.getText().trim();
+                if (pattern.isEmpty()) {
+                    pattern = "*.*";
+                }
+                saveLastUsedPattern(pattern);
+                return new SelectPatternResult(pattern, regexCheckBox.isSelected());
+            }
+            return null;
+        });
+
+        Optional<SelectPatternResult> result = dialog.showAndWait();
+        result.ifPresent(res -> {
+            filesPanesHelper.selectByPattern(res.pattern(), res.useRegex());
+            updatePaneSummary(filesPanesHelper.getFocusedSide());
+        });
+    }
+
+    private String getLastUsedPattern() {
+        return properties.getProperty("last_selection_pattern", "*.*");
+    }
+
+    private void saveLastUsedPattern(String pattern) {
+        properties.setProperty("last_selection_pattern", pattern);
+        saveConfigFile();
+    }
+
+    private record SelectPatternResult(String pattern, boolean useRegex) {}
+
     public void ftpDisconnect() {
         FilesPanesHelper.FocusSide side = filesPanesHelper.getFocusedSide();
         VFileSystem currentFs = filesPanesHelper.getFileSystem(side);

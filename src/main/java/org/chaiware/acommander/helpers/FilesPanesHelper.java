@@ -531,6 +531,137 @@ public class FilesPanesHelper {
         return getFileList(true).getSelectionModel().getSelectedItems();
     }
 
+    /** Selects all items in the focused file pane */
+    public void selectAllItems() {
+        if (!Platform.isFxApplicationThread()) {
+            Platform.runLater(this::selectAllItems);
+            return;
+        }
+        ListView<FileItem> listView = getFileList(true);
+        listView.getSelectionModel().selectAll();
+    }
+
+    /** Clears selection in the focused file pane */
+    public void unselectAllItems() {
+        if (!Platform.isFxApplicationThread()) {
+            Platform.runLater(this::unselectAllItems);
+            return;
+        }
+        ListView<FileItem> listView = getFileList(true);
+        listView.getSelectionModel().clearSelection();
+    }
+
+    /** Inverts the current selection in the focused file pane */
+    public void invertSelection() {
+        if (!Platform.isFxApplicationThread()) {
+            Platform.runLater(this::invertSelection);
+            return;
+        }
+        ListView<FileItem> listView = getFileList(true);
+        List<FileItem> allItems = new ArrayList<>(listView.getItems());
+        // Skip ".." parent folder entry
+        allItems.removeIf(item -> "..".equals(item.getPresentableFilename()));
+        
+        ObservableList<Integer> selectedIndices = listView.getSelectionModel().getSelectedIndices();
+        List<Integer> newSelection = new ArrayList<>();
+        
+        for (int i = 0; i < allItems.size(); i++) {
+            int actualIndex = listView.getItems().indexOf(allItems.get(i));
+            if (actualIndex >= 0 && !selectedIndices.contains(actualIndex)) {
+                newSelection.add(actualIndex);
+            }
+        }
+        
+        listView.getSelectionModel().clearSelection();
+        if (!newSelection.isEmpty()) {
+            int[] indices = newSelection.stream().mapToInt(Integer::intValue).toArray();
+            listView.getSelectionModel().selectIndices(-1, indices);
+        }
+    }
+
+    /** Selects items matching the given pattern (glob or regex) */
+    public void selectByPattern(String pattern, boolean useRegex) {
+        if (!Platform.isFxApplicationThread()) {
+            Platform.runLater(() -> selectByPattern(pattern, useRegex));
+            return;
+        }
+        ListView<FileItem> listView = getFileList(true);
+        List<FileItem> allItems = listView.getItems();
+        java.util.regex.Pattern regexPattern;
+        
+        if (useRegex) {
+            regexPattern = java.util.regex.Pattern.compile(pattern);
+        } else {
+            // Convert glob pattern to regex
+            regexPattern = globToRegex(pattern);
+        }
+
+        List<Integer> matchingIndices = new ArrayList<>();
+        for (int i = 0; i < allItems.size(); i++) {
+            FileItem item = allItems.get(i);
+            if ("..".equals(item.getPresentableFilename())) continue;
+
+            String filename = item.getPresentableFilename();
+            boolean matches = regexPattern.matcher(filename).matches();
+
+            if (matches) {
+                matchingIndices.add(i);
+            }
+        }
+
+        listView.getSelectionModel().clearSelection();
+        if (!matchingIndices.isEmpty()) {
+            int[] indices = matchingIndices.stream().mapToInt(Integer::intValue).toArray();
+            listView.getSelectionModel().selectIndices(-1, indices);
+        }
+    }
+
+    /**
+     * Converts a glob pattern (with * and ? wildcards) to a regex pattern.
+     * * matches any sequence of characters
+     * ? matches any single character
+     */
+    private java.util.regex.Pattern globToRegex(String glob) {
+        if (glob == null || glob.isEmpty()) {
+            return java.util.regex.Pattern.compile(".*");
+        }
+        
+        StringBuilder regex = new StringBuilder();
+        regex.append("^");
+        
+        for (int i = 0; i < glob.length(); i++) {
+            char c = glob.charAt(i);
+            switch (c) {
+                case '*':
+                    regex.append(".*");
+                    break;
+                case '?':
+                    regex.append(".");
+                    break;
+                case '.':
+                case '+':
+                case '^':
+                case '$':
+                case '(':
+                case ')':
+                case '[':
+                case ']':
+                case '{':
+                case '}':
+                case '|':
+                case '\\':
+                    regex.append("\\").append(c);
+                    break;
+                default:
+                    regex.append(c);
+                    break;
+            }
+        }
+        
+        regex.append("$");
+        return java.util.regex.Pattern.compile(regex.toString(), java.util.regex.Pattern.CASE_INSENSITIVE);
+    }
+
     @Data
     static class FilePane {
         private final ListView<FileItem> fileListView;

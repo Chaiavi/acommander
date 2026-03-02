@@ -347,6 +347,41 @@
       "type": "builtin"
     },
     {
+      "id": "selectAll",
+      "label": "Select All",
+      "shortcut": "Ctrl+A",
+      "aliases": ["select all", "all"],
+      "contexts": ["filePane", "commandPalette"],
+      "selection": "none",
+      "type": "builtin"
+    },
+    {
+      "id": "unselectAll",
+      "label": "Unselect All",
+      "shortcut": "Ctrl+Shift+A",
+      "aliases": ["clear selection", "deselect all", "none"],
+      "contexts": ["filePane", "commandPalette"],
+      "selection": "any",
+      "type": "builtin"
+    },
+    {
+      "id": "invertSelection",
+      "label": "Invert Selection",
+      "shortcut": "Ctrl+I",
+      "aliases": ["invert", "reverse selection"],
+      "contexts": ["filePane", "commandPalette"],
+      "selection": "none",
+      "type": "builtin"
+    },
+    {
+      "id": "selectByPattern",
+      "label": "Select by Pattern",
+      "aliases": ["select pattern", "filter select", "mask select", "glob"],
+      "contexts": ["filePane", "commandPalette"],
+      "selection": "none",
+      "type": "builtin"
+    },
+    {
       "id": "toggleDarkMode",
       "label": "Toggle Dark Mode",
       "aliases": ["toggle theme", "switch theme"],
