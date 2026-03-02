@@ -29,7 +29,7 @@
       "label": "Help",
       "shortcut": "F1",
       "aliases": ["manual", "docs"],
-      "contexts": ["global", "commandPalette"],
+      "contexts": ["global", "commandPalette", "filePane"],
       "selection": "none",
       "type": "builtin"
     },
@@ -440,7 +440,7 @@
     },
     {
       "id": "ftpConnect",
-      "label": "Connect to FTP",
+      "label": "Connect to FTP/FTPS/SFTP-SSH",
       "aliases": ["ftp", "remote", "connect"],
       "contexts": ["global", "commandPalette"],
       "selection": "none",
@@ -448,7 +448,7 @@
     },
     {
       "id": "ftpDisconnect",
-      "label": "Disconnect from FTP",
+      "label": "Disconnect from FTP/FTPS/SFTP-SSH",
       "aliases": ["exit ftp", "quit ftp", "local", "disconnect"],
       "contexts": ["global", "commandPalette"],
       "selection": "none",

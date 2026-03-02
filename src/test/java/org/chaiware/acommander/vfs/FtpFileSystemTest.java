@@ -448,10 +448,112 @@ class FtpFileSystemTest {
 
         // Should NOT use rename (RNFR/RNTO) because credentials differ
         assertFalse(commands.stream().anyMatch(c -> c.contains("RNFR")), "Should not use RNFR for different users on same host");
-        
+
         // Should use copy + delete
         assertTrue(commands.stream().anyMatch(c -> c.contains("FS1:") && c.contains("-o")), "Should download from user1");
         assertTrue(commands.stream().anyMatch(c -> c.contains("FS2:") && c.contains("-T")), "Should upload to user2");
         assertTrue(commands.stream().anyMatch(c -> c.contains("FS1:") && c.contains("DELE /file.txt")), "Should delete from user1");
+    }
+
+    @Test
+    void testProtocolEnum() {
+        // Test FTP protocol
+        assertEquals("ftp", FtpConnectionOptions.Protocol.FTP.getScheme());
+        assertEquals(21, FtpConnectionOptions.Protocol.FTP.getDefaultPort());
+
+        // Test SFTP protocol
+        assertEquals("sftp", FtpConnectionOptions.Protocol.SFTP.getScheme());
+        assertEquals(22, FtpConnectionOptions.Protocol.SFTP.getDefaultPort());
+
+        // Test FTPS protocol (explicit FTPS uses ftp:// scheme with --ssl --ssl-reqd)
+        assertEquals("ftp", FtpConnectionOptions.Protocol.FTPS.getScheme());
+        assertEquals(21, FtpConnectionOptions.Protocol.FTPS.getDefaultPort());
+    }
+
+    @Test
+    void testUrlGenerationWithProtocol() {
+        // Test FTP URL
+        FtpConnectionOptions ftpOptions = FtpConnectionOptions.builder()
+                .host(MOCK_HOST)
+                .port(21)
+                .username("testuser")
+                .password(MOCK_PASSWORD)
+                .protocol(FtpConnectionOptions.Protocol.FTP)
+                .build();
+        assertEquals("ftp://ftp.example.com:21/path", ftpOptions.getFullUrl("/path"));
+
+        // Test SFTP URL
+        FtpConnectionOptions sftpOptions = FtpConnectionOptions.builder()
+                .host("sftp.example.com")
+                .port(22)
+                .username("testuser")
+                .password(MOCK_PASSWORD)
+                .protocol(FtpConnectionOptions.Protocol.SFTP)
+                .build();
+        assertEquals("sftp://sftp.example.com:22/path", sftpOptions.getFullUrl("/path"));
+
+        // Test FTPS URL (explicit FTPS uses ftp:// with --ssl --ssl-reqd)
+        FtpConnectionOptions ftpsOptions = FtpConnectionOptions.builder()
+                .host("ftps.example.com")
+                .port(21)
+                .username("testuser")
+                .password(MOCK_PASSWORD)
+                .protocol(FtpConnectionOptions.Protocol.FTPS)
+                .build();
+        assertEquals("ftp://ftps.example.com:21/path", ftpsOptions.getFullUrl("/path"));
+    }
+
+    @Test
+    void testDefaultProtocolIsFtp() {
+        // When protocol is not specified, default should be FTP
+        FtpConnectionOptions options = FtpConnectionOptions.builder()
+                .host(MOCK_HOST)
+                .port(21)
+                .username("testuser")
+                .password(MOCK_PASSWORD)
+                .build();
+        assertEquals(FtpConnectionOptions.Protocol.FTP, options.getProtocol());
+    }
+
+    @Test
+    void testSanitizePathWithDifferentProtocols() throws Exception {
+        // Test SFTP path sanitization
+        FtpConnectionOptions sftpOptions = FtpConnectionOptions.builder()
+                .host(MOCK_HOST)
+                .port(22)
+                .username("user")
+                .password(MOCK_PASSWORD)
+                .protocol(FtpConnectionOptions.Protocol.SFTP)
+                .build();
+        FtpFileSystem sftpFs = new FtpFileSystem(sftpOptions);
+        Method sanitizeMethod = FtpFileSystem.class.getDeclaredMethod("sanitizePath", String.class);
+        sanitizeMethod.setAccessible(true);
+        assertEquals("/path", sanitizeMethod.invoke(sftpFs, "sftp://ftp.example.com:22/path"));
+
+        // Test FTPS path sanitization (explicit FTPS uses ftp:// scheme)
+        FtpConnectionOptions ftpsOptions = FtpConnectionOptions.builder()
+                .host(MOCK_HOST)
+                .port(21)
+                .username("user")
+                .password(MOCK_PASSWORD)
+                .protocol(FtpConnectionOptions.Protocol.FTPS)
+                .build();
+        FtpFileSystem ftpsFs = new FtpFileSystem(ftpsOptions);
+        assertEquals("/path", sanitizeMethod.invoke(ftpsFs, "ftp://ftp.example.com:21/path"));
+    }
+
+    @Test
+    void testGetIdentifierAndDisplayNameWithProtocol() {
+        FtpConnectionOptions sftpOptions = FtpConnectionOptions.builder()
+                .host("sftp.example.com")
+                .port(22)
+                .username("testuser")
+                .password(MOCK_PASSWORD)
+                .protocol(FtpConnectionOptions.Protocol.SFTP)
+                .build();
+        FtpFileSystem fs = new FtpFileSystem(sftpOptions);
+
+        assertTrue(fs.getIdentifier().startsWith("sftp:"));
+        assertTrue(fs.getDisplayName().startsWith("sftp://"));
     }
 }

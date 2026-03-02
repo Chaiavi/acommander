@@ -1052,10 +1052,12 @@ public class Commander {
 
         try {
             File helpFile = Paths.get(System.getProperty("user.dir"), "config", "f1-help.html").toFile();
-            FileItem selectedItem = new FileItem(helpFile, helpFile.getName());
-            commands.view(selectedItem);
+            // Open help file using the internal UniversalViewer
+            String viewerPath = Paths.get(System.getProperty("user.dir"), "apps", "view", "UniversalViewer", "Viewer.exe").toString();
+            ProcessBuilder pb = new ProcessBuilder(viewerPath, helpFile.getAbsolutePath());
+            pb.start();
         } catch (Exception ex) {
-            error("Failed Viewing file", ex);
+            error("Failed Viewing help file", ex);
         }
     }
 
@@ -3344,8 +3346,8 @@ public class Commander {
 
     public void ftpConnect() {
         Dialog<FtpConnectionOptions> dialog = new Dialog<>();
-        dialog.setTitle("FTP Connection");
-        dialog.setHeaderText("Enter FTP Connection Details");
+        dialog.setTitle("FTP/FTPS/SFTP-SSH Connection");
+        dialog.setHeaderText("Enter FTP/FTPS/SFTP-SSH Connection Details");
         applyThemeToDialog(dialog);
 
         ButtonType connectButtonType = new ButtonType("Connect", ButtonBar.ButtonData.OK_DONE);
@@ -3358,7 +3360,7 @@ public class Commander {
 
         TextField hostField = new TextField();
         hostField.setPromptText("Host");
-        TextField portField = new TextField("21");
+        TextField portField = new TextField();
         portField.setPromptText("Port");
         TextField userField = new TextField();
         userField.setPromptText("Username");
@@ -3377,6 +3379,23 @@ public class Commander {
         Button removeSavedButton = new Button("Remove");
         removeSavedButton.setDisable(true);
 
+        // Protocol selection
+        ComboBox<String> protocolCombo = new ComboBox<>();
+        protocolCombo.getItems().addAll("Auto-discover", "FTP", "FTPS", "SFTP/SSH");
+        protocolCombo.setValue("Auto-discover");
+        protocolCombo.setMaxWidth(Double.MAX_VALUE);
+
+        // Update port when protocol changes
+        protocolCombo.valueProperty().addListener((obs, oldVal, newVal) -> {
+            if ("SFTP/SSH".equals(newVal)) {
+                portField.setText("22");
+            } else if ("FTPS".equals(newVal) || "FTP".equals(newVal)) {
+                portField.setText("21");
+            } else if ("Auto-discover".equals(newVal)) {
+                portField.clear(); // Port will be discovered
+            }
+        });
+
         savedConnectionsCombo.setOnAction(e -> {
             String selectedConn = savedConnectionsCombo.getSelectionModel().getSelectedItem();
             if (selectedConn != null && ftpConnections.containsKey(selectedConn)) {
@@ -3388,6 +3407,12 @@ public class Commander {
                 nameField.setText(opt.getName());
                 saveCheckBox.setSelected(true);
                 removeSavedButton.setDisable(false);
+                // Map protocol enum to display name
+                if (opt.getProtocol() == FtpConnectionOptions.Protocol.SFTP) {
+                    protocolCombo.setValue("SFTP/SSH");
+                } else {
+                    protocolCombo.setValue(opt.getProtocol().name());
+                }
             } else {
                 removeSavedButton.setDisable(true);
             }
@@ -3417,9 +3442,11 @@ public class Commander {
         grid.add(userField, 1, 3);
         grid.add(new Label("Password:"), 0, 4);
         grid.add(passField, 1, 4);
-        grid.add(new Label("Name:"), 0, 5);
-        grid.add(nameField, 1, 5);
-        grid.add(saveCheckBox, 1, 6);
+        grid.add(new Label("Protocol:"), 0, 5);
+        grid.add(protocolCombo, 1, 5);
+        grid.add(new Label("Name:"), 0, 6);
+        grid.add(nameField, 1, 6);
+        grid.add(saveCheckBox, 1, 7);
 
         dialog.getDialogPane().setContent(grid);
 
@@ -3437,15 +3464,31 @@ public class Commander {
                     name = hostField.getText();
                 }
 
+                String selectedProtocol = protocolCombo.getValue();
+                boolean autoDiscover = "Auto-discover".equals(selectedProtocol);
+                
+                // Map display names to protocol enum values
+                FtpConnectionOptions.Protocol protocol;
+                if (autoDiscover) {
+                    protocol = FtpConnectionOptions.Protocol.FTP;
+                } else if ("SFTP/SSH".equals(selectedProtocol)) {
+                    protocol = FtpConnectionOptions.Protocol.SFTP;
+                } else {
+                    protocol = FtpConnectionOptions.Protocol.valueOf(selectedProtocol);
+                }
+
                 FtpConnectionOptions options = FtpConnectionOptions.builder()
                         .host(hostField.getText())
                         .port(port)
                         .username(userField.getText())
                         .password(passField.getText())
                         .name(name)
+                        .protocol(protocol)
+                        .autoDiscover(autoDiscover)
                         .build();
 
-                if (saveCheckBox.isSelected()) {
+                // Only save immediately if NOT auto-discover (auto-discover saves after discovery)
+                if (saveCheckBox.isSelected() && !autoDiscover) {
                     ftpConnections.put(name, options);
                     syncFtpConnectionsToProperties();
                     saveConfigFile();
@@ -3455,27 +3498,52 @@ public class Commander {
             return null;
         });
 
+        // Capture save state before dialog closes
+        final boolean shouldSave = saveCheckBox.isSelected();
+
         Optional<FtpConnectionOptions> result = dialog.showAndWait();
         result.ifPresent(options -> {
-            logger.info("Attempting to connect to FTP: {} ({}:{})", options.getName(), options.getHost(), options.getPort());
-            
+            logger.info("Attempting to connect to FTP: {} ({}:{}), Protocol: {}",
+                options.getName(), options.getHost(), options.getPort(),
+                options.isAutoDiscover() ? "Auto" : options.getProtocol());
+
             // Show progress
-            showExternalProgress(1, "FTP: " + options.getName());
-            
+            showExternalProgress(1, (options.isAutoDiscover() ? "Auto" : options.getProtocol()) + ": " + options.getName());
+
             CompletableFuture.runAsync(() -> {
                 try {
-                    VFileSystem ftpFs = filesPanesHelper.getVfsManager().createFtpFileSystem(options);
+                    // If auto-discover is enabled, try to find the right protocol
+                    FtpConnectionOptions connectionOptions = options;
+                    if (options.isAutoDiscover()) {
+                        FtpConnectionOptions discovered = FtpFileSystem.autoDiscoverProtocol(options);
+                        if (discovered != null) {
+                            connectionOptions = discovered;
+                        } else {
+                            throw new IOException("Could not auto-discover protocol. Please select the protocol manually.");
+                        }
+                    }
+
+                    final FtpConnectionOptions finalConnectionOptions = connectionOptions;
+                    VFileSystem ftpFs = filesPanesHelper.getVfsManager().createFtpFileSystem(finalConnectionOptions);
                     // Validation: attempt to list root
                     ftpFs.listContents("/");
-                    
+
                     Platform.runLater(() -> {
                         try {
                             filesPanesHelper.setFileSystem(filesPanesHelper.getFocusedSide(), ftpFs);
-                            logger.info("Successfully connected to FTP: {}", options.getName());
+                            logger.info("Successfully connected to {}: {}", finalConnectionOptions.getProtocol(), finalConnectionOptions.getName());
+
+                            // If auto-discover was used and save was selected, save with discovered values
+                            if (options.isAutoDiscover() && shouldSave) {
+                                ftpConnections.put(finalConnectionOptions.getName(), finalConnectionOptions);
+                                syncFtpConnectionsToProperties();
+                                saveConfigFile();
+                            }
+
                             hideOrUpdateExternalProgress(0);
                             filesPanesHelper.getFileList(true).requestFocus();
                         } catch (Exception e) {
-                            handleFtpConnectionError(options, e);
+                            handleFtpConnectionError(finalConnectionOptions, e);
                         }
                     });
                 } catch (Exception e) {
@@ -3505,6 +3573,7 @@ public class Commander {
             properties.setProperty(prefix + "port", String.valueOf(opt.getPort()));
             properties.setProperty(prefix + "username", opt.getUsername());
             properties.setProperty(prefix + "password", opt.getPassword());
+            properties.setProperty(prefix + "protocol", opt.getProtocol().name());
         }
     }
 
@@ -3528,6 +3597,11 @@ public class Commander {
                         }
                         case "username" -> builder.username(val);
                         case "password" -> builder.password(val);
+                        case "protocol" -> {
+                            try {
+                                builder.protocol(FtpConnectionOptions.Protocol.valueOf(val));
+                            } catch (IllegalArgumentException ignored) {}
+                        }
                     }
                 }
             }

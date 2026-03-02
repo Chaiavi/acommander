@@ -86,6 +86,28 @@ public class FtpFileSystem implements VFileSystem {
         this.curlPath = Paths.get(System.getProperty("user.dir"), "apps", "remote_connectivity", "curl.exe").toString();
     }
 
+    /**
+     * Tests the connection with the current protocol settings.
+     * Returns true if the connection is successful, false otherwise.
+     */
+    public boolean testConnection() {
+        try {
+            List<String> command = createBaseCurlCommand();
+            command.add(options.getFullUrl("/"));
+            command.add("--list-only");
+            
+            ProcessBuilder pb = new ProcessBuilder(command);
+            pb.redirectErrorStream(true);
+            Process process = pb.start();
+            
+            int exitCode = process.waitFor();
+            return exitCode == 0;
+        } catch (Exception e) {
+            logger.debug("Connection test failed for {}: {}", options.getUrl(), e.getMessage());
+            return false;
+        }
+    }
+
     @Override
     public void setExternalCommandListener(ExternalCommandListener listener) {
         this.externalCommandListener = listener;
@@ -93,7 +115,7 @@ public class FtpFileSystem implements VFileSystem {
 
     @Override
     public String getIdentifier() {
-        return "ftp:" + options.getHost() + ":" + options.getPort() + currentInternalPath;
+        return options.getProtocol().getScheme() + ":" + options.getHost() + ":" + options.getPort() + currentInternalPath;
     }
 
     @Override
@@ -101,27 +123,23 @@ public class FtpFileSystem implements VFileSystem {
         String path = currentInternalPath;
         if (path == null) path = "/";
         if (!path.startsWith("/")) path = "/" + path;
-        return "ftp://" + options.getHost() + path;
+        return options.getProtocol().getScheme() + "://" + options.getHost() + path;
     }
 
     @Override
     public List<FileItem> listContents(String internalPath) throws IOException {
         String cleanPath = sanitizePath(internalPath);
         logger.info("Listing contents of FTP path: {} (original: {})", cleanPath, internalPath);
-        
+
         this.currentInternalPath = cleanPath;
         if (!currentInternalPath.endsWith("/")) {
             currentInternalPath += "/";
         }
-        
-        List<String> command = new ArrayList<>();
-        command.add(curlPath);
+
+        List<String> command = createBaseCurlCommand();
         command.add("--silent");
-        command.add("-u");
-        command.add(options.getUsername() + ":" + options.getPassword());
         command.add(options.getFullUrl(currentInternalPath));
-        command.add("--ftp-pasv");
-        
+
         List<String> output = runCurl(command);
         List<FileItem> items = new ArrayList<>();
         
@@ -628,20 +646,20 @@ public class FtpFileSystem implements VFileSystem {
     public String sanitizePath(String path) {
         if (path == null) return "";
         String sanitized = path.replace('\\', '/');
-        
-        // Strip ftp://host:port prefix if present
+
+        // Strip protocol://host:port prefix if present
         String urlPrefix = options.getUrl();
         if (sanitized.startsWith(urlPrefix)) {
             sanitized = sanitized.substring(urlPrefix.length());
         }
-        
-        // Strip ftp://host prefix (without port) if present
-        String hostPrefix = "ftp://" + options.getHost();
+
+        // Strip protocol://host prefix (without port) if present
+        String hostPrefix = options.getProtocol().getScheme() + "://" + options.getHost();
         if (sanitized.startsWith(hostPrefix)) {
             sanitized = sanitized.substring(hostPrefix.length());
         }
 
-        // Handle cases where the path might start with the host name/IP directly (e.g. /51.38.67.129/path)
+        // Handle cases where the path might start with the host name/IP directly
         String host = options.getHost();
         if (sanitized.startsWith("/" + host + "/")) {
             sanitized = sanitized.substring(host.length() + 1);
@@ -660,6 +678,63 @@ public class FtpFileSystem implements VFileSystem {
 
     public FtpConnectionOptions getOptions() {
         return options;
+    }
+
+    /**
+     * Attempts to auto-discover the correct protocol by trying all protocols.
+     * Tries FTPS first, then SFTP/SSH, then FTP.
+     * Returns a new FtpConnectionOptions with the discovered protocol, or null if none work.
+     */
+    public static FtpConnectionOptions autoDiscoverProtocol(FtpConnectionOptions baseOptions) {
+        logger.info("Auto-discovering protocol for {}:{} (trying FTPS first, then SFTP/SSH, then FTP)",
+            baseOptions.getHost(), baseOptions.getPort());
+
+        // Try each protocol in order: FTPS → SFTP → FTP
+        FtpConnectionOptions.Protocol[] protocolsToTry = {
+            FtpConnectionOptions.Protocol.FTPS,
+            FtpConnectionOptions.Protocol.SFTP,
+            FtpConnectionOptions.Protocol.FTP
+        };
+
+        for (FtpConnectionOptions.Protocol protocol : protocolsToTry) {
+            try {
+                // Use the protocol's default port if the provided port is the standard FTP port (21)
+                // or if it matches the current protocol's default port
+                int port = baseOptions.getPort();
+                if (port == 21 || port == protocol.getDefaultPort()) {
+                    port = protocol.getDefaultPort();
+                }
+
+                logger.debug("Trying protocol {} on port {} for {}:{}", 
+                    protocol, port, baseOptions.getHost(), baseOptions.getPort());
+
+                FtpConnectionOptions testOptions = FtpConnectionOptions.builder()
+                    .name(baseOptions.getName())
+                    .host(baseOptions.getHost())
+                    .port(port)
+                    .username(baseOptions.getUsername())
+                    .password(baseOptions.getPassword())
+                    .protocol(protocol)
+                    .build();
+
+                FtpFileSystem testFs = new FtpFileSystem(testOptions);
+                if (testFs.testConnection()) {
+                    logger.info("Auto-discovery successful: {} works for {}:{}", 
+                        protocol, baseOptions.getHost(), baseOptions.getPort());
+                    return testOptions;
+                } else {
+                    logger.debug("Protocol {} connection test failed for {}:{}", 
+                        protocol, baseOptions.getHost(), baseOptions.getPort());
+                }
+            } catch (Exception e) {
+                logger.debug("Protocol {} failed for {}:{} - {}", 
+                    protocol, baseOptions.getHost(), baseOptions.getPort(), e.getMessage());
+            }
+        }
+
+        logger.warn("Auto-discovery failed: No protocol (FTPS/SFTP/SSH/FTP) worked for {}:{}",
+            baseOptions.getHost(), baseOptions.getPort());
+        return null;
     }
 
     @Override
@@ -700,8 +775,24 @@ public class FtpFileSystem implements VFileSystem {
         command.add(curlPath);
         command.add("-u");
         command.add(options.getUsername() + ":" + options.getPassword());
-        command.add("--ftp-pasv");
         command.add("-s"); // silent
+        command.add("-k"); // insecure - skip SSL/TLS certificate verification
+
+        // Add protocol-specific options
+        switch (options.getProtocol()) {
+            case FTP -> command.add("--ftp-pasv");
+            case FTPS -> {
+                command.add("--ftp-pasv");
+                command.add("--ssl");
+                command.add("--ssl-reqd");
+            }
+            case SFTP -> {
+                // SFTP uses different authentication method in curl
+                // For password auth, we use --pass option
+                // -k already added above for insecure mode
+            }
+        }
+
         return command;
     }
 
