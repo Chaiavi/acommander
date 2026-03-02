@@ -6,6 +6,7 @@ out/
 # Distribution artifacts
 dist/
 acommander-v*.zip
+config/aa.properties
 
 # Runtime/log outputs
 logs/
