@@ -59,7 +59,8 @@ public class ActionExecutor {
                  "rightPathCombo", "setDarkMode", "setLightMode",
                  "setRegularMode", "toggleDarkMode", "sortByName", "sortBySize", "sortByDate",
                  "gotoBookmark", "removeBookmark", "ftpConnect", "ftpDisconnect",
-                 "selectAll", "unselectAll", "invertSelection", "selectByPattern" -> true;
+                 "selectAll", "unselectAll", "invertSelection", "selectByPattern",
+                 "editImageMetadata" -> true;
             default -> false;
         };
     }
@@ -146,6 +147,7 @@ public class ActionExecutor {
             case "compareFiles" -> commander.compareFiles();
             case "compareFolders" -> commander.compareFolders();
             case "changeAttributes" -> commander.changeAttributes();
+            case "editImageMetadata" -> commander.editImageMetadata();
             case "refresh" -> commander.filesPanesHelper.refreshFileListViews();
             case "openCommandPalette" -> commander.openCommandPalette();
             case "leftPathCombo" -> commander.leftPathComboBox.show();

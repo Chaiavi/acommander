@@ -338,6 +338,14 @@
       "type": "builtin"
     },
     {
+      "id": "editImageMetadata",
+      "label": "Edit Image Metadata",
+      "aliases": ["image metadata", "metadata editor", "exiv2", "edit exif", "exif editor"],
+      "contexts": ["filePane", "commandPalette"],
+      "selection": "singleFile",
+      "type": "builtin"
+    },
+    {
       "id": "refresh",
       "label": "Refresh Panels",
       "shortcut": "Ctrl+R",

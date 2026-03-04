@@ -121,6 +121,10 @@ public class Commander {
     private Popup incrementalFilterPopup;
     private Label incrementalFilterPopupLabel;
 
+    public ThemeMode getCurrentThemeMode() {
+        return currentThemeMode;
+    }
+
 
     @FXML
     public void initialize() {
@@ -3215,6 +3219,41 @@ public class Commander {
         }
     }
 
+    @FXML
+    public void editImageMetadata() {
+        logger.info("Edit Image Metadata");
+
+        try {
+            List<FileItem> selectedItems = commands.filterValidItems(filesPanesHelper.getSelectedItems());
+            if (selectedItems.isEmpty()) {
+                return;
+            }
+
+            FileItem selectedItem = selectedItems.getFirst();
+            if (selectedItem.isDirectory()) {
+                return;
+            }
+
+            File file = selectedItem.getFile();
+            if (file == null || !file.exists()) {
+                return;
+            }
+
+            // Show the metadata editor dialog
+            org.chaiware.acommander.dialog.ImageMetadataDialog dialog =
+                    new org.chaiware.acommander.dialog.ImageMetadataDialog(
+                            rootPane.getScene().getWindow(), file, this);
+            boolean modified = dialog.showAndWait();
+
+            if (modified) {
+                // Refresh the file list to show any size/date changes
+                filesPanesHelper.refreshFileListViews();
+            }
+        } catch (Exception ex) {
+            error("Failed editing image metadata", ex);
+        }
+    }
+
     public void syncToOtherPane() {
         FilesPanesHelper.FocusSide focusedSide = filesPanesHelper.getFocusedSide();
         FilesPanesHelper.FocusSide targetSide = (focusedSide == LEFT) ? RIGHT : LEFT;
@@ -4909,7 +4948,7 @@ public class Commander {
         }
     }
 
-    private enum ThemeMode {
+    public enum ThemeMode {
         DARK("dark", THEME_DARK_CLASS),
         REGULAR("regular", THEME_LIGHT_CLASS);
 
@@ -4919,6 +4958,10 @@ public class Commander {
         ThemeMode(String configValue, String styleClass) {
             this.configValue = configValue;
             this.styleClass = styleClass;
+        }
+
+        public String getStyleClass() {
+            return styleClass;
         }
 
         private static ThemeMode from(String value) {
