@@ -6,6 +6,7 @@ import org.chaiware.acommander.config.AppRegistry;
 import org.chaiware.acommander.helpers.AudioConversionSupport;
 import org.chaiware.acommander.helpers.ImageConversionSupport;
 import org.chaiware.acommander.helpers.ImageMetadataSupport;
+import org.chaiware.acommander.helpers.VideoMetadataSupport;
 import org.chaiware.acommander.model.FileItem;
 
 import java.util.Collections;
@@ -78,7 +79,8 @@ public class ActionRegistry {
                 && !"extractAll".equals(builtin)
                 && !"extractPdfPages".equals(builtin)
                 && !"mergePdf".equals(builtin)
-                && !"editImageMetadata".equals(builtin)) {
+                && !"editImageMetadata".equals(builtin)
+                && !"editVideoMetadata".equals(builtin)) {
             return true;
         }
 
@@ -117,6 +119,9 @@ public class ActionRegistry {
         }
         if ("editImageMetadata".equals(builtin)) {
             return ImageMetadataSupport.areAllSupportedImages(selectedItems);
+        }
+        if ("editVideoMetadata".equals(builtin)) {
+            return VideoMetadataSupport.areAllSupportedVideos(selectedItems);
         }
         return AudioConversionSupport.areAllConvertibleAudio(selectedItems);
     }

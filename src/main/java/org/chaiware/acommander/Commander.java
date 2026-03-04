@@ -3254,6 +3254,39 @@ public class Commander {
         }
     }
 
+    @FXML
+    public void editVideoMetadata() {
+        logger.info("Edit Video Metadata");
+
+        try {
+            List<FileItem> selectedItems = commands.filterValidItems(filesPanesHelper.getSelectedItems());
+            if (selectedItems.isEmpty()) {
+                return;
+            }
+
+            FileItem selectedItem = selectedItems.getFirst();
+            if (selectedItem.isDirectory()) {
+                return;
+            }
+
+            File file = selectedItem.getFile();
+            if (file == null || !file.exists()) {
+                return;
+            }
+
+            org.chaiware.acommander.dialog.VideoMetadataDialog dialog =
+                    new org.chaiware.acommander.dialog.VideoMetadataDialog(
+                            rootPane.getScene().getWindow(), file, this);
+            boolean modified = dialog.showAndWait();
+
+            if (modified) {
+                filesPanesHelper.refreshFileListViews();
+            }
+        } catch (Exception ex) {
+            error("Failed editing video metadata", ex);
+        }
+    }
+
     public void syncToOtherPane() {
         FilesPanesHelper.FocusSide focusedSide = filesPanesHelper.getFocusedSide();
         FilesPanesHelper.FocusSide targetSide = (focusedSide == LEFT) ? RIGHT : LEFT;
@@ -4975,4 +5008,3 @@ public class Commander {
         }
     }
 }
-

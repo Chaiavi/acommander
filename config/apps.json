@@ -346,6 +346,14 @@
       "type": "builtin"
     },
     {
+      "id": "editVideoMetadata",
+      "label": "Edit Video Metadata",
+      "aliases": ["video metadata", "atomicparsley", "edit mp4 metadata", "mp4 tags", "m4v tags", "3gp metadata"],
+      "contexts": ["filePane", "commandPalette"],
+      "selection": "singleFile",
+      "type": "builtin"
+    },
+    {
       "id": "refresh",
       "label": "Refresh Panels",
       "shortcut": "Ctrl+R",

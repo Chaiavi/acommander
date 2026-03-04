@@ -148,6 +148,7 @@ public class ActionExecutor {
             case "compareFolders" -> commander.compareFolders();
             case "changeAttributes" -> commander.changeAttributes();
             case "editImageMetadata" -> commander.editImageMetadata();
+            case "editVideoMetadata" -> commander.editVideoMetadata();
             case "refresh" -> commander.filesPanesHelper.refreshFileListViews();
             case "openCommandPalette" -> commander.openCommandPalette();
             case "leftPathCombo" -> commander.leftPathComboBox.show();

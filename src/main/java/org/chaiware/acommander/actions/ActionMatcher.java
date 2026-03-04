@@ -3,6 +3,7 @@ package org.chaiware.acommander.actions;
 import org.chaiware.acommander.helpers.AudioConversionSupport;
 import org.chaiware.acommander.helpers.ImageConversionSupport;
 import org.chaiware.acommander.helpers.ImageMetadataSupport;
+import org.chaiware.acommander.helpers.VideoMetadataSupport;
 import org.chaiware.acommander.model.FileItem;
 
 import java.util.ArrayList;
@@ -35,7 +36,8 @@ public class ActionMatcher {
         }
 
         scored.sort(Comparator
-                .comparingInt(ScoredAction::score).reversed()
+                .comparingInt((ScoredAction sa) -> pinnedConversionPriority(sa.action(), context))
+                .thenComparing(Comparator.comparingInt(ScoredAction::score).reversed())
                 .thenComparing(sa -> sa.action().title()));
 
         return scored.stream().map(ScoredAction::action).toList();
@@ -85,6 +87,9 @@ public class ActionMatcher {
             return 0;
         }
         if ("editImageMetadata".equals(action.id()) && ImageMetadataSupport.areAllSupportedImages(selectedItems)) {
+            return 0;
+        }
+        if ("editVideoMetadata".equals(action.id()) && VideoMetadataSupport.areAllSupportedVideos(selectedItems)) {
             return 0;
         }
         if (("mergePdf".equals(action.id()) || "extractPdfPages".equals(action.id()))
