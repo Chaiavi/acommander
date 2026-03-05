@@ -5,6 +5,7 @@ import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
+import javafx.scene.input.MouseButton;
 import javafx.scene.input.ScrollEvent;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
@@ -48,6 +49,14 @@ public class CommandPaletteController {
         resultsList.setCellFactory(listView -> new ListCell<>() {
             {
                 getStyleClass().add("palette-item-cell");
+                setOnMouseClicked(event -> {
+                    if (event.getButton() != MouseButton.PRIMARY || isEmpty()) {
+                        return;
+                    }
+                    getListView().getSelectionModel().select(getIndex());
+                    executeSelected();
+                    event.consume();
+                });
             }
 
             @Override
