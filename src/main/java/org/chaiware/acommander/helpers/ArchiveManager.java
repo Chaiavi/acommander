@@ -38,6 +38,9 @@ public class ArchiveManager {
         
         // Determine the archive mode based on extension
         String extension = getFileExtension(archivePath);
+        if (!ArchiveMode.isSupportedExtension(extension)) {
+            throw new IOException("Unsupported archive file type: " + archivePath);
+        }
         ArchiveMode mode = ArchiveMode.fromExtension(extension);
         
         // Create temp folder

@@ -920,11 +920,7 @@ public class Commander {
                 }
             } else {
                 // Open with default application
-                try {
-                    getDesktop().open(selectedItem.getFile());
-                } catch (Exception ex) {
-                    logger.error("Failed opening: {}", selectedItem.getName(), ex);
-                }
+                openFileWithSystemDefault(selectedItem, false);
             }
         }
     }
@@ -999,10 +995,37 @@ public class Commander {
             });
         } else {
             // It's a file - open it with default viewer
-            try {
-                getDesktop().open(selectedItem.getFile());
-            } catch (Exception ex) {
-                logger.error("Failed opening file in archive: {}", selectedItem.getName(), ex);
+            openFileWithSystemDefault(selectedItem, true);
+        }
+    }
+
+    private void openFileWithSystemDefault(FileItem selectedItem, boolean fromArchive) {
+        File file = selectedItem.getFile();
+        String fullPath = file.getAbsolutePath();
+
+        try {
+            getDesktop().open(file);
+            return;
+        } catch (Exception desktopEx) {
+            logger.warn("Desktop.open failed for {}, trying Windows shell fallback", selectedItem.getName(), desktopEx);
+        }
+
+        try {
+            // Shell fallback that uses the current Windows file association.
+            new ProcessBuilder("cmd.exe", "/c", "start", "", "\"" + fullPath + "\"").start();
+            return;
+        } catch (IOException shellEx) {
+            logger.warn("Windows shell fallback failed for {}, trying Open With dialog", selectedItem.getName(), shellEx);
+        }
+
+        try {
+            // Last resort: prompt the user to choose an application.
+            new ProcessBuilder("rundll32.exe", "shell32.dll,OpenAs_RunDLL", fullPath).start();
+        } catch (IOException openAsEx) {
+            if (fromArchive) {
+                logger.error("Failed opening file in archive: {}", selectedItem.getName(), openAsEx);
+            } else {
+                logger.error("Failed opening: {}", selectedItem.getName(), openAsEx);
             }
         }
     }

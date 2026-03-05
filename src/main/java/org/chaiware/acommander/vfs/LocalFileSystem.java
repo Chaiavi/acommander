@@ -169,7 +169,7 @@ public class LocalFileSystem implements VFileSystem {
         int lastDot = filename.lastIndexOf('.');
         if (lastDot >= 0) {
             String ext = filename.substring(lastDot + 1).toLowerCase();
-            return ArchiveMode.fromExtension(ext) != null;
+            return ArchiveMode.isSupportedExtension(ext);
         }
         return false;
     }

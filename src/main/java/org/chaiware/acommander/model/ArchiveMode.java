@@ -3,6 +3,7 @@ package org.chaiware.acommander.model;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 
+import java.util.Locale;
 import java.util.Set;
 
 /**
@@ -62,32 +63,46 @@ public enum ArchiveMode {
      * Determines the archive mode based on file extension.
      */
     public static ArchiveMode fromExtension(String extension) {
-        if (extension == null) {
-            return READ_ONLY;
-        }
-        String ext = extension.toLowerCase();
-        if (READ_ONLY_EXTENSIONS.contains(ext)) {
-            return READ_ONLY;
-        }
-        // Default to read-write for known writable formats
+        String ext = normalizeExtension(extension);
         if (READ_WRITE_EXTENSIONS.contains(ext)) {
             return READ_WRITE;
         }
-        // For unknown extensions, try to determine by checking read-only list
-        return READ_ONLY_EXTENSIONS.contains(ext) ? READ_ONLY : READ_WRITE;
+        if (READ_ONLY_EXTENSIONS.contains(ext)) {
+            return READ_ONLY;
+        }
+        throw new IllegalArgumentException("Unsupported archive extension: " + extension);
+    }
+
+    /**
+     * Checks if the given extension is a supported archive format.
+     */
+    public static boolean isSupportedExtension(String extension) {
+        String ext = normalizeExtension(extension);
+        return READ_WRITE_EXTENSIONS.contains(ext) || READ_ONLY_EXTENSIONS.contains(ext);
     }
     
     /**
      * Checks if the given extension is a read-only archive format.
      */
     public static boolean isReadOnlyExtension(String extension) {
-        return fromExtension(extension) == READ_ONLY;
+        return READ_ONLY_EXTENSIONS.contains(normalizeExtension(extension));
     }
     
     /**
      * Checks if the given extension is a read-write archive format.
      */
     public static boolean isReadWriteExtension(String extension) {
-        return fromExtension(extension) == READ_WRITE;
+        return READ_WRITE_EXTENSIONS.contains(normalizeExtension(extension));
+    }
+
+    private static String normalizeExtension(String extension) {
+        if (extension == null) {
+            return "";
+        }
+        String normalized = extension.trim().toLowerCase(Locale.ROOT);
+        if (normalized.startsWith(".")) {
+            return normalized.substring(1);
+        }
+        return normalized;
     }
 }
