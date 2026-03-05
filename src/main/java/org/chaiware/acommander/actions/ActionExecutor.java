@@ -149,6 +149,7 @@ public class ActionExecutor {
             case "changeAttributes" -> commander.changeAttributes();
             case "editImageMetadata" -> commander.editImageMetadata();
             case "editVideoMetadata" -> commander.editVideoMetadata();
+            case "editAudioMetadata" -> commander.editAudioMetadata();
             case "refresh" -> commander.filesPanesHelper.refreshFileListViews();
             case "openCommandPalette" -> commander.openCommandPalette();
             case "leftPathCombo" -> commander.leftPathComboBox.show();

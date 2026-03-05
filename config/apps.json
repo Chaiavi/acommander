@@ -354,6 +354,14 @@
       "type": "builtin"
     },
     {
+      "id": "editAudioMetadata",
+      "label": "Edit Audio Metadata",
+      "aliases": ["audio metadata", "edit mp3 metadata", "id3", "mp3 tags", "id3 editor"],
+      "contexts": ["filePane", "commandPalette"],
+      "selection": "singleFile",
+      "type": "builtin"
+    },
+    {
       "id": "refresh",
       "label": "Refresh Panels",
       "shortcut": "Ctrl+R",
