@@ -155,8 +155,8 @@ public class CommandPaletteController {
             return;
         }
         logger.info("Executing action from command palette: {}", action.id());
-        action.run(actionContext);
         closeAndRestoreFocus();
+        action.run(actionContext);
     }
 
     public void closeAndRestoreFocus() {
