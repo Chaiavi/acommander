@@ -77,6 +77,9 @@ public class ActionMatcher {
             return 1;
         }
         List<FileItem> selectedItems = context.commander().filesPanesHelper.getSelectedItems();
+        if ("pasteSelection".equals(action.id()) && context.commander().hasClipboardTransferEntries()) {
+            return 0;
+        }
         if ("convertAudioFiles".equals(action.id()) && AudioConversionSupport.areAllConvertibleAudio(selectedItems)) {
             return 0;
         }

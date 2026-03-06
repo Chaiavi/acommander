@@ -60,6 +60,7 @@ public class ActionExecutor {
                  "setRegularMode", "toggleDarkMode", "sortByName", "sortBySize", "sortByDate",
                  "gotoBookmark", "removeBookmark", "ftpConnect", "ftpDisconnect",
                  "selectAll", "unselectAll", "invertSelection", "selectByPattern",
+                 "copySelection", "cutSelection", "pasteSelection",
                  "editImageMetadata" -> true;
             default -> false;
         };
@@ -97,10 +98,15 @@ public class ActionExecutor {
         
         // Copy target is the unfocused pane - source can be read-only (copy doesn't modify source)
         // Pack/split/unpack/etc. are similar - they create a new file(s) in the target folder
+        if ("pasteSelection".equals(actionId)) {
+            return commander.filesPanesHelper.getFocusedFileSystem().isReadOnly();
+        }
+
         if ("copy".equals(actionId) || "pack".equals(actionId) || "splitLargeFile".equals(actionId) ||
             "unpack".equals(actionId) || "extractAll".equals(actionId) || 
             "mergePdf".equals(actionId) || "extractPdfPages".equals(actionId) ||
-            "convertMediaFile".equals(actionId) || "convertGraphicsFiles".equals(actionId) || "convertAudioFiles".equals(actionId)) {
+            "convertMediaFile".equals(actionId) || "convertGraphicsFiles".equals(actionId) ||
+            "convertAudioFiles".equals(actionId)) {
             return commander.filesPanesHelper.getUnfocusedFileSystem().isReadOnly();
         }
         
@@ -171,6 +177,9 @@ public class ActionExecutor {
             case "unselectAll" -> commander.unselectAll();
             case "invertSelection" -> commander.invertSelection();
             case "selectByPattern" -> commander.selectByPattern();
+            case "copySelection" -> commander.copySelectionToClipboard();
+            case "cutSelection" -> commander.cutSelectionToClipboard();
+            case "pasteSelection" -> commander.pasteClipboardSelection();
             default -> logger.warn("Unknown builtin action id: {}", builtin);
         }
     }

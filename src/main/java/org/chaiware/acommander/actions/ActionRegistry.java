@@ -50,8 +50,9 @@ public class ActionRegistry {
                     case "help", "settings", "rename", "view", "edit", "copy", "move", "mkdir", "mkfile", 
                          "delete", "refresh", "openCommandPalette", "leftPathCombo", 
                          "rightPathCombo", "setDarkMode", "setLightMode", 
-                         "setRegularMode", "toggleDarkMode", "sortByName", "sortBySize", "sortByDate", 
-                         "gotoBookmark", "removeBookmark", "ftpConnect", "ftpDisconnect" -> true;
+                         "setRegularMode", "toggleDarkMode", "sortByName", "sortBySize", "sortByDate",
+                         "gotoBookmark", "removeBookmark", "ftpConnect", "ftpDisconnect",
+                         "copySelection", "cutSelection", "pasteSelection" -> true;
                     default -> false;
                 };
                 if (!supported) return false;
@@ -66,6 +67,9 @@ public class ActionRegistry {
             var filesPanesHelper = ctx.commander().filesPanesHelper;
             var currentFs = filesPanesHelper.getFileSystem(filesPanesHelper.getFocusedSide());
             return currentFs instanceof org.chaiware.acommander.vfs.FtpFileSystem;
+        }
+        if ("pasteSelection".equals(builtin)) {
+            return ctx != null && ctx.commander() != null && ctx.commander().hasClipboardTransferEntries();
         }
 
         if (!"convertGraphicsFiles".equals(builtin)

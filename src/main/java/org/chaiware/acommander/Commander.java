@@ -1,5 +1,6 @@
 package org.chaiware.acommander;
 
+import javafx.animation.PauseTransition;
 import javafx.application.Platform;
 import javafx.collections.ListChangeListener;
 import javafx.fxml.FXML;
@@ -17,6 +18,7 @@ import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.*;
 import javafx.stage.Popup;
 import javafx.stage.Window;
+import javafx.util.Duration;
 import org.chaiware.acommander.actions.ActionContext;
 import org.chaiware.acommander.actions.ActionExecutor;
 import org.chaiware.acommander.actions.ActionRegistry;
@@ -120,6 +122,10 @@ public class Commander {
     private final Map<FilesPanesHelper.FocusSide, Map<String, FolderCompareMark>> folderCompareMarks = new EnumMap<>(FilesPanesHelper.FocusSide.class);
     private Popup incrementalFilterPopup;
     private Label incrementalFilterPopupLabel;
+    private Popup toastPopup;
+    private Label toastLabel;
+    private PauseTransition toastHideTransition;
+    private ClipboardTransferState clipboardTransferState;
 
     public ThemeMode getCurrentThemeMode() {
         return currentThemeMode;
@@ -4723,6 +4729,197 @@ public class Commander {
         alert.showAndWait();
     }
 
+    public void copySelectionToClipboard() {
+        setClipboardTransferState(false);
+    }
+
+    public void cutSelectionToClipboard() {
+        setClipboardTransferState(true);
+    }
+
+    public boolean hasClipboardTransferEntries() {
+        return clipboardTransferState != null && !clipboardTransferState.entries().isEmpty();
+    }
+
+    public void pasteClipboardSelection() {
+        if (clipboardTransferState == null || clipboardTransferState.entries().isEmpty()) {
+            showToast("Clipboard is empty");
+            return;
+        }
+
+        FilesPanesHelper.FocusSide targetSide = filesPanesHelper.getFocusedSide();
+        VFileSystem targetFs = filesPanesHelper.getFileSystem(targetSide);
+        String targetFolder = filesPanesHelper.getPath(targetSide);
+        boolean isCut = clipboardTransferState.cut();
+
+        if (targetFs == null) {
+            showError("Paste", "No target location is selected.");
+            return;
+        }
+        if (targetFs.isReadOnly()) {
+            showReadOnlyLocationWarning();
+            return;
+        }
+        if (isCut && clipboardTransferState.sourceFs().isReadOnly()) {
+            showError("Paste", "Cannot move from a read-only source location.");
+            return;
+        }
+        if (isCut
+                && targetSide == clipboardTransferState.sourceSide()
+                && Objects.equals(targetFolder, clipboardTransferState.sourceFolder())) {
+            showToast("Cannot paste cut items into the same folder");
+            return;
+        }
+
+        List<ClipboardEntry> entries = List.copyOf(clipboardTransferState.entries());
+        VFileSystem sourceFs = clipboardTransferState.sourceFs();
+        CompletableFuture.runAsync(() -> {
+            List<ClipboardEntry> failed = new ArrayList<>();
+            for (ClipboardEntry entry : entries) {
+                try {
+                    String targetInternalPath = resolveTargetInternalPath(targetFs, targetFolder, entry.name(), entry.directory());
+                    if (isCut) {
+                        sourceFs.move(entry.sourceInternalPath(), targetFs, targetInternalPath);
+                    } else {
+                        sourceFs.copy(entry.sourceInternalPath(), targetFs, targetInternalPath);
+                    }
+                } catch (Exception ex) {
+                    logger.warn("Paste failed for item: {}", entry.name(), ex);
+                    failed.add(entry);
+                }
+            }
+
+            Platform.runLater(() -> {
+                filesPanesHelper.refreshFileListViews();
+                for (ClipboardEntry entry : entries) {
+                    if (failed.contains(entry)) {
+                        continue;
+                    }
+                    filesPanesHelper.selectFileItem(true, createSelectionProbe(targetFs, targetFolder, entry));
+                }
+
+                int successCount = entries.size() - failed.size();
+                if (successCount <= 0) {
+                    showError("Paste", "Failed to paste selected items.");
+                    return;
+                }
+
+                clipboardTransferState = null;
+                commandPaletteController.refresh();
+
+                if (failed.isEmpty()) {
+                    showToast("Pasted " + successCount + " file(s)");
+                } else {
+                    showToast("Pasted " + successCount + " of " + entries.size() + " file(s)");
+                }
+            });
+        });
+    }
+
+    private void setClipboardTransferState(boolean cut) {
+        List<FileItem> selectedItems = new ArrayList<>(commands.filterValidItems(filesPanesHelper.getSelectedItems()));
+        if (selectedItems.isEmpty()) {
+            showToast("No files selected");
+            return;
+        }
+
+        FilesPanesHelper.FocusSide sourceSide = filesPanesHelper.getFocusedSide();
+        VFileSystem sourceFs = filesPanesHelper.getFileSystem(sourceSide);
+        String sourceFolder = filesPanesHelper.getPath(sourceSide);
+
+        List<ClipboardEntry> entries = selectedItems.stream()
+                .map(item -> new ClipboardEntry(item.getName(), item.isDirectory(), sourceFs.getInternalPath(item)))
+                .toList();
+
+        clipboardTransferState = new ClipboardTransferState(entries, cut, sourceSide, sourceFs, sourceFolder);
+        commandPaletteController.refresh();
+        showToast((cut ? "Cut " : "Copied ") + entries.size() + " file(s)");
+    }
+
+    private String resolveTargetInternalPath(VFileSystem targetFs, String targetFolder, String name, boolean directory) {
+        if (targetFs instanceof LocalFileSystem) {
+            return targetFs.getInternalPath(new FileItem(new File(targetFolder, name)));
+        }
+        String separator = targetFs.getSeparator();
+        String base = targetFolder == null ? "" : targetFolder;
+        if (base.isBlank()) {
+            base = separator;
+        }
+        String fullPath = base.endsWith(separator) ? base + name : base + separator + name;
+        if (targetFs instanceof FtpFileSystem ftpFileSystem) {
+            return ftpFileSystem.sanitizePath(fullPath);
+        }
+        return targetFs.getInternalPath(new FileItem(new File(fullPath), name, 0, 0, directory));
+    }
+
+    private FileItem createSelectionProbe(VFileSystem targetFs, String targetFolder, ClipboardEntry entry) {
+        if (targetFs instanceof LocalFileSystem) {
+            return new FileItem(new File(targetFolder, entry.name()));
+        }
+        return new FileItem(null, entry.name(), 0, 0, entry.directory());
+    }
+
+    private void showToast(String message) {
+        if (!Platform.isFxApplicationThread()) {
+            Platform.runLater(() -> showToast(message));
+            return;
+        }
+        if (rootPane == null || rootPane.getScene() == null || rootPane.getScene().getWindow() == null) {
+            logger.info("Toast: {}", message);
+            return;
+        }
+
+        initializeToastIfNeeded();
+        toastLabel.setText(message);
+
+        Window window = rootPane.getScene().getWindow();
+        toastLabel.applyCss();
+        toastLabel.layout();
+
+        double popupWidth = Math.max(220, toastLabel.prefWidth(-1) + 24);
+        double popupHeight = Math.max(36, toastLabel.prefHeight(-1) + 16);
+        double x = window.getX() + window.getWidth() - popupWidth - 20;
+        double y = window.getY() + window.getHeight() - popupHeight - 26;
+
+        if (toastPopup.isShowing()) {
+            toastPopup.hide();
+        }
+        toastPopup.show(window, x, y);
+
+        if (toastHideTransition != null) {
+            toastHideTransition.stop();
+        }
+        toastHideTransition = new PauseTransition(Duration.seconds(2.0));
+        toastHideTransition.setOnFinished(event -> {
+            if (toastPopup != null && toastPopup.isShowing()) {
+                toastPopup.hide();
+            }
+        });
+        toastHideTransition.playFromStart();
+    }
+
+    private void initializeToastIfNeeded() {
+        if (toastPopup != null) {
+            return;
+        }
+        toastPopup = new Popup();
+        toastPopup.setAutoHide(false);
+        toastPopup.setHideOnEscape(false);
+
+        toastLabel = new Label();
+        toastLabel.setAlignment(Pos.CENTER_LEFT);
+        toastLabel.setPadding(new Insets(8, 12, 8, 12));
+        toastLabel.setStyle(
+                "-fx-background-color: rgba(28, 33, 44, 0.95);" +
+                        "-fx-text-fill: #ffffff;" +
+                        "-fx-background-radius: 8;" +
+                        "-fx-border-radius: 8;" +
+                        "-fx-border-color: rgba(255,255,255,0.15);" +
+                        "-fx-font-size: 12px;"
+        );
+        toastPopup.getContent().add(toastLabel);
+    }
+
     private record SplitSize(boolean valid, long bytes, String sevenZipArg, String message) {}
     private record ChecksumOptions(
             String algorithmFlag,
@@ -4825,6 +5022,18 @@ public class Commander {
             boolean findInSpecificExtension,
             String extension,
             boolean includeHiddenAndIgnored
+    ) {}
+    private record ClipboardEntry(
+            String name,
+            boolean directory,
+            String sourceInternalPath
+    ) {}
+    private record ClipboardTransferState(
+            List<ClipboardEntry> entries,
+            boolean cut,
+            FilesPanesHelper.FocusSide sourceSide,
+            VFileSystem sourceFs,
+            String sourceFolder
     ) {}
 
     private Optional<FileAttributesHelper.AttributeChangeRequest> promptAttributes(List<FileItem> selectedItems) {

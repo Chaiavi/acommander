@@ -94,6 +94,36 @@
       "refreshAfter": true
     },
     {
+      "id": "copySelection",
+      "label": "Copy",
+      "shortcut": "Ctrl+C",
+      "aliases": ["clipboard copy"],
+      "contexts": ["filePane", "commandPalette"],
+      "selection": "any",
+      "type": "builtin",
+      "builtin": "copySelection"
+    },
+    {
+      "id": "cutSelection",
+      "label": "Cut",
+      "shortcut": "Ctrl+X",
+      "aliases": ["clipboard cut"],
+      "contexts": ["filePane", "commandPalette"],
+      "selection": "any",
+      "type": "builtin",
+      "builtin": "cutSelection"
+    },
+    {
+      "id": "pasteSelection",
+      "label": "Paste",
+      "shortcut": "Ctrl+V",
+      "aliases": ["clipboard paste"],
+      "contexts": ["filePane", "commandPalette"],
+      "selection": "none",
+      "type": "builtin",
+      "builtin": "pasteSelection"
+    },
+    {
       "id": "move",
       "label": "Move",
       "shortcut": "F6",

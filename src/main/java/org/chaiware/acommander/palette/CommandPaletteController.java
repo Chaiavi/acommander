@@ -173,6 +173,10 @@ public class CommandPaletteController {
         }
     }
 
+    public void refresh() {
+        refreshResults();
+    }
+
     private void refreshResults() {
         if (actionRegistry == null || actionContext == null) {
             return;

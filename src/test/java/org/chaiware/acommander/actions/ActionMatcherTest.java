@@ -152,4 +152,25 @@ class ActionMatcherTest {
 
         Assertions.assertThat(ranked.getFirst().id()).isEqualTo("extractPdfPages");
     }
+
+    @Test
+    void blankQueryPinsPasteSelectionFirstWhenClipboardBufferHasEntries() {
+        ActionMatcher matcher = new ActionMatcher();
+
+        FilesPanesHelper panesHelper = mock(FilesPanesHelper.class);
+        when(panesHelper.getSelectedItems()).thenReturn(List.of());
+
+        Commander commander = mock(Commander.class);
+        commander.filesPanesHelper = panesHelper;
+        when(commander.hasClipboardTransferEntries()).thenReturn(true);
+
+        ActionContext context = new ActionContext(commander);
+
+        AppAction alpha = new AppAction("a", "Alpha", "", List.of(), ctx -> true, ctx -> {});
+        AppAction paste = new AppAction("pasteSelection", "Paste", "", List.of(), ctx -> true, ctx -> {});
+
+        List<AppAction> ranked = matcher.rank("", List.of(alpha, paste), context);
+
+        Assertions.assertThat(ranked.getFirst().id()).isEqualTo("pasteSelection");
+    }
 }

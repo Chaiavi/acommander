@@ -35,6 +35,7 @@ public class ActionMutator {
         "multiRename", // modifies in same folder
         "copy",        // modifies target folder
         "move",        // modifies target folder
+        "pasteSelection",
         "edit",        // might modify file
         
         // Archive creation/modification (usually creates new files in target folder)

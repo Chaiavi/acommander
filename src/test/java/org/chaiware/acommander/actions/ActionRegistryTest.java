@@ -109,6 +109,40 @@ class ActionRegistryTest {
         Assertions.assertThat(action.isEnabled(context)).isFalse();
     }
 
+    @Test
+    void pasteSelectionHiddenWhenClipboardBufferIsEmpty() {
+        Commander commander = mock(Commander.class);
+        when(commander.hasClipboardTransferEntries()).thenReturn(false);
+
+        AppRegistry registry = new AppRegistry(configWithPasteAction());
+        ActionRegistry actionRegistry = new ActionRegistry(registry, new ActionExecutor(commander, registry));
+        ActionContext context = new ActionContext(commander);
+
+        AppAction action = actionRegistry.all().stream()
+                .filter(a -> "pasteSelection".equals(a.id()))
+                .findFirst()
+                .orElseThrow();
+
+        Assertions.assertThat(action.isEnabled(context)).isFalse();
+    }
+
+    @Test
+    void pasteSelectionVisibleWhenClipboardBufferHasEntries() {
+        Commander commander = mock(Commander.class);
+        when(commander.hasClipboardTransferEntries()).thenReturn(true);
+
+        AppRegistry registry = new AppRegistry(configWithPasteAction());
+        ActionRegistry actionRegistry = new ActionRegistry(registry, new ActionExecutor(commander, registry));
+        ActionContext context = new ActionContext(commander);
+
+        AppAction action = actionRegistry.all().stream()
+                .filter(a -> "pasteSelection".equals(a.id()))
+                .findFirst()
+                .orElseThrow();
+
+        Assertions.assertThat(action.isEnabled(context)).isTrue();
+    }
+
     private static AppConfig configWithConvertActions() {
         ActionDefinition imageConvert = new ActionDefinition();
         imageConvert.setId("convertGraphicsFiles");
@@ -139,6 +173,20 @@ class ActionRegistryTest {
 
         AppConfig config = new AppConfig();
         config.setActions(List.of(compare));
+        return config;
+    }
+
+    private static AppConfig configWithPasteAction() {
+        ActionDefinition paste = new ActionDefinition();
+        paste.setId("pasteSelection");
+        paste.setBuiltin("pasteSelection");
+        paste.setLabel("Paste");
+        paste.setType("builtin");
+        paste.setContexts(List.of("commandPalette"));
+        paste.setSelection("none");
+
+        AppConfig config = new AppConfig();
+        config.setActions(List.of(paste));
         return config;
     }
 }
