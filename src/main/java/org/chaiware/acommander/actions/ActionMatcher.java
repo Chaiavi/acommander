@@ -20,7 +20,7 @@ public class ActionMatcher {
             return enabledActions.stream()
                     .sorted(Comparator
                             .comparingInt((AppAction action) -> pinnedConversionPriority(action, context))
-                            .thenComparing(AppAction::title))
+                            .thenComparing(action -> action.title()))
                     .toList();
         }
 

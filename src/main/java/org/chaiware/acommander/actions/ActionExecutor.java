@@ -153,6 +153,7 @@ public class ActionExecutor {
             case "compareFiles" -> commander.compareFiles();
             case "compareFolders" -> commander.compareFolders();
             case "changeAttributes" -> commander.changeAttributes();
+            case "fileProperties" -> commander.fileProperties();
             case "editImageMetadata" -> commander.editImageMetadata();
             case "editVideoMetadata" -> commander.editVideoMetadata();
             case "editAudioMetadata" -> commander.editAudioMetadata();

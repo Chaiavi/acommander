@@ -71,6 +71,8 @@ public class FileAttributesHelper {
         command.addAll(flags);
         command.add(path.toString());
 
+        logger.debug("Running command: {}", String.join(" ", command));
+
         ProcessBuilder pb = new ProcessBuilder(command);
         pb.redirectErrorStream(true);
         Process process = pb.start();

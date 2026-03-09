@@ -359,9 +359,17 @@
       "type": "builtin"
     },
     {
+      "id": "fileProperties",
+      "label": "File Properties",
+      "shortcut": "Alt+Enter",
+      "aliases": ["properties", "windows properties", "file info"],
+      "contexts": ["filePane", "commandPalette"],
+      "selection": "single",
+      "type": "builtin"
+    },
+    {
       "id": "changeAttributes",
       "label": "Change Attributes",
-      "shortcut": "Alt+Enter",
       "aliases": ["attributes", "attrib", "set attributes"],
       "contexts": ["filePane", "commandPalette"],
       "selection": "any",

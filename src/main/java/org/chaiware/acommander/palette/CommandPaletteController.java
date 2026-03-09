@@ -68,7 +68,7 @@ public class CommandPaletteController {
                     return;
                 }
 
-                Label title = new Label(item.title());
+                Label title = new Label(item.title(actionContext));
                 title.getStyleClass().add("palette-item-title");
                 HBox.setHgrow(title, Priority.ALWAYS);
                 title.setMaxWidth(Double.MAX_VALUE);

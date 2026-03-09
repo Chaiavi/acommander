@@ -22,6 +22,21 @@ public class ActionRegistry {
     private AppAction toAppAction(ActionDefinition action, ActionExecutor executor) {
         SelectionRule rule = SelectionRule.fromString(action.getSelection());
         String builtin = action.getBuiltin() == null ? action.getId() : action.getBuiltin();
+        
+        // Special handling for fileProperties to show dynamic label (File/Folder Properties)
+        if ("fileProperties".equals(action.getId())) {
+            return new AppAction(
+                    action.getId(),
+                    action.getLabel(),
+                    this::getFilePropertiesDynamicLabel,
+                    action.getShortcut(),
+                    action.getAliases(),
+                    ctx -> rule.isSatisfied(selectedItemsOrEmpty(ctx))
+                            && isSelectionAllowedForBuiltin(builtin, ctx),
+                    ctx -> executor.execute(action)
+            );
+        }
+        
         return new AppAction(
                 action.getId(),
                 action.getLabel(),
@@ -31,6 +46,21 @@ public class ActionRegistry {
                         && isSelectionAllowedForBuiltin(builtin, ctx),
                 ctx -> executor.execute(action)
         );
+    }
+
+    private String getFilePropertiesDynamicLabel(ActionContext ctx) {
+        if (ctx == null || ctx.commander() == null || ctx.commander().filesPanesHelper == null) {
+            return null;
+        }
+        List<FileItem> selected = ctx.commander().filesPanesHelper.getSelectedItems();
+        if (selected == null || selected.isEmpty()) {
+            return null;
+        }
+        FileItem item = selected.getFirst();
+        if (item.isDirectory()) {
+            return "Folder Properties";
+        }
+        return "File Properties";
     }
 
     private List<FileItem> selectedItemsOrEmpty(ActionContext ctx) {

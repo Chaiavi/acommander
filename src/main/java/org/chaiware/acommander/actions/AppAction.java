@@ -3,11 +3,13 @@ package org.chaiware.acommander.actions;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.function.Predicate;
 
 public class AppAction {
     private final String id;
     private final String title;
+    private final Function<ActionContext, String> dynamicTitle;
     private final String shortcut;
     private final List<String> aliases;
     private final Predicate<ActionContext> enabled;
@@ -21,8 +23,21 @@ public class AppAction {
             Predicate<ActionContext> enabled,
             Consumer<ActionContext> execute
     ) {
+        this(id, title, null, shortcut, aliases, enabled, execute);
+    }
+
+    public AppAction(
+            String id,
+            String title,
+            Function<ActionContext, String> dynamicTitle,
+            String shortcut,
+            List<String> aliases,
+            Predicate<ActionContext> enabled,
+            Consumer<ActionContext> execute
+    ) {
         this.id = Objects.requireNonNull(id);
         this.title = Objects.requireNonNull(title);
+        this.dynamicTitle = dynamicTitle;
         this.shortcut = shortcut == null ? "" : shortcut;
         this.aliases = aliases == null ? List.of() : List.copyOf(aliases);
         this.enabled = enabled == null ? ctx -> true : enabled;
@@ -34,6 +49,16 @@ public class AppAction {
     }
 
     public String title() {
+        return title;
+    }
+
+    public String title(ActionContext context) {
+        if (dynamicTitle != null) {
+            String dynamic = dynamicTitle.apply(context);
+            if (dynamic != null) {
+                return dynamic;
+            }
+        }
         return title;
     }
 
