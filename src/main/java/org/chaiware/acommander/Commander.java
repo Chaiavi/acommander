@@ -2857,6 +2857,10 @@ public class Commander {
             for (FileItem selectedItem : selectedItems)
                 commands.extractAll(selectedItem, filesPanesHelper.getUnfocusedPath());
         } catch (IllegalArgumentException e) {
+            logger.warn("Extract All failed for file '{}': {}", 
+                    filesPanesHelper.getSelectedItems().isEmpty() ? "unknown" 
+                            : filesPanesHelper.getSelectedItems().getFirst().getName(), 
+                    e.getMessage());
             showError("Extract", e.getMessage());
         } catch (Exception e) {
             error("Failed UNPacking file", e);

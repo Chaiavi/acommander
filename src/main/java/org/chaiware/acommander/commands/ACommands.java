@@ -69,6 +69,18 @@ public abstract class ACommands {
         return item.getName().toLowerCase().endsWith(".pdf");
     }
 
+    private String getExtension(FileItem item) {
+        if (item == null || item.isDirectory()) {
+            return "";
+        }
+        String name = item.getName();
+        int lastDot = name.lastIndexOf('.');
+        if (lastDot == -1 || lastDot == name.length() - 1) {
+            return "";
+        }
+        return name.substring(lastDot + 1);
+    }
+
     // PUBLIC METHODS - These handle filtering automatically
     public final void rename(List<FileItem> selectedItems, String newFilename) throws Exception {
         List<FileItem> validItems = filterValidItems(selectedItems);
@@ -134,6 +146,8 @@ public abstract class ACommands {
             return;
         }
         if (!isArchive(selectedItem)) {
+            log.warn("Unpack rejected file '{}': extension '{}' is not a supported archive format", 
+                    selectedItem.getName(), getExtension(selectedItem));
             throw new IllegalArgumentException("The selected file is not a supported archive: " + selectedItem.getName());
         }
         doUnpack(selectedItem, destinationPath);
@@ -143,9 +157,7 @@ public abstract class ACommands {
         if (!isValidSingleItem(selectedItem)) {
             return;
         }
-        if (!isArchive(selectedItem)) {
-            throw new IllegalArgumentException("The selected file is not a supported archive: " + selectedItem.getName());
-        }
+        // UniExtract supports all file types, no archive extension check needed
         doExtractAll(selectedItem, destinationPath);
     }
 
