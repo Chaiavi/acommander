@@ -16,6 +16,7 @@ import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Set;
 
 /** Simple implementation using Java code and Powershell (Not 3rd party executables) */
 public class CommandsSimpleImpl extends ACommands {
@@ -241,9 +242,28 @@ public class CommandsSimpleImpl extends ACommands {
 
     @Override
     public void openExplorer(String openHerePath) {
-        List<String> command = Arrays.asList("explorer.exe", openHerePath);
-        runExecutable(command, false);
-        log.debug("Opened Explorer Here: {}", openHerePath);
+        if (openHerePath == null || openHerePath.isBlank()) {
+            log.warn("Open Explorer Here skipped: path is blank");
+            return;
+        }
+
+        File targetPath = new File(openHerePath);
+        if (!targetPath.exists()) {
+            log.warn("Open Explorer Here skipped: path does not exist: {}", openHerePath);
+            return;
+        }
+        if (targetPath.isFile()) {
+            File parent = targetPath.getParentFile();
+            if (parent == null) {
+                log.warn("Open Explorer Here skipped: file has no parent: {}", openHerePath);
+                return;
+            }
+            targetPath = parent;
+        }
+
+        List<String> command = Arrays.asList("explorer.exe", targetPath.getAbsolutePath());
+        runExecutable(command, false, Set.of(1));
+        log.debug("Opened Explorer Here: {}", targetPath.getAbsolutePath());
     }
 
     @Override
@@ -365,4 +385,3 @@ public class CommandsSimpleImpl extends ACommands {
         throw new Exception("Not implemented yet");
     }
 }
-
