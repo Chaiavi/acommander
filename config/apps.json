@@ -94,6 +94,17 @@
       "refreshAfter": true
     },
     {
+      "id": "duplicate",
+      "label": "Duplicate",
+      "shortcut": "Alt+F6",
+      "aliases": ["dup"],
+      "contexts": ["filePane", "commandPalette"],
+      "selection": "any",
+      "type": "builtin",
+      "builtin": "duplicate",
+      "refreshAfter": true
+    },
+    {
       "id": "copySelection",
       "label": "Copy",
       "shortcut": "Ctrl+C",

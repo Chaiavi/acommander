@@ -54,7 +54,7 @@ public class ActionExecutor {
 
     public boolean isActionSupportedOnFtp(String actionId) {
         return switch (actionId) {
-            case "help", "settings", "rename", "view", "edit", "copy", "move", "mkdir", "mkfile",
+            case "help", "settings", "rename", "view", "edit", "copy", "duplicate", "move", "mkdir", "mkfile",
                  "delete", "refresh", "openCommandPalette", "leftPathCombo",
                  "rightPathCombo", "setDarkMode", "setLightMode",
                  "setRegularMode", "toggleDarkMode", "sortByName", "sortBySize", "sortByDate",
@@ -130,6 +130,7 @@ public class ActionExecutor {
             case "view" -> commander.viewFile();
             case "edit" -> commander.editFile();
             case "copy" -> commander.copyFile();
+            case "duplicate" -> commander.duplicateFile();
             case "move" -> commander.moveFile();
             case "mkdir" -> commander.makeDirectory();
             case "mkfile" -> commander.makeFile();

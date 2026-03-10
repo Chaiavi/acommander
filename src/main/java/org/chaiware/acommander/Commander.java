@@ -91,7 +91,7 @@ public class Commander {
     @FXML
     Region leftIconHeaderSpacer, rightIconHeaderSpacer;
     @FXML
-    Button btnF1, btnF2, btnF3, btnF4, btnF5, btnF6, btnF7, btnF8, btnF9, btnF10, btnF11, btnF12;
+    Button btnF1, btnF2, btnF3, btnF4, btnF5, btnF6, btnDup, btnF7, btnF8, btnF9, btnF10, btnF11, btnF12;
     @FXML
     HBox externalProgressBox;
     @FXML
@@ -227,7 +227,10 @@ public class Commander {
         if (exitCode == 0) {
             return false;
         }
-        return !(exitCode == 27 && isExamDiffCommand(command));
+        if (exitCode == 27 && isExamDiffCommand(command)) {
+            return false;
+        }
+        return !(exitCode == 1 && isExplorerCommand(command));
     }
 
     private boolean isExamDiffCommand(List<String> command) {
@@ -240,6 +243,19 @@ public class Commander {
             return fileName != null && "examdiff.exe".equalsIgnoreCase(fileName.toString());
         } catch (Exception ex) {
             return command.getFirst().toLowerCase(Locale.ROOT).contains("examdiff.exe");
+        }
+    }
+
+    private boolean isExplorerCommand(List<String> command) {
+        if (command == null || command.isEmpty() || command.getFirst() == null) {
+            return false;
+        }
+        try {
+            Path executable = Paths.get(command.getFirst());
+            Path fileName = executable.getFileName();
+            return fileName != null && "explorer.exe".equalsIgnoreCase(fileName.toString());
+        } catch (Exception ex) {
+            return command.getFirst().toLowerCase(Locale.ROOT).contains("explorer.exe");
         }
     }
 
@@ -1318,7 +1334,50 @@ public class Commander {
             }
 
             String targetFolderSnapshot = filesPanesHelper.getUnfocusedPath();
+            String sourceFolderSnapshot = filesPanesHelper.getFocusedPath();
             VFileSystem fs = filesPanesHelper.getFocusedFileSystem();
+            VFileSystem targetFs = filesPanesHelper.getUnfocusedFileSystem();
+            boolean duplicateInSameFolder = isSamePasteFolder(
+                    fs,
+                    targetFs,
+                    sourceFolderSnapshot,
+                    targetFolderSnapshot
+            );
+
+            if (duplicateInSameFolder) {
+                if (fs instanceof FtpFileSystem) {
+                    CompletableFuture.runAsync(() -> {
+                        try {
+                            List<ClipboardEntry> pastedSelections = new ArrayList<>();
+                            for (FileItem selectedItem : selectedItems) {
+                                String duplicateName = generateDuplicateName(selectedItem.getName(), targetFolderSnapshot, targetFs);
+                                String sourceInternalPath = fs.getInternalPath(selectedItem);
+                                String targetInternalPath = resolveTargetInternalPath(targetFs, targetFolderSnapshot, duplicateName, selectedItem.isDirectory());
+                                fs.copy(sourceInternalPath, targetFs, targetInternalPath);
+                                pastedSelections.add(new ClipboardEntry(duplicateName, selectedItem.isDirectory(), sourceInternalPath));
+                            }
+                            Platform.runLater(() -> {
+                                filesPanesHelper.refreshFileListViews();
+                                for (ClipboardEntry entry : pastedSelections) {
+                                    filesPanesHelper.selectFileItem(false, createSelectionProbe(targetFs, targetFolderSnapshot, entry));
+                                }
+                            });
+                        } catch (Exception e) {
+                            Platform.runLater(() -> error("Failed Duplicating file", e));
+                        }
+                    });
+                } else {
+                    for (FileItem selectedItem : selectedItems) {
+                        String duplicateName = generateDuplicateName(selectedItem.getName(), targetFolderSnapshot, targetFs);
+                        String sourceInternalPath = fs.getInternalPath(selectedItem);
+                        String targetInternalPath = resolveTargetInternalPath(targetFs, targetFolderSnapshot, duplicateName, selectedItem.isDirectory());
+                        fs.copy(sourceInternalPath, targetFs, targetInternalPath);
+                        filesPanesHelper.selectFileItem(false, createSelectionProbe(targetFs, targetFolderSnapshot, new ClipboardEntry(duplicateName, selectedItem.isDirectory(), sourceInternalPath)));
+                    }
+                    filesPanesHelper.refreshFileListViews();
+                }
+                return;
+            }
             
             if (fs instanceof FtpFileSystem) {
                 CompletableFuture.runAsync(() -> {
@@ -1379,6 +1438,110 @@ public class Commander {
             return;
         }
         copyFile();
+    }
+
+    @FXML
+    public void handleF6Button() {
+        if (activeModifiers.contains(KeyCode.ALT)) {
+            duplicateFile();
+            return;
+        }
+        if (activeModifiers.contains(KeyCode.SHIFT)) {
+            renameFile();
+            return;
+        }
+        moveFile();
+    }
+
+    @FXML
+    public void duplicateFile() {
+        logger.info("Duplicate");
+
+        try {
+            List<FileItem> selectedItems = new ArrayList<>(commands.filterValidItems(filesPanesHelper.getSelectedItems()));
+            if (selectedItems.isEmpty()) {
+                return;
+            }
+
+            String targetFolder = filesPanesHelper.getFocusedPath();
+            VFileSystem fs = filesPanesHelper.getFocusedFileSystem();
+
+            if (fs instanceof FtpFileSystem) {
+                CompletableFuture.runAsync(() -> {
+                    try {
+                        for (FileItem selectedItem : selectedItems) {
+                            String duplicateName = generateDuplicateName(selectedItem.getName(), targetFolder, fs);
+                            String sourceInternalPath = fs.getInternalPath(selectedItem);
+                            // FTP uses forward slashes
+                            int lastSeparator = Math.max(sourceInternalPath.lastIndexOf('/'), sourceInternalPath.lastIndexOf('\\'));
+                            String targetInternalPath = sourceInternalPath.substring(0, lastSeparator + 1) + duplicateName;
+                            fs.copy(sourceInternalPath, fs, targetInternalPath);
+                        }
+                    } catch (Exception e) {
+                        Platform.runLater(() -> error("Failed Duplicating file", e));
+                    }
+                }).thenRun(() -> Platform.runLater(() -> {
+                    filesPanesHelper.refreshFileListViews();
+                }));
+            } else {
+                // Use simple VFileSystem copy for local files
+                for (FileItem selectedItem : selectedItems) {
+                    String duplicateName = generateDuplicateName(selectedItem.getName(), targetFolder, fs);
+                    String sourceInternalPath = fs.getInternalPath(selectedItem);
+                    // Local filesystem uses backslashes - use Path for robustness
+                    java.nio.file.Path sourcePath = java.nio.file.Paths.get(sourceInternalPath);
+                    java.nio.file.Path targetPath = sourcePath.resolveSibling(duplicateName);
+                    fs.copy(sourceInternalPath, fs, targetPath.toString());
+                }
+                filesPanesHelper.refreshFileListViews();
+            }
+        } catch (Exception e) {
+            error("Failed Duplicating file", e);
+        }
+    }
+
+    /**
+     * Generates a unique duplicate filename by appending "_copy" and optional counter.
+     * E.g., "file.txt" -> "file_copy.txt", "file_copy.txt" -> "file_copy_2.txt"
+     */
+    private String generateDuplicateName(String originalName, String targetFolder, VFileSystem fs) {
+        String name;
+        String extension = "";
+        
+        int lastDotIndex = originalName.lastIndexOf('.');
+        if (lastDotIndex > 0) {
+            name = originalName.substring(0, lastDotIndex);
+            extension = originalName.substring(lastDotIndex);
+        } else {
+            name = originalName;
+        }
+        
+        String duplicateName = name + "_copy" + extension;
+        int counter = 2;
+        
+        while (fileExists(targetFolder + "\\" + duplicateName, fs)) {
+            duplicateName = name + "_copy_" + counter + extension;
+            counter++;
+        }
+        
+        return duplicateName;
+    }
+
+    private boolean fileExists(String fullPath, VFileSystem fs) {
+        try {
+            if (fs instanceof FtpFileSystem) {
+                // For FTP, check using the internal path
+                String internalPath = fullPath.substring(filesPanesHelper.getFocusedPath().length() + 1);
+                return ((FtpFileSystem) fs).listContents(internalPath) != null;
+            } else if (fs instanceof org.chaiware.acommander.vfs.ArchiveFileSystem) {
+                String internalPath = fullPath.substring(filesPanesHelper.getFocusedPath().length() + 1);
+                return ((org.chaiware.acommander.vfs.ArchiveFileSystem) fs).listContents(internalPath) != null;
+            } else {
+                return new File(fullPath).exists();
+            }
+        } catch (Exception e) {
+            return false;
+        }
     }
 
     @FXML
@@ -4876,18 +5039,31 @@ public class Commander {
             return;
         }
 
+        boolean duplicateInSameFolder = !isCut && isSamePasteFolder(
+                clipboardTransferState.sourceFs(),
+                targetFs,
+                clipboardTransferState.sourceFolder(),
+                targetFolder
+        );
+
         List<ClipboardEntry> entries = List.copyOf(clipboardTransferState.entries());
         VFileSystem sourceFs = clipboardTransferState.sourceFs();
         CompletableFuture.runAsync(() -> {
             List<ClipboardEntry> failed = new ArrayList<>();
+            List<ClipboardEntry> pastedSelections = new ArrayList<>();
             for (ClipboardEntry entry : entries) {
                 try {
-                    String targetInternalPath = resolveTargetInternalPath(targetFs, targetFolder, entry.name(), entry.directory());
+                    String targetName = entry.name();
+                    if (duplicateInSameFolder) {
+                        targetName = generateDuplicateName(entry.name(), targetFolder, targetFs);
+                    }
+                    String targetInternalPath = resolveTargetInternalPath(targetFs, targetFolder, targetName, entry.directory());
                     if (isCut) {
                         sourceFs.move(entry.sourceInternalPath(), targetFs, targetInternalPath);
                     } else {
                         sourceFs.copy(entry.sourceInternalPath(), targetFs, targetInternalPath);
                     }
+                    pastedSelections.add(new ClipboardEntry(targetName, entry.directory(), entry.sourceInternalPath()));
                 } catch (Exception ex) {
                     logger.warn("Paste failed for item: {}", entry.name(), ex);
                     failed.add(entry);
@@ -4896,14 +5072,11 @@ public class Commander {
 
             Platform.runLater(() -> {
                 filesPanesHelper.refreshFileListViews();
-                for (ClipboardEntry entry : entries) {
-                    if (failed.contains(entry)) {
-                        continue;
-                    }
+                for (ClipboardEntry entry : pastedSelections) {
                     filesPanesHelper.selectFileItem(true, createSelectionProbe(targetFs, targetFolder, entry));
                 }
 
-                int successCount = entries.size() - failed.size();
+                int successCount = pastedSelections.size();
                 if (successCount <= 0) {
                     showError("Paste", "Failed to paste selected items.");
                     return;
@@ -4919,6 +5092,46 @@ public class Commander {
                 }
             });
         });
+    }
+
+    private boolean isSamePasteFolder(VFileSystem sourceFs, VFileSystem targetFs, String sourceFolder, String targetFolder) {
+        if (sourceFs == null || targetFs == null || sourceFolder == null || targetFolder == null) {
+            return false;
+        }
+        if (sourceFs instanceof LocalFileSystem && targetFs instanceof LocalFileSystem) {
+            return isSameLocalFolder(sourceFolder, targetFolder);
+        }
+        if (!Objects.equals(sourceFs.getIdentifier(), targetFs.getIdentifier())) {
+            return false;
+        }
+        if (sourceFs instanceof FtpFileSystem) {
+            return normalizeFtpPath(sourceFolder).equals(normalizeFtpPath(targetFolder));
+        }
+        return Objects.equals(sourceFolder, targetFolder);
+    }
+
+    private boolean isSameLocalFolder(String sourceFolder, String targetFolder) {
+        try {
+            String sourceNormalized = Paths.get(sourceFolder).toAbsolutePath().normalize().toString();
+            String targetNormalized = Paths.get(targetFolder).toAbsolutePath().normalize().toString();
+            return sourceNormalized.equalsIgnoreCase(targetNormalized);
+        } catch (Exception ex) {
+            return sourceFolder.equalsIgnoreCase(targetFolder);
+        }
+    }
+
+    private String normalizeFtpPath(String path) {
+        if (path == null || path.isBlank()) {
+            return "/";
+        }
+        String normalized = path.replace("\\", "/");
+        if (!normalized.startsWith("/")) {
+            normalized = "/" + normalized;
+        }
+        if (!normalized.endsWith("/")) {
+            normalized = normalized + "/";
+        }
+        return normalized;
     }
 
     private void setClipboardTransferState(boolean cut) {
@@ -5223,7 +5436,7 @@ public class Commander {
         // This prevents the "stuck titles" bug where alternate titles don't reset properly
         boolean altDown = activeModifiers.contains(KeyCode.ALT);
         boolean shiftDown = activeModifiers.contains(KeyCode.SHIFT);
-        
+
         // Update buttons based on ACTUAL current state, not tracked state
         if (altDown) {
             btnF1.setText("ALT+F1 Left Folder");
@@ -5232,6 +5445,9 @@ public class Commander {
             btnF4.setText("ALT+F4 Exit");
             btnF5.setText("ALT+F5 Convert Media File");
             btnF6.setText("");
+            btnDup.setText("ALT+F6 Duplicate");
+            btnDup.setVisible(true);
+            btnDup.setManaged(true);
             btnF7.setText("ALT+F7 MkFile");
             btnF8.setText("");
             btnF9.setText("ALT+F9 Explorer");
@@ -5245,6 +5461,9 @@ public class Commander {
             btnF4.setText("");
             btnF5.setText("");
             btnF6.setText("SHIFT+F6 Rename");
+            btnDup.setText("");
+            btnDup.setVisible(false);
+            btnDup.setManaged(false);
             btnF7.setText("");
             btnF8.setText("SHIFT+F8 Delete & Wipe");
             btnF9.setText("");
@@ -5259,6 +5478,9 @@ public class Commander {
             btnF4.setText("F4 Edit");
             btnF5.setText("F5 Copy");
             btnF6.setText("F6 Move");
+            btnDup.setText("");
+            btnDup.setVisible(false);
+            btnDup.setManaged(false);
             btnF7.setText("F7 MkDir");
             btnF8.setText("F8 Delete");
             btnF9.setText("F9 Terminal");

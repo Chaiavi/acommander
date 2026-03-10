@@ -22,7 +22,7 @@ public class ActionRegistry {
     private AppAction toAppAction(ActionDefinition action, ActionExecutor executor) {
         SelectionRule rule = SelectionRule.fromString(action.getSelection());
         String builtin = action.getBuiltin() == null ? action.getId() : action.getBuiltin();
-        
+
         // Special handling for fileProperties to show dynamic label (File/Folder Properties)
         if ("fileProperties".equals(action.getId())) {
             return new AppAction(
@@ -36,7 +36,21 @@ public class ActionRegistry {
                     ctx -> executor.execute(action)
             );
         }
-        
+
+        // Special handling for duplicate to show dynamic label (Duplicate File/s or Duplicate Folder/s)
+        if ("duplicate".equals(action.getId())) {
+            return new AppAction(
+                    action.getId(),
+                    action.getLabel(),
+                    this::getDuplicateDynamicLabel,
+                    action.getShortcut(),
+                    action.getAliases(),
+                    ctx -> rule.isSatisfied(selectedItemsOrEmpty(ctx))
+                            && isSelectionAllowedForBuiltin(builtin, ctx),
+                    ctx -> executor.execute(action)
+            );
+        }
+
         return new AppAction(
                 action.getId(),
                 action.getLabel(),
@@ -63,6 +77,30 @@ public class ActionRegistry {
         return "File Properties";
     }
 
+    private String getDuplicateDynamicLabel(ActionContext ctx) {
+        if (ctx == null || ctx.commander() == null || ctx.commander().filesPanesHelper == null) {
+            return null;
+        }
+        List<FileItem> selected = ctx.commander().filesPanesHelper.getSelectedItems();
+        if (selected == null || selected.isEmpty()) {
+            return null;
+        }
+        
+        // Check if all selected items are folders
+        boolean allFolders = selected.stream().allMatch(FileItem::isDirectory);
+        // Check if all selected items are files
+        boolean allFiles = selected.stream().allMatch(item -> !item.isDirectory());
+        
+        if (allFolders) {
+            return selected.size() == 1 ? "Duplicate Folder" : "Duplicate Folders";
+        } else if (allFiles) {
+            return selected.size() == 1 ? "Duplicate File" : "Duplicate Files";
+        } else {
+            // Mixed selection
+            return "Duplicate Files and Folders";
+        }
+    }
+
     private List<FileItem> selectedItemsOrEmpty(ActionContext ctx) {
         if (ctx == null || ctx.commander() == null || ctx.commander().filesPanesHelper == null) {
             return Collections.emptyList();
@@ -77,9 +115,9 @@ public class ActionRegistry {
             if (fs instanceof org.chaiware.acommander.vfs.FtpFileSystem) {
                 // List of supported FTP actions
                 boolean supported = switch (builtin) {
-                    case "help", "settings", "rename", "view", "edit", "copy", "move", "mkdir", "mkfile", 
-                         "delete", "refresh", "openCommandPalette", "leftPathCombo", 
-                         "rightPathCombo", "setDarkMode", "setLightMode", 
+                    case "help", "settings", "rename", "view", "edit", "copy", "duplicate", "move", "mkdir", "mkfile",
+                         "delete", "refresh", "openCommandPalette", "leftPathCombo",
+                         "rightPathCombo", "setDarkMode", "setLightMode",
                          "setRegularMode", "toggleDarkMode", "sortByName", "sortBySize", "sortByDate",
                          "gotoBookmark", "removeBookmark", "ftpConnect", "ftpDisconnect",
                          "copySelection", "cutSelection", "pasteSelection" -> true;
