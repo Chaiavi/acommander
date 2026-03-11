@@ -92,7 +92,8 @@ public class ActionExecutor {
      */
     private boolean isConditionalWriteBlocked(String actionId) {
         // Rename/edit modifies in place - check focused pane (source)
-        if ("rename".equals(actionId) || "multiRename".equals(actionId) || "edit".equals(actionId)) {
+        if ("rename".equals(actionId) || "multiRename".equals(actionId) || "edit".equals(actionId)
+                || "compressExecutable".equals(actionId)) {
             return commander.filesPanesHelper.getFocusedFileSystem().isReadOnly();
         }
         
@@ -158,6 +159,7 @@ public class ActionExecutor {
             case "editImageMetadata" -> commander.editImageMetadata();
             case "editVideoMetadata" -> commander.editVideoMetadata();
             case "editAudioMetadata" -> commander.editAudioMetadata();
+            case "compressExecutable" -> commander.compressExecutable();
             case "refresh" -> commander.filesPanesHelper.refreshFileListViews();
             case "openCommandPalette" -> commander.openCommandPalette();
             case "leftPathCombo" -> commander.leftPathComboBox.show();

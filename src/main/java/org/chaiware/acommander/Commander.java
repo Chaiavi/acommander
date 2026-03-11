@@ -24,6 +24,7 @@ import org.chaiware.acommander.actions.ActionExecutor;
 import org.chaiware.acommander.actions.ActionRegistry;
 import org.chaiware.acommander.commands.ACommands;
 import org.chaiware.acommander.commands.CommandsAdvancedImpl;
+import org.chaiware.acommander.commands.ExternalCommandException;
 import org.chaiware.acommander.commands.ExternalCommandListener;
 import org.chaiware.acommander.config.AppConfigLoader;
 import org.chaiware.acommander.config.AppRegistry;
@@ -55,6 +56,7 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Pattern;
 
@@ -3617,6 +3619,289 @@ public class Commander {
         }
     }
 
+    @FXML
+    public void compressExecutable() {
+        logger.info("Compress Executable");
+
+        try {
+            List<FileItem> selectedItems = commands.filterValidItems(filesPanesHelper.getSelectedItems());
+            if (selectedItems.isEmpty()) {
+                return;
+            }
+
+            FileItem selectedItem = selectedItems.getFirst();
+            if (selectedItem.isDirectory() || !ExecutableCompressionSupport.isSupportedExecutable(selectedItem)) {
+                return;
+            }
+
+            if (!(filesPanesHelper.getFocusedFileSystem() instanceof LocalFileSystem)) {
+                showError("Compress Executable", "Executable compression is only supported for local files.");
+                return;
+            }
+
+            File file = selectedItem.getFile();
+            if (file == null || !file.exists()) {
+                showError("Compress Executable", "Selected file does not exist on disk.");
+                return;
+            }
+
+            Optional<ExecutableCompressionRequest> request = promptExecutableCompressionOptions(selectedItem);
+            if (request.isEmpty()) {
+                return;
+            }
+            ExecutableCompressionRequest compressionRequest = request.get();
+
+            Path upxPath = Paths.get(System.getProperty("user.dir"), "apps", "exe_compress", "upx.exe");
+            if (!Files.exists(upxPath)) {
+                showError("Compress Executable", "Missing tool: " + upxPath);
+                return;
+            }
+
+            long sizeBefore = file.length();
+            List<String> command = buildExecutableCompressionCommand(upxPath, compressionRequest, file);
+
+            runExternal(command, true)
+                    .thenAccept(output -> Platform.runLater(() -> showExecutableCompressionResult(file, sizeBefore)))
+                    .exceptionally(throwable -> {
+                        Platform.runLater(() -> handleExecutableCompressionFailure(file, command, throwable));
+                        return null;
+                    });
+        } catch (Exception ex) {
+            error("Failed compressing executable", ex);
+        }
+    }
+
+    private Optional<ExecutableCompressionRequest> promptExecutableCompressionOptions(FileItem selectedItem) {
+        Dialog<ExecutableCompressionRequest> dialog = new Dialog<>();
+        dialog.setTitle("Compress Executable");
+        dialog.setHeaderText(null);
+
+        ButtonType compressType = new ButtonType("Compress", ButtonBar.ButtonData.OK_DONE);
+        dialog.getDialogPane().getButtonTypes().addAll(compressType, ButtonType.CANCEL);
+
+        Label title = new Label("Compress Executable");
+        title.setStyle("-fx-font-size: 16px; -fx-font-weight: bold;");
+
+        Label subtitle = new Label("Selected file: " + selectedItem.getName());
+        subtitle.setWrapText(true);
+
+        ToggleGroup modeGroup = new ToggleGroup();
+        RadioButton compressMode = new RadioButton("Compress");
+        RadioButton decompressMode = new RadioButton("Decompress");
+        compressMode.setUserData(ExecutableCompressionMode.COMPRESS);
+        decompressMode.setUserData(ExecutableCompressionMode.DECOMPRESS);
+        compressMode.setToggleGroup(modeGroup);
+        decompressMode.setToggleGroup(modeGroup);
+        compressMode.setSelected(true);
+
+        GridPane metadataGrid = new GridPane();
+        metadataGrid.setHgap(12);
+        metadataGrid.setVgap(6);
+        ColumnConstraints labelCol = new ColumnConstraints();
+        labelCol.setMinWidth(90);
+        ColumnConstraints valueCol = new ColumnConstraints();
+        valueCol.setHgrow(Priority.ALWAYS);
+        metadataGrid.getColumnConstraints().addAll(labelCol, valueCol);
+
+        long sizeBytes = selectedItem.getSizeInBytes();
+        String sizeText = sizeBytes > 0 ? humanSize(sizeBytes) : "Unknown";
+        addMetadataRow(metadataGrid, 0, "Path:", selectedItem.getFullPath());
+        addMetadataRow(metadataGrid, 1, "Size:", sizeText);
+        addMetadataRow(metadataGrid, 2, "Modified:", selectedItem.getDate());
+
+        ToggleGroup compressionGroup = new ToggleGroup();
+        RadioButton good = new RadioButton("Good compression (-9)");
+        RadioButton veryGood = new RadioButton("Very good compression (slow, --brute)");
+        RadioButton best = new RadioButton("Best compression (slowest, --ultra-brute)");
+
+        good.setToggleGroup(compressionGroup);
+        veryGood.setToggleGroup(compressionGroup);
+        best.setToggleGroup(compressionGroup);
+
+        good.setUserData(ExecutableCompressionProfile.GOOD);
+        veryGood.setUserData(ExecutableCompressionProfile.VERY_GOOD);
+        best.setUserData(ExecutableCompressionProfile.BEST);
+        good.setSelected(true);
+
+        Runnable syncCompressionControls = () -> {
+            ExecutableCompressionMode mode = selectedExecutableCompressionMode(modeGroup);
+            boolean enable = mode == ExecutableCompressionMode.COMPRESS;
+            good.setDisable(!enable);
+            veryGood.setDisable(!enable);
+            best.setDisable(!enable);
+        };
+        modeGroup.selectedToggleProperty().addListener((obs, oldValue, newValue) -> syncCompressionControls.run());
+        syncCompressionControls.run();
+
+        VBox content = new VBox(
+                10,
+                title,
+                subtitle,
+                new Separator(),
+                new Label("Mode:"),
+                compressMode,
+                decompressMode,
+                new Separator(),
+                new Label("File metadata:"),
+                metadataGrid,
+                new Separator(),
+                new Label("Compression level:"),
+                good,
+                veryGood,
+                best
+        );
+        content.setPadding(new Insets(12));
+        dialog.getDialogPane().setContent(content);
+        dialog.getDialogPane().setPrefSize(620, 420);
+        applyThemeToDialog(dialog);
+
+        Button compressButton = (Button) dialog.getDialogPane().lookupButton(compressType);
+        compressButton.setDefaultButton(true);
+        dialog.getDialogPane().addEventFilter(KeyEvent.KEY_PRESSED, event -> {
+            if (event.getCode() == KeyCode.ENTER && !compressButton.isDisabled()) {
+                compressButton.fire();
+                event.consume();
+            }
+        });
+        dialog.setOnShown(event -> good.requestFocus());
+
+        dialog.setResultConverter(buttonType -> {
+            if (buttonType != compressType) {
+                return null;
+            }
+            ExecutableCompressionMode mode = selectedExecutableCompressionMode(modeGroup);
+            ExecutableCompressionProfile profile = selectedCompressionProfile(compressionGroup);
+            return new ExecutableCompressionRequest(mode, profile);
+        });
+
+        return dialog.showAndWait();
+    }
+
+    private ExecutableCompressionMode selectedExecutableCompressionMode(ToggleGroup group) {
+        if (group == null || group.getSelectedToggle() == null || group.getSelectedToggle().getUserData() == null) {
+            return ExecutableCompressionMode.COMPRESS;
+        }
+        return (ExecutableCompressionMode) group.getSelectedToggle().getUserData();
+    }
+
+    private ExecutableCompressionProfile selectedCompressionProfile(ToggleGroup group) {
+        if (group == null || group.getSelectedToggle() == null || group.getSelectedToggle().getUserData() == null) {
+            return ExecutableCompressionProfile.GOOD;
+        }
+        Object value = group.getSelectedToggle().getUserData();
+        if (value instanceof ExecutableCompressionProfile profile) {
+            return profile;
+        }
+        return ExecutableCompressionProfile.GOOD;
+    }
+
+    private List<String> buildExecutableCompressionCommand(Path upxPath, ExecutableCompressionRequest request, File file) {
+        List<String> command = new ArrayList<>();
+        command.add(upxPath.toString());
+        if (request.mode() == ExecutableCompressionMode.DECOMPRESS) {
+            command.add("-d");
+        } else {
+            command.add(request.profile().flag());
+        }
+        command.add(file.getAbsolutePath());
+        return command;
+    }
+
+    private void showExecutableCompressionResult(File file, long sizeBefore) {
+        long sizeAfter = file == null ? 0 : file.length();
+        String beforeText = sizeBefore > 0 ? humanSize(sizeBefore) : "Unknown";
+        String afterText = sizeAfter > 0 ? humanSize(sizeAfter) : "Unknown";
+        String percentText = formatPercentChange(sizeBefore, sizeAfter);
+        String message = "Size before: " + beforeText
+                + System.lineSeparator()
+                + "Size after: " + afterText
+                + System.lineSeparator()
+                + "Change: " + percentText;
+        showInfo("Executable Compression Result", message);
+    }
+
+    private String formatPercentChange(long sizeBefore, long sizeAfter) {
+        if (sizeBefore <= 0) {
+            return "N/A";
+        }
+        double delta = ((double) sizeAfter - (double) sizeBefore) / (double) sizeBefore * 100.0;
+        return String.format(Locale.ROOT, "%.2f%%", delta);
+    }
+
+    private enum ExecutableCompressionMode {
+        COMPRESS,
+        DECOMPRESS
+    }
+
+    private record ExecutableCompressionRequest(
+            ExecutableCompressionMode mode,
+            ExecutableCompressionProfile profile
+    ) {
+    }
+
+    private void addMetadataRow(GridPane grid, int row, String labelText, String valueText) {
+        Label label = new Label(labelText);
+        Label value = new Label(valueText == null ? "" : valueText);
+        value.setWrapText(true);
+        grid.add(label, 0, row);
+        grid.add(value, 1, row);
+    }
+
+    private void handleExecutableCompressionFailure(File file, List<String> command, Throwable throwable) {
+        Throwable root = unwrapCompletionException(throwable);
+        if (root instanceof ExternalCommandException ex) {
+            String outputTail = ex.getOutputTail();
+            String reason = describeUpxFailure(outputTail);
+            logger.error(
+                    "Executable compression failed. file={} exitCode={} command={} reason={} outputTail={}",
+                    file == null ? "<null>" : file.getAbsolutePath(),
+                    ex.getExitCode(),
+                    ex.getCommand(),
+                    reason,
+                    outputTail
+            );
+            showError("Compress Executable", buildExecutableCompressionError(reason, outputTail));
+            return;
+        }
+
+        logger.error(
+                "Executable compression failed. file={} command={}",
+                file == null ? "<null>" : file.getAbsolutePath(),
+                command == null ? "<null>" : String.join(" ", command),
+                root
+        );
+        showError("Compress Executable", "Executable compression failed: " + (root == null ? "Unknown error" : root.getMessage()));
+    }
+
+    private Throwable unwrapCompletionException(Throwable throwable) {
+        if (throwable instanceof CompletionException && throwable.getCause() != null) {
+            return unwrapCompletionException(throwable.getCause());
+        }
+        return throwable;
+    }
+
+    private String describeUpxFailure(String outputTail) {
+        String output = outputTail == null ? "" : outputTail;
+        String lower = output.toLowerCase(Locale.ROOT);
+        if (lower.contains("alreadypackedexception") || lower.contains("already packed")) {
+            return "The file is already packed by UPX. No additional compression was applied.";
+        }
+        if (lower.contains("not a") && lower.contains("executable")) {
+            return "The selected file is not a supported executable for UPX.";
+        }
+        if (lower.contains("not packed") && lower.contains("cannot")) {
+            return "UPX could not pack this executable with the selected options.";
+        }
+        return "Executable compression failed.";
+    }
+
+    private String buildExecutableCompressionError(String reason, String outputTail) {
+        if (outputTail == null || outputTail.isBlank()) {
+            return reason;
+        }
+        return reason + System.lineSeparator() + System.lineSeparator() + "Details:" + System.lineSeparator() + outputTail;
+    }
+
     public void syncToOtherPane() {
         FilesPanesHelper.FocusSide focusedSide = filesPanesHelper.getFocusedSide();
         FilesPanesHelper.FocusSide targetSide = (focusedSide == LEFT) ? RIGHT : LEFT;
@@ -5303,6 +5588,21 @@ public class Commander {
         LOSSLESS,
         LOSSY,
         CUSTOM
+    }
+    private enum ExecutableCompressionProfile {
+        GOOD("-9"),
+        VERY_GOOD("--brute"),
+        BEST("--ultra-brute");
+
+        private final String flag;
+
+        ExecutableCompressionProfile(String flag) {
+            this.flag = flag;
+        }
+
+        public String flag() {
+            return flag;
+        }
     }
     private enum ImageResizeMode {
         NONE,

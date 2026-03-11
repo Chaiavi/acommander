@@ -411,6 +411,14 @@
       "type": "builtin"
     },
     {
+      "id": "compressExecutable",
+      "label": "Compress Executable",
+      "aliases": ["compress exe", "upx", "upx compress", "pack exe"],
+      "contexts": ["commandPalette"],
+      "selection": "singleFile",
+      "type": "builtin"
+    },
+    {
       "id": "refresh",
       "label": "Refresh Panels",
       "shortcut": "Ctrl+R",

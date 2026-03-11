@@ -150,7 +150,8 @@ public class ActionRegistry {
                 && !"mergePdf".equals(builtin)
                 && !"editImageMetadata".equals(builtin)
                 && !"editVideoMetadata".equals(builtin)
-                && !"editAudioMetadata".equals(builtin)) {
+                && !"editAudioMetadata".equals(builtin)
+                && !"compressExecutable".equals(builtin)) {
             return true;
         }
 
@@ -195,6 +196,9 @@ public class ActionRegistry {
         }
         if ("editAudioMetadata".equals(builtin)) {
             return AudioMetadataSupport.areAllSupportedAudio(selectedItems);
+        }
+        if ("compressExecutable".equals(builtin)) {
+            return ExecutableCompressionSupport.areAllSupportedExecutables(selectedItems);
         }
         return AudioConversionSupport.areAllConvertibleAudio(selectedItems);
     }

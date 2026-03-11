@@ -240,8 +240,10 @@ public abstract class ACommands {
                 log.debug("Process completed with exit code: {}", exitCode);
                 if (!acceptedExitCodes.contains(exitCode)) {
                     String toolOutput = summarizeOutput(output);
-                    IllegalStateException ex = new IllegalStateException(
-                            "External command failed with exit code " + exitCode + ": " + formatCommand(commandSnapshot)
+                    ExternalCommandException ex = new ExternalCommandException(
+                            exitCode,
+                            formatCommand(commandSnapshot),
+                            toolOutput
                     );
                     failure = ex;
                     log.error(

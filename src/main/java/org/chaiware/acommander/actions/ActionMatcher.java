@@ -95,6 +95,9 @@ public class ActionMatcher {
         if ("editAudioMetadata".equals(action.id()) && AudioMetadataSupport.areAllSupportedAudio(selectedItems)) {
             return 0;
         }
+        if ("compressExecutable".equals(action.id()) && ExecutableCompressionSupport.areAllSupportedExecutables(selectedItems)) {
+            return 0;
+        }
         if (("mergePdf".equals(action.id()) || "extractPdfPages".equals(action.id()))
                 && areAllSelectedItemsPdf(selectedItems)) {
             return 0;

@@ -1,12 +1,12 @@
 package org.chaiware.acommander.keybinding;
 
-import java.util.HashMap;
-import java.util.Map;
 import javafx.scene.input.KeyEvent;
-import lombok.Setter;
 import org.chaiware.acommander.Commander;
 import org.chaiware.acommander.actions.ActionExecutor;
 import org.chaiware.acommander.config.AppRegistry;
+
+import java.util.HashMap;
+import java.util.Map;
 
 import static org.chaiware.acommander.keybinding.KeyBindingManager.KeyContext.*;
 
@@ -21,7 +21,6 @@ public class KeyBindingManager {
     }
 
     private final Map<KeyContext, IKeyHandler> contextHandlers = new HashMap<>();
-    @Setter
     private KeyContext currentContext;
 
     public KeyBindingManager(Commander commander, AppRegistry appRegistry, ActionExecutor actionExecutor) {
@@ -34,6 +33,10 @@ public class KeyBindingManager {
     public void handleKeyEvent(KeyEvent event) {
         if (!contextHandlers.get(currentContext).handle(event))
             contextHandlers.get(GLOBAL).handle(event);
+    }
+
+    public void setCurrentContext(KeyContext currentContext) {
+        this.currentContext = currentContext;
     }
 
     /** Global handles keyreleased events (ALT/SHIFT/CTRL) */
