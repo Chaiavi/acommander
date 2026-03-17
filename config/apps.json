@@ -89,8 +89,8 @@
       "contexts": ["filePane", "commandPalette"],
       "selection": "any",
       "type": "builtin",
-      "path": "apps/copy/FastCopy.exe",
-      "args": ["/cmd=diff", "/auto_close", "${selectedFiles}", "/to=${targetFolderQuoted}"],
+      "path": "apps/copy/fcp.exe",
+      "args": ["/cmd=force_copy", "/auto_close", "${selectedFiles}", "/to=${targetFolder}"],
       "refreshAfter": true
     },
     {
@@ -142,8 +142,8 @@
       "contexts": ["filePane", "commandPalette"],
       "selection": "single",
       "type": "builtin",
-      "path": "apps/copy/FastCopy.exe",
-      "args": ["/cmd=move", "/auto_close", "${selectedFile}", "/to=${targetFolderQuoted}"],
+      "path": "apps/copy/fcp.exe",
+      "args": ["/cmd=move", "/auto_close", "${selectedFile}", "/to=${targetFolder}"],
       "refreshAfter": true
     },
     {
@@ -395,6 +395,14 @@
       "type": "builtin"
     },
     {
+      "id": "removeImageMetadata",
+      "label": "Remove Image Metadata",
+      "aliases": ["strip metadata", "remove exif", "strip exif", "delete metadata", "wipe metadata"],
+      "contexts": ["filePane", "commandPalette"],
+      "selection": "singleOrMultipleFiles",
+      "type": "builtin"
+    },
+    {
       "id": "editVideoMetadata",
       "label": "Edit Video Metadata",
       "aliases": ["video metadata", "atomicparsley", "edit mp4 metadata", "mp4 tags", "m4v tags", "3gp metadata"],
@@ -572,3 +580,4 @@
     }
   ]
 }
+

@@ -227,24 +227,81 @@ public class CommandsAdvancedImpl extends ACommands {
             return;
         }
 
-        if (validItems.size() == 1) {
-            doCopy(validItems.getFirst(), targetFolder);
+        // If many items, use fcp /srcfile to avoid command line length and quoting issues
+        if (sourceFs instanceof LocalFileSystem && targetFs instanceof LocalFileSystem && validItems.size() > 1) {
+            ActionDefinition action = requireAction("copy");
+            try {
+                File srcList = File.createTempFile("acommander_srclist_", ".txt");
+                srcList.deleteOnExit();
+                // Write unicode-safe list in UTF-16LE with BOM and use /srcfile_w for wide paths
+                try (java.io.BufferedWriter writer = java.nio.file.Files.newBufferedWriter(
+                        srcList.toPath(), java.nio.charset.StandardCharsets.UTF_16LE)) {
+                    writer.write('\uFEFF');
+                    for (FileItem item : validItems) {
+                        writer.write(item.getFullPath());
+                        writer.newLine();
+                    }
+                }
+
+                List<String> args = new ArrayList<>();
+                String toolPath = Paths.get(System.getProperty("user.dir"), action.getPath()).toString();
+                args.add(toolPath);
+                for (String arg : action.getArgs()) {
+                    if ("${selectedFiles}".equals(arg)) {
+                        args.add("/srcfile_w=" + srcList.getAbsolutePath());
+                    } else {
+                        args.add(arg.replace("${targetFolder}", targetFolder));
+                    }
+                }
+
+                runExecutable(args, true).thenRun(() -> {
+                    markTargetArchiveForRepack(targetFolder);
+                    try { srcList.delete(); } catch (Exception ex) { /* ignore */ }
+                });
+                log.debug("Copied {} items To: {} using srcfile", validItems.size(), targetFolder);
+            } catch (Exception e) {
+                log.error("Failed batch copy using srcfile, falling back to individual copies", e);
+                for (FileItem item : validItems) {
+                    try {
+                        copyItemIndividually(item, targetFolder);
+                    } catch (Exception ex) {
+                        log.error("Failed to copy item: {}", item.getName(), ex);
+                    }
+                }
+            }
             return;
         }
 
-        ActionDefinition action = requireAction("copy");
-        List<String> selectedFiles = validItems.stream()
-                .map(FileItem::getFullPath)
-                .collect(Collectors.toList());
-        List<String> command = ToolCommandBuilder.buildCommand(
-                action.getPath(),
-                action.getArgs(),
-                fileListsLoader,
-                Map.of("${targetFolder}", targetFolder),
-                selectedFiles
-        );
-        runExecutable(command, true);
-        log.debug("Copied {} items To: {}", selectedFiles.size(), targetFolder);
+        // Copy each item individually to avoid command line length issues with many files
+        // or files with special characters (e.g., Hebrew, Unicode)
+        for (FileItem item : validItems) {
+            try {
+                copyItemIndividually(item, targetFolder);
+            } catch (Exception e) {
+                log.error("Failed to copy item: {}", item.getName(), e);
+            }
+        }
+        log.debug("Copied {} items To: {}", validItems.size(), targetFolder);
+    }
+
+    private void copyItemIndividually(FileItem item, String targetFolder) {
+        try {
+            ActionDefinition action = requireAction("copy");
+            List<String> selectedFiles = List.of(item.getFullPath());
+            List<String> command = ToolCommandBuilder.buildCommand(
+                    action.getPath(),
+                    action.getArgs(),
+                    fileListsLoader,
+                    Map.of("${targetFolder}", targetFolder),
+                    selectedFiles
+            );
+            runExecutable(command, true).thenRun(() -> {
+                markTargetArchiveForRepack(targetFolder);
+            });
+        } catch (Exception e) {
+            log.error("Failed to copy item individually: {}", item.getName(), e);
+            throw new RuntimeException(e);
+        }
     }
 
     @Override
