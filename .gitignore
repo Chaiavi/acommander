@@ -28,3 +28,9 @@ Thumbs.db
 /apps/extract_all/UniExtract/batch.queue
 /config/acommander.properties
 /apps/extract_all/UniExtract/log/teelog.txt
+/build_and_test.bat
+/build_script.bat
+/apps/copy/FastCopy2.ini
+/IMPLEMENTATION_REPORT.md
+/run_build.py
+/verify_changes.py

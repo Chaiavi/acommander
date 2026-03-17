@@ -157,6 +157,7 @@ public class ActionExecutor {
             case "changeAttributes" -> commander.changeAttributes();
             case "fileProperties" -> commander.fileProperties();
             case "editImageMetadata" -> commander.editImageMetadata();
+            case "removeImageMetadata" -> commander.removeImageMetadata();
             case "editVideoMetadata" -> commander.editVideoMetadata();
             case "editAudioMetadata" -> commander.editAudioMetadata();
             case "compressExecutable" -> commander.compressExecutable();

@@ -191,6 +191,9 @@ public class ActionRegistry {
         if ("editImageMetadata".equals(builtin)) {
             return ImageMetadataSupport.areAllSupportedImages(selectedItems);
         }
+        if ("removeImageMetadata".equals(builtin)) {
+            return ImageMetadataSupport.areAllSupportedImages(selectedItems);
+        }
         if ("editVideoMetadata".equals(builtin)) {
             return VideoMetadataSupport.areAllSupportedVideos(selectedItems);
         }

@@ -3554,6 +3554,88 @@ public class Commander {
     }
 
     @FXML
+    public void removeImageMetadata() {
+        logger.info("Remove Image Metadata");
+
+        try {
+            List<FileItem> selectedItems = commands.filterValidItems(filesPanesHelper.getSelectedItems());
+            if (selectedItems.isEmpty()) {
+                return;
+            }
+
+            // Confirm removal with user
+            Alert confirmDialog = new Alert(Alert.AlertType.WARNING);
+            confirmDialog.setTitle("Remove Image Metadata");
+            confirmDialog.setHeaderText("Remove metadata from " + selectedItems.size() + " image(s)?");
+            confirmDialog.setContentText("This will permanently remove all metadata from the selected image(s).");
+            confirmDialog.getButtonTypes().setAll(ButtonType.OK, ButtonType.CANCEL);
+
+            if (confirmDialog.showAndWait().orElse(ButtonType.CANCEL) != ButtonType.OK) {
+                return;
+            }
+
+            // Remove metadata from each selected file
+            int successCount = 0;
+            for (FileItem item : selectedItems) {
+                if (item.isDirectory()) {
+                    continue;
+                }
+
+                File file = item.getFile();
+                if (file == null || !file.exists()) {
+                    continue;
+                }
+
+                try {
+                    // Use exiv2 to delete all metadata with -d flag
+                    List<String> command = new ArrayList<>();
+                    command.add("apps/image_metadata/exiv2.exe");
+                    command.add("-d");
+                    command.add("a");  // 'a' means all metadata
+                    command.add(file.getAbsolutePath());
+
+                    ProcessBuilder pb = new ProcessBuilder(command);
+                    Process process = pb.start();
+                    try {
+                        int exitCode = process.waitFor();
+
+                        if (exitCode == 0) {
+                            logger.info("Successfully removed metadata from: " + file.getAbsolutePath());
+                            successCount++;
+                        } else {
+                            logger.warn("Failed to remove metadata from: " + file.getAbsolutePath() + " (exit code: " + exitCode + ")");
+                        }
+                    } finally {
+                        process.destroy();
+                    }
+                } catch (Exception ex) {
+                    logger.warn("Error removing metadata from: " + file.getAbsolutePath(), ex);
+                }
+            }
+
+            // Refresh the file list
+            filesPanesHelper.refreshFileListViews();
+
+            // Show result message
+            if (successCount > 0) {
+                Alert alert = new Alert(Alert.AlertType.INFORMATION);
+                alert.setTitle("Metadata Removed");
+                alert.setHeaderText("Success");
+                alert.setContentText("Metadata removed from " + successCount + " image(s)");
+                alert.showAndWait();
+            } else {
+                Alert alert = new Alert(Alert.AlertType.WARNING);
+                alert.setTitle("Metadata Removal Failed");
+                alert.setHeaderText("No metadata removed");
+                alert.setContentText("Failed to remove metadata from selected image(s)");
+                alert.showAndWait();
+            }
+        } catch (Exception ex) {
+            error("Failed removing image metadata", ex);
+        }
+    }
+
+    @FXML
     public void editVideoMetadata() {
         logger.info("Edit Video Metadata");
 

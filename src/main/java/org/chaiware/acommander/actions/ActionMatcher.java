@@ -89,6 +89,9 @@ public class ActionMatcher {
         if ("editImageMetadata".equals(action.id()) && ImageMetadataSupport.areAllSupportedImages(selectedItems)) {
             return 0;
         }
+        if ("removeImageMetadata".equals(action.id()) && ImageMetadataSupport.areAllSupportedImages(selectedItems)) {
+            return 0;
+        }
         if ("editVideoMetadata".equals(action.id()) && VideoMetadataSupport.areAllSupportedVideos(selectedItems)) {
             return 0;
         }
