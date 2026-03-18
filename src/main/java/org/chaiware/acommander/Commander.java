@@ -254,11 +254,12 @@ public class Commander {
             b.addEventHandler(javafx.scene.input.MouseEvent.MOUSE_CLICKED, me -> {
                 try {
                     // Use mouse event modifier state which is accurate for modifier+click combos
-                    if (me.isAltDown()) {
+                    // but fall back to tracked activeModifiers because Alt may be consumed by the OS/menu.
+                    if (me.isAltDown() || activeModifiers.contains(KeyCode.ALT)) {
                         if (actions.alt != null && b.getText() != null && !b.getText().isBlank()) {
                             actions.alt.run();
                         }
-                    } else if (me.isShiftDown()) {
+                    } else if (me.isShiftDown() || activeModifiers.contains(KeyCode.SHIFT)) {
                         if (actions.shift != null && b.getText() != null && !b.getText().isBlank()) {
                             actions.shift.run();
                         }
