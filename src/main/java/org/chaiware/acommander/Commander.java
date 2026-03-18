@@ -141,6 +141,8 @@ public class Commander {
         }
     }
     private final Map<Button, ButtonActions> functionButtonActions = new HashMap<>();
+    // Tracks if the last activation was handled via mouse to avoid double-invocation
+    private final Map<Button, Boolean> lastHandledByMouse = new HashMap<>();
 
     public ThemeMode getCurrentThemeMode() {
         return currentThemeMode;
@@ -217,8 +219,15 @@ public class Commander {
             Button b = e.getKey();
             ButtonActions actions = e.getValue();
             if (b == null) continue;
+            // onAction is used for keyboard activation (space/enter) and uses activeModifiers state
             b.setOnAction(evt -> {
                 try {
+                    // If mouse already handled this click, skip to avoid double-run
+                    if (Boolean.TRUE.equals(lastHandledByMouse.get(b))) {
+                        lastHandledByMouse.put(b, false);
+                        return;
+                    }
+
                     // ALT has precedence over SHIFT (matches previous handlers)
                     if (activeModifiers.contains(KeyCode.ALT)) {
                         if (actions.alt != null && b.getText() != null && !b.getText().isBlank()) {
@@ -237,7 +246,31 @@ public class Commander {
                         actions.normal.run();
                     }
                 } catch (Exception ex) {
-                    // If actions throw checked exceptions, wrap into runtime to avoid signature issues
+                    throw new RuntimeException(ex);
+                }
+            });
+
+            // Mouse click handler reads actual mouse modifiers (reliable when holding keys and clicking)
+            b.addEventHandler(javafx.scene.input.MouseEvent.MOUSE_CLICKED, me -> {
+                try {
+                    // Use mouse event modifier state which is accurate for modifier+click combos
+                    if (me.isAltDown()) {
+                        if (actions.alt != null && b.getText() != null && !b.getText().isBlank()) {
+                            actions.alt.run();
+                        }
+                    } else if (me.isShiftDown()) {
+                        if (actions.shift != null && b.getText() != null && !b.getText().isBlank()) {
+                            actions.shift.run();
+                        }
+                    } else {
+                        if (actions.normal != null) {
+                            actions.normal.run();
+                        }
+                    }
+                    // mark that mouse handled it so onAction doesn't run the same action again
+                    lastHandledByMouse.put(b, true);
+                    me.consume();
+                } catch (Exception ex) {
                     throw new RuntimeException(ex);
                 }
             });
