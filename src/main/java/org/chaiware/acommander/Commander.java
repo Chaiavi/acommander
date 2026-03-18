@@ -141,6 +141,8 @@ public class Commander {
         }
     }
     private final Map<Button, ButtonActions> functionButtonActions = new HashMap<>();
+    // keep a reference to KeyBindingManager so synthesized events can be dispatched consistently
+    private KeyBindingManager keyBindingManager;
     // Tracks if the last activation was handled via mouse to avoid double-invocation
     private final Map<Button, Boolean> lastHandledByMouse = new HashMap<>();
 
@@ -589,14 +591,14 @@ public class Commander {
     /** Setup all of the keyboard bindings */
     public void setupBindings() {
         Scene scene = rootPane.getScene();
-        KeyBindingManager keyBindingManager = new KeyBindingManager(this, appRegistry, actionExecutor);
+        this.keyBindingManager = new KeyBindingManager(this, appRegistry, actionExecutor);
         scene.addEventFilter(KeyEvent.KEY_PRESSED, event -> {
-            keyBindingManager.setCurrentContext(determineCurrentContext(scene));
-            keyBindingManager.handleKeyEvent(event);
+            this.keyBindingManager.setCurrentContext(determineCurrentContext(scene));
+            this.keyBindingManager.handleKeyEvent(event);
         });
         scene.addEventFilter(KeyEvent.KEY_RELEASED, event -> {
-            keyBindingManager.setCurrentContext(determineCurrentContext(scene));
-            keyBindingManager.handleReleasedKeyEvent(event);
+            this.keyBindingManager.setCurrentContext(determineCurrentContext(scene));
+            this.keyBindingManager.handleReleasedKeyEvent(event);
         });
     }
 
