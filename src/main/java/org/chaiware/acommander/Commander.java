@@ -1445,7 +1445,10 @@ public class Commander {
     @FXML
     public void handleF6Button() {
         if (activeModifiers.contains(KeyCode.ALT)) {
-            duplicateFile();
+            // Only perform duplicate if the button shows an action (non-empty label).
+            if (btnF6.getText() != null && !btnF6.getText().isBlank()) {
+                duplicateFile();
+            }
             return;
         }
         if (activeModifiers.contains(KeyCode.SHIFT)) {
