@@ -51,6 +51,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.security.DigestInputStream;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -2639,9 +2640,9 @@ public class Commander {
                 if (outputPath == null) {
                     return CompletableFuture.completedFuture(null);
                 }
-                List<String> command = buildAudioConvertCommand(converterPath, source.getFullPath(), outputPath, options);
+                Path sourcePath = Path.of(source.getFullPath());
                 Path finalOutputPath = outputPath;
-                return runExternal(command, false).thenAccept(lines -> {
+                return runAudioConversionWithUnicodeFallback(converterPath, sourcePath, finalOutputPath, options).thenAccept(lines -> {
                     if (firstConverted[0] == null) {
                         firstConverted[0] = finalOutputPath;
                     }
@@ -2955,6 +2956,115 @@ public class Commander {
         command.add(inputPath);
         command.add(outputPath.toString());
         return command;
+    }
+
+    private CompletableFuture<List<String>> runAudioConversionWithUnicodeFallback(
+            Path converterPath,
+            Path inputPath,
+            Path outputPath,
+            AudioConversionRequest options
+    ) {
+        if (!containsNonAscii(inputPath) && !containsNonAscii(outputPath)) {
+            List<String> command = buildAudioConvertCommand(converterPath, inputPath.toString(), outputPath, options);
+            return runExternal(command, false);
+        }
+
+        Path stagingDir = null;
+        try {
+            stagingDir = createAudioStagingDirectory();
+            Path stagedInputPath = inputPath;
+            if (containsNonAscii(inputPath)) {
+                String inputExt = extensionWithDot(inputPath.getFileName().toString());
+                stagedInputPath = stagingDir.resolve("input" + inputExt);
+                Files.copy(inputPath, stagedInputPath, StandardCopyOption.REPLACE_EXISTING);
+            }
+
+            String targetExt = options.targetFormat().toLowerCase(Locale.ROOT);
+            Path stagedOutputPath = stagingDir.resolve("output." + targetExt);
+            List<String> command = buildAudioConvertCommand(converterPath, stagedInputPath.toString(), stagedOutputPath, options);
+            Path finalStagingDir = stagingDir;
+            return runExternal(command, false)
+                    .thenApply(lines -> {
+                        try {
+                            Files.move(stagedOutputPath, outputPath, StandardCopyOption.REPLACE_EXISTING);
+                            return lines;
+                        } catch (IOException moveException) {
+                            throw new CompletionException(moveException);
+                        }
+                    })
+                    .whenComplete((ignored, throwable) -> cleanupAudioStagingDirectory(finalStagingDir));
+        } catch (IOException ioException) {
+            if (stagingDir != null) {
+                cleanupAudioStagingDirectory(stagingDir);
+            }
+            return CompletableFuture.failedFuture(ioException);
+        }
+    }
+
+    private Path createAudioStagingDirectory() throws IOException {
+        List<Path> candidates = List.of(
+                Paths.get(System.getProperty("java.io.tmpdir")),
+                Paths.get(System.getProperty("user.dir"))
+        );
+        for (Path candidate : candidates) {
+            if (candidate == null || containsNonAscii(candidate)) {
+                continue;
+            }
+            if (!Files.isDirectory(candidate)) {
+                continue;
+            }
+            return Files.createTempDirectory(candidate, "acommander-audio-");
+        }
+        return Files.createTempDirectory("acommander-audio-");
+    }
+
+    private void cleanupAudioStagingDirectory(Path stagingDir) {
+        if (stagingDir == null) {
+            return;
+        }
+        try {
+            Files.walk(stagingDir)
+                    .sorted(Comparator.reverseOrder())
+                    .forEach(path -> {
+                        try {
+                            Files.deleteIfExists(path);
+                        } catch (IOException deleteException) {
+                            logger.debug("Failed to delete staging path: {}", path, deleteException);
+                        }
+                    });
+        } catch (IOException walkException) {
+            logger.debug("Failed to enumerate staging directory for cleanup: {}", stagingDir, walkException);
+        }
+    }
+
+    private boolean containsNonAscii(Path path) {
+        if (path == null) {
+            return false;
+        }
+        return containsNonAscii(path.toString());
+    }
+
+    private boolean containsNonAscii(String text) {
+        if (text == null) {
+            return false;
+        }
+        for (int i = 0; i < text.length(); i++) {
+            if (text.charAt(i) > 127) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private String extensionWithDot(String fileName) {
+        if (fileName == null || fileName.isBlank()) {
+            return "";
+        }
+        int dot = fileName.lastIndexOf('.');
+        if (dot < 0 || dot == fileName.length() - 1) {
+            return "";
+        }
+        return fileName.substring(dot);
     }
 
     private String defaultEncodingForTargetFormat(String targetFormat) {
