@@ -10,7 +10,8 @@ public enum SelectionRule {
     SINGLE,
     MULTI,
     SINGLE_FILE,
-    SINGLE_FOLDER;
+    SINGLE_FOLDER,
+    SINGLE_OR_MULTIPLE_FILES;
 
     public static SelectionRule fromString(String value) {
         if (value == null) {
@@ -22,6 +23,7 @@ public enum SelectionRule {
             case "multi" -> MULTI;
             case "singlefile" -> SINGLE_FILE;
             case "singlefolder" -> SINGLE_FOLDER;
+            case "singleormultiplefiles" -> SINGLE_OR_MULTIPLE_FILES;
             default -> NONE;
         };
     }
@@ -35,6 +37,7 @@ public enum SelectionRule {
             case MULTI -> count > 1;
             case SINGLE_FILE -> count == 1 && !selectedItems.getFirst().isDirectory();
             case SINGLE_FOLDER -> count == 1 && selectedItems.getFirst().isDirectory();
+            case SINGLE_OR_MULTIPLE_FILES -> count >= 1 && selectedItems.stream().allMatch(item -> !item.isDirectory());
         };
     }
 }
