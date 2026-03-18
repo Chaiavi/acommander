@@ -40,6 +40,7 @@ public class ImageMetadataDialog {
     private Button loadButton;
     private Button saveButton;
     private Button applyButton;
+    private Button addTagButton;
     private ComboBox<String> metadataTypeCombo;
     private Label statusLabel;
     private DialogPane dialogPane;
@@ -48,6 +49,25 @@ public class ImageMetadataDialog {
     private final List<MetadataEntry> allParsedEntries = new ArrayList<>();
     private boolean metadataModified = false;
     private final List<MetadataModification> pendingModifications = new ArrayList<>();
+    private static final List<MetadataTemplate> COMMON_METADATA_TEMPLATES = List.of(
+            new MetadataTemplate("Title", "Xmp.dc.title", "LangAlt"),
+            new MetadataTemplate("Description", "Xmp.dc.description", "LangAlt"),
+            new MetadataTemplate("Creator", "Xmp.dc.creator", "XmpBag"),
+            new MetadataTemplate("Copyright", "Xmp.dc.rights", "LangAlt"),
+            new MetadataTemplate("Subject/Keywords", "Xmp.dc.subject", "XmpBag"),
+            new MetadataTemplate("Rating", "Xmp.xmp.Rating", "XmpText"),
+            new MetadataTemplate("Label", "Xmp.xmp.Label", "XmpText"),
+            new MetadataTemplate("EXIF Artist", "Exif.Image.Artist", "Ascii"),
+            new MetadataTemplate("EXIF Copyright", "Exif.Image.Copyright", "Ascii"),
+            new MetadataTemplate("EXIF Description", "Exif.Image.ImageDescription", "Ascii"),
+            new MetadataTemplate("Software", "Exif.Image.Software", "Ascii"),
+            new MetadataTemplate("Date/Time Original", "Exif.Photo.DateTimeOriginal", "Ascii"),
+            new MetadataTemplate("IPTC Headline", "Iptc.Application2.Headline", "String"),
+            new MetadataTemplate("IPTC Caption", "Iptc.Application2.Caption", "String"),
+            new MetadataTemplate("IPTC Byline", "Iptc.Application2.Byline", "String"),
+            new MetadataTemplate("IPTC Copyright Notice", "Iptc.Application2.Copyright", "String"),
+            new MetadataTemplate("IPTC Source", "Iptc.Application2.Source", "String")
+    );
 
     public ImageMetadataDialog(Window owner, File imageFile, Commander commander) {
         this.owner = owner;
@@ -131,7 +151,12 @@ public class ImageMetadataDialog {
         metadataTypeCombo.setValue("All");
         metadataTypeCombo.setOnAction(e -> filterMetadata());
 
-        return new HBox(10, typeLabel, metadataTypeCombo);
+        addTagButton = new Button("Add Metadata Tag");
+        addTagButton.setOnAction(e -> showAddTagDialog());
+
+        HBox toolbar = new HBox(10, typeLabel, metadataTypeCombo, addTagButton);
+        HBox.setHgrow(metadataTypeCombo, Priority.ALWAYS);
+        return toolbar;
     }
 
     private TreeTableView<MetadataEntry> buildTreeTable() {
@@ -198,12 +223,17 @@ public class ImageMetadataDialog {
                 TreeItem<MetadataEntry> treeItem = getTreeTableRow().getTreeItem();
                 if (treeItem != null) {
                     MetadataEntry entry = treeItem.getValue();
-                    entry.setValue(newValue);
-                    entry.setModified(true);
+                    // Group rows are labels, not editable metadata entries.
+                    if (entry == null || !entry.isEditableEntry()) {
+                        cancelEdit();
+                        return;
+                    }
                     
                     String oldValue = entry.getOriginalValue();
                     if (!Objects.equals(oldValue, newValue)) {
-                        pendingModifications.add(new MetadataModification(entry.getKey(), newValue));
+                        entry.setValue(newValue);
+                        entry.setModified(true);
+                        upsertPendingModification(entry.getKey(), newValue);
                         setStatus("Pending: " + entry.getKey() + " = " + (newValue.isEmpty() ? "(empty)" : newValue));
                     }
                 }
@@ -246,9 +276,12 @@ public class ImageMetadataDialog {
             @Override
             public void startEdit() {
                 escapePressed = false;
+                TreeItem<MetadataEntry> treeItem = getTreeTableRow().getTreeItem();
+                if (treeItem == null || treeItem.getValue() == null || !treeItem.getValue().isEditableEntry()) {
+                    return;
+                }
                 super.startEdit();
                 // Get current value from entry
-                TreeItem<MetadataEntry> treeItem = getTreeTableRow().getTreeItem();
                 String currentValue = (treeItem != null) ? treeItem.getValue().getValue() : getItem();
                 textField.setText(currentValue != null ? currentValue : "");
                 setGraphic(textField);
@@ -410,9 +443,7 @@ public class ImageMetadataDialog {
     private String runExiv2Print() throws IOException, InterruptedException {
         List<String> command = new ArrayList<>();
         command.add(EXIV2_PATH);
-        command.add("print");
-        // Don't use -t flag as it's not valid for print command
-        // We'll parse the friendly names and map them to actual keys
+        command.add("-pa");
         
         // Quote the file path to handle spaces and special characters
         String quotedPath = "\"" + imageFile.getAbsolutePath() + "\"";
@@ -460,8 +491,12 @@ public class ImageMetadataDialog {
 
         if (exitCode != 0) {
             String errorMsg = error.length() > 0 ? error.toString() : "Unknown error (exit code: " + exitCode + ")";
+            if (isNoMetadataPresentWarning(errorMsg)) {
+                logger.info("No EXIF block present for this file. Continuing with available metadata output.");
+                return output.toString();
+            }
             logger.error("exiv2 failed with exit code {}. Error: {}", exitCode, errorMsg);
-            return "ERROR: exiv2 failed with exit code " + exitCode + "\n\n" + errorMsg;
+            throw new IOException("exiv2 failed with exit code " + exitCode + "\n\n" + errorMsg);
         }
 
         if (error.length() > 0 && output.length() == 0) {
@@ -475,6 +510,16 @@ public class ImageMetadataDialog {
         }
 
         return output.toString();
+    }
+
+    private boolean isNoMetadataPresentWarning(String errorMsg) {
+        if (errorMsg == null || errorMsg.isBlank()) {
+            return false;
+        }
+        String msg = errorMsg.toLowerCase(Locale.ROOT);
+        return msg.contains("no exif data found")
+                || msg.contains("no iptc data found")
+                || msg.contains("no xmp data found");
     }
 
     private void populateTreeTable(String output) {
@@ -498,27 +543,22 @@ public class ImageMetadataDialog {
                 continue;
             }
 
-            // Parse exiv2 print output: "Camera model    : NIKON Z 6_2"
-            // Format: friendlyName : value
-            int colonIdx = trimmedLine.indexOf(':');
-            if (colonIdx > 0) {
-                String friendlyName = trimmedLine.substring(0, colonIdx).trim();
-                String value = trimmedLine.substring(colonIdx + 1).trim();
-
-                // Map friendly name to actual exiv2 key
-                String key = friendlyNameToKey(friendlyName);
-                if (key == null || key.isEmpty()) {
-                    continue; // Skip entries without a valid key mapping
+            // Parse exiv2 -pa output:
+            // Exif.Image.Make Ascii 6 Nikon
+            // Xmp.dc.title XmpText 1 Example
+            String[] parts = trimmedLine.split("\\s+", 4);
+            if (parts.length >= 4) {
+                String key = parts[0].trim();
+                String type = parts[1].trim();
+                String value = normalizeValueForDisplay(type, parts[3].trim());
+                if (key.isEmpty()) {
+                    continue;
                 }
-
-                // Determine the type from the key
-                String type = determineTypeFromKey(key);
 
                 MetadataEntry entry = new MetadataEntry(key, type, value, value);
                 entriesByKey.put(key, entry);
                 allParsedEntries.add(entry);
 
-                // Determine group
                 String group = getGroupName(key);
                 groups.computeIfAbsent(group, k -> new ArrayList<>()).add(entry);
             }
@@ -547,133 +587,6 @@ public class ImageMetadataDialog {
         for (TreeItem<MetadataEntry> child : rootItem.getChildren()) {
             child.setExpanded(true);
         }
-    }
-
-    /**
-     * Maps friendly exiv2 print output names to actual exiv2 keys.
-     */
-    private String friendlyNameToKey(String friendlyName) {
-        return switch (friendlyName) {
-            case "File name" -> "";  // Not editable
-            case "File size" -> "";  // Not editable
-            case "MIME type" -> "";  // Not editable
-            case "Image size" -> ""; // Not editable
-            case "Thumbnail" -> "";  // Not editable
-            case "Camera make" -> "Exif.Image.Make";
-            case "Camera model" -> "Exif.Image.Model";
-            case "Image timestamp" -> "Exif.Image.DateTime";
-            case "File number" -> "Exif.Image.ImageNumber";
-            case "Exposure time" -> "Exif.Photo.ExposureTime";
-            case "Aperture" -> "Exif.Photo.FNumber";
-            case "Exposure bias" -> "Exif.Photo.ExposureBiasValue";
-            case "Flash" -> "Exif.Photo.Flash";
-            case "Flash bias" -> "Exif.Photo.FlashEnergy";
-            case "Focal length" -> "Exif.Photo.FocalLength";
-            case "Subject distance" -> "Exif.Photo.SubjectDistance";
-            case "ISO speed" -> "Exif.Photo.ISOSpeedRatings";
-            case "Exposure mode" -> "Exif.Photo.ExposureMode";
-            case "Metering mode" -> "Exif.Photo.MeteringMode";
-            case "Macro mode" -> "Exif.Photo.MacroMode";
-            case "Image quality" -> "Exif.Photo.Quality";
-            case "White balance" -> "Exif.Photo.WhiteBalance";
-            case "Copyright" -> "Exif.Image.Copyright";
-            case "Exif comment" -> "Exif.Photo.UserComment";
-            case "Artist" -> "Exif.Image.Artist";
-            case "Software" -> "Exif.Image.Software";
-            case "Host Computer" -> "Exif.Image.HostComputer";
-            case "Orientation" -> "Exif.Image.Orientation";
-            case "X Resolution" -> "Exif.Image.XResolution";
-            case "Y Resolution" -> "Exif.Image.YResolution";
-            case "Resolution Unit" -> "Exif.Image.ResolutionUnit";
-            case "YCbCr Positioning" -> "Exif.Image.YCbCrPositioning";
-            case "Exposure Program" -> "Exif.Photo.ExposureProgram";
-            case "Spectral Sensitivity" -> "Exif.Photo.SpectralSensitivity";
-            case "OECF" -> "Exif.Photo.OECF";
-            case "Exif Version" -> "Exif.Photo.ExifVersion";
-            case "Date/Time Original" -> "Exif.Photo.DateTimeOriginal";
-            case "Date/Time Digitized" -> "Exif.Photo.DateTimeDigitized";
-            case "Components Config" -> "Exif.Photo.ComponentsConfiguration";
-            case "Compressed Bits/Pixel" -> "Exif.Photo.CompressedBitsPerPixel";
-            case "Shutter Speed" -> "Exif.Photo.ShutterSpeedValue";
-            case "Max Aperture" -> "Exif.Photo.MaxApertureValue";
-            case "Subject Area" -> "Exif.Photo.SubjectArea";
-            case "MakerNote" -> "Exif.Photo.MakerNote";
-            case "FlashPix Version" -> "Exif.Photo.FlashpixVersion";
-            case "Color Space" -> "Exif.Photo.ColorSpace";
-            case "Pixel X Dimension" -> "Exif.Photo.PixelXDimension";
-            case "Pixel Y Dimension" -> "Exif.Photo.PixelYDimension";
-            case "Related Sound File" -> "Exif.Photo.RelatedSoundFile";
-            case "Flash Energy" -> "Exif.Photo.FlashEnergy";
-            case "Focal Plane X Resolution" -> "Exif.Photo.FocalPlaneXResolution";
-            case "Focal Plane Y Resolution" -> "Exif.Photo.FocalPlaneYResolution";
-            case "Focal Plane Resolution Unit" -> "Exif.Photo.FocalPlaneResolutionUnit";
-            case "Subject Location" -> "Exif.Photo.SubjectLocation";
-            case "Exposure Index" -> "Exif.Photo.ExposureIndex";
-            case "Sensing Method" -> "Exif.Photo.SensingMethod";
-            case "File Source" -> "Exif.Photo.FileSource";
-            case "Scene Type" -> "Exif.Photo.SceneType";
-            case "CFA Pattern" -> "Exif.Photo.CFAPattern";
-            case "Custom Rendered" -> "Exif.Photo.CustomRendered";
-            case "Exposure Mode" -> "Exif.Photo.ExposureMode";
-            case "White Balance" -> "Exif.Photo.WhiteBalance";
-            case "Digital Zoom Ratio" -> "Exif.Photo.DigitalZoomRatio";
-            case "Focal Length In 35mm Film" -> "Exif.Photo.FocalLengthIn35mmFilm";
-            case "Scene Capture Type" -> "Exif.Photo.SceneCaptureType";
-            case "Gain Control" -> "Exif.Photo.GainControl";
-            case "Contrast" -> "Exif.Photo.Contrast";
-            case "Saturation" -> "Exif.Photo.Saturation";
-            case "Sharpness" -> "Exif.Photo.Sharpness";
-            case "Subject Distance Range" -> "Exif.Photo.SubjectDistanceRange";
-            case "Image Unique ID" -> "Exif.Photo.ImageUniqueID";
-            default -> {
-                // Try to infer from common patterns
-                if (friendlyName.contains("IPTC") || friendlyName.contains("Caption") || 
-                    friendlyName.contains("Credit") || friendlyName.contains("Source") ||
-                    friendlyName.contains("Headline") || friendlyName.contains("By-line")) {
-                    yield iptcFriendlyToKey(friendlyName);
-                }
-                if (friendlyName.contains("XMP") || friendlyName.contains("Rating") ||
-                    friendlyName.contains("Creator") || friendlyName.contains("Rights")) {
-                    yield xmpFriendlyToKey(friendlyName);
-                }
-                yield "";  // Unknown field, not editable
-            }
-        };
-    }
-
-    private String iptcFriendlyToKey(String friendlyName) {
-        return switch (friendlyName) {
-            case "Caption" -> "Iptc.Application2.Caption";
-            case "Credit" -> "Iptc.Application2.Credit";
-            case "Source" -> "Iptc.Application2.Source";
-            case "Headline" -> "Iptc.Application2.Headline";
-            case "By-line" -> "Iptc.Application2.ByLine";
-            case "Object Name" -> "Iptc.Application2.ObjectName";
-            case "Keywords" -> "Iptc.Application2.Keywords";
-            case "Special Instructions" -> "Iptc.Application2.SpecialInstructions";
-            case "Copyright Notice" -> "Iptc.Application2.CopyrightNotice";
-            default -> "";
-        };
-    }
-
-    private String xmpFriendlyToKey(String friendlyName) {
-        // XMP fields are complex and vary widely, return empty for now
-        return "";
-    }
-
-    private String determineTypeFromKey(String key) {
-        // Infer type from common exiv2 keys
-        if (key.contains("DateTime")) return "String";
-        if (key.contains("ISO") || key.contains("ISOSpeed")) return "Short";
-        if (key.contains("FNumber") || key.contains("Aperture")) return "Rational";
-        if (key.contains("ExposureTime") || key.contains("Shutter")) return "Rational";
-        if (key.contains("FocalLength")) return "Rational";
-        if (key.contains("Flash")) return "Short";
-        if (key.contains("Model") || key.contains("Make")) return "String";
-        if (key.contains("Version")) return "Undefined";
-        if (key.contains("Quality")) return "Short";
-        if (key.contains("Mode")) return "Short";
-        return "String";
     }
 
     private String getGroupName(String key) {
@@ -818,10 +731,13 @@ public class ImageMetadataDialog {
                 StringBuilder cmdContent = new StringBuilder();
                 try (java.io.PrintWriter writer = new java.io.PrintWriter(tempCmdFile, StandardCharsets.UTF_8)) {
                     for (MetadataModification mod : pendingModifications) {
-                        // Quote the value if it contains spaces
-                        String value = mod.value();
-                        if (value.contains(" ") || value.isEmpty()) {
-                            value = "\"" + value + "\"";
+                        // Escape quotes for command-file parsing and quote when needed.
+                        String value = normalizeValueForWrite(mod.key(), mod.value());
+                        String escaped = value.replace("\\", "\\\\").replace("\"", "\\\"");
+                        if (escaped.isEmpty() || escaped.chars().anyMatch(Character::isWhitespace) || escaped.contains("\"")) {
+                            value = "\"" + escaped + "\"";
+                        } else {
+                            value = escaped;
                         }
                         String cmdLine = "set " + mod.key() + " " + value;
                         writer.println(cmdLine);
@@ -1094,12 +1010,125 @@ public class ImageMetadataDialog {
         }
     }
 
+    private void showAddTagDialog() {
+        Dialog<ButtonType> dialog = new Dialog<>();
+        dialog.setTitle("Add Metadata Tag");
+        dialog.initOwner(owner);
+        dialog.initModality(Modality.WINDOW_MODAL);
+        dialog.getDialogPane().getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
+        if (commander != null) {
+            applyTheme(dialog);
+        }
+
+        ComboBox<MetadataTemplate> tagCombo = new ComboBox<>();
+        tagCombo.getItems().addAll(COMMON_METADATA_TEMPLATES);
+        tagCombo.setValue(COMMON_METADATA_TEMPLATES.getFirst());
+        tagCombo.setMaxWidth(Double.MAX_VALUE);
+
+        Label keyLabel = new Label();
+        keyLabel.setStyle("-fx-font-family: monospace;");
+        keyLabel.setWrapText(true);
+
+        TextField valueField = new TextField();
+        valueField.setPromptText("Metadata value");
+
+        Runnable syncKeyLabel = () -> {
+            MetadataTemplate selected = tagCombo.getValue();
+            if (selected == null) {
+                keyLabel.setText("");
+                return;
+            }
+            keyLabel.setText(selected.key());
+        };
+        syncKeyLabel.run();
+        tagCombo.setOnAction(e -> syncKeyLabel.run());
+
+        VBox content = new VBox(
+                8,
+                new Label("Choose Tag"),
+                tagCombo,
+                new Label("Key"),
+                keyLabel,
+                new Label("Value"),
+                valueField
+        );
+        content.setPadding(new Insets(10));
+        dialog.getDialogPane().setContent(content);
+
+        Button okButton = (Button) dialog.getDialogPane().lookupButton(ButtonType.OK);
+        okButton.setDisable(false);
+
+        Platform.runLater(valueField::requestFocus);
+        Optional<ButtonType> result = dialog.showAndWait();
+        if (result.orElse(ButtonType.CANCEL) != ButtonType.OK) {
+            return;
+        }
+
+        MetadataTemplate selected = tagCombo.getValue();
+        if (selected == null) {
+            return;
+        }
+        String key = selected.key();
+        String value = valueField.getText() == null ? "" : valueField.getText();
+
+        MetadataEntry existing = entriesByKey.get(key);
+        if (existing != null) {
+            existing.setValue(value);
+            existing.setModified(true);
+            upsertPendingModification(key, value);
+            metadataTypeCombo.setValue("All");
+            rebuildTreeTable(null);
+            setStatus("Pending update: " + key + " = " + (value.isEmpty() ? "(empty)" : value));
+            logger.info("Updated pending metadata key '{}'", key);
+            return;
+        }
+
+        MetadataEntry entry = new MetadataEntry(key, selected.type(), value, "");
+        entry.setModified(true);
+        entriesByKey.put(key, entry);
+        allParsedEntries.add(entry);
+        upsertPendingModification(key, value);
+        metadataTypeCombo.setValue("All");
+        rebuildTreeTable(null);
+        setStatus("Pending new tag: " + key + " = " + (value.isEmpty() ? "(empty)" : value));
+        logger.info("Added pending metadata key '{}'", key);
+    }
+
     private void setButtonsDisabled(boolean disabled) {
         if (loadButton != null) loadButton.setDisable(disabled);
         if (saveButton != null) saveButton.setDisable(disabled);
         if (applyButton != null) applyButton.setDisable(disabled);
+        if (addTagButton != null) addTagButton.setDisable(disabled);
         if (metadataTypeCombo != null) metadataTypeCombo.setDisable(disabled);
         if (metadataTreeTable != null) metadataTreeTable.setDisable(disabled);
+    }
+
+    private void upsertPendingModification(String key, String value) {
+        pendingModifications.removeIf(mod -> mod.key().equals(key));
+        pendingModifications.add(new MetadataModification(key, value));
+    }
+
+    private String normalizeValueForDisplay(String type, String value) {
+        if (value == null) {
+            return "";
+        }
+        if ("LangAlt".equalsIgnoreCase(type)) {
+            return stripLangAltPrefix(value);
+        }
+        return value;
+    }
+
+    private String normalizeValueForWrite(String key, String value) {
+        String normalized = value == null ? "" : value;
+        MetadataEntry entry = entriesByKey.get(key);
+        if (entry != null && "LangAlt".equalsIgnoreCase(entry.getType())) {
+            return stripLangAltPrefix(normalized);
+        }
+        return normalized;
+    }
+
+    private String stripLangAltPrefix(String value) {
+        return value.replaceFirst("^lang=\"[^\"]+\"\\s+", "");
     }
 
     private void showError(String message) {
@@ -1207,6 +1236,7 @@ public class ImageMetadataDialog {
         public String getValue() { return value.get(); }
         public String getOriginalValue() { return originalValue; }
         public boolean isModified() { return modified; }
+        public boolean isEditableEntry() { return key.get() != null && key.get().contains(".") && !type.get().isEmpty(); }
         
         public void setValue(String value) { this.value.set(value); }
         public void setModified(boolean modified) { this.modified = modified; }
@@ -1216,4 +1246,11 @@ public class ImageMetadataDialog {
      * Represents a pending metadata modification.
      */
     private record MetadataModification(String key, String value) {}
+
+    private record MetadataTemplate(String label, String key, String type) {
+        @Override
+        public String toString() {
+            return label + " (" + key + ")";
+        }
+    }
 }
