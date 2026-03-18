@@ -129,6 +129,9 @@ public class Commander {
     private PauseTransition toastHideTransition;
     private ClipboardTransferState clipboardTransferState;
 
+    // Store original onAction handlers so they can be restored when button labels appear
+    private final Map<Button, javafx.event.EventHandler<javafx.event.ActionEvent>> originalButtonHandlers = new HashMap<>();
+
     public ThemeMode getCurrentThemeMode() {
         return currentThemeMode;
     }
@@ -169,12 +172,24 @@ public class Commander {
         configurePaneSummary();
         commandPaletteController.configure(new ActionRegistry(appRegistry, actionExecutor), new ActionContext(this));
 
+        // Capture original handlers for function buttons so they can be restored later
+        captureOriginalFunctionButtonHandlers();
+
         updateBottomButtons();
         filesPanesHelper.refreshFileListViews();
         updatePaneSummary(LEFT);
         updatePaneSummary(RIGHT);
         filesPanesHelper.getFileList(true).getSelectionModel().selectFirst();
         Platform.runLater(() -> leftFileList.requestFocus());
+    }
+
+    private void captureOriginalFunctionButtonHandlers() {
+        List<Button> functionButtons = List.of(btnF1, btnF2, btnF3, btnF4, btnF5, btnF6, btnDup, btnF7, btnF8, btnF9, btnF10, btnF11, btnF12);
+        for (Button b : functionButtons) {
+            if (b != null) {
+                originalButtonHandlers.put(b, b.getOnAction());
+            }
+        }
     }
 
     private void configureExternalProgressUi() {
@@ -5878,6 +5893,25 @@ public class Commander {
             btnF10.setText("F10 Search for Files");
             btnF11.setText("F11 Pack");
             btnF12.setText("F12 UnPack");
+        }
+
+        // Automatically detach onAction handlers for any function button that currently has no visible text.
+        List<Button> functionButtons = List.of(btnF1, btnF2, btnF3, btnF4, btnF5, btnF6, btnDup, btnF7, btnF8, btnF9, btnF10, btnF11, btnF12);
+        for (Button b : functionButtons) {
+            if (b == null) continue;
+            boolean hasText = b.getText() != null && !b.getText().isBlank();
+            if (hasText) {
+                // restore original handler if we have it and it's not already set
+                javafx.event.EventHandler<javafx.event.ActionEvent> original = originalButtonHandlers.get(b);
+                if (original != null && b.getOnAction() != original) {
+                    b.setOnAction(original);
+                }
+            } else {
+                // remove action so clicks (including with modifiers) do nothing
+                if (b.getOnAction() != null) {
+                    b.setOnAction(null);
+                }
+            }
         }
     }
 
