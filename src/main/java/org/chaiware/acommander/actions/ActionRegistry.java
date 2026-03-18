@@ -51,6 +51,23 @@ public class ActionRegistry {
             );
         }
 
+        // Special handling for removeImageMetadata: require selected items to be supported image files
+        if ("removeImageMetadata".equals(action.getId())) {
+            return new AppAction(
+                    action.getId(),
+                    action.getLabel(),
+                    action.getShortcut(),
+                    action.getAliases(),
+                    ctx -> {
+                        List<FileItem> selected = selectedItemsOrEmpty(ctx);
+                        return rule.isSatisfied(selected)
+                                && org.chaiware.acommander.helpers.ImageMetadataSupport.areAllSupportedImages(selected)
+                                && isSelectionAllowedForBuiltin(builtin, ctx);
+                    },
+                    ctx -> executor.execute(action)
+            );
+        }
+
         return new AppAction(
                 action.getId(),
                 action.getLabel(),
