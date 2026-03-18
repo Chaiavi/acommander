@@ -600,6 +600,22 @@ public class Commander {
             this.keyBindingManager.setCurrentContext(determineCurrentContext(scene));
             this.keyBindingManager.handleReleasedKeyEvent(event);
         });
+
+        // Clear tracked modifier state on window focus changes to avoid "stuck" modifiers
+        // (e.g., Alt consumed by OS when Alt+Tab switches windows).
+        Window window = scene.getWindow();
+        if (window != null) {
+            window.focusedProperty().addListener((obs, wasFocused, isNowFocused) -> {
+                if (!isNowFocused) {
+                    // Window lost focus - clear any tracked modifiers and update UI
+                    activeModifiers.clear();
+                    updateBottomButtons();
+                } else {
+                    // Window gained focus - ensure UI reflects current tracked state
+                    updateBottomButtons();
+                }
+            });
+        }
     }
 
     public KeyContext determineCurrentContext(Scene scene) {
