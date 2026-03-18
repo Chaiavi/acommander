@@ -256,8 +256,29 @@ public class Commander {
                     // Use mouse event modifier state which is accurate for modifier+click combos
                     // but fall back to tracked activeModifiers because Alt may be consumed by the OS/menu.
                     if (me.isAltDown() || activeModifiers.contains(KeyCode.ALT)) {
+                        // Prefer direct ALT action when available
                         if (actions.alt != null && b.getText() != null && !b.getText().isBlank()) {
                             actions.alt.run();
+                        } else {
+                            // Fallback: synthesize an ALT+Fx KeyEvent so existing key handling runs
+                            Scene scene = rootPane.getScene();
+                            if (scene != null) {
+                                KeyCode mapped = mapButtonToFunctionKey(b);
+                                if (mapped != null) {
+                                    javafx.scene.input.KeyEvent press = new javafx.scene.input.KeyEvent(
+                                            javafx.scene.input.KeyEvent.KEY_PRESSED,
+                                            "",
+                                            "",
+                                            mapped,
+                                            false,
+                                            false,
+                                            true,
+                                            false
+                                    );
+                                    // Use KeyBindingManager via directly firing to scene; handlers will pick it up
+                                    javafx.event.Event.fireEvent(scene, press);
+                                }
+                            }
                         }
                     } else if (me.isShiftDown() || activeModifiers.contains(KeyCode.SHIFT)) {
                         if (actions.shift != null && b.getText() != null && !b.getText().isBlank()) {
@@ -276,6 +297,24 @@ public class Commander {
                 }
             });
         }
+    }
+
+    private KeyCode mapButtonToFunctionKey(Button b) {
+        if (b == null) return null;
+        if (b == btnF1) return KeyCode.F1;
+        if (b == btnF2) return KeyCode.F2;
+        if (b == btnF3) return KeyCode.F3;
+        if (b == btnF4) return KeyCode.F4;
+        if (b == btnF5) return KeyCode.F5;
+        if (b == btnF6) return KeyCode.F6;
+        if (b == btnDup) return KeyCode.F6; // duplicate shown as ALT+F6
+        if (b == btnF7) return KeyCode.F7;
+        if (b == btnF8) return KeyCode.F8;
+        if (b == btnF9) return KeyCode.F9;
+        if (b == btnF10) return KeyCode.F10;
+        if (b == btnF11) return KeyCode.F11;
+        if (b == btnF12) return KeyCode.F12;
+        return null;
     }
 
     private void configureExternalProgressUi() {
