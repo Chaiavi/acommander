@@ -1436,7 +1436,10 @@ public class Commander {
     @FXML
     public void handleF5Button() {
         if (activeModifiers.contains(KeyCode.ALT)) {
-            convertMediaFile();
+            // Only perform convert if the button shows an action (non-empty label).
+            if (btnF5.getText() != null && !btnF5.getText().isBlank()) {
+                convertMediaFile();
+            }
             return;
         }
         copyFile();
@@ -1768,7 +1771,10 @@ public class Commander {
     @FXML
     public void handleF10Button() {
         if (activeModifiers.contains(KeyCode.ALT)) {
-            findInFiles();
+            // Only perform Find In Files if the button shows an action (non-empty label).
+            if (btnF10.getText() != null && !btnF10.getText().isBlank()) {
+                findInFiles();
+            }
             return;
         }
         search();
