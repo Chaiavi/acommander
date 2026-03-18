@@ -206,9 +206,14 @@ public class AudioMetadataDialog {
 
         Map<String, String> values = new LinkedHashMap<>();
         for (int i = 0; i < QUERY_KEYS.size(); i++) {
-            values.put(QUERY_KEYS.get(i), rawValues[i].trim());
+            values.put(QUERY_KEYS.get(i), normalizeQueriedValue(rawValues[i]));
         }
         return values;
+    }
+
+    private String normalizeQueriedValue(String value) {
+        String normalized = value == null ? "" : value.trim();
+        return "<empty>".equalsIgnoreCase(normalized) ? "" : normalized;
     }
 
     private Map<String, String> emptyQueryValues() {

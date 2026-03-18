@@ -75,6 +75,35 @@ class ActionRegistryTest {
     }
 
     @Test
+    void removeAudioMetadataActionVisibleOnlyForSupportedAudioSelection() throws Exception {
+        Path audio = Files.createTempFile(tempDir, "sound", ".mp3");
+        Path text = Files.createTempFile(tempDir, "note", ".txt");
+
+        FilesPanesHelper panesHelper = mock(FilesPanesHelper.class);
+        when(panesHelper.getSelectedItems()).thenReturn(List.of(
+                new FileItem(audio.toFile()),
+                new FileItem(text.toFile())
+        ));
+
+        Commander commander = new Commander();
+        commander.filesPanesHelper = panesHelper;
+
+        AppRegistry registry = new AppRegistry(configWithRemoveAudioMetadataAction());
+        ActionRegistry actionRegistry = new ActionRegistry(registry, new ActionExecutor(commander, registry));
+        ActionContext context = new ActionContext(commander);
+
+        AppAction action = actionRegistry.all().stream()
+                .filter(a -> "removeAudioMetadata".equals(a.id()))
+                .findFirst()
+                .orElseThrow();
+
+        Assertions.assertThat(action.isEnabled(context)).isFalse();
+
+        when(panesHelper.getSelectedItems()).thenReturn(List.of(new FileItem(audio.toFile())));
+        Assertions.assertThat(action.isEnabled(context)).isTrue();
+    }
+
+    @Test
     void compareFilesActionVisibleWhenCommanderAllowsComparison() {
         Commander commander = mock(Commander.class);
         commander.filesPanesHelper = mock(FilesPanesHelper.class);
@@ -187,6 +216,19 @@ class ActionRegistryTest {
 
         AppConfig config = new AppConfig();
         config.setActions(List.of(paste));
+        return config;
+    }
+
+    private static AppConfig configWithRemoveAudioMetadataAction() {
+        ActionDefinition removeAudioMetadata = new ActionDefinition();
+        removeAudioMetadata.setId("removeAudioMetadata");
+        removeAudioMetadata.setLabel("Remove Audio Metadata");
+        removeAudioMetadata.setType("builtin");
+        removeAudioMetadata.setContexts(List.of("commandPalette"));
+        removeAudioMetadata.setSelection("singleOrMultipleFiles");
+
+        AppConfig config = new AppConfig();
+        config.setActions(List.of(removeAudioMetadata));
         return config;
     }
 }

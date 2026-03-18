@@ -74,38 +74,41 @@ public class ActionMatcher {
 
     private int pinnedConversionPriority(AppAction action, ActionContext context) {
         if (action == null || context == null || context.commander() == null || context.commander().filesPanesHelper == null) {
-            return 1;
+            return 3;
         }
         List<FileItem> selectedItems = context.commander().filesPanesHelper.getSelectedItems();
-        if ("pasteSelection".equals(action.id()) && context.commander().hasClipboardTransferEntries()) {
-            return 0;
-        }
-        if ("convertAudioFiles".equals(action.id()) && AudioConversionSupport.areAllConvertibleAudio(selectedItems)) {
-            return 0;
-        }
-        if ("convertGraphicsFiles".equals(action.id()) && ImageConversionSupport.areAllConvertibleImages(selectedItems)) {
-            return 0;
-        }
-        if ("editImageMetadata".equals(action.id()) && ImageMetadataSupport.areAllSupportedImages(selectedItems)) {
-            return 0;
-        }
-        if ("removeImageMetadata".equals(action.id()) && ImageMetadataSupport.areAllSupportedImages(selectedItems)) {
-            return 0;
-        }
-        if ("editVideoMetadata".equals(action.id()) && VideoMetadataSupport.areAllSupportedVideos(selectedItems)) {
-            return 0;
-        }
         if ("editAudioMetadata".equals(action.id()) && AudioMetadataSupport.areAllSupportedAudio(selectedItems)) {
             return 0;
         }
+        if ("removeAudioMetadata".equals(action.id()) && AudioMetadataSupport.areAllSupportedAudio(selectedItems)) {
+            return 1;
+        }
         if ("compressExecutable".equals(action.id()) && ExecutableCompressionSupport.areAllSupportedExecutables(selectedItems)) {
-            return 0;
+            return 2;
         }
         if (("mergePdf".equals(action.id()) || "extractPdfPages".equals(action.id()))
                 && areAllSelectedItemsPdf(selectedItems)) {
-            return 0;
+            return 2;
         }
-        return 1;
+        if ("pasteSelection".equals(action.id()) && context.commander().hasClipboardTransferEntries()) {
+            return 2;
+        }
+        if ("convertAudioFiles".equals(action.id()) && AudioConversionSupport.areAllConvertibleAudio(selectedItems)) {
+            return 2;
+        }
+        if ("convertGraphicsFiles".equals(action.id()) && ImageConversionSupport.areAllConvertibleImages(selectedItems)) {
+            return 2;
+        }
+        if ("editImageMetadata".equals(action.id()) && ImageMetadataSupport.areAllSupportedImages(selectedItems)) {
+            return 2;
+        }
+        if ("removeImageMetadata".equals(action.id()) && ImageMetadataSupport.areAllSupportedImages(selectedItems)) {
+            return 2;
+        }
+        if ("editVideoMetadata".equals(action.id()) && VideoMetadataSupport.areAllSupportedVideos(selectedItems)) {
+            return 2;
+        }
+        return 3;
     }
 
     private boolean areAllSelectedItemsPdf(List<FileItem> selectedItems) {

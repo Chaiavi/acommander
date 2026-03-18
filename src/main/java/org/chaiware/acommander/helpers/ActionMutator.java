@@ -38,6 +38,11 @@ public class ActionMutator {
         "move",        // modifies target folder
         "pasteSelection",
         "edit",        // might modify file
+        "editImageMetadata",
+        "removeImageMetadata",
+        "editVideoMetadata",
+        "editAudioMetadata",
+        "removeAudioMetadata",
         "compressExecutable",
 
         // Archive creation/modification (usually creates new files in target folder)

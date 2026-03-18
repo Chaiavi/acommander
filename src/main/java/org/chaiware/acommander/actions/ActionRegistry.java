@@ -166,8 +166,10 @@ public class ActionRegistry {
                 && !"extractPdfPages".equals(builtin)
                 && !"mergePdf".equals(builtin)
                 && !"editImageMetadata".equals(builtin)
+                && !"removeImageMetadata".equals(builtin)
                 && !"editVideoMetadata".equals(builtin)
                 && !"editAudioMetadata".equals(builtin)
+                && !"removeAudioMetadata".equals(builtin)
                 && !"compressExecutable".equals(builtin)) {
             return true;
         }
@@ -215,6 +217,9 @@ public class ActionRegistry {
             return VideoMetadataSupport.areAllSupportedVideos(selectedItems);
         }
         if ("editAudioMetadata".equals(builtin)) {
+            return AudioMetadataSupport.areAllSupportedAudio(selectedItems);
+        }
+        if ("removeAudioMetadata".equals(builtin)) {
             return AudioMetadataSupport.areAllSupportedAudio(selectedItems);
         }
         if ("compressExecutable".equals(builtin)) {

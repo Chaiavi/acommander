@@ -173,4 +173,27 @@ class ActionMatcherTest {
 
         Assertions.assertThat(ranked.getFirst().id()).isEqualTo("pasteSelection");
     }
+
+    @Test
+    void blankQueryOrdersAudioMetadataActionsAtTopWhenAudioSelection() throws Exception {
+        ActionMatcher matcher = new ActionMatcher();
+        Path audio = Files.createTempFile(tempDir, "track", ".mp3");
+
+        FilesPanesHelper panesHelper = mock(FilesPanesHelper.class);
+        when(panesHelper.getSelectedItems()).thenReturn(List.of(new FileItem(audio.toFile())));
+
+        Commander commander = new Commander();
+        commander.filesPanesHelper = panesHelper;
+        ActionContext context = new ActionContext(commander);
+
+        AppAction alpha = new AppAction("a", "Alpha", "", List.of(), ctx -> true, ctx -> {});
+        AppAction convertAudio = new AppAction("convertAudioFiles", "Convert Audio Files", "", List.of(), ctx -> true, ctx -> {});
+        AppAction editAudio = new AppAction("editAudioMetadata", "Edit Audio Metadata", "", List.of(), ctx -> true, ctx -> {});
+        AppAction removeAudio = new AppAction("removeAudioMetadata", "Remove Audio Metadata", "", List.of(), ctx -> true, ctx -> {});
+
+        List<AppAction> ranked = matcher.rank("", List.of(alpha, convertAudio, removeAudio, editAudio), context);
+
+        Assertions.assertThat(ranked.get(0).id()).isEqualTo("editAudioMetadata");
+        Assertions.assertThat(ranked.get(1).id()).isEqualTo("removeAudioMetadata");
+    }
 }

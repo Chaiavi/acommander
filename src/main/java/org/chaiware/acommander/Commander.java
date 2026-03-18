@@ -3879,6 +3879,108 @@ public class Commander {
     }
 
     @FXML
+    public void removeAudioMetadata() {
+        logger.info("Remove Audio Metadata");
+
+        try {
+            List<FileItem> selectedItems = commands.filterValidItems(filesPanesHelper.getSelectedItems());
+            if (selectedItems.isEmpty()) {
+                return;
+            }
+
+            if (!org.chaiware.acommander.helpers.AudioMetadataSupport.areAllSupportedAudio(selectedItems)) {
+                showError("Remove Audio Metadata", "Select one or more supported audio files only.");
+                requestFocusedFileListFocus();
+                return;
+            }
+
+            Alert confirmDialog = new Alert(Alert.AlertType.WARNING);
+            confirmDialog.setTitle("Remove Audio Metadata");
+            confirmDialog.setHeaderText("Remove metadata from " + selectedItems.size() + " audio file(s)?");
+            confirmDialog.setContentText("This will permanently remove all metadata from the selected audio file(s).");
+            confirmDialog.getButtonTypes().setAll(ButtonType.OK, ButtonType.CANCEL);
+            applyThemeToDialog(confirmDialog);
+
+            if (confirmDialog.showAndWait().orElse(ButtonType.CANCEL) != ButtonType.OK) {
+                return;
+            }
+
+            int successCount = 0;
+            for (FileItem item : selectedItems) {
+                if (item.isDirectory()) {
+                    continue;
+                }
+
+                File file = item.getFile();
+                if (file == null || !file.exists()) {
+                    continue;
+                }
+
+                try {
+                    boolean v2Deleted = runAudioMetadataDeleteCommand(file, "-2");
+                    boolean v1Deleted = runAudioMetadataDeleteCommand(file, "-1");
+                    if (v2Deleted && v1Deleted) {
+                        logger.info("Successfully removed audio metadata from: {}", file.getAbsolutePath());
+                        successCount++;
+                    } else {
+                        logger.warn("Failed to fully remove audio metadata from: {}", file.getAbsolutePath());
+                    }
+                } catch (Exception ex) {
+                    logger.warn("Error removing audio metadata from: {}", file.getAbsolutePath(), ex);
+                }
+            }
+
+            filesPanesHelper.refreshFileListViews();
+
+            if (successCount > 0) {
+                Alert alert = new Alert(Alert.AlertType.INFORMATION);
+                alert.setTitle("Metadata Removed");
+                alert.setHeaderText("Success");
+                alert.setContentText("Metadata removed from " + successCount + " audio file(s)");
+                applyThemeToDialog(alert);
+                alert.showAndWait();
+            } else {
+                Alert alert = new Alert(Alert.AlertType.WARNING);
+                alert.setTitle("Metadata Removal Failed");
+                alert.setHeaderText("No metadata removed");
+                alert.setContentText("Failed to remove metadata from selected audio file(s)");
+                applyThemeToDialog(alert);
+                alert.showAndWait();
+            }
+        } catch (Exception ex) {
+            error("Failed removing audio metadata", ex);
+        }
+    }
+
+    private boolean runAudioMetadataDeleteCommand(File file, String tagVersionFlag) {
+        List<String> command = new ArrayList<>();
+        command.add("apps/audio_metadata/id3.exe");
+        command.add(tagVersionFlag);
+        command.add("--delete");
+        command.add(file.getAbsolutePath());
+
+        try {
+            ProcessBuilder pb = new ProcessBuilder(command);
+            Process process = pb.start();
+            try {
+                int exitCode = process.waitFor();
+                if (exitCode != 0) {
+                    logger.warn("Audio metadata delete command failed (flag={}, exit={}): {}",
+                            tagVersionFlag, exitCode, file.getAbsolutePath());
+                    return false;
+                }
+                return true;
+            } finally {
+                process.destroy();
+            }
+        } catch (Exception ex) {
+            logger.warn("Audio metadata delete command threw error (flag={}): {}",
+                    tagVersionFlag, file.getAbsolutePath(), ex);
+            return false;
+        }
+    }
+
+    @FXML
     public void compressExecutable() {
         logger.info("Compress Executable");
 

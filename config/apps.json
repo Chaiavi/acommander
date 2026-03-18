@@ -419,6 +419,14 @@
       "type": "builtin"
     },
     {
+      "id": "removeAudioMetadata",
+      "label": "Remove Audio Metadata",
+      "aliases": ["strip audio metadata", "delete audio tags", "wipe audio metadata", "remove id3 tags"],
+      "contexts": ["filePane", "commandPalette"],
+      "selection": "singleOrMultipleFiles",
+      "type": "builtin"
+    },
+    {
       "id": "compressExecutable",
       "label": "Compress Executable",
       "aliases": ["compress exe", "upx", "upx compress", "pack exe"],
