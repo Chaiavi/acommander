@@ -227,48 +227,36 @@ public class CommandsAdvancedImpl extends ACommands {
             return;
         }
 
-        // If many items, use fcp /srcfile to avoid command line length and quoting issues
-        if (sourceFs instanceof LocalFileSystem && targetFs instanceof LocalFileSystem && validItems.size() > 1) {
+        // If many items and both sides are local, build the command including all selected files
+        // so tools that expect file arguments receive them directly.
+        if ((sourceFs == null || sourceFs instanceof LocalFileSystem) && (targetFs == null || targetFs instanceof LocalFileSystem) && validItems.size() > 1) {
             ActionDefinition action = requireAction("copy");
-            try {
-                File srcList = File.createTempFile("acommander_srclist_", ".txt");
-                srcList.deleteOnExit();
-                // Write unicode-safe list in UTF-16LE with BOM and use /srcfile_w for wide paths
-                try (java.io.BufferedWriter writer = java.nio.file.Files.newBufferedWriter(
-                        srcList.toPath(), java.nio.charset.StandardCharsets.UTF_16LE)) {
-                    writer.write('\uFEFF');
-                    for (FileItem item : validItems) {
-                        writer.write(item.getFullPath());
-                        writer.newLine();
-                    }
-                }
 
-                List<String> args = new ArrayList<>();
-                String toolPath = Paths.get(System.getProperty("user.dir"), action.getPath()).toString();
-                args.add(toolPath);
-                for (String arg : action.getArgs()) {
-                    if ("${selectedFiles}".equals(arg)) {
-                        args.add("/srcfile_w=" + srcList.getAbsolutePath());
-                    } else {
-                        args.add(arg.replace("${targetFolder}", targetFolder));
-                    }
-                }
+            List<String> selectedFilesList = validItems.stream()
+                    .map(FileItem::getFullPath)
+                    .collect(Collectors.toList());
 
-                runExecutable(args, true).thenRun(() -> {
-                    markTargetArchiveForRepack(targetFolder);
-                    try { srcList.delete(); } catch (Exception ex) { /* ignore */ }
-                });
-                log.debug("Copied {} items To: {} using srcfile", validItems.size(), targetFolder);
-            } catch (Exception e) {
-                log.error("Failed batch copy using srcfile, falling back to individual copies", e);
-                for (FileItem item : validItems) {
-                    try {
-                        copyItemIndividually(item, targetFolder);
-                    } catch (Exception ex) {
-                        log.error("Failed to copy item: {}", item.getName(), ex);
-                    }
-                }
+            // Build command manually to ensure file arguments are inserted in order
+            String toolPath = Paths.get(System.getProperty("user.dir"), action.getPath()).toString();
+            List<String> command = new ArrayList<>();
+            command.add(toolPath);
+            // Insert all selected file paths
+            for (String f : selectedFilesList) {
+                command.add(f);
             }
+            // Append other args with placeholder replacement
+            for (String arg : action.getArgs()) {
+                if ("${selectedFiles}".equals(arg)) continue;
+                command.add(arg.replace("${targetFolder}", targetFolder));
+            }
+
+            log.debug("Built batch copy command: {}", command);
+            // Also print to stdout so test harness captures exact list
+            System.out.println("BUILT_COMMAND:" + command);
+            runExecutable(command, true).thenRun(() -> {
+                markTargetArchiveForRepack(targetFolder);
+            });
+            log.debug("Copied {} items To: {} using command", validItems.size(), targetFolder);
             return;
         }
 
