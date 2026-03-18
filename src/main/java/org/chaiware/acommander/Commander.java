@@ -129,6 +129,18 @@ public class Commander {
     private PauseTransition toastHideTransition;
     private ClipboardTransferState clipboardTransferState;
 
+    // Centralized mapping for function buttons (normal / alt / shift)
+    private static class ButtonActions {
+        final Runnable normal;
+        final Runnable alt;
+        final Runnable shift;
+        ButtonActions(Runnable normal, Runnable alt, Runnable shift) {
+            this.normal = normal;
+            this.alt = alt;
+            this.shift = shift;
+        }
+    }
+    private final Map<Button, ButtonActions> functionButtonActions = new HashMap<>();
 
     public ThemeMode getCurrentThemeMode() {
         return currentThemeMode;
@@ -170,6 +182,9 @@ public class Commander {
         configurePaneSummary();
         commandPaletteController.configure(new ActionRegistry(appRegistry, actionExecutor), new ActionContext(this));
 
+        // Setup centralized function button actions mapping and handlers
+        setupFunctionButtonActions();
+
         updateBottomButtons();
         filesPanesHelper.refreshFileListViews();
         updatePaneSummary(LEFT);
@@ -178,6 +193,56 @@ public class Commander {
         Platform.runLater(() -> leftFileList.requestFocus());
     }
 
+
+    private void setupFunctionButtonActions() {
+        // Map buttons to their actions
+        functionButtonActions.put(btnF1, new ButtonActions(this::help, null, null));
+        functionButtonActions.put(btnF2, new ButtonActions(this::renameFile, null, null));
+        functionButtonActions.put(btnF3, new ButtonActions(this::viewFile, null, null));
+        functionButtonActions.put(btnF4, new ButtonActions(this::editFile, null, null));
+        functionButtonActions.put(btnF5, new ButtonActions(this::copyFile, this::convertMediaFile, null));
+        // F6: normal move, ALT duplicate, SHIFT rename
+        functionButtonActions.put(btnF6, new ButtonActions(this::moveFile, this::duplicateFile, this::renameFile));
+        // Duplicate button - performs duplicate (visible when ALT)
+        functionButtonActions.put(btnDup, new ButtonActions(this::duplicateFile, this::duplicateFile, null));
+        functionButtonActions.put(btnF7, new ButtonActions(this::makeDirectory, this::makeFile, null));
+        functionButtonActions.put(btnF8, new ButtonActions(this::deleteFile, null, this::deleteWipe));
+        functionButtonActions.put(btnF9, new ButtonActions(this::terminalHere, this::explorerHere, null));
+        functionButtonActions.put(btnF10, new ButtonActions(this::search, this::findInFiles, null));
+        functionButtonActions.put(btnF11, new ButtonActions(this::pack, this::splitLargeFile, null));
+        functionButtonActions.put(btnF12, new ButtonActions(this::unpackFile, this::extractAll, null));
+
+        // Attach unified handlers that respect current modifier state and visible label
+        for (Map.Entry<Button, ButtonActions> e : functionButtonActions.entrySet()) {
+            Button b = e.getKey();
+            ButtonActions actions = e.getValue();
+            if (b == null) continue;
+            b.setOnAction(evt -> {
+                try {
+                    // ALT has precedence over SHIFT (matches previous handlers)
+                    if (activeModifiers.contains(KeyCode.ALT)) {
+                        if (actions.alt != null && b.getText() != null && !b.getText().isBlank()) {
+                            actions.alt.run();
+                        }
+                        return;
+                    }
+                    if (activeModifiers.contains(KeyCode.SHIFT)) {
+                        if (actions.shift != null && b.getText() != null && !b.getText().isBlank()) {
+                            actions.shift.run();
+                        }
+                        return;
+                    }
+                    // No modifiers: run normal action
+                    if (actions.normal != null) {
+                        actions.normal.run();
+                    }
+                } catch (Exception ex) {
+                    // If actions throw checked exceptions, wrap into runtime to avoid signature issues
+                    throw new RuntimeException(ex);
+                }
+            });
+        }
+    }
 
     private void configureExternalProgressUi() {
         if (externalProgressBar != null) {
