@@ -3733,6 +3733,13 @@ public class Commander {
                 return;
             }
 
+            // Ensure only supported image files are selected
+            if (!org.chaiware.acommander.helpers.ImageMetadataSupport.areAllSupportedImages(selectedItems)) {
+                showError("Remove Image Metadata", "Select one or more image files only.");
+                requestFocusedFileListFocus();
+                return;
+            }
+
             // Confirm removal with user
             Alert confirmDialog = new Alert(Alert.AlertType.WARNING);
             confirmDialog.setTitle("Remove Image Metadata");
