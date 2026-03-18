@@ -408,9 +408,14 @@ public class FilesPanesHelper {
 
     public void toggleSort(FocusSide focusSide, SortColumn column) {
         SortState current = sortStates.getOrDefault(focusSide, new SortState(SortColumn.NAME, true));
-        SortState updated = current.column == column
-                ? new SortState(column, !current.ascending)
-                : new SortState(column, true);
+        SortState updated;
+        if (current.column == column) {
+            updated = new SortState(column, !current.ascending);
+        } else {
+            // Default ascending for NAME and SIZE, default descending (newest-first) for MODIFIED
+            boolean defaultAscending = column == SortColumn.MODIFIED ? false : true;
+            updated = new SortState(column, defaultAscending);
+        }
         sortStates.put(focusSide, updated);
         applySort(focusSide);
     }
