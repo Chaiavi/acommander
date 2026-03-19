@@ -411,6 +411,14 @@
       "type": "builtin"
     },
     {
+      "id": "removeVideoMetadata",
+      "label": "Remove Video Metadata",
+      "aliases": ["strip video metadata", "wipe video metadata", "delete video tags", "remove mp4 metadata", "atomicparsley wipe"],
+      "contexts": ["filePane", "commandPalette"],
+      "selection": "singleOrMultipleFiles",
+      "type": "builtin"
+    },
+    {
       "id": "editAudioMetadata",
       "label": "Edit Audio Metadata",
       "aliases": ["audio metadata", "edit mp3 metadata", "id3", "mp3 tags", "id3 editor"],

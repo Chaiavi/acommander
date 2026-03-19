@@ -77,6 +77,12 @@ public class ActionMatcher {
             return 3;
         }
         List<FileItem> selectedItems = context.commander().filesPanesHelper.getSelectedItems();
+        if ("editVideoMetadata".equals(action.id()) && VideoMetadataSupport.areAllSupportedVideos(selectedItems)) {
+            return 0;
+        }
+        if ("removeVideoMetadata".equals(action.id()) && VideoMetadataSupport.areAllSupportedVideos(selectedItems)) {
+            return 1;
+        }
         if ("editAudioMetadata".equals(action.id()) && AudioMetadataSupport.areAllSupportedAudio(selectedItems)) {
             return 0;
         }
@@ -103,9 +109,6 @@ public class ActionMatcher {
             return 2;
         }
         if ("removeImageMetadata".equals(action.id()) && ImageMetadataSupport.areAllSupportedImages(selectedItems)) {
-            return 2;
-        }
-        if ("editVideoMetadata".equals(action.id()) && VideoMetadataSupport.areAllSupportedVideos(selectedItems)) {
             return 2;
         }
         return 3;

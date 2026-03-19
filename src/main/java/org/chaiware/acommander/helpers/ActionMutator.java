@@ -41,6 +41,7 @@ public class ActionMutator {
         "editImageMetadata",
         "removeImageMetadata",
         "editVideoMetadata",
+        "removeVideoMetadata",
         "editAudioMetadata",
         "removeAudioMetadata",
         "compressExecutable",

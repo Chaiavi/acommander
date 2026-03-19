@@ -196,4 +196,27 @@ class ActionMatcherTest {
         Assertions.assertThat(ranked.get(0).id()).isEqualTo("editAudioMetadata");
         Assertions.assertThat(ranked.get(1).id()).isEqualTo("removeAudioMetadata");
     }
+
+    @Test
+    void blankQueryOrdersVideoMetadataActionsAtTopWhenVideoSelection() throws Exception {
+        ActionMatcher matcher = new ActionMatcher();
+        Path video = Files.createTempFile(tempDir, "clip", ".mp4");
+
+        FilesPanesHelper panesHelper = mock(FilesPanesHelper.class);
+        when(panesHelper.getSelectedItems()).thenReturn(List.of(new FileItem(video.toFile())));
+
+        Commander commander = new Commander();
+        commander.filesPanesHelper = panesHelper;
+        ActionContext context = new ActionContext(commander);
+
+        AppAction alpha = new AppAction("a", "Alpha", "", List.of(), ctx -> true, ctx -> {});
+        AppAction convertAudio = new AppAction("convertAudioFiles", "Convert Audio Files", "", List.of(), ctx -> true, ctx -> {});
+        AppAction editVideo = new AppAction("editVideoMetadata", "Edit Video Metadata", "", List.of(), ctx -> true, ctx -> {});
+        AppAction removeVideo = new AppAction("removeVideoMetadata", "Remove Video Metadata", "", List.of(), ctx -> true, ctx -> {});
+
+        List<AppAction> ranked = matcher.rank("", List.of(alpha, convertAudio, removeVideo, editVideo), context);
+
+        Assertions.assertThat(ranked.get(0).id()).isEqualTo("editVideoMetadata");
+        Assertions.assertThat(ranked.get(1).id()).isEqualTo("removeVideoMetadata");
+    }
 }

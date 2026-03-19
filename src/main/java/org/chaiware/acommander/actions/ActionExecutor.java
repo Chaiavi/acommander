@@ -97,6 +97,7 @@ public class ActionExecutor {
                 || "editImageMetadata".equals(actionId)
                 || "removeImageMetadata".equals(actionId)
                 || "editVideoMetadata".equals(actionId)
+                || "removeVideoMetadata".equals(actionId)
                 || "editAudioMetadata".equals(actionId)
                 || "removeAudioMetadata".equals(actionId)) {
             return commander.filesPanesHelper.getFocusedFileSystem().isReadOnly();
@@ -164,6 +165,7 @@ public class ActionExecutor {
             case "editImageMetadata" -> commander.editImageMetadata();
             case "removeImageMetadata" -> commander.removeImageMetadata();
             case "editVideoMetadata" -> commander.editVideoMetadata();
+            case "removeVideoMetadata" -> commander.removeVideoMetadata();
             case "editAudioMetadata" -> commander.editAudioMetadata();
             case "removeAudioMetadata" -> commander.removeAudioMetadata();
             case "compressExecutable" -> commander.compressExecutable();

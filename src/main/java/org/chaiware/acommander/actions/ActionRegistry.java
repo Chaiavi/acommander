@@ -168,6 +168,7 @@ public class ActionRegistry {
                 && !"editImageMetadata".equals(builtin)
                 && !"removeImageMetadata".equals(builtin)
                 && !"editVideoMetadata".equals(builtin)
+                && !"removeVideoMetadata".equals(builtin)
                 && !"editAudioMetadata".equals(builtin)
                 && !"removeAudioMetadata".equals(builtin)
                 && !"compressExecutable".equals(builtin)) {
@@ -214,6 +215,9 @@ public class ActionRegistry {
             return ImageMetadataSupport.areAllSupportedImages(selectedItems);
         }
         if ("editVideoMetadata".equals(builtin)) {
+            return VideoMetadataSupport.areAllSupportedVideos(selectedItems);
+        }
+        if ("removeVideoMetadata".equals(builtin)) {
             return VideoMetadataSupport.areAllSupportedVideos(selectedItems);
         }
         if ("editAudioMetadata".equals(builtin)) {

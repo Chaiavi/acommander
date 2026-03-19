@@ -104,6 +104,35 @@ class ActionRegistryTest {
     }
 
     @Test
+    void removeVideoMetadataActionVisibleOnlyForSupportedVideoSelection() throws Exception {
+        Path video = Files.createTempFile(tempDir, "clip", ".mp4");
+        Path text = Files.createTempFile(tempDir, "note", ".txt");
+
+        FilesPanesHelper panesHelper = mock(FilesPanesHelper.class);
+        when(panesHelper.getSelectedItems()).thenReturn(List.of(
+                new FileItem(video.toFile()),
+                new FileItem(text.toFile())
+        ));
+
+        Commander commander = new Commander();
+        commander.filesPanesHelper = panesHelper;
+
+        AppRegistry registry = new AppRegistry(configWithRemoveVideoMetadataAction());
+        ActionRegistry actionRegistry = new ActionRegistry(registry, new ActionExecutor(commander, registry));
+        ActionContext context = new ActionContext(commander);
+
+        AppAction action = actionRegistry.all().stream()
+                .filter(a -> "removeVideoMetadata".equals(a.id()))
+                .findFirst()
+                .orElseThrow();
+
+        Assertions.assertThat(action.isEnabled(context)).isFalse();
+
+        when(panesHelper.getSelectedItems()).thenReturn(List.of(new FileItem(video.toFile())));
+        Assertions.assertThat(action.isEnabled(context)).isTrue();
+    }
+
+    @Test
     void compareFilesActionVisibleWhenCommanderAllowsComparison() {
         Commander commander = mock(Commander.class);
         commander.filesPanesHelper = mock(FilesPanesHelper.class);
@@ -229,6 +258,19 @@ class ActionRegistryTest {
 
         AppConfig config = new AppConfig();
         config.setActions(List.of(removeAudioMetadata));
+        return config;
+    }
+
+    private static AppConfig configWithRemoveVideoMetadataAction() {
+        ActionDefinition removeVideoMetadata = new ActionDefinition();
+        removeVideoMetadata.setId("removeVideoMetadata");
+        removeVideoMetadata.setLabel("Remove Video Metadata");
+        removeVideoMetadata.setType("builtin");
+        removeVideoMetadata.setContexts(List.of("commandPalette"));
+        removeVideoMetadata.setSelection("singleOrMultipleFiles");
+
+        AppConfig config = new AppConfig();
+        config.setActions(List.of(removeVideoMetadata));
         return config;
     }
 }

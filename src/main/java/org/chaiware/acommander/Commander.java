@@ -3956,6 +3956,160 @@ public class Commander {
     }
 
     @FXML
+    public void removeVideoMetadata() {
+        logger.info("Remove Video Metadata");
+
+        try {
+            List<FileItem> selectedItems = commands.filterValidItems(filesPanesHelper.getSelectedItems());
+            if (selectedItems.isEmpty()) {
+                return;
+            }
+
+            if (!VideoMetadataSupport.areAllSupportedVideos(selectedItems)) {
+                showError("Remove Video Metadata", "Select one or more supported video files only.");
+                requestFocusedFileListFocus();
+                return;
+            }
+
+            Alert confirmDialog = new Alert(Alert.AlertType.WARNING);
+            confirmDialog.setTitle("Remove Video Metadata");
+            confirmDialog.setHeaderText("Remove metadata from " + selectedItems.size() + " video file(s)?");
+            confirmDialog.setContentText("This will permanently remove all metadata from the selected media file(s).");
+            confirmDialog.getButtonTypes().setAll(ButtonType.OK, ButtonType.CANCEL);
+            applyThemeToDialog(confirmDialog);
+
+            if (confirmDialog.showAndWait().orElse(ButtonType.CANCEL) != ButtonType.OK) {
+                return;
+            }
+
+            int successCount = 0;
+            for (FileItem item : selectedItems) {
+                if (item == null || item.isDirectory()) {
+                    continue;
+                }
+
+                File file = item.getFile();
+                if (file == null || !file.exists()) {
+                    continue;
+                }
+
+                try {
+                    if (runVideoMetadataDeleteCommand(file)) {
+                        logger.info("Successfully removed video metadata from: {}", file.getAbsolutePath());
+                        successCount++;
+                    } else {
+                        logger.warn("Failed to fully remove video metadata from: {}", file.getAbsolutePath());
+                    }
+                } catch (Exception ex) {
+                    logger.warn("Error removing video metadata from: {}", file.getAbsolutePath(), ex);
+                }
+            }
+
+            filesPanesHelper.refreshFileListViews();
+
+            if (successCount > 0) {
+                Alert alert = new Alert(Alert.AlertType.INFORMATION);
+                alert.setTitle("Metadata Removed");
+                alert.setHeaderText("Success");
+                alert.setContentText("Metadata removed from " + successCount + " video file(s)");
+                applyThemeToDialog(alert);
+                alert.showAndWait();
+            } else {
+                Alert alert = new Alert(Alert.AlertType.WARNING);
+                alert.setTitle("Metadata Removal Failed");
+                alert.setHeaderText("No metadata removed");
+                alert.setContentText("Failed to remove metadata from selected video file(s)");
+                applyThemeToDialog(alert);
+                alert.showAndWait();
+            }
+        } catch (Exception ex) {
+            error("Failed removing video metadata", ex);
+        }
+    }
+
+    private boolean runVideoMetadataDeleteCommand(File file) {
+        Set<String> existingArtifacts = listAtomicParsleyArtifacts(file);
+        List<String> command = new ArrayList<>();
+        command.add("apps/video_metadata/AtomicParsley.exe");
+        command.add(file.getAbsolutePath());
+        command.add("--metaEnema");
+        command.add("--preserveTime");
+        command.add("--overWrite");
+
+        try {
+            ProcessBuilder pb = new ProcessBuilder(command);
+            Process process = pb.start();
+            try {
+                int exitCode = process.waitFor();
+                if (exitCode != 0) {
+                    logger.warn("Video metadata delete command failed (exit={}): {}", exitCode, file.getAbsolutePath());
+                    return false;
+                }
+                return true;
+            } finally {
+                process.destroy();
+            }
+        } catch (Exception ex) {
+            logger.warn("Video metadata delete command threw error: {}", file.getAbsolutePath(), ex);
+            return false;
+        } finally {
+            cleanupNewAtomicParsleyArtifacts(file, existingArtifacts);
+        }
+    }
+
+    private Set<String> listAtomicParsleyArtifacts(File videoFile) {
+        Set<String> artifacts = new HashSet<>();
+        if (videoFile == null) {
+            return artifacts;
+        }
+        File parent = videoFile.getParentFile();
+        if (parent == null || !parent.isDirectory()) {
+            return artifacts;
+        }
+        String baseName = baseName(videoFile.getName());
+        File[] files = parent.listFiles();
+        if (files == null) {
+            return artifacts;
+        }
+        for (File file : files) {
+            if (!file.isFile()) {
+                continue;
+            }
+            String name = file.getName();
+            if (name.startsWith(baseName + "-data-") || name.startsWith(baseName + "-temp-")) {
+                artifacts.add(file.getAbsolutePath());
+            }
+        }
+        return artifacts;
+    }
+
+    private void cleanupNewAtomicParsleyArtifacts(File videoFile, Set<String> existingArtifacts) {
+        Set<String> after = listAtomicParsleyArtifacts(videoFile);
+        for (String path : after) {
+            if (existingArtifacts.contains(path)) {
+                continue;
+            }
+            File file = new File(path);
+            if (!file.delete()) {
+                logger.warn("Could not delete AtomicParsley temp artifact: {}", path);
+            } else {
+                logger.info("Deleted AtomicParsley temp artifact: {}", path);
+            }
+        }
+    }
+
+    private String baseName(String fileName) {
+        if (fileName == null) {
+            return "";
+        }
+        int dot = fileName.lastIndexOf('.');
+        if (dot <= 0) {
+            return fileName;
+        }
+        return fileName.substring(0, dot);
+    }
+
+    @FXML
     public void editAudioMetadata() {
         logger.info("Edit Audio Metadata");
 
