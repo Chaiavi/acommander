@@ -227,8 +227,7 @@ public class CommandsAdvancedImpl extends ACommands {
             return;
         }
 
-        // If many items and both sides are local, build the command including all selected files
-        // so tools that expect file arguments receive them directly.
+        // If many items and both sides are local, run one batch command.
         if ((sourceFs == null || sourceFs instanceof LocalFileSystem) && (targetFs == null || targetFs instanceof LocalFileSystem) && validItems.size() > 1) {
             ActionDefinition action = requireAction("copy");
 
@@ -236,27 +235,32 @@ public class CommandsAdvancedImpl extends ACommands {
                     .map(FileItem::getFullPath)
                     .collect(Collectors.toList());
 
-            // Build command manually to ensure file arguments are inserted in order
-            String toolPath = Paths.get(System.getProperty("user.dir"), action.getPath()).toString();
-            List<String> command = new ArrayList<>();
-            command.add(toolPath);
-            // Insert all selected file paths
-            for (String f : selectedFilesList) {
-                command.add(f);
-            }
-            // Append other args with placeholder replacement
-            for (String arg : action.getArgs()) {
-                if ("${selectedFiles}".equals(arg)) continue;
-                command.add(arg.replace("${targetFolder}", targetFolder));
-            }
+            // Preserve action-defined argument order (important for tools like FastCopy).
+            List<String> command = ToolCommandBuilder.buildCommand(
+                    action.getPath(),
+                    action.getArgs(),
+                    fileListsLoader,
+                    Map.of("${targetFolder}", targetFolder),
+                    selectedFilesList
+            );
 
             log.debug("Built batch copy command: {}", command);
-            // Also print to stdout so test harness captures exact list
-            System.out.println("BUILT_COMMAND:" + command);
-            runExecutable(command, true).thenRun(() -> {
-                markTargetArchiveForRepack(targetFolder);
-            });
-            log.debug("Copied {} items To: {} using command", validItems.size(), targetFolder);
+            runExecutable(command, true)
+                    .thenAccept(output -> {
+                        markTargetArchiveForRepack(targetFolder);
+                        logBatchCopyVerification(validItems, targetFolder, command);
+                        log.debug("Copied {} items To: {} using command", validItems.size(), targetFolder);
+                    })
+                    .exceptionally(ex -> {
+                        log.error(
+                                "Batch copy failed for {} item(s). target={} command={}",
+                                validItems.size(),
+                                targetFolder,
+                                command,
+                                ex
+                        );
+                        return null;
+                    });
             return;
         }
 
@@ -270,6 +274,38 @@ public class CommandsAdvancedImpl extends ACommands {
             }
         }
         log.debug("Copied {} items To: {}", validItems.size(), targetFolder);
+    }
+
+    private void logBatchCopyVerification(List<FileItem> copiedItems, String targetFolder, List<String> command) {
+        if (copiedItems == null || copiedItems.isEmpty() || targetFolder == null || targetFolder.isBlank()) {
+            return;
+        }
+
+        Path targetPath;
+        try {
+            targetPath = Paths.get(targetFolder);
+        } catch (Exception ex) {
+            log.warn("Skipping batch copy verification due to invalid target path: {}", targetFolder, ex);
+            return;
+        }
+
+        List<String> missing = copiedItems.stream()
+                .map(FileItem::getName)
+                .filter(name -> !Files.exists(targetPath.resolve(name)))
+                .toList();
+
+        if (!missing.isEmpty()) {
+            log.error(
+                    "Batch copy reported success but {} item(s) are missing in target. target={} missing={} command={}",
+                    missing.size(),
+                    targetFolder,
+                    missing,
+                    command
+            );
+            return;
+        }
+
+        log.debug("Batch copy verification passed for {} item(s) in target {}", copiedItems.size(), targetFolder);
     }
 
     private void copyItemIndividually(FileItem item, String targetFolder) {

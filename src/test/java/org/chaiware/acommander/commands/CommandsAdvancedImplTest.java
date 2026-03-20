@@ -112,7 +112,7 @@ class CommandsAdvancedImplTest {
                 action(
                         "copy",
                         "copy-tool.exe",
-                        List.of("${selectedFiles}", "/to=${targetFolder}")
+                        List.of("/cmd=force_copy", "/auto_close", "${selectedFiles}", "/to=${targetFolder}")
                 )
         ));
 
@@ -126,6 +126,8 @@ class CommandsAdvancedImplTest {
         Assertions.assertThat(commands.lastCommand)
                 .containsExactly(
                         Path.of(System.getProperty("user.dir"), "copy-tool.exe").toString(),
+                        "/cmd=force_copy",
+                        "/auto_close",
                         first.toString(),
                         second.toString(),
                         "/to=" + targetDir
