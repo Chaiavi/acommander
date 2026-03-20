@@ -620,6 +620,10 @@ public class FilesPanesHelper {
         if (!matchingIndices.isEmpty()) {
             int[] indices = matchingIndices.stream().mapToInt(Integer::intValue).toArray();
             listView.getSelectionModel().selectIndices(-1, indices);
+            int firstMatchIndex = matchingIndices.getFirst();
+            listView.getFocusModel().focus(firstMatchIndex);
+            listView.scrollTo(firstMatchIndex);
+            listView.requestFocus();
         }
     }
 
