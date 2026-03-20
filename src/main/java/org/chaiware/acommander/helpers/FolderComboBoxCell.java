@@ -42,7 +42,7 @@ public class FolderComboBoxCell extends ListCell<Folder> {
 
         String text;
         if (folder instanceof Drive drive) {
-            text = drive.getLetter() + ": (" + formatBytes(drive.getAvailableSpace()) + " free)";
+            text = drive.getLetter() + ": [" + drive.getStoreType() + "] (" + formatBytes(drive.getAvailableSpace()) + " free)";
         } else if (folder instanceof WindowsFolder winFolder) {
             text = winFolder.getName() + " (" + winFolder.getPath() + ") " + formatFreeForPath(winFolder.getPath());
         } else {

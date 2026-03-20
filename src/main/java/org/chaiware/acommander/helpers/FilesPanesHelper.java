@@ -165,7 +165,10 @@ public class FilesPanesHelper {
             pathComboBox.setValue(new ArchiveFolder(fs.getDisplayName()));
         } else {
             // Local file system
-            pathComboBox.setValue(new Folder(path));
+            Folder currentValue = pathComboBox.getValue();
+            if (!samePath(currentValue != null ? currentValue.getPath() : null, path)) {
+                pathComboBox.setValue(new Folder(path));
+            }
         }
 
         ensureFirstEntrySelected(focusSide);
@@ -693,6 +696,22 @@ public class FilesPanesHelper {
             path = path.replaceFirst("\\s*\\([^)]*free\\)\\s*$", "");
             return path.trim();
         }
+    }
+
+    private boolean samePath(String left, String right) {
+        if (left == null || right == null) {
+            return Objects.equals(left, right);
+        }
+        String normalizedLeft = normalizePathForCompare(left);
+        String normalizedRight = normalizePathForCompare(right);
+        return normalizedLeft.equalsIgnoreCase(normalizedRight);
+    }
+
+    private String normalizePathForCompare(String path) {
+        String value = path.trim();
+        value = value.replaceFirst("\\s*\\(\\s*[\\d.,]+\\s*[KMGTPE]?B\\s*/\\s*[\\d.,]+\\s*[KMGTPE]?B\\s*\\)\\s*$", "");
+        value = value.replaceFirst("\\s*\\([^)]*free\\)\\s*$", "");
+        return value.trim();
     }
     
     /**

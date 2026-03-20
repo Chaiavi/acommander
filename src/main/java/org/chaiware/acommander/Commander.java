@@ -586,7 +586,12 @@ public class Commander {
         saveConfigFile();
         clearCharFilter(side);
         clearFolderCompareHighlights(false);
-        filesPanesHelper.refreshFileListView(side);
+        VFileSystem fsAfterSwitch = filesPanesHelper.getFileSystem(side);
+        if (fsAfterSwitch instanceof LocalFileSystem) {
+            filesPanesHelper.setFileListPath(side, path);
+        } else {
+            filesPanesHelper.refreshFileListView(side);
+        }
     }
 
     /** Setup all of the keyboard bindings */
