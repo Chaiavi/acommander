@@ -17,10 +17,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.CompletionException;
 import java.util.stream.Collectors;
 
@@ -867,7 +864,7 @@ public class CommandsAdvancedImpl extends ACommands {
     }
 
     @Override
-    protected void doExtractPDFPages(FileItem fileItem, String destinationPath) {
+    protected void doExtractPDFPages(FileItem fileItem, String destinationPath, PdfExtractOptions options) {
         try {
             VFileSystem sourceFs = fileListsLoader.getFocusedFileSystem();
             VFileSystem targetFs = fileListsLoader.getUnfocusedFileSystem();
@@ -906,6 +903,11 @@ public class CommandsAdvancedImpl extends ACommands {
             Files.copy(pdfToExtract.toPath(), asciiInputPdf, StandardCopyOption.REPLACE_EXISTING);
 
             ActionDefinition action = requireAction("extractPdfPages");
+            PdfExtractOptions effectiveOptions = options == null ? PdfExtractOptions.extractAll() : options;
+            int totalPages = effectiveOptions.knownTotalPages() != null && effectiveOptions.knownTotalPages() > 0
+                    ? effectiveOptions.knownTotalPages()
+                    : readPdfPageCount(action, asciiInputPdf);
+            validatePdfExtractRequest(fileItem.getName(), totalPages, effectiveOptions);
             String outputPattern = extractionWorkDir.resolve("page_%04d.pdf").toString();
 
             List<String> command = ToolCommandBuilder.buildCommand(
@@ -923,13 +925,35 @@ public class CommandsAdvancedImpl extends ACommands {
             final Path finalExtractionWorkDir = extractionWorkDir;
             final String finalOutputPrefix = fileItem.getName().replaceFirst("(?i)\\.pdf$", "");
             final String finalLocalDestPath = localDestPath;
+            final PdfExtractOptions finalOptions = effectiveOptions;
 
-            runExecutable(command, true).thenRun(() -> {
+            runExecutable(command, false).thenRun(() -> {
                 try {
                     Path effectiveDestDir = finalUploadRequired && finalTempDestDir != null
                             ? finalTempDestDir.toPath()
                             : Paths.get(finalLocalDestPath);
-                    materializeExtractedPdfPages(finalExtractionWorkDir, effectiveDestDir, finalOutputPrefix);
+                    List<Path> generatedPages = collectGeneratedPageFiles(finalExtractionWorkDir);
+                    if (generatedPages.isEmpty()) {
+                        throw new IOException("PDF extraction produced no pages.");
+                    }
+
+                    switch (finalOptions.mode()) {
+                        case SPECIFIC_PAGES_SINGLE -> {
+                            List<Integer> selectedPages = parsePageExpression(finalOptions.pageExpression());
+                            materializeSelectedPdfPages(generatedPages, effectiveDestDir, finalOutputPrefix, selectedPages);
+                        }
+                        case PAGES_PER_PDF -> {
+                            int pagesPerPdf = finalOptions.pagesPerPdf() == null ? 0 : finalOptions.pagesPerPdf();
+                            if (pagesPerPdf <= 0) {
+                                throw new IllegalArgumentException("Pages per PDF must be greater than zero.");
+                            }
+                            ActionDefinition mergeAction = requireAction("mergePdf");
+                            materializeChunkedPdfPages(generatedPages, finalExtractionWorkDir, effectiveDestDir, finalOutputPrefix, pagesPerPdf, mergeAction);
+                        }
+                        case ALL_PAGES_SINGLE ->
+                                materializeExtractedPdfPages(generatedPages, effectiveDestDir, finalOutputPrefix);
+                        default -> materializeExtractedPdfPages(generatedPages, effectiveDestDir, finalOutputPrefix);
+                    }
 
                     if (finalUploadRequired && finalTempDestDir != null) {
                         File[] files = finalTempDestDir.listFiles();
@@ -950,27 +974,236 @@ public class CommandsAdvancedImpl extends ACommands {
                 }
             });
             log.debug("PDF extraction process started from: {}", fileItem.getName());
+        } catch (IllegalArgumentException e) {
+            throw e;
         } catch (Exception e) {
             log.error("Failed to extract PDF pages", e);
         }
     }
 
-    private void materializeExtractedPdfPages(Path extractionWorkDir, Path destinationDir, String outputPrefix) throws IOException {
-        Files.createDirectories(destinationDir);
-        List<Path> generatedPages;
+    @Override
+    protected int doGetPdfPageCount(FileItem selectedItem) throws Exception {
+        VFileSystem sourceFs = fileListsLoader.getFocusedFileSystem();
+        File pdfToCount;
+        boolean isTempPdf = false;
+
+        if (sourceFs instanceof LocalFileSystem) {
+            pdfToCount = selectedItem.getFile();
+        } else {
+            pdfToCount = File.createTempFile("acommander_pdf_count_", "_" + selectedItem.getName());
+            pdfToCount.deleteOnExit();
+            sourceFs.copy(sourceFs.getInternalPath(selectedItem), new LocalFileSystem(""), pdfToCount.getAbsolutePath());
+            isTempPdf = true;
+        }
+
+        Path countWorkDir = Files.createTempDirectory("acommander_pdf_count_work_");
+        try {
+            Path asciiInputPdf = countWorkDir.resolve("input.pdf");
+            Files.copy(pdfToCount.toPath(), asciiInputPdf, StandardCopyOption.REPLACE_EXISTING);
+            ActionDefinition action = requireAction("extractPdfPages");
+            return readPdfPageCount(action, asciiInputPdf);
+        } finally {
+            if (isTempPdf) {
+                pdfToCount.delete();
+            }
+            deleteRecursive(countWorkDir.toFile());
+        }
+    }
+
+    private List<Path> collectGeneratedPageFiles(Path extractionWorkDir) throws IOException {
         try (var stream = Files.list(extractionWorkDir)) {
-            generatedPages = stream
+            return stream
                     .filter(Files::isRegularFile)
-                    .filter(path -> path.getFileName().toString().toLowerCase().endsWith(".pdf"))
+                    // Keep only pdftk burst outputs; skip temp input.pdf and any chunk outputs.
+                    .filter(path -> path.getFileName().toString().matches("^page_\\d{4}\\.pdf$"))
                     .sorted(Comparator.comparing(path -> path.getFileName().toString()))
                     .toList();
         }
+    }
+
+    private void materializeExtractedPdfPages(List<Path> generatedPages, Path destinationDir, String outputPrefix) throws IOException {
+        Files.createDirectories(destinationDir);
 
         int pageNumber = 1;
         for (Path pagePath : generatedPages) {
             String targetName = String.format("%s_%04d.pdf", outputPrefix, pageNumber++);
             Path targetPath = destinationDir.resolve(targetName);
             Files.move(pagePath, targetPath, StandardCopyOption.REPLACE_EXISTING);
+        }
+    }
+
+    private void materializeSelectedPdfPages(
+            List<Path> generatedPages,
+            Path destinationDir,
+            String outputPrefix,
+            List<Integer> selectedPages
+    ) throws IOException {
+        Files.createDirectories(destinationDir);
+        int extractedCount = 0;
+        for (Integer pageNumber : selectedPages) {
+            if (pageNumber == null || pageNumber <= 0 || pageNumber > generatedPages.size()) {
+                continue;
+            }
+            Path pagePath = generatedPages.get(pageNumber - 1);
+            String targetName = String.format("%s_%04d.pdf", outputPrefix, pageNumber);
+            Files.move(pagePath, destinationDir.resolve(targetName), StandardCopyOption.REPLACE_EXISTING);
+            extractedCount++;
+        }
+        if (extractedCount == 0) {
+            throw new IllegalArgumentException("No selected pages matched the source PDF page count.");
+        }
+    }
+
+    private void materializeChunkedPdfPages(
+            List<Path> generatedPages,
+            Path extractionWorkDir,
+            Path destinationDir,
+            String outputPrefix,
+            int pagesPerPdf,
+            ActionDefinition mergeAction
+    ) throws Exception {
+        Files.createDirectories(destinationDir);
+        int totalPages = generatedPages.size();
+        int chunkIndex = 1;
+        for (int startPage = 1; startPage <= totalPages; startPage += pagesPerPdf) {
+            int endPage = Math.min(startPage + pagesPerPdf - 1, totalPages);
+            List<String> chunkPages = new ArrayList<>();
+            for (int page = startPage; page <= endPage; page++) {
+                chunkPages.add(generatedPages.get(page - 1).toString());
+            }
+
+            Path tempChunkOutput = extractionWorkDir.resolve(String.format("chunk_%04d.pdf", chunkIndex));
+            List<String> chunkCommand = ToolCommandBuilder.buildCommand(
+                    mergeAction.getPath(),
+                    mergeAction.getArgs(),
+                    fileListsLoader,
+                    Map.of("${outputPdf}", tempChunkOutput.toString()),
+                    chunkPages
+            );
+            runExecutable(chunkCommand, false).join();
+
+            String targetName = String.format("%s_%04d-%04d.pdf", outputPrefix, startPage, endPage);
+            Files.move(tempChunkOutput, destinationDir.resolve(targetName), StandardCopyOption.REPLACE_EXISTING);
+            Platform.runLater(fileListsLoader::refreshFileListViews);
+            chunkIndex++;
+        }
+    }
+
+    private List<Integer> parsePageExpression(String expression) {
+        if (expression == null || expression.isBlank()) {
+            throw new IllegalArgumentException("Page expression is empty.");
+        }
+        Set<Integer> pages = new LinkedHashSet<>();
+        for (String rawToken : expression.split(",")) {
+            String token = rawToken == null ? "" : rawToken.trim();
+            token = token.replaceFirst("(?i)^pages?\\s*", "");
+            token = token.replaceFirst("(?i)^p\\s*", "");
+            if (token.isEmpty()) {
+                continue;
+            }
+            try {
+                if (token.contains("-") || token.contains(":")) {
+                    String normalized = token.replace(':', '-');
+                    String[] bounds = normalized.split("-");
+                    if (bounds.length != 2) {
+                        throw new IllegalArgumentException("Invalid page range: " + token);
+                    }
+                    int start = Integer.parseInt(bounds[0].trim());
+                    int end = Integer.parseInt(bounds[1].trim());
+                    if (start <= 0 || end <= 0) {
+                        throw new IllegalArgumentException("Page numbers must be positive: " + token);
+                    }
+                    if (start > end) {
+                        int tmp = start;
+                        start = end;
+                        end = tmp;
+                    }
+                    for (int page = start; page <= end; page++) {
+                        pages.add(page);
+                    }
+                } else {
+                    int page = Integer.parseInt(token);
+                    if (page <= 0) {
+                        throw new IllegalArgumentException("Page numbers must be positive: " + token);
+                    }
+                    pages.add(page);
+                }
+            } catch (NumberFormatException ex) {
+                throw new IllegalArgumentException("Invalid page token: " + token, ex);
+            }
+        }
+        if (pages.isEmpty()) {
+            throw new IllegalArgumentException("No pages were parsed from page expression.");
+        }
+        return pages.stream().sorted().toList();
+    }
+
+    private int readPdfPageCount(ActionDefinition extractAction, Path asciiInputPdf) throws Exception {
+        List<String> countCommand = ToolCommandBuilder.buildCommand(
+                extractAction.getPath(),
+                List.of("${selectedFile}", "dump_data"),
+                fileListsLoader,
+                Map.of(),
+                List.of(asciiInputPdf.toString())
+        );
+        List<String> output;
+        try {
+            output = runExecutable(countCommand, false).join();
+        } catch (CompletionException ex) {
+            Throwable cause = ex.getCause() == null ? ex : ex.getCause();
+            throw new IllegalArgumentException("Failed to read PDF page count.", cause);
+        }
+
+        for (String line : output) {
+            if (line == null) {
+                continue;
+            }
+            String trimmed = line.trim();
+            if (!trimmed.startsWith("NumberOfPages:")) {
+                continue;
+            }
+            String value = trimmed.substring("NumberOfPages:".length()).trim();
+            try {
+                return Integer.parseInt(value);
+            } catch (NumberFormatException ex) {
+                throw new IllegalArgumentException("Failed to parse PDF page count.", ex);
+            }
+        }
+        throw new IllegalArgumentException("Could not determine PDF page count.");
+    }
+
+    private void validatePdfExtractRequest(String fileName, int totalPages, PdfExtractOptions options) {
+        if (totalPages <= 1) {
+            throw new IllegalArgumentException(
+                    "Cannot extract pages from '" + fileName + "': the PDF contains only " + totalPages + " page."
+            );
+        }
+
+        if (options == null || options.mode() == null) {
+            return;
+        }
+
+        if (options.mode() == PdfExtractOptions.Mode.PAGES_PER_PDF) {
+            int pagesPerPdf = options.pagesPerPdf() == null ? 0 : options.pagesPerPdf();
+            if (pagesPerPdf <= 0) {
+                throw new IllegalArgumentException("Pages per PDF must be greater than zero.");
+            }
+            if (pagesPerPdf > totalPages) {
+                throw new IllegalArgumentException(
+                        "Pages per PDF (" + pagesPerPdf + ") exceeds PDF length (" + totalPages + " pages)."
+                );
+            }
+            return;
+        }
+
+        if (options.mode() == PdfExtractOptions.Mode.SPECIFIC_PAGES_SINGLE) {
+            List<Integer> pages = parsePageExpression(options.pageExpression());
+            int maxRequested = pages.stream().mapToInt(Integer::intValue).max().orElse(0);
+            if (maxRequested > totalPages) {
+                throw new IllegalArgumentException(
+                        "Requested page is out of bounds. PDF has " + totalPages + " pages, requested up to page " + maxRequested + "."
+                );
+            }
         }
     }
 

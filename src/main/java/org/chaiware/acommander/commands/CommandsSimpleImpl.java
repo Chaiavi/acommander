@@ -381,7 +381,12 @@ public class CommandsSimpleImpl extends ACommands {
     }
 
     @Override
-    protected void doExtractPDFPages(FileItem selectedItem, String destinationPath) throws Exception {
+    protected void doExtractPDFPages(FileItem selectedItem, String destinationPath, PdfExtractOptions options) throws Exception {
+        throw new Exception("Not implemented yet");
+    }
+
+    @Override
+    protected int doGetPdfPageCount(FileItem selectedItem) throws Exception {
         throw new Exception("Not implemented yet");
     }
 }

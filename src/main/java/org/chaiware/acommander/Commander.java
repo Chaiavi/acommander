@@ -22,10 +22,7 @@ import javafx.util.Duration;
 import org.chaiware.acommander.actions.ActionContext;
 import org.chaiware.acommander.actions.ActionExecutor;
 import org.chaiware.acommander.actions.ActionRegistry;
-import org.chaiware.acommander.commands.ACommands;
-import org.chaiware.acommander.commands.CommandsAdvancedImpl;
-import org.chaiware.acommander.commands.ExternalCommandException;
-import org.chaiware.acommander.commands.ExternalCommandListener;
+import org.chaiware.acommander.commands.*;
 import org.chaiware.acommander.config.AppConfigLoader;
 import org.chaiware.acommander.config.AppRegistry;
 import org.chaiware.acommander.helpers.*;
@@ -3372,15 +3369,47 @@ public class Commander {
 
     public void extractPDFPages() {
         logger.info("Extract PDF Pages");
-        try {
-            List<FileItem> selectedItems = new ArrayList<>(filesPanesHelper.getSelectedItems());
-            for (FileItem selectedItem : selectedItems)
-                commands.extractPDFPages(selectedItem, filesPanesHelper.getUnfocusedPath());
-        } catch (IllegalArgumentException e) {
-            showError("Extract PDF Pages", e.getMessage());
-        } catch (Exception e) {
-            error("Failed Extracting Pages from PDF file", e);
+        List<FileItem> selectedItems = new ArrayList<>(filesPanesHelper.getSelectedItems());
+        if (selectedItems.isEmpty()) {
+            return;
         }
+        FileItem firstSelected = selectedItems.getFirst();
+        String destinationPath = filesPanesHelper.getUnfocusedPath();
+
+        CompletableFuture.supplyAsync(() -> {
+                    try {
+                        return commands.getPdfPageCount(firstSelected);
+                    } catch (Exception e) {
+                        throw new CompletionException(e);
+                    }
+                })
+                .whenComplete((totalPages, throwable) -> Platform.runLater(() -> {
+                    if (throwable != null) {
+                        Throwable root = unwrapCompletionException(throwable);
+                        if (root instanceof IllegalArgumentException iae) {
+                            showError("Extract PDF Pages", iae.getMessage());
+                        } else {
+                            error("Failed Extracting Pages from PDF file", root instanceof Exception ex ? ex : new RuntimeException(root));
+                        }
+                        return;
+                    }
+
+                    try {
+                        Optional<PdfExtractOptions> options = promptPdfExtractOptions(firstSelected, totalPages);
+                        if (options.isEmpty()) {
+                            logger.info("User cancelled PDF extraction options dialog");
+                            return;
+                        }
+                        PdfExtractOptions effectiveOptions = options.get().withKnownTotalPages(totalPages);
+                        for (FileItem selectedItem : selectedItems) {
+                            commands.extractPDFPages(selectedItem, destinationPath, effectiveOptions);
+                        }
+                    } catch (IllegalArgumentException e) {
+                        showError("Extract PDF Pages", e.getMessage());
+                    } catch (Exception e) {
+                        error("Failed Extracting Pages from PDF file", e);
+                    }
+                }));
     }
 
     public boolean canCompareSelectedFiles() {
@@ -5479,6 +5508,137 @@ public class Commander {
                 return parsed[0].sevenZipArg();
             }
             return null;
+        });
+
+        return dialog.showAndWait();
+    }
+
+    private Optional<PdfExtractOptions> promptPdfExtractOptions(FileItem selectedItem, int totalPages) {
+        Dialog<PdfExtractOptions> dialog = new Dialog<>();
+        dialog.setTitle("Extract PDF Pages");
+        dialog.setHeaderText(null);
+
+        ButtonType extractType = new ButtonType("Extract", ButtonBar.ButtonData.OK_DONE);
+        dialog.getDialogPane().getButtonTypes().addAll(extractType, ButtonType.CANCEL);
+
+        Label title = new Label("Extract PDF Pages");
+        title.setStyle("-fx-font-size: 16px; -fx-font-weight: bold;");
+        Label details = new Label("File: " + selectedItem.getName());
+        details.setWrapText(true);
+        Label totalPagesLabel = new Label("Total pages: " + totalPages);
+        totalPagesLabel.setStyle("-fx-font-weight: bold;");
+
+        RadioButton allPages = new RadioButton("All pages (one page per PDF)");
+        RadioButton specificPages = new RadioButton("Specific pages (one page per PDF)");
+        RadioButton pagesPerPdf = new RadioButton("Pages per PDF (chunk into multiple PDFs)");
+
+        ToggleGroup modeGroup = new ToggleGroup();
+        allPages.setToggleGroup(modeGroup);
+        specificPages.setToggleGroup(modeGroup);
+        pagesPerPdf.setToggleGroup(modeGroup);
+        allPages.setSelected(true);
+
+        TextField pageSpecField = new TextField();
+        pageSpecField.setPromptText("Examples: 10-30, 1,4,7, 1:3");
+
+        TextField pagesPerPdfField = new TextField("100");
+        pagesPerPdfField.setPromptText("Example: 100");
+
+        Label hint = new Label("Use expressions like 1-4, 1,4,7, 1:3, page10-30, pages 10-30.");
+        hint.setStyle("-fx-opacity: 0.75;");
+        Label validationLabel = new Label();
+        validationLabel.setWrapText(true);
+
+        VBox content = new VBox(
+                10,
+                title,
+                details,
+                totalPagesLabel,
+                new Separator(),
+                allPages,
+                specificPages,
+                pageSpecField,
+                pagesPerPdf,
+                pagesPerPdfField,
+                hint,
+                validationLabel
+        );
+        content.setPadding(new Insets(12));
+        dialog.getDialogPane().setContent(content);
+        applyThemeToDialog(dialog);
+
+        Button extractButton = (Button) dialog.getDialogPane().lookupButton(extractType);
+        Runnable syncInputState = () -> {
+            boolean isSpecific = specificPages.isSelected();
+            boolean isChunk = pagesPerPdf.isSelected();
+            pageSpecField.setDisable(!isSpecific);
+            pagesPerPdfField.setDisable(!isChunk);
+
+            if (allPages.isSelected()) {
+                validationLabel.setText("All pages will be extracted into one-page PDF files.");
+                extractButton.setDisable(false);
+                return;
+            }
+
+            if (isSpecific) {
+                String spec = pageSpecField.getText() == null ? "" : pageSpecField.getText().trim();
+                if (spec.isEmpty()) {
+                    validationLabel.setText("Enter a page expression (for example: 1,4,7 or 10-30).");
+                    extractButton.setDisable(true);
+                    return;
+                }
+                if (!Pattern.compile("(?i)^[0-9a-z\\s,:-]+$").matcher(spec).matches()) {
+                    validationLabel.setText("Page expression format is invalid.");
+                    extractButton.setDisable(true);
+                    return;
+                }
+                validationLabel.setText("Only selected pages will be extracted.");
+                extractButton.setDisable(false);
+                return;
+            }
+
+            String value = pagesPerPdfField.getText() == null ? "" : pagesPerPdfField.getText().trim();
+            try {
+                int pages = Integer.parseInt(value);
+                if (pages <= 0) {
+                    validationLabel.setText("Pages per PDF must be a positive number.");
+                    extractButton.setDisable(true);
+                    return;
+                }
+                validationLabel.setText("Output will be split into PDFs of " + pages + " page(s) each.");
+                extractButton.setDisable(false);
+            } catch (NumberFormatException ex) {
+                validationLabel.setText("Pages per PDF must be a valid integer.");
+                extractButton.setDisable(true);
+            }
+        };
+
+        modeGroup.selectedToggleProperty().addListener((obs, oldValue, newValue) -> syncInputState.run());
+        pageSpecField.textProperty().addListener((obs, oldValue, newValue) -> syncInputState.run());
+        pagesPerPdfField.textProperty().addListener((obs, oldValue, newValue) -> syncInputState.run());
+        syncInputState.run();
+
+        dialog.setResultConverter(buttonType -> {
+            if (buttonType != extractType) {
+                return null;
+            }
+            if (allPages.isSelected()) {
+                return PdfExtractOptions.extractAll();
+            }
+            if (specificPages.isSelected()) {
+                return new PdfExtractOptions(
+                        PdfExtractOptions.Mode.SPECIFIC_PAGES_SINGLE,
+                        pageSpecField.getText() == null ? "" : pageSpecField.getText().trim(),
+                        null,
+                        null
+                );
+            }
+            return new PdfExtractOptions(
+                    PdfExtractOptions.Mode.PAGES_PER_PDF,
+                    null,
+                    Integer.parseInt(pagesPerPdfField.getText().trim()),
+                    null
+            );
         });
 
         return dialog.showAndWait();

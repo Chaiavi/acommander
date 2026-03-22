@@ -169,13 +169,27 @@ public abstract class ACommands {
     }
 
     public final void extractPDFPages(FileItem selectedItem, String destinationPath) throws Exception {
+        extractPDFPages(selectedItem, destinationPath, PdfExtractOptions.extractAll());
+    }
+
+    public final void extractPDFPages(FileItem selectedItem, String destinationPath, PdfExtractOptions options) throws Exception {
         if (!isValidSingleItem(selectedItem)) {
             return;
         }
         if (!isPdf(selectedItem)) {
             throw new IllegalArgumentException("The selected file is not a PDF: " + selectedItem.getName());
         }
-        doExtractPDFPages(selectedItem, destinationPath);
+        doExtractPDFPages(selectedItem, destinationPath, options == null ? PdfExtractOptions.extractAll() : options);
+    }
+
+    public final int getPdfPageCount(FileItem selectedItem) throws Exception {
+        if (!isValidSingleItem(selectedItem)) {
+            throw new IllegalArgumentException("No valid PDF selected.");
+        }
+        if (!isPdf(selectedItem)) {
+            throw new IllegalArgumentException("The selected file is not a PDF: " + selectedItem.getName());
+        }
+        return doGetPdfPageCount(selectedItem);
     }
 
     // These methods don't need filtering as they don't operate on selected files
@@ -198,7 +212,10 @@ public abstract class ACommands {
     protected abstract void doUnpack(FileItem selectedItem, String destinationPath) throws Exception;
     protected abstract void doExtractAll(FileItem selectedItem, String destinationPath) throws Exception;
     protected abstract void doMergePDFs(List<FileItem> validItems, String newPdfFilenameWithPath) throws Exception;
-    protected abstract void doExtractPDFPages(FileItem selectedItem, String destinationPath) throws Exception;
+
+    protected abstract void doExtractPDFPages(FileItem selectedItem, String destinationPath, PdfExtractOptions options) throws Exception;
+
+    protected abstract int doGetPdfPageCount(FileItem selectedItem) throws Exception;
 
     protected CompletableFuture<List<String>> runExecutable(List<String> params, boolean shouldUpdateUI) {
         return runExecutable(params, shouldUpdateUI, Set.of());
