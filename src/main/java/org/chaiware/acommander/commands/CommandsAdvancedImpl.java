@@ -19,6 +19,7 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletionException;
 import java.util.stream.Collectors;
 
 public class CommandsAdvancedImpl extends ACommands {
@@ -361,8 +362,92 @@ public class CommandsAdvancedImpl extends ACommands {
                 Map.of("${targetFolder}", targetFolder),
                 selectedFiles
         );
-        runExecutable(command, true);
-        log.debug("Moved: {} To: {}", sourceFile, targetFolder);
+        runExecutable(command, true)
+                .thenAccept(output -> log.debug("Moved: {} To: {}", sourceFile, targetFolder))
+                .exceptionally(ex -> {
+                    log.error("Failed to move {} to {} using external tool", sourceFile.getFullPath(), targetFolder, ex);
+                    return null;
+                });
+    }
+
+    public void moveBatch(List<FileItem> selectedItems, String targetFolder) throws Exception {
+        List<FileItem> validItems = filterValidItems(selectedItems);
+        if (validItems.isEmpty()) {
+            log.debug("Move batch skipped: no valid items");
+            return;
+        }
+
+        VFileSystem sourceFs = fileListsLoader.getFocusedFileSystem();
+        VFileSystem targetFs = fileListsLoader.getUnfocusedFileSystem();
+        log.info(
+                "Starting move batch: {} item(s), sourceFs={}, targetFs={}, target={}",
+                validItems.size(),
+                sourceFs == null ? "<null>" : sourceFs.getIdentifier(),
+                targetFs == null ? "<null>" : targetFs.getIdentifier(),
+                targetFolder
+        );
+
+        List<FileItem> failedItems = new ArrayList<>();
+        Exception firstFailure = null;
+
+        for (FileItem item : validItems) {
+            try {
+                moveBatchItem(item, targetFolder, sourceFs, targetFs);
+            } catch (Exception ex) {
+                failedItems.add(item);
+                if (firstFailure == null) {
+                    firstFailure = ex;
+                }
+                log.error("Move batch item failed: {} -> {}", item.getFullPath(), targetFolder, ex);
+            }
+        }
+
+        fileListsLoader.refreshFileListViews();
+        if (!failedItems.isEmpty()) {
+            String failedNames = failedItems.stream().map(FileItem::getName).collect(Collectors.joining(", "));
+            throw new Exception("Failed moving " + failedItems.size() + " item(s): " + failedNames, firstFailure);
+        }
+        log.info("Move batch completed successfully: {} item(s) moved to {}", validItems.size(), targetFolder);
+    }
+
+    private void moveBatchItem(FileItem item, String targetFolder, VFileSystem sourceFs, VFileSystem targetFs) throws Exception {
+        // For virtual file systems, rely on VFS move directly.
+        if (sourceFs instanceof ArchiveFileSystem || targetFs instanceof ArchiveFileSystem ||
+                sourceFs instanceof FtpFileSystem || targetFs instanceof FtpFileSystem) {
+            commandsSimpleImpl.doMove(item, targetFolder);
+            return;
+        }
+
+        // Same drive local move is fastest and most reliable via java.nio move.
+        try {
+            Path sourcePath = item.getFile().toPath();
+            Path targetPath = Paths.get(targetFolder);
+            if (sourcePath.getRoot().toString().equalsIgnoreCase(targetPath.getRoot().toString())) {
+                commandsSimpleImpl.doMove(item, targetFolder);
+                return;
+            }
+        } catch (Exception ex) {
+            log.debug("Falling back to external move for {} due to path inspection issue", item.getFullPath(), ex);
+        }
+
+        ActionDefinition action = requireAction("move");
+        List<String> command = ToolCommandBuilder.buildCommand(
+                action.getPath(),
+                action.getArgs(),
+                fileListsLoader,
+                Map.of("${targetFolder}", targetFolder),
+                List.of(item.getFullPath())
+        );
+        log.debug("Executing external move command for {}: {}", item.getFullPath(), command);
+        try {
+            runExecutable(command, true).join();
+        } catch (CompletionException ex) {
+            Throwable cause = ex.getCause() == null ? ex : ex.getCause();
+            if (cause instanceof Exception causeException) {
+                throw causeException;
+            }
+            throw ex;
+        }
     }
 
     @Override

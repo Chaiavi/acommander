@@ -87,4 +87,19 @@ class AppConfigLoaderTest {
         Assertions.assertThatThrownBy(() -> loader.load(config))
                 .isInstanceOf(IOException.class);
     }
+
+    @Test
+    void moveActionSupportsMultiSelectionInDefaultConfig() throws Exception {
+        Path config = Path.of("config", "apps.json");
+        AppConfigLoader loader = new AppConfigLoader();
+        AppConfig loaded = loader.load(config);
+
+        ActionDefinition moveAction = loaded.getActions().stream()
+                .filter(action -> "move".equals(action.getId()))
+                .findFirst()
+                .orElseThrow();
+
+        Assertions.assertThat(moveAction.getSelection())
+                .isEqualTo("any");
+    }
 }

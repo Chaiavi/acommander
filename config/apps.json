@@ -140,7 +140,7 @@
       "shortcut": "F6",
       "aliases": ["mv"],
       "contexts": ["filePane", "commandPalette"],
-      "selection": "single",
+      "selection": "any",
       "type": "builtin",
       "path": "apps/copy/fcp.exe",
       "args": ["/cmd=move", "/auto_close", "${selectedFile}", "/to=${targetFolder}"],

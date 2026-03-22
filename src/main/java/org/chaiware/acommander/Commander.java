@@ -231,22 +231,22 @@ public class Commander {
                         return;
                     }
 
-                    // ALT has precedence over SHIFT (matches previous handlers)
-                    if (activeModifiers.contains(KeyCode.ALT)) {
-                        if (actions.alt != null && b.getText() != null && !b.getText().isBlank()) {
-                            actions.alt.run();
-                        }
-                        return;
-                    }
-                    if (activeModifiers.contains(KeyCode.SHIFT)) {
-                        if (actions.shift != null && b.getText() != null && !b.getText().isBlank()) {
-                            actions.shift.run();
-                        }
-                        return;
-                    }
-                    // No modifiers: run normal action
-                    if (actions.normal != null) {
-                        actions.normal.run();
+                    Runnable action = resolveButtonAction(
+                            b,
+                            actions,
+                            activeModifiers.contains(KeyCode.ALT),
+                            activeModifiers.contains(KeyCode.SHIFT)
+                    );
+                    logger.debug(
+                            "Function button dispatch via onAction: button={}, text='{}', alt={}, shift={}, action={}",
+                            mapButtonToFunctionKey(b),
+                            b.getText(),
+                            activeModifiers.contains(KeyCode.ALT),
+                            activeModifiers.contains(KeyCode.SHIFT),
+                            action == actions.alt ? "alt" : action == actions.shift ? "shift" : action == actions.normal ? "normal" : "none"
+                    );
+                    if (action != null) {
+                        action.run();
                     }
                 } catch (Exception ex) {
                     throw new RuntimeException(ex);
@@ -256,40 +256,36 @@ public class Commander {
             // Mouse click handler reads actual mouse modifiers (reliable when holding keys and clicking)
             b.addEventHandler(javafx.scene.input.MouseEvent.MOUSE_CLICKED, me -> {
                 try {
-                    // Use mouse event modifier state which is accurate for modifier+click combos
-                    // but fall back to tracked activeModifiers because Alt may be consumed by the OS/menu.
-                    if (me.isAltDown() || activeModifiers.contains(KeyCode.ALT)) {
-                        // Prefer direct ALT action when available
-                        if (actions.alt != null && b.getText() != null && !b.getText().isBlank()) {
-                            actions.alt.run();
-                        } else {
-                            // Fallback: synthesize an ALT+Fx KeyEvent so existing key handling runs
-                            Scene scene = rootPane.getScene();
-                            if (scene != null) {
-                                KeyCode mapped = mapButtonToFunctionKey(b);
-                                if (mapped != null) {
-                                    javafx.scene.input.KeyEvent press = new javafx.scene.input.KeyEvent(
-                                            javafx.scene.input.KeyEvent.KEY_PRESSED,
-                                            "",
-                                            "",
-                                            mapped,
-                                            false,
-                                            false,
-                                            true,
-                                            false
-                                    );
-                                    // Use KeyBindingManager via directly firing to scene; handlers will pick it up
-                                    javafx.event.Event.fireEvent(scene, press);
-                                }
-                            }
-                        }
-                    } else if (me.isShiftDown() || activeModifiers.contains(KeyCode.SHIFT)) {
-                        if (actions.shift != null && b.getText() != null && !b.getText().isBlank()) {
-                            actions.shift.run();
-                        }
+                    // Use actual mouse modifiers first; if neither modifier action is available, fall back to normal action.
+                    Runnable action = resolveButtonAction(b, actions, me.isAltDown(), me.isShiftDown());
+                    logger.debug(
+                            "Function button dispatch via mouse: button={}, text='{}', altDown={}, shiftDown={}, action={}",
+                            mapButtonToFunctionKey(b),
+                            b.getText(),
+                            me.isAltDown(),
+                            me.isShiftDown(),
+                            action == actions.alt ? "alt" : action == actions.shift ? "shift" : action == actions.normal ? "normal" : "none"
+                    );
+                    if (action != null) {
+                        action.run();
                     } else {
-                        if (actions.normal != null) {
-                            actions.normal.run();
+                        // Fallback: synthesize an ALT+Fx KeyEvent so existing key handling runs
+                        Scene scene = rootPane.getScene();
+                        if (scene != null) {
+                            KeyCode mapped = mapButtonToFunctionKey(b);
+                            if (mapped != null) {
+                                javafx.scene.input.KeyEvent press = new javafx.scene.input.KeyEvent(
+                                        javafx.scene.input.KeyEvent.KEY_PRESSED,
+                                        "",
+                                        "",
+                                        mapped,
+                                        false,
+                                        false,
+                                        true,
+                                        false
+                                );
+                                javafx.event.Event.fireEvent(scene, press);
+                            }
                         }
                     }
                     // mark that mouse handled it so onAction doesn't run the same action again
@@ -300,6 +296,17 @@ public class Commander {
                 }
             });
         }
+    }
+
+    private Runnable resolveButtonAction(Button button, ButtonActions actions, boolean altPressed, boolean shiftPressed) {
+        boolean hasVisibleLabel = button.getText() != null && !button.getText().isBlank();
+        if (altPressed && actions.alt != null && hasVisibleLabel) {
+            return actions.alt;
+        }
+        if (shiftPressed && actions.shift != null && hasVisibleLabel) {
+            return actions.shift;
+        }
+        return actions.normal;
     }
 
     private KeyCode mapButtonToFunctionKey(Button b) {
@@ -1599,31 +1606,39 @@ public class Commander {
 
     @FXML
     public void handleF5Button() {
+        logger.debug("handleF5Button invoked. alt={}, buttonText='{}'", activeModifiers.contains(KeyCode.ALT), btnF5.getText());
         if (activeModifiers.contains(KeyCode.ALT)) {
             // Only perform convert if the button shows an action (non-empty label).
             if (btnF5.getText() != null && !btnF5.getText().isBlank()) {
                 convertMediaFile();
+                return;
             }
-            return;
         }
         copyFile();
     }
 
     @FXML
     public void handleF6Button() {
+        logger.debug(
+                "handleF6Button invoked. alt={}, shift={}, f6Text='{}', dupText='{}'",
+                activeModifiers.contains(KeyCode.ALT),
+                activeModifiers.contains(KeyCode.SHIFT),
+                btnF6.getText(),
+                btnDup.getText()
+        );
         if (activeModifiers.contains(KeyCode.ALT)) {
             // Only perform duplicate if the button shows an action (non-empty label).
             if (btnDup.getText() != null && !btnDup.getText().isBlank()) {
                 duplicateFile();
+                return;
             }
-            return;
         }
-        if (activeModifiers.contains(KeyCode.SHIFT)) {
+        if (activeModifiers.contains(KeyCode.SHIFT) && !activeModifiers.contains(KeyCode.ALT)) {
             // Only perform rename if the button shows a SHIFT label (non-empty)
             if (btnF6.getText() != null && !btnF6.getText().isBlank()) {
                 renameFile();
+                return;
             }
-            return;
         }
         moveFile();
     }
@@ -1731,15 +1746,40 @@ public class Commander {
 
             String targetFolderSnapshot = filesPanesHelper.getUnfocusedPath();
             VFileSystem fs = filesPanesHelper.getFocusedFileSystem();
+            VFileSystem targetFs = filesPanesHelper.getUnfocusedFileSystem();
+            logger.debug(
+                    "Move requested: {} item(s), sourceFs={}, targetFs={}, target={}",
+                    selectedItems.size(),
+                    fs == null ? "<null>" : fs.getIdentifier(),
+                    targetFs == null ? "<null>" : targetFs.getIdentifier(),
+                    targetFolderSnapshot
+            );
+
+            if (selectedItems.size() > 1 && commands instanceof CommandsAdvancedImpl advancedCommands) {
+                CompletableFuture.runAsync(() -> {
+                    try {
+                        advancedCommands.moveBatch(selectedItems, targetFolderSnapshot);
+                    } catch (Exception e) {
+                        throw new CompletionException(e);
+                    }
+                }).thenRun(() -> Platform.runLater(() -> {
+                    filesPanesHelper.getFileList(true).getSelectionModel().selectFirst();
+                    for (FileItem selectedItem : selectedItems) {
+                        File target = new File(targetFolderSnapshot, selectedItem.getName());
+                        filesPanesHelper.selectFileItem(false, new FileItem(target));
+                    }
+                })).exceptionally(ex -> {
+                    Platform.runLater(() -> error("Failed Moving file", ex instanceof Exception ? (Exception) ex : new Exception(ex)));
+                    return null;
+                });
+                return;
+            }
 
             if (fs instanceof FtpFileSystem) {
                 CompletableFuture.runAsync(() -> {
                     try {
                         for (FileItem selectedItem : selectedItems) {
-                            String target = targetFolderSnapshot;
-                            if (selectedItem.isDirectory())
-                                target += "\\" + selectedItem.getName();
-                            commands.move(selectedItem, target);
+                            commands.move(selectedItem, targetFolderSnapshot);
                         }
                     } catch (Exception e) {
                         Platform.runLater(() -> error("Failed Moving file", e));
@@ -1749,26 +1789,19 @@ public class Commander {
                             .getSelectionModel()
                             .selectFirst();
                     for (FileItem selectedItem : selectedItems) {
-                        File target = selectedItem.isDirectory()
-                                ? new File(targetFolderSnapshot + "\\" + selectedItem.getName())
-                                : new File(targetFolderSnapshot, selectedItem.getName());
+                        File target = new File(targetFolderSnapshot, selectedItem.getName());
                         filesPanesHelper.selectFileItem(false, new FileItem(target));
                     }
                 }));
             } else {
                 for (FileItem selectedItem : selectedItems) {
-                    String targetFolder = filesPanesHelper.getUnfocusedPath();
-                    if (selectedItem.isDirectory())
-                        targetFolder += "\\" + selectedItem.getName();
-                    commands.move(selectedItem, targetFolder);
+                    commands.move(selectedItem, targetFolderSnapshot);
 
                     // taking care of the selected files
                     filesPanesHelper.getFileList(true)
                             .getSelectionModel()
                             .selectFirst();
-                    File target = selectedItem.isDirectory()
-                            ? new File(targetFolder)
-                            : new File(targetFolder, selectedItem.getName());
+                    File target = new File(targetFolderSnapshot, selectedItem.getName());
                     filesPanesHelper.selectFileItem(false, new FileItem(target));
                 }
             }

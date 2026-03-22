@@ -37,6 +37,17 @@ public class GlobalKeyHandlerImpl implements IKeyHandler {
             SelectionRule rule = SelectionRule.fromString(action.getSelection());
             if (rule.isSatisfied(commander.filesPanesHelper.getSelectedItems())) {
                 actionExecutor.execute(action);
+            } else {
+                int selectedCount = commander.filesPanesHelper.getSelectedItems() == null
+                        ? 0
+                        : commander.filesPanesHelper.getSelectedItems().size();
+                logger.info(
+                        "Shortcut matched but selection rule blocked action: id={}, shortcut={}, rule={}, selectedCount={}",
+                        action.getId(),
+                        action.getShortcut(),
+                        rule,
+                        selectedCount
+                );
             }
             return true;
         }
