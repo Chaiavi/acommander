@@ -16,7 +16,9 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletionException;
@@ -897,24 +899,38 @@ public class CommandsAdvancedImpl extends ACommands {
                 uploadRequired = true;
             }
 
+            // pdftk in this bundle is not Unicode-safe on Windows paths.
+            // Always run extraction from an ASCII temp work directory.
+            Path extractionWorkDir = Files.createTempDirectory("acommander_pdf_extract_work_");
+            Path asciiInputPdf = extractionWorkDir.resolve("input.pdf");
+            Files.copy(pdfToExtract.toPath(), asciiInputPdf, StandardCopyOption.REPLACE_EXISTING);
+
             ActionDefinition action = requireAction("extractPdfPages");
-            String outputPattern = localDestPath + "\\" + fileItem.getName().replaceFirst("\\.pdf$", "") + "_%04d.pdf";
-            
+            String outputPattern = extractionWorkDir.resolve("page_%04d.pdf").toString();
+
             List<String> command = ToolCommandBuilder.buildCommand(
                     action.getPath(),
                     action.getArgs(),
                     fileListsLoader,
                     Map.of("${outputPattern}", outputPattern),
-                    List.of(pdfToExtract.getAbsolutePath())
+                    List.of(asciiInputPdf.toString())
             );
 
             final boolean finalIsTempPdf = isTempPdf;
             final File finalPdfToExtract = pdfToExtract;
             final boolean finalUploadRequired = uploadRequired;
             final File finalTempDestDir = tempDestDir;
+            final Path finalExtractionWorkDir = extractionWorkDir;
+            final String finalOutputPrefix = fileItem.getName().replaceFirst("(?i)\\.pdf$", "");
+            final String finalLocalDestPath = localDestPath;
 
             runExecutable(command, true).thenRun(() -> {
                 try {
+                    Path effectiveDestDir = finalUploadRequired && finalTempDestDir != null
+                            ? finalTempDestDir.toPath()
+                            : Paths.get(finalLocalDestPath);
+                    materializeExtractedPdfPages(finalExtractionWorkDir, effectiveDestDir, finalOutputPrefix);
+
                     if (finalUploadRequired && finalTempDestDir != null) {
                         File[] files = finalTempDestDir.listFiles();
                         if (files != null) {
@@ -927,6 +943,7 @@ public class CommandsAdvancedImpl extends ACommands {
                     if (finalIsTempPdf) {
                         finalPdfToExtract.delete();
                     }
+                    deleteRecursive(finalExtractionWorkDir.toFile());
                     Platform.runLater(fileListsLoader::refreshFileListViews);
                 } catch (Exception e) {
                     log.error("Failed to upload/cleanup after PDF extraction", e);
@@ -935,6 +952,25 @@ public class CommandsAdvancedImpl extends ACommands {
             log.debug("PDF extraction process started from: {}", fileItem.getName());
         } catch (Exception e) {
             log.error("Failed to extract PDF pages", e);
+        }
+    }
+
+    private void materializeExtractedPdfPages(Path extractionWorkDir, Path destinationDir, String outputPrefix) throws IOException {
+        Files.createDirectories(destinationDir);
+        List<Path> generatedPages;
+        try (var stream = Files.list(extractionWorkDir)) {
+            generatedPages = stream
+                    .filter(Files::isRegularFile)
+                    .filter(path -> path.getFileName().toString().toLowerCase().endsWith(".pdf"))
+                    .sorted(Comparator.comparing(path -> path.getFileName().toString()))
+                    .toList();
+        }
+
+        int pageNumber = 1;
+        for (Path pagePath : generatedPages) {
+            String targetName = String.format("%s_%04d.pdf", outputPrefix, pageNumber++);
+            Path targetPath = destinationDir.resolve(targetName);
+            Files.move(pagePath, targetPath, StandardCopyOption.REPLACE_EXISTING);
         }
     }
 
