@@ -1740,6 +1740,7 @@ public class Commander {
             if (selectedItems.isEmpty()) {
                 return;
             }
+            int sourceSelectionIndexAfterMove = getFocusedSelectionIndexAfterRemoval();
 
             String targetFolderSnapshot = filesPanesHelper.getUnfocusedPath();
             VFileSystem fs = filesPanesHelper.getFocusedFileSystem();
@@ -1760,7 +1761,7 @@ public class Commander {
                         throw new CompletionException(e);
                     }
                 }).thenRun(() -> Platform.runLater(() -> {
-                    filesPanesHelper.getFileList(true).getSelectionModel().selectFirst();
+                    selectFocusedItemByIndex(sourceSelectionIndexAfterMove);
                     for (FileItem selectedItem : selectedItems) {
                         File target = new File(targetFolderSnapshot, selectedItem.getName());
                         filesPanesHelper.selectFileItem(false, new FileItem(target));
@@ -1782,9 +1783,7 @@ public class Commander {
                         Platform.runLater(() -> error("Failed Moving file", e));
                     }
                 }).thenRun(() -> Platform.runLater(() -> {
-                    filesPanesHelper.getFileList(true)
-                            .getSelectionModel()
-                            .selectFirst();
+                    selectFocusedItemByIndex(sourceSelectionIndexAfterMove);
                     for (FileItem selectedItem : selectedItems) {
                         File target = new File(targetFolderSnapshot, selectedItem.getName());
                         filesPanesHelper.selectFileItem(false, new FileItem(target));
@@ -1794,10 +1793,7 @@ public class Commander {
                 for (FileItem selectedItem : selectedItems) {
                     commands.move(selectedItem, targetFolderSnapshot);
 
-                    // taking care of the selected files
-                    filesPanesHelper.getFileList(true)
-                            .getSelectionModel()
-                            .selectFirst();
+                    selectFocusedItemByIndex(sourceSelectionIndexAfterMove);
                     File target = new File(targetFolderSnapshot, selectedItem.getName());
                     filesPanesHelper.selectFileItem(false, new FileItem(target));
                 }
@@ -1805,6 +1801,23 @@ public class Commander {
         } catch (Exception ex) {
             error("Failed Moving file", ex);
         }
+    }
+
+    private int getFocusedSelectionIndexAfterRemoval() {
+        ListView<FileItem> focusedList = filesPanesHelper.getFileList(true);
+        int selectedIndex = focusedList.getSelectionModel().getSelectedIndex();
+        return Math.max(selectedIndex, 0);
+    }
+
+    private void selectFocusedItemByIndex(int preferredIndex) {
+        ListView<FileItem> focusedList = filesPanesHelper.getFileList(true);
+        int size = focusedList.getItems().size();
+        if (size == 0) {
+            return;
+        }
+        int index = Math.min(Math.max(preferredIndex, 0), size - 1);
+        focusedList.getSelectionModel().clearAndSelect(index);
+        focusedList.getFocusModel().focus(index);
     }
 
     @FXML
