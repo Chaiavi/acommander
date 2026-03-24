@@ -466,7 +466,7 @@ public class FilesPanesHelper {
         Comparator<FileItem> directoriesFirst = Comparator.comparing(FileItem::isDirectory).reversed();
 
         Comparator<FileItem> byColumn = switch (state.column) {
-            case NAME -> Comparator.comparing(this::normalizedName, String.CASE_INSENSITIVE_ORDER);
+            case NAME -> this::compareByNameNatural;
             case SIZE -> Comparator.comparingLong(this::sizeForSort);
             case MODIFIED -> Comparator.comparingLong(this::modifiedForSort);
         };
@@ -475,12 +475,86 @@ public class FilesPanesHelper {
             byColumn = byColumn.reversed();
         }
 
-        Comparator<FileItem> byName = Comparator.comparing(this::normalizedName, String.CASE_INSENSITIVE_ORDER);
+        Comparator<FileItem> byName = this::compareByNameNatural;
         return directoriesFirst.thenComparing(byColumn).thenComparing(byName);
     }
 
-    private String normalizedName(FileItem item) {
-        return item.getPresentableFilename().toLowerCase(Locale.ROOT);
+    private int compareByNameNatural(FileItem left, FileItem right) {
+        return compareNaturalNames(left.getPresentableFilename(), right.getPresentableFilename());
+    }
+
+    static int compareNaturalNames(String left, String right) {
+        if (left == null || right == null) {
+            if (left == right) {
+                return 0;
+            }
+            return left == null ? -1 : 1;
+        }
+
+        int leftIndex = 0;
+        int rightIndex = 0;
+
+        while (leftIndex < left.length() && rightIndex < right.length()) {
+            char leftChar = left.charAt(leftIndex);
+            char rightChar = right.charAt(rightIndex);
+
+            if (Character.isDigit(leftChar) && Character.isDigit(rightChar)) {
+                int leftDigitsStart = leftIndex;
+                int rightDigitsStart = rightIndex;
+
+                while (leftIndex < left.length() && Character.isDigit(left.charAt(leftIndex))) {
+                    leftIndex++;
+                }
+                while (rightIndex < right.length() && Character.isDigit(right.charAt(rightIndex))) {
+                    rightIndex++;
+                }
+
+                int leftNonZero = leftDigitsStart;
+                while (leftNonZero < leftIndex && left.charAt(leftNonZero) == '0') {
+                    leftNonZero++;
+                }
+                int rightNonZero = rightDigitsStart;
+                while (rightNonZero < rightIndex && right.charAt(rightNonZero) == '0') {
+                    rightNonZero++;
+                }
+
+                int leftSignificantLength = leftIndex - leftNonZero;
+                int rightSignificantLength = rightIndex - rightNonZero;
+                if (leftSignificantLength != rightSignificantLength) {
+                    return Integer.compare(leftSignificantLength, rightSignificantLength);
+                }
+
+                for (int i = 0; i < leftSignificantLength; i++) {
+                    char leftDigit = left.charAt(leftNonZero + i);
+                    char rightDigit = right.charAt(rightNonZero + i);
+                    if (leftDigit != rightDigit) {
+                        return Character.compare(leftDigit, rightDigit);
+                    }
+                }
+
+                int leftRunLength = leftIndex - leftDigitsStart;
+                int rightRunLength = rightIndex - rightDigitsStart;
+                if (leftRunLength != rightRunLength) {
+                    return Integer.compare(leftRunLength, rightRunLength);
+                }
+                continue;
+            }
+
+            char leftLower = Character.toLowerCase(leftChar);
+            char rightLower = Character.toLowerCase(rightChar);
+            if (leftLower != rightLower) {
+                return Character.compare(leftLower, rightLower);
+            }
+
+            leftIndex++;
+            rightIndex++;
+        }
+
+        int lengthCompare = Integer.compare(left.length(), right.length());
+        if (lengthCompare != 0) {
+            return lengthCompare;
+        }
+        return left.compareTo(right);
     }
 
     private long sizeForSort(FileItem item) {
