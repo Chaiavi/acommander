@@ -26,6 +26,7 @@ import java.util.concurrent.Executors;
  * Dialog for viewing and editing image metadata using exiv2.
  * Features an editable tree table for direct metadata modification.
  */
+@SuppressWarnings({"unchecked", "deprecation"})
 public class ImageMetadataDialog {
     private static final Logger logger = LoggerFactory.getLogger(ImageMetadataDialog.class);
     private static final String EXIV2_PATH = "apps/image_metadata/exiv2.exe";
@@ -33,6 +34,7 @@ public class ImageMetadataDialog {
     private final Window owner;
     private final File imageFile;
     private final Commander commander;
+    @SuppressWarnings("unchecked")
     private final ExecutorService executor = Executors.newCachedThreadPool();
 
     private TreeTableView<MetadataEntry> metadataTreeTable;

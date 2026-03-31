@@ -6,7 +6,12 @@
       "type": "external",
       "path": "apps/multi_rename/Renamer.exe",
       "args": ["-af", "${selectedFilesJoined}"],
-      "refreshAfter": true
+      "refreshAfter": true,
+      "contexts": [
+        "filePane",
+        "commandPalette"
+      ],
+      "selection": "multi"
     },
     {
       "id": "unlockDelete",
@@ -47,7 +52,7 @@
       "shortcut": "F2",
       "aliases": ["mvname"],
       "contexts": ["filePane", "commandPalette"],
-      "selection": "single",
+      "selection": "any",
       "type": "builtin"
     },
     {
