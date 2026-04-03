@@ -3369,8 +3369,26 @@ public class Commander {
                     ? firstFilename.substring(0, firstFilename.lastIndexOf('.')) + ".pdf"
                     : firstFilename + ".pdf";
             Optional<String> result = getUserFeedback(zipFilename, "Merge PDF Files", "PDF filename");
+            logger.debug("getUserFeedback result present: {}", result.isPresent());
             if (result.isPresent()) {
-                FileItem mergedFile = new FileItem(new File(filesPanesHelper.getUnfocusedPath() + "\\" + result.get()));
+                String filename = result.get();
+                logger.debug("Raw filename from user: '{}'", filename);
+                // Ensure the filename has .pdf extension
+                if (filename == null || filename.isBlank()) {
+                    logger.warn("Filename is null or blank, using default 'merged.pdf'");
+                    filename = "merged.pdf";
+                } else if (!filename.toLowerCase().endsWith(".pdf")) {
+                    filename = filename + ".pdf";
+                    logger.debug("Added .pdf extension, filename is now: '{}'", filename);
+                } else {
+                    logger.debug("Filename already has .pdf extension: '{}'", filename);
+                }
+                // Use safe File constructor to handle path separators correctly
+                String parentDir = filesPanesHelper.getUnfocusedPath();
+                FileItem mergedFile = new FileItem(new File(parentDir, filename));
+                logger.debug("Parent dir: '{}'", parentDir);
+                logger.debug("Filename: '{}'", filename);
+                logger.debug("Merged file full path: {}", mergedFile.getFullPath());
                 commands.mergePDFs(selectedItems, mergedFile.getFullPath());
                 filesPanesHelper.selectFileItem(false, mergedFile);
             } else

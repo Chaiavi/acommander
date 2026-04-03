@@ -98,6 +98,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - Tests use JUnit 5, AssertJ, and Mockito
 - Focus on testing business logic, not UI components
 - Test helpers like `FileAttributesHelperTest` validate utility functions
+- **After every bug fix or new feature implementation:**
+    1. Build the project using `.\gradlew.bat build` to ensure there are no compilation errors
+    2. Run all tests using `.\gradlew.bat test` to verify nothing is broken
+    3. Consider adding unit tests that specifically test the fix or feature
+    4. When adding new tests, follow unit test conventions and test intent rather than implementation details
 
 ## Configuration Files
 

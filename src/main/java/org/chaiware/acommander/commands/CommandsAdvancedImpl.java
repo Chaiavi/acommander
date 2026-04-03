@@ -802,34 +802,40 @@ public class CommandsAdvancedImpl extends ACommands {
             VFileSystem sourceFs = fileListsLoader.getFocusedFileSystem();
             VFileSystem targetFs = fileListsLoader.getUnfocusedFileSystem();
 
-            List<File> tempFiles = new ArrayList<>();
-            List<String> localPathsToMerge = new ArrayList<>();
+            // pdftk in this bundle is not Unicode-safe on Windows paths.
+            // Always run merge from an ASCII temp work directory.
+            Path asciiWorkDir = Files.createTempDirectory("acommander_pdf_merge_work_");
+            List<Path> asciiInputPdfs = new ArrayList<>();
+            List<File> tempFilesToCleanup = new ArrayList<>();
 
-            // 1. Prepare source files
-            for (FileItem item : validItems) {
+            // 1. Prepare source files - copy to ASCII work directory with simple names
+            for (int i = 0; i < validItems.size(); i++) {
+                FileItem item = validItems.get(i);
+                log.debug("Processing PDF item {}: {}", i, item.getName());
+
+                File sourcePdf;
                 if (sourceFs instanceof LocalFileSystem) {
-                    localPathsToMerge.add(item.getFullPath());
+                    sourcePdf = item.getFile();
                 } else {
-                    File tempFile = File.createTempFile("acommander_pdf_merge_", "_" + item.getName());
-                    tempFile.deleteOnExit();
-                    tempFiles.add(tempFile);
-                    sourceFs.copy(sourceFs.getInternalPath(item), new LocalFileSystem(""), tempFile.getAbsolutePath());
-                    localPathsToMerge.add(tempFile.getAbsolutePath());
+                    sourcePdf = File.createTempFile("acommander_pdf_merge_src_", "_" + item.getName());
+                    sourcePdf.deleteOnExit();
+                    tempFilesToCleanup.add(sourcePdf);
+                    sourceFs.copy(sourceFs.getInternalPath(item), new LocalFileSystem(""), sourcePdf.getAbsolutePath());
                 }
+
+                // Copy to ASCII work directory with simple name (like extractPDFPages does)
+                Path asciiPdf = asciiWorkDir.resolve("input_" + i + ".pdf");
+                Files.copy(sourcePdf.toPath(), asciiPdf, StandardCopyOption.REPLACE_EXISTING);
+                asciiInputPdfs.add(asciiPdf);
             }
 
-            // 2. Prepare target PDF
-            String localPdfPath;
-            boolean uploadRequired = false;
-            if (targetFs instanceof LocalFileSystem) {
-                localPdfPath = newPdfFilenameWithPath;
-            } else {
-                File tempPdf = File.createTempFile("acommander_pdf_merge_target_", "_" + new File(newPdfFilenameWithPath).getName());
-                tempPdf.delete();
-                tempPdf.deleteOnExit();
-                tempFiles.add(tempPdf);
-                localPdfPath = tempPdf.getAbsolutePath();
-                uploadRequired = true;
+            // 2. Prepare target PDF in ASCII work directory
+            Path asciiOutputPdf = asciiWorkDir.resolve("output.pdf");
+            String finalOutputPath = newPdfFilenameWithPath;
+
+            // Ensure the target PDF path has .pdf extension
+            if (!finalOutputPath.toLowerCase().endsWith(".pdf")) {
+                finalOutputPath = finalOutputPath + ".pdf";
             }
 
             ActionDefinition action = requireAction("mergePdf");
@@ -837,29 +843,52 @@ public class CommandsAdvancedImpl extends ACommands {
                     action.getPath(),
                     action.getArgs(),
                     fileListsLoader,
-                    Map.of("${outputPdf}", localPdfPath),
-                    localPathsToMerge
+                    Map.of("${outputPdf}", asciiOutputPdf.toString()),
+                    asciiInputPdfs.stream().map(Path::toString).collect(Collectors.toList())
             );
 
-            final boolean finalUploadRequired = uploadRequired;
-            final String finalLocalPdfPath = localPdfPath;
+            final boolean finalUploadRequired = !(targetFs instanceof LocalFileSystem);
+            final String finalLocalPdfPath = finalOutputPath;
 
-            runExecutable(command, true).thenRun(() -> {
-                try {
-                    if (finalUploadRequired) {
-                        targetFs.copy(finalLocalPdfPath, targetFs, targetFs.getInternalPath(new FileItem(new File(newPdfFilenameWithPath))));
-                    }
-                    for (File f : tempFiles) {
-                        f.delete();
-                    }
-                    Platform.runLater(fileListsLoader::refreshFileListViews);
-                } catch (IOException e) {
-                    log.error("Failed to upload/cleanup after PDF merge", e);
-                }
-            });
+            runExecutable(command, true)
+                    .thenRun(() -> {
+                        try {
+                            // Copy result from ASCII work directory to final destination
+                            Files.copy(asciiOutputPdf, Paths.get(finalLocalPdfPath), StandardCopyOption.REPLACE_EXISTING);
+
+                            if (finalUploadRequired) {
+                                targetFs.copy(finalLocalPdfPath, targetFs, targetFs.getInternalPath(new FileItem(new File(finalLocalPdfPath))));
+                            }
+
+                            Platform.runLater(fileListsLoader::refreshFileListViews);
+                        } catch (IOException e) {
+                            log.error("Failed to upload/cleanup after PDF merge", e);
+                        }
+                    })
+                    .whenComplete((ignored, throwable) -> cleanupMergeTempFiles(asciiWorkDir, tempFilesToCleanup));
             log.debug("PDF Merge process started: {}", newPdfFilenameWithPath);
         } catch (Exception e) {
             log.error("Failed to merge PDFs", e);
+        }
+    }
+
+    private void cleanupMergeTempFiles(Path asciiWorkDir, List<File> tempFilesToCleanup) {
+        if (asciiWorkDir != null) {
+            try {
+                Files.walk(asciiWorkDir)
+                        .sorted(Comparator.reverseOrder())
+                        .map(Path::toFile)
+                        .forEach(File::delete);
+            } catch (IOException e) {
+                log.debug("Failed to cleanup PDF merge work directory", e);
+            }
+        }
+        if (tempFilesToCleanup != null) {
+            for (File tempFile : tempFilesToCleanup) {
+                if (tempFile != null) {
+                    tempFile.delete();
+                }
+            }
         }
     }
 
