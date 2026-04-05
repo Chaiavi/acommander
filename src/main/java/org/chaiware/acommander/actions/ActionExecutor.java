@@ -186,6 +186,7 @@ public class ActionExecutor {
             case "removeBookmark" -> commander.removeBookmark();
             case "ftpConnect" -> commander.ftpConnect();
             case "ftpDisconnect" -> commander.ftpDisconnect();
+            case "openHostsFile" -> commander.openHostsFile();
             case "selectAll" -> commander.selectAll();
             case "unselectAll" -> commander.unselectAll();
             case "invertSelection" -> commander.invertSelection();

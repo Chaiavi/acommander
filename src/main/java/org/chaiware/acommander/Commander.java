@@ -23,6 +23,7 @@ import org.chaiware.acommander.actions.ActionContext;
 import org.chaiware.acommander.actions.ActionExecutor;
 import org.chaiware.acommander.actions.ActionRegistry;
 import org.chaiware.acommander.commands.*;
+import org.chaiware.acommander.config.ActionDefinition;
 import org.chaiware.acommander.config.AppConfigLoader;
 import org.chaiware.acommander.config.AppRegistry;
 import org.chaiware.acommander.helpers.*;
@@ -4829,6 +4830,45 @@ public class Commander {
                 logger.error("Failed to disconnect and switch to local file system", e);
                 showError("Disconnect Error", "Could not switch back to local file system: " + e.getMessage());
             }
+        }
+    }
+
+    public void openHostsFile() {
+        logger.info("Open hosts file");
+
+        List<String> hostsPaths = List.of(
+                "C:\\Windows\\System32\\drivers\\etc\\hosts",
+                "C:\\WINNT\\System32\\drivers\\etc\\hosts",
+                "C:\\WINDOWS\\System32\\drivers\\etc\\hosts"
+        );
+
+        String hostsPath = null;
+        for (String path : hostsPaths) {
+            File f = new File(path);
+            if (f.exists() && f.isFile()) {
+                hostsPath = path;
+                break;
+            }
+        }
+
+        if (hostsPath == null) {
+            showError("Hosts File Not Found", "Could not find the hosts file in any of the following locations:\n\n" + String.join("\n", hostsPaths));
+            return;
+        }
+
+        try {
+            ActionDefinition editAction = appRegistry.findAction("edit")
+                    .orElseThrow(() -> new IllegalStateException("Missing action config: edit"));
+            String editorPath = editAction.getPath();
+            String args = editAction.getArgs().stream().reduce((a, b) -> a + " " + b).orElse("");
+            args = args.replace("${selectedFile}", hostsPath);
+
+            ProcessBuilder pb = new ProcessBuilder("powershell", "-NoProfile", "-Command",
+                    "Start-Process -FilePath '" + editorPath + "' -ArgumentList '" + args + "' -Verb RunAs");
+            pb.start();
+        } catch (Exception e) {
+            logger.error("Failed to open hosts file", e);
+            showError("Error", "Failed to open hosts file: " + e.getMessage());
         }
     }
 

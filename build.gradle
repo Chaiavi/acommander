@@ -173,3 +173,9 @@ tasks.named('startScripts') {
 tasks.named('test') {
     useJUnitPlatform()
 }
+
+// IntelliJ injects temporary debugger init scripts (ijJvmDebugger*.gradle) for Gradle `run`.
+// Those scripts can conflict with Gradle configuration-cache deserialization across runs.
+tasks.named('run') {
+    notCompatibleWithConfigurationCache('Avoid IntelliJ debugger init-script classloader cache mismatch')
+}
