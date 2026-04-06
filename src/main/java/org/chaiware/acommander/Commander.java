@@ -1909,6 +1909,7 @@ public class Commander {
             if (selectedItems.isEmpty()) {
                 return;
             }
+            int selectionIndexBeforeDelete = filesPanesHelper.getFileList(true).getSelectionModel().getSelectedIndex();
             
             VFileSystem fs = filesPanesHelper.getFocusedFileSystem();
             if (fs instanceof FtpFileSystem) {
@@ -1919,11 +1920,11 @@ public class Commander {
                         Platform.runLater(() -> error("Failed to delete", e));
                     }
                 }).thenRun(() -> Platform.runLater(() -> {
-                    filesPanesHelper.getFileList(true).getSelectionModel().selectFirst();
+                    selectItemAboveDeleted(selectionIndexBeforeDelete);
                 }));
             } else {
                 commands.delete(selectedItems);
-                filesPanesHelper.getFileList(true).getSelectionModel().selectFirst();
+                selectItemAboveDeleted(selectionIndexBeforeDelete);
             }
         } catch (Exception ex) {
             error("Failed to delete", ex);
@@ -1937,6 +1938,7 @@ public class Commander {
             if (selectedItems.isEmpty()) {
                 return;
             }
+            int selectionIndexBeforeDelete = filesPanesHelper.getFileList(true).getSelectionModel().getSelectedIndex();
 
             VFileSystem fs = filesPanesHelper.getFocusedFileSystem();
             if (fs instanceof FtpFileSystem) {
@@ -1947,15 +1949,27 @@ public class Commander {
                         Platform.runLater(() -> error("Failed to delete", e));
                     }
                 }).thenRun(() -> Platform.runLater(() -> {
-                    filesPanesHelper.getFileList(true).getSelectionModel().selectFirst();
+                    selectItemAboveDeleted(selectionIndexBeforeDelete);
                 }));
             } else {
                 commands.wipeDelete(selectedItems);
-                filesPanesHelper.getFileList(true).getSelectionModel().selectFirst();
+                selectItemAboveDeleted(selectionIndexBeforeDelete);
             }
         } catch (Exception ex) {
             error("Failed to delete", ex);
         }
+    }
+
+    private void selectItemAboveDeleted(int previousSelectionIndex) {
+        ListView<FileItem> focusedList = filesPanesHelper.getFileList(true);
+        if (focusedList.getItems().isEmpty()) {
+            return;
+        }
+        int targetIndex = Math.max(0, previousSelectionIndex - 1);
+        int boundedIndex = Math.min(targetIndex, focusedList.getItems().size() - 1);
+        focusedList.getSelectionModel().clearAndSelect(boundedIndex);
+        focusedList.getFocusModel().focus(boundedIndex);
+        focusedList.scrollTo(boundedIndex);
     }
 
     @FXML
