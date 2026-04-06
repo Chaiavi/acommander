@@ -16,6 +16,7 @@ import javafx.scene.input.ClipboardContent;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.*;
+import javafx.stage.Modality;
 import javafx.stage.Popup;
 import javafx.stage.Window;
 import javafx.util.Duration;
@@ -112,6 +113,7 @@ public class Commander {
     private final Map<String, FtpConnectionOptions> ftpConnections = new LinkedHashMap<>();
 
     private static final Logger logger = LoggerFactory.getLogger(Commander.class);
+    private static final String APP_VERSION = "4.0";
     public FilesPanesHelper filesPanesHelper;
     private final FileAttributesHelper attributesHelper = new FileAttributesHelper();
     private ThemeMode currentThemeMode = ThemeMode.REGULAR;
@@ -6739,6 +6741,171 @@ public class Commander {
      */
     public void markArchiveModified() {
         filesPanesHelper.markArchiveNeedsRepack(filesPanesHelper.getFocusedSide());
+    }
+
+    public void reportBug() {
+        logger.info("Opening bug report dialog");
+
+        Dialog<BugReportData> dialog = new Dialog<>();
+        dialog.setTitle("Report Bug / Contact");
+        dialog.initOwner(rootPane.getScene().getWindow());
+        dialog.initModality(Modality.WINDOW_MODAL);
+
+        dialog.getDialogPane().getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
+
+        applyThemeToDialog(dialog);
+
+        Label typeLabel = new Label("Type:");
+        ComboBox<String> typeCombo = new ComboBox<>();
+        typeCombo.getItems().addAll("Bug Report", "Feature Request", "Question", "Other");
+        typeCombo.setValue("Bug Report");
+
+        Label titleLabel = new Label("Title:");
+        TextField titleField = new TextField();
+        titleField.setPromptText("Brief description of the issue");
+
+        Label stepsLabel = new Label("Steps to reproduce:");
+        TextArea stepsArea = new TextArea();
+        stepsArea.setPromptText("1.\n2.\n3.");
+        stepsArea.setPrefRowCount(4);
+
+        Label expectedLabel = new Label("Expected behavior:");
+        TextArea expectedArea = new TextArea();
+        expectedArea.setPromptText("What should happen...");
+        expectedArea.setPrefRowCount(2);
+
+        Label actualLabel = new Label("Actual behavior:");
+        TextArea actualArea = new TextArea();
+        actualArea.setPromptText("What actually happens...");
+        actualArea.setPrefRowCount(2);
+
+        Label versionLabel = new Label("App version:");
+        Label versionValue = new Label(APP_VERSION);
+        versionValue.setStyle("-fx-font-weight: bold;");
+
+        GridPane grid = new GridPane();
+        grid.setHgap(10);
+        grid.setVgap(8);
+        grid.setPadding(new Insets(15));
+
+        int row = 0;
+        grid.add(typeLabel, 0, row);
+        grid.add(typeCombo, 1, row);
+        row++;
+        grid.add(titleLabel, 0, row);
+        grid.add(titleField, 1, row);
+        GridPane.setHgrow(titleField, Priority.ALWAYS);
+        row++;
+        grid.add(stepsLabel, 0, row);
+        grid.add(stepsArea, 1, row);
+        GridPane.setVgrow(stepsArea, Priority.ALWAYS);
+        row++;
+        grid.add(expectedLabel, 0, row);
+        grid.add(expectedArea, 1, row);
+        row++;
+        grid.add(actualLabel, 0, row);
+        grid.add(actualArea, 1, row);
+        row++;
+        grid.add(versionLabel, 0, row);
+        grid.add(versionValue, 1, row);
+
+        dialog.getDialogPane().setContent(grid);
+        dialog.getDialogPane().setPrefSize(600, 500);
+
+        Button submitButton = (Button) dialog.getDialogPane().lookupButton(ButtonType.OK);
+        submitButton.setText("Submit");
+
+        dialog.setResultConverter(buttonType -> {
+            if (buttonType == ButtonType.OK) {
+                String type = typeCombo.getValue();
+                String title = titleField.getText();
+                String steps = stepsArea.getText();
+                String expected = expectedArea.getText();
+                String actual = actualArea.getText();
+                return new BugReportData(type, title, steps, expected, actual, APP_VERSION);
+            }
+            return null;
+        });
+
+        Optional<BugReportData> result = dialog.showAndWait();
+        if (result.isPresent()) {
+            BugReportData data = result.get();
+            submitBugReport(data);
+        }
+    }
+
+    private record BugReportData(String type, String title, String steps, String expected, String actual,
+                                 String version) {
+    }
+
+    private void submitBugReport(BugReportData data) {
+        String typePrefix = switch (data.type()) {
+            case "Feature Request" -> "Feature: ";
+            case "Question" -> "Question: ";
+            case "Other" -> "Other: ";
+            default -> "Bug: ";
+        };
+
+        String bodyText = "Steps to reproduce:\n" + safeText(data.steps())
+                + "\n\nExpected:\n" + safeText(data.expected())
+                + "\n\nActual:\n" + safeText(data.actual())
+                + "\n\nApp version: " + safeText(data.version());
+
+        String url = "https://github.com/Chaiavi/acommander/issues/new?title="
+                + encodeUrl(typePrefix + safeText(data.title())) + "&body=" + encodeUrl(bodyText);
+
+        logger.info("Opening bug report URL: {}", url);
+
+        String curlPath = Paths.get(System.getProperty("user.dir"), "apps", "remote_connectivity", "curl.exe").toString();
+        List<String> command = List.of(
+                curlPath,
+                "-s",
+                "-o", "NUL",
+                "-w", "%{http_code}",
+                "-L",
+                url
+        );
+
+        runExternal(command, false)
+                .thenRun(() -> Platform.runLater(() -> {
+                    try {
+                        getDesktop().browse(java.net.URI.create(url));
+                    } catch (Exception browseEx) {
+                        logger.warn("Failed opening bug report URL in browser: {}", url, browseEx);
+                        showError("Report Bug", "Could not open the browser automatically.\nCopy and open this URL:\n" + url);
+                        return;
+                    }
+
+                    Alert successAlert = new Alert(Alert.AlertType.INFORMATION);
+                    successAlert.setTitle("Report Submitted");
+                    successAlert.setHeaderText(null);
+                    successAlert.setContentText("Thank you for your feedback! The issue form has been opened in your browser.");
+                    successAlert.getButtonTypes().setAll(ButtonType.OK);
+                    applyThemeToDialog(successAlert);
+                    successAlert.showAndWait();
+                }))
+                .exceptionally(throwable -> {
+                    Platform.runLater(() -> showError("Report Bug", "Failed to validate the GitHub issue URL: " + throwable.getMessage()));
+                    return null;
+                });
+    }
+
+    private String safeText(String text) {
+        return text == null ? "" : text;
+    }
+
+    private String encodeUrl(String text) {
+        if (text == null || text.isEmpty()) {
+            return "";
+        }
+        try {
+            return java.net.URLEncoder.encode(text, java.nio.charset.StandardCharsets.UTF_8.name())
+                    .replace("+", "%20");
+        } catch (java.io.UnsupportedEncodingException e) {
+            return text.replace(" ", "%20")
+                    .replace("\n", "%0A")
+                    .replace("\r", "%0D");
+        }
     }
 
     private void applyTheme(Scene scene, ThemeMode themeMode, boolean persist) {

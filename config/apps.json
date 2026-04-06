@@ -614,6 +614,25 @@
       ],
       "selection": "none",
       "type": "builtin"
+    },
+    {
+      "id": "reportBug",
+      "label": "Report Bug / Contact",
+      "aliases": [
+        "bug",
+        "issue",
+        "contact",
+        "feedback",
+        "support",
+        "question",
+        "ask"
+      ],
+      "contexts": [
+        "global",
+        "commandPalette"
+      ],
+      "selection": "none",
+      "type": "builtin"
     }
   ]
 }

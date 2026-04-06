@@ -61,7 +61,7 @@ public class ActionExecutor {
                  "gotoBookmark", "removeBookmark", "ftpConnect", "ftpDisconnect",
                  "selectAll", "unselectAll", "invertSelection", "selectByPattern",
                  "copySelection", "cutSelection", "pasteSelection",
-                 "editImageMetadata" -> true;
+                 "editImageMetadata", "reportBug" -> true;
             default -> false;
         };
     }
@@ -194,6 +194,7 @@ public class ActionExecutor {
             case "copySelection" -> commander.copySelectionToClipboard();
             case "cutSelection" -> commander.cutSelectionToClipboard();
             case "pasteSelection" -> commander.pasteClipboardSelection();
+            case "reportBug" -> commander.reportBug();
             default -> logger.warn("Unknown builtin action id: {}", builtin);
         }
     }
