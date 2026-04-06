@@ -5302,6 +5302,18 @@ public class Commander {
         dialog.setTitle(title);
         dialog.setContentText(question);
         dialog.getEditor().setPrefWidth(300);
+        dialog.getEditor().addEventFilter(KeyEvent.KEY_PRESSED, event -> {
+            if (event.isAltDown() || event.isControlDown() || event.isMetaDown() || event.isShiftDown()) {
+                return;
+            }
+            if (event.getCode() == KeyCode.LEFT) {
+                dialog.getEditor().backward();
+                event.consume();
+            } else if (event.getCode() == KeyCode.RIGHT) {
+                dialog.getEditor().forward();
+                event.consume();
+            }
+        });
         applyThemeToDialog(dialog);
 
         return dialog.showAndWait();
