@@ -1368,7 +1368,12 @@ public class Commander {
                 return;
             if (selectedItems.size() == 1) {
                 FileItem selectedItem = selectedItems.getFirst();
-                Optional<String> result = getUserFeedback(selectedItem.getName(), "File Rename", "New name");
+                Optional<String> result = getUserFeedback(
+                        selectedItem.getName(),
+                        "File Rename",
+                        "New name",
+                        getRenameSelectionEnd(selectedItem)
+                );
                 if (result.isPresent()) { // if user dismisses the dialog it won't rename...
                     String newName = result.get();
                     
@@ -5501,6 +5506,10 @@ public class Commander {
 
     /** Opens a dialog with the title asking the requested question returning the optional user's input */
     private Optional<String> getUserFeedback(String defaultValue, String title, String question) {
+        return getUserFeedback(defaultValue, title, question, defaultValue == null ? 0 : defaultValue.length());
+    }
+
+    private Optional<String> getUserFeedback(String defaultValue, String title, String question, int selectionEndExclusive) {
         TextInputDialog dialog = new TextInputDialog(defaultValue);
         dialog.setHeaderText("");
         dialog.setTitle(title);
@@ -5518,9 +5527,35 @@ public class Commander {
                 event.consume();
             }
         });
+        dialog.setOnShown(event -> {
+            Platform.runLater(() -> {
+                TextField editor = dialog.getEditor();
+                String text = editor.getText();
+                int textLength = text == null ? 0 : text.length();
+                int selectionEnd = Math.max(0, Math.min(selectionEndExclusive, textLength));
+                editor.requestFocus();
+                editor.selectRange(0, selectionEnd);
+            });
+        });
         applyThemeToDialog(dialog);
 
         return dialog.showAndWait();
+    }
+
+    private int getRenameSelectionEnd(FileItem selectedItem) {
+        if (selectedItem == null) {
+            return 0;
+        }
+        String name = selectedItem.getName();
+        if (name == null || name.isEmpty() || selectedItem.isDirectory()) {
+            return name == null ? 0 : name.length();
+        }
+
+        int lastDot = name.lastIndexOf('.');
+        if (lastDot <= 0 || lastDot == name.length() - 1) {
+            return name.length();
+        }
+        return lastDot;
     }
 
     private void requestFocusedFileListFocus() {
