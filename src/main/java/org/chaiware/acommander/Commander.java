@@ -1076,7 +1076,7 @@ public class Commander {
                 } else {
                     // Go up one level in FTP
                     String parentPath = ftpFs.getParent(currentPath);
-                    filesPanesHelper.setFileListPath(focusedSide, parentPath);
+                    filesPanesHelper.setFileListPath(focusedSide, parentPath, leafName(currentPath));
                 }
             } else if (selectedItem.isDirectory()) {
                 filesPanesHelper.setFileListPath(focusedSide, ftpFs.getInternalPath(selectedItem));
@@ -1087,8 +1087,9 @@ public class Commander {
         if ("..".equals(selectedItem.getPresentableFilename())) {
             String currentPath = filesPanesHelper.getFocusedPath();
             File parent = new File(currentPath).getParentFile();
-            if (parent != null)
-                filesPanesHelper.setFocusedFileListPath(parent.getAbsolutePath());
+            if (parent != null) {
+                filesPanesHelper.setFocusedFileListPathAndSelect(parent.getAbsolutePath(), new File(currentPath).getName());
+            }
         } else if (selectedItem.isDirectory()) {
             filesPanesHelper.setFocusedFileListPath(selectedItem.getFullPath());
         } else {
@@ -1260,7 +1261,7 @@ public class Commander {
                 File archiveFile = new File(archivePath);
                 File parentFolder = archiveFile.getParentFile();
                 if (parentFolder != null) {
-                    filesPanesHelper.setFileListPath(focusedSide, parentFolder.getAbsolutePath());
+                    filesPanesHelper.setFileListPath(focusedSide, parentFolder.getAbsolutePath(), archiveFile.getName());
                     logger.info("Exited archive, showing parent folder: {}", parentFolder.getAbsolutePath());
                 }
             });
@@ -1281,6 +1282,18 @@ public class Commander {
             return filename.substring(lastDot + 1).toLowerCase(Locale.ROOT);
         }
         return "";
+    }
+
+    private String leafName(String path) {
+        if (path == null || path.isBlank()) {
+            return null;
+        }
+        String normalized = path;
+        while (normalized.length() > 1 && (normalized.endsWith("/") || normalized.endsWith("\\"))) {
+            normalized = normalized.substring(0, normalized.length() - 1);
+        }
+        int slash = Math.max(normalized.lastIndexOf('/'), normalized.lastIndexOf('\\'));
+        return slash < 0 ? normalized : normalized.substring(slash + 1);
     }
 
     @FXML

@@ -139,8 +139,12 @@ public class FilesPanesHelper {
 
     /** Sets the current file list's path */
     public void setFileListPath(FocusSide focusSide, String path) {
+        setFileListPath(focusSide, path, null);
+    }
+
+    public void setFileListPath(FocusSide focusSide, String path, String preferredSelectionName) {
         if (!Platform.isFxApplicationThread()) {
-            Platform.runLater(() -> setFileListPath(focusSide, path));
+            Platform.runLater(() -> setFileListPath(focusSide, path, preferredSelectionName));
             return;
         }
         currentInternalPaths.put(focusSide, path);
@@ -171,7 +175,9 @@ public class FilesPanesHelper {
             }
         }
 
-        ensureFirstEntrySelected(focusSide);
+        if (!selectItemByPresentableFilename(focusSide, preferredSelectionName)) {
+            ensureFirstEntrySelected(focusSide);
+        }
     }
     
     /**
@@ -267,7 +273,7 @@ public class FilesPanesHelper {
             File archiveFile = new File(archivePath);
             File parentFolder = archiveFile.getParentFile();
             if (parentFolder != null) {
-                setFileListPath(focusSide, parentFolder.getAbsolutePath());
+                setFileListPath(focusSide, parentFolder.getAbsolutePath(), archiveFile.getName());
             }
             return;
         }
@@ -281,9 +287,10 @@ public class FilesPanesHelper {
             File archiveFile = new File(archivePath);
             File parentFolder = archiveFile.getParentFile();
             if (parentFolder != null) {
-                setFileListPath(focusSide, parentFolder.getAbsolutePath());
+                setFileListPath(focusSide, parentFolder.getAbsolutePath(), archiveFile.getName());
             }
         } else {
+            String childDirName = leafName(currentSession.getEntryPath());
             ArchiveFileSystem parentFs = new ArchiveFileSystem(parentSession, vfsManager.getArchiveManager());
             fileSystems.put(focusSide, parentFs);
             currentInternalPaths.put(focusSide, parentSession.getEntryPath());
@@ -293,7 +300,9 @@ public class FilesPanesHelper {
                 pathComboBox.setValue(new ArchiveFolder(parentFs.getDisplayName()));
 
                 refreshFileListView(focusSide);
-                ensureFirstEntrySelected(focusSide);
+                if (!selectItemByPresentableFilename(focusSide, childDirName)) {
+                    ensureFirstEntrySelected(focusSide);
+                }
             });
         }
 
@@ -338,6 +347,10 @@ public class FilesPanesHelper {
 
     public void setFocusedFileListPath(String path) {
         setFileListPath(focusedSide, path);
+    }
+
+    public void setFocusedFileListPathAndSelect(String path, String preferredSelectionName) {
+        setFileListPath(focusedSide, path, preferredSelectionName);
     }
 
     public ListView<FileItem> getFileList(boolean isFocused) {
@@ -570,6 +583,40 @@ public class FilesPanesHelper {
 
     private boolean isParentFolder(FileItem item) {
         return "..".equals(item.getPresentableFilename());
+    }
+
+    private boolean selectItemByPresentableFilename(FocusSide focusSide, String filename) {
+        if (filename == null || filename.isBlank()) {
+            return false;
+        }
+        ListView<FileItem> listView = filePanes.get(focusSide).getFileListView();
+        ObservableList<FileItem> items = listView.getItems();
+        for (int i = 0; i < items.size(); i++) {
+            FileItem item = items.get(i);
+            if (filename.equals(item.getPresentableFilename())) {
+                listView.getSelectionModel().clearSelection();
+                listView.getSelectionModel().select(i);
+                listView.getFocusModel().focus(i);
+                listView.scrollTo(i);
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private String leafName(String path) {
+        if (path == null || path.isBlank()) {
+            return null;
+        }
+        String normalized = path;
+        while (normalized.endsWith("/") || normalized.endsWith("\\")) {
+            normalized = normalized.substring(0, normalized.length() - 1);
+        }
+        if (normalized.isBlank()) {
+            return null;
+        }
+        int lastSlash = Math.max(normalized.lastIndexOf('/'), normalized.lastIndexOf('\\'));
+        return lastSlash < 0 ? normalized : normalized.substring(lastSlash + 1);
     }
 
     public String getFocusedPath() {

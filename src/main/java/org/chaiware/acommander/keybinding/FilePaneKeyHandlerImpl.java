@@ -102,7 +102,7 @@ public class FilePaneKeyHandlerImpl implements IKeyHandler {
             } else {
                 // Not at root, go up one level in FTP
                 String parentPath = ftpFs.getParent(currentPath);
-                commander.filesPanesHelper.setFileListPath(side, parentPath);
+                commander.filesPanesHelper.setFileListPath(side, parentPath, leafName(currentPath));
             }
             return;
         }
@@ -113,10 +113,24 @@ public class FilePaneKeyHandlerImpl implements IKeyHandler {
             commander.filesPanesHelper.goUpInArchive(side);
         } else {
             // Regular folder navigation
-            File parent = new File(commander.filesPanesHelper.getFocusedPath()).getParentFile();
-            if (parent != null)
-                commander.filesPanesHelper.setFocusedFileListPath(parent.getAbsolutePath());
+            String currentPath = commander.filesPanesHelper.getFocusedPath();
+            File parent = new File(currentPath).getParentFile();
+            if (parent != null) {
+                commander.filesPanesHelper.setFocusedFileListPathAndSelect(parent.getAbsolutePath(), new File(currentPath).getName());
+            }
         }
+    }
+
+    private String leafName(String path) {
+        if (path == null || path.isBlank()) {
+            return null;
+        }
+        String normalized = path;
+        while (normalized.length() > 1 && (normalized.endsWith("/") || normalized.endsWith("\\"))) {
+            normalized = normalized.substring(0, normalized.length() - 1);
+        }
+        int slash = Math.max(normalized.lastIndexOf('/'), normalized.lastIndexOf('\\'));
+        return slash < 0 ? normalized : normalized.substring(slash + 1);
     }
 
     private Character extractFilterChar(KeyEvent event) {
