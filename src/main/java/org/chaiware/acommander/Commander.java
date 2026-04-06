@@ -2694,15 +2694,32 @@ public class Commander {
             return;
         }
 
-        Path converterPath = Paths.get(System.getProperty("user.dir"), "apps", "sound_convert", "sndfile-convert.exe");
-        if (!Files.isRegularFile(converterPath)) {
-            showError("Convert Audio Files", "sndfile-convert executable was not found at: " + converterPath);
+        Path sndfileConverterPath = Paths.get(System.getProperty("user.dir"), "apps", "sound_convert", "sndfile-convert.exe");
+        if (!Files.isRegularFile(sndfileConverterPath)) {
+            showError("Convert Audio Files", "sndfile-convert executable was not found at: " + sndfileConverterPath);
             requestFocusedFileListFocus();
             return;
         }
+        Path faacPath = Paths.get(System.getProperty("user.dir"), "apps", "sound_convert", "faac.exe");
+        Path faadPath = Paths.get(System.getProperty("user.dir"), "apps", "sound_convert", "faad.exe");
 
         String outputFolder = filesPanesHelper.getUnfocusedPath();
         AudioConversionRequest options = request.get();
+        String targetFormat = options.targetFormat().toLowerCase(Locale.ROOT);
+        boolean targetNeedsAacBridge = isAacFamilyFormat(targetFormat);
+        boolean sourceNeedsAacBridge = selectedItems.stream()
+                .map(AudioConversionSupport::normalizedExtension)
+                .anyMatch(this::isAacFamilyFormat);
+        if (targetNeedsAacBridge && !Files.isRegularFile(faacPath)) {
+            showError("Convert Audio Files", "faac executable was not found at: " + faacPath);
+            requestFocusedFileListFocus();
+            return;
+        }
+        if (sourceNeedsAacBridge && !Files.isRegularFile(faadPath)) {
+            showError("Convert Audio Files", "faad executable was not found at: " + faadPath);
+            requestFocusedFileListFocus();
+            return;
+        }
         Path outputFolderPath = Paths.get(outputFolder);
         final Path[] firstConverted = {null};
 
@@ -2720,7 +2737,14 @@ public class Commander {
                 }
                 Path sourcePath = Path.of(source.getFullPath());
                 Path finalOutputPath = outputPath;
-                return runAudioConversionWithUnicodeFallback(converterPath, sourcePath, finalOutputPath, options).thenAccept(lines -> {
+                return runAudioConversionWithAacBridge(
+                        sndfileConverterPath,
+                        faadPath,
+                        faacPath,
+                        sourcePath,
+                        finalOutputPath,
+                        options
+                ).thenAccept(lines -> {
                     if (firstConverted[0] == null) {
                         firstConverted[0] = finalOutputPath;
                     }
@@ -2955,6 +2979,7 @@ public class Commander {
                         options.put("Opus", "-opus");
                     }
                     case "opus" -> options.put("Opus", "-opus");
+                    case "aac", "m4a" -> options.put("AAC (FAAC default)", "");
                     case "wav" -> {
                         options.put("IMA ADPCM", "-ima-adpcm");
                         options.put("MS ADPCM", "-ms-adpcm");
@@ -3077,6 +3102,158 @@ public class Commander {
             }
             return CompletableFuture.failedFuture(ioException);
         }
+    }
+
+    private CompletableFuture<List<String>> runAudioConversionWithAacBridge(
+            Path sndfileConverterPath,
+            Path faadPath,
+            Path faacPath,
+            Path inputPath,
+            Path outputPath,
+            AudioConversionRequest options
+    ) {
+        String sourceFormat = normalizedExtension(inputPath);
+        String targetFormat = options.targetFormat().toLowerCase(Locale.ROOT);
+        boolean sourceAacFamily = isAacFamilyFormat(sourceFormat);
+        boolean targetAacFamily = isAacFamilyFormat(targetFormat);
+        if (!sourceAacFamily && !targetAacFamily) {
+            return runAudioConversionWithUnicodeFallback(sndfileConverterPath, inputPath, outputPath, options);
+        }
+
+        Path stagingDir = null;
+        try {
+            stagingDir = createAudioStagingDirectory();
+            Path stagedInputPath = stagingDir.resolve("input" + extensionWithDot(inputPath.getFileName().toString()));
+            Files.copy(inputPath, stagedInputPath, StandardCopyOption.REPLACE_EXISTING);
+            Path stagedOutputPath = stagingDir.resolve("output." + targetFormat);
+
+            Path finalStagingDir = stagingDir;
+            return runAudioConversionWithAacBridgeInStaging(
+                    sndfileConverterPath,
+                    faadPath,
+                    faacPath,
+                    stagedInputPath,
+                    stagedOutputPath,
+                    options,
+                    finalStagingDir
+            ).thenApply(lines -> {
+                try {
+                    Files.move(stagedOutputPath, outputPath, StandardCopyOption.REPLACE_EXISTING);
+                    return lines;
+                } catch (IOException moveException) {
+                    throw new CompletionException(moveException);
+                }
+            }).whenComplete((ignored, throwable) -> cleanupAudioStagingDirectory(finalStagingDir));
+        } catch (IOException ioException) {
+            if (stagingDir != null) {
+                cleanupAudioStagingDirectory(stagingDir);
+            }
+            return CompletableFuture.failedFuture(ioException);
+        }
+    }
+
+    private CompletableFuture<List<String>> runAudioConversionWithAacBridgeInStaging(
+            Path sndfileConverterPath,
+            Path faadPath,
+            Path faacPath,
+            Path stagedInputPath,
+            Path stagedOutputPath,
+            AudioConversionRequest options,
+            Path stagingDir
+    ) {
+        String sourceFormat = normalizedExtension(stagedInputPath);
+        String targetFormat = options.targetFormat().toLowerCase(Locale.ROOT);
+        boolean sourceAacFamily = isAacFamilyFormat(sourceFormat);
+        boolean targetAacFamily = isAacFamilyFormat(targetFormat);
+
+        CompletableFuture<Path> inputForFinalStep = CompletableFuture.completedFuture(stagedInputPath);
+        if (sourceAacFamily) {
+            Path decodedWav = stagingDir.resolve("decoded.wav");
+            List<String> decodeCommand = List.of(
+                    faadPath.toString(),
+                    "-q",
+                    "-o",
+                    decodedWav.toString(),
+                    stagedInputPath.toString()
+            );
+            inputForFinalStep = runExternal(decodeCommand, false).thenApply(lines -> decodedWav);
+        }
+
+        if (!targetAacFamily) {
+            return inputForFinalStep.thenCompose(inputPath ->
+                    runExternal(buildAudioConvertCommand(sndfileConverterPath, inputPath.toString(), stagedOutputPath, options), false)
+            );
+        }
+
+        return inputForFinalStep.thenCompose(inputPath -> {
+            CompletableFuture<Path> wavForFaac = CompletableFuture.completedFuture(inputPath);
+            boolean inputAlreadyWav = "wav".equals(normalizedExtension(inputPath));
+            boolean requiresPreProcessing = options.normalize() || options.sampleRateOverride() != null || !inputAlreadyWav;
+            if (requiresPreProcessing) {
+                Path preparedWav = stagingDir.resolve("prepared.wav");
+                wavForFaac = runExternal(
+                        buildAudioPreprocessingToWavCommand(sndfileConverterPath, inputPath.toString(), preparedWav, options),
+                        false
+                ).thenApply(lines -> preparedWav);
+            }
+
+            return wavForFaac.thenCompose(wavInput ->
+                    runExternal(buildFaacEncodeCommand(faacPath, wavInput, stagedOutputPath), false)
+            );
+        });
+    }
+
+    private List<String> buildAudioPreprocessingToWavCommand(
+            Path converterPath,
+            String inputPath,
+            Path outputPath,
+            AudioConversionRequest options
+    ) {
+        List<String> command = new ArrayList<>();
+        command.add(converterPath.toString());
+        if (options.sampleRateOverride() != null) {
+            command.add("-override-sample-rate=" + options.sampleRateOverride());
+        }
+        if (options.normalize()) {
+            command.add("-normalize");
+        }
+        command.add("-pcm16");
+        command.add(inputPath);
+        command.add(outputPath.toString());
+        return command;
+    }
+
+    private List<String> buildFaacEncodeCommand(Path faacPath, Path wavInput, Path outputPath) {
+        List<String> command = new ArrayList<>();
+        command.add(faacPath.toString());
+        command.add("-o");
+        command.add(outputPath.toString());
+        command.add("--overwrite");
+        if ("aac".equals(normalizedExtension(outputPath))) {
+            command.add("-r");
+        }
+        command.add(wavInput.toString());
+        return command;
+    }
+
+    private String normalizedExtension(Path path) {
+        if (path == null || path.getFileName() == null) {
+            return "";
+        }
+        String fileName = path.getFileName().toString();
+        int dot = fileName.lastIndexOf('.');
+        if (dot < 0 || dot >= fileName.length() - 1) {
+            return "";
+        }
+        return fileName.substring(dot + 1).toLowerCase(Locale.ROOT);
+    }
+
+    private boolean isAacFamilyFormat(String extension) {
+        if (extension == null) {
+            return false;
+        }
+        String normalized = extension.trim().toLowerCase(Locale.ROOT);
+        return "aac".equals(normalized) || "m4a".equals(normalized);
     }
 
     private Path createAudioStagingDirectory() throws IOException {
