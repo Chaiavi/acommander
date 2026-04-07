@@ -12,6 +12,7 @@ public class AppAction {
     private final Function<ActionContext, String> dynamicTitle;
     private final String shortcut;
     private final List<String> aliases;
+    private final Function<ActionContext, Integer> priority;
     private final Predicate<ActionContext> enabled;
     private final Consumer<ActionContext> execute;
 
@@ -23,7 +24,19 @@ public class AppAction {
             Predicate<ActionContext> enabled,
             Consumer<ActionContext> execute
     ) {
-        this(id, title, null, shortcut, aliases, enabled, execute);
+        this(id, title, null, shortcut, aliases, null, enabled, execute);
+    }
+
+    public AppAction(
+            String id,
+            String title,
+            String shortcut,
+            List<String> aliases,
+            Function<ActionContext, Integer> priority,
+            Predicate<ActionContext> enabled,
+            Consumer<ActionContext> execute
+    ) {
+        this(id, title, null, shortcut, aliases, priority, enabled, execute);
     }
 
     public AppAction(
@@ -32,6 +45,7 @@ public class AppAction {
             Function<ActionContext, String> dynamicTitle,
             String shortcut,
             List<String> aliases,
+            Function<ActionContext, Integer> priority,
             Predicate<ActionContext> enabled,
             Consumer<ActionContext> execute
     ) {
@@ -40,6 +54,7 @@ public class AppAction {
         this.dynamicTitle = dynamicTitle;
         this.shortcut = shortcut == null ? "" : shortcut;
         this.aliases = aliases == null ? List.of() : List.copyOf(aliases);
+        this.priority = priority == null ? ctx -> 0 : priority;
         this.enabled = enabled == null ? ctx -> true : enabled;
         this.execute = Objects.requireNonNull(execute);
     }
@@ -68,6 +83,10 @@ public class AppAction {
 
     public List<String> aliases() {
         return aliases;
+    }
+
+    public int priority(ActionContext context) {
+        return priority.apply(context);
     }
 
     public boolean isEnabled(ActionContext context) {

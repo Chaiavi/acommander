@@ -1,8 +1,5 @@
 package org.chaiware.acommander.actions;
 
-import org.chaiware.acommander.helpers.*;
-import org.chaiware.acommander.model.FileItem;
-
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -19,29 +16,31 @@ public class ActionMatcher {
         if (q.isEmpty()) {
             return enabledActions.stream()
                     .sorted(Comparator
-                            .comparingInt((AppAction action) -> pinnedConversionPriority(action, context))
-                            .thenComparing(action -> action.title()))
+                            .comparingInt((AppAction action) -> action.priority(context))
+                            .reversed()
+                            .thenComparing(action -> action.title(context)))
                     .toList();
         }
 
         List<ScoredAction> scored = new ArrayList<>();
         for (AppAction action : enabledActions) {
-            int score = score(action, q);
+            int score = score(action, q, context);
             if (score > 0) {
                 scored.add(new ScoredAction(action, score));
             }
         }
 
         scored.sort(Comparator
-                .comparingInt((ScoredAction sa) -> pinnedConversionPriority(sa.action(), context))
+                .comparingInt((ScoredAction sa) -> sa.action().priority(context))
+                .reversed()
                 .thenComparing(Comparator.comparingInt(ScoredAction::score).reversed())
-                .thenComparing(sa -> sa.action().title()));
+                .thenComparing(sa -> sa.action().title(context)));
 
         return scored.stream().map(ScoredAction::action).toList();
     }
 
-    private int score(AppAction action, String query) {
-        String title = action.title().toLowerCase(Locale.ROOT);
+    private int score(AppAction action, String query, ActionContext context) {
+        String title = action.title(context).toLowerCase(Locale.ROOT);
         if (title.equals(query)) {
             return 1000;
         }
@@ -70,58 +69,5 @@ public class ActionMatcher {
     }
 
     private record ScoredAction(AppAction action, int score) {
-    }
-
-    private int pinnedConversionPriority(AppAction action, ActionContext context) {
-        if (action == null || context == null || context.commander() == null || context.commander().filesPanesHelper == null) {
-            return 3;
-        }
-        List<FileItem> selectedItems = context.commander().filesPanesHelper.getSelectedItems();
-        if ("editVideoMetadata".equals(action.id()) && VideoMetadataSupport.areAllSupportedVideos(selectedItems)) {
-            return 0;
-        }
-        if ("removeVideoMetadata".equals(action.id()) && VideoMetadataSupport.areAllSupportedVideos(selectedItems)) {
-            return 1;
-        }
-        if ("editAudioMetadata".equals(action.id()) && AudioMetadataSupport.areAllSupportedAudio(selectedItems)) {
-            return 0;
-        }
-        if ("removeAudioMetadata".equals(action.id()) && AudioMetadataSupport.areAllSupportedAudio(selectedItems)) {
-            return 1;
-        }
-        if ("compressExecutable".equals(action.id()) && ExecutableCompressionSupport.areAllSupportedExecutables(selectedItems)) {
-            return 0;
-        }
-        if (("mergePdf".equals(action.id()) || "extractPdfPages".equals(action.id()))
-                && areAllSelectedItemsPdf(selectedItems)) {
-            return 2;
-        }
-        if ("pasteSelection".equals(action.id()) && context.commander().hasClipboardTransferEntries()) {
-            return 2;
-        }
-        if ("convertAudioFiles".equals(action.id()) && AudioConversionSupport.areAllConvertibleAudio(selectedItems)) {
-            return 2;
-        }
-        if ("convertGraphicsFiles".equals(action.id()) && ImageConversionSupport.areAllConvertibleImages(selectedItems)) {
-            return 2;
-        }
-        if ("editImageMetadata".equals(action.id()) && ImageMetadataSupport.areAllSupportedImages(selectedItems)) {
-            return 2;
-        }
-        if ("removeImageMetadata".equals(action.id()) && ImageMetadataSupport.areAllSupportedImages(selectedItems)) {
-            return 2;
-        }
-        return 3;
-    }
-
-    private boolean areAllSelectedItemsPdf(List<FileItem> selectedItems) {
-        if (selectedItems == null || selectedItems.isEmpty()) {
-            return false;
-        }
-        return selectedItems.stream()
-                .allMatch(item -> item != null
-                        && !item.isDirectory()
-                        && item.getName() != null
-                        && item.getName().toLowerCase(Locale.ROOT).endsWith(".pdf"));
     }
 }

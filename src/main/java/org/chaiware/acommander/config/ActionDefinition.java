@@ -16,6 +16,8 @@ public class ActionDefinition {
     private List<String> args = new ArrayList<>();
     private Boolean refreshAfter;
     private PromptDefinition prompt;
+    private Integer priority;
+    private List<PriorityRuleDefinition> priorityRules = new ArrayList<>();
 
     public String getId() {
         return id;
@@ -111,5 +113,21 @@ public class ActionDefinition {
 
     public void setPrompt(PromptDefinition prompt) {
         this.prompt = prompt;
+    }
+
+    public Integer getPriority() {
+        return priority;
+    }
+
+    public void setPriority(Integer priority) {
+        this.priority = priority;
+    }
+
+    public List<PriorityRuleDefinition> getPriorityRules() {
+        return priorityRules;
+    }
+
+    public void setPriorityRules(List<PriorityRuleDefinition> priorityRules) {
+        this.priorityRules = priorityRules == null ? new ArrayList<>() : priorityRules;
     }
 }

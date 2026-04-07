@@ -1,23 +1,11 @@
 package org.chaiware.acommander.actions;
 
 import org.assertj.core.api.Assertions;
-import org.chaiware.acommander.Commander;
-import org.chaiware.acommander.helpers.FilesPanesHelper;
-import org.chaiware.acommander.model.FileItem;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.TempDir;
 
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.List;
 
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
-
 class ActionMatcherTest {
-
-    @TempDir
-    Path tempDir;
 
     @Test
     void returnsEnabledActionsSortedByTitleWhenQueryBlank() {
@@ -94,180 +82,41 @@ class ActionMatcherTest {
     }
 
     @Test
-    void blankQueryPinsConvertAudioFirstWhenAudioSelection() throws Exception {
+    void blankQueryRanksByPriorityThenAlphabetical() {
         ActionMatcher matcher = new ActionMatcher();
-        Path audio = Files.createTempFile(tempDir, "sound", ".mp3");
-
-        FilesPanesHelper panesHelper = mock(FilesPanesHelper.class);
-        when(panesHelper.getSelectedItems()).thenReturn(List.of(new FileItem(audio.toFile())));
-
-        Commander commander = new Commander();
-        commander.filesPanesHelper = panesHelper;
-        ActionContext context = new ActionContext(commander);
+        ActionContext context = new ActionContext(null);
 
         AppAction alpha = new AppAction("a", "Alpha", "", List.of(), ctx -> true, ctx -> {});
-        AppAction convertAudio = new AppAction("convertAudioFiles", "Convert Audio Files", "", List.of(), ctx -> true, ctx -> {});
-
-        List<AppAction> ranked = matcher.rank("", List.of(alpha, convertAudio), context);
-
-        Assertions.assertThat(ranked.getFirst().id()).isEqualTo("convertAudioFiles");
-    }
-
-    @Test
-    void blankQueryPinsConvertGraphicsFirstWhenImageSelection() throws Exception {
-        ActionMatcher matcher = new ActionMatcher();
-        Path image = Files.createTempFile(tempDir, "photo", ".png");
-
-        FilesPanesHelper panesHelper = mock(FilesPanesHelper.class);
-        when(panesHelper.getSelectedItems()).thenReturn(List.of(new FileItem(image.toFile())));
-
-        Commander commander = new Commander();
-        commander.filesPanesHelper = panesHelper;
-        ActionContext context = new ActionContext(commander);
-
-        AppAction alpha = new AppAction("a", "Alpha", "", List.of(), ctx -> true, ctx -> {});
-        AppAction convertImage = new AppAction("convertGraphicsFiles", "Convert Graphics Files", "", List.of(), ctx -> true, ctx -> {});
-
-        List<AppAction> ranked = matcher.rank("", List.of(alpha, convertImage), context);
-
-        Assertions.assertThat(ranked.getFirst().id()).isEqualTo("convertGraphicsFiles");
-    }
-
-    @Test
-    void blankQueryPinsPdfActionsFirstWhenPdfSelection() throws Exception {
-        ActionMatcher matcher = new ActionMatcher();
-        Path pdf = Files.createTempFile(tempDir, "doc", ".pdf");
-
-        FilesPanesHelper panesHelper = mock(FilesPanesHelper.class);
-        when(panesHelper.getSelectedItems()).thenReturn(List.of(new FileItem(pdf.toFile())));
-
-        Commander commander = new Commander();
-        commander.filesPanesHelper = panesHelper;
-        ActionContext context = new ActionContext(commander);
-
-        AppAction alpha = new AppAction("a", "Alpha", "", List.of(), ctx -> true, ctx -> {});
-        AppAction extractPdfPages = new AppAction("extractPdfPages", "Extract PDF Pages", "", List.of(), ctx -> true, ctx -> {});
-
-        List<AppAction> ranked = matcher.rank("", List.of(alpha, extractPdfPages), context);
-
-        Assertions.assertThat(ranked.getFirst().id()).isEqualTo("extractPdfPages");
-    }
-
-    @Test
-    void blankQueryPinsPasteSelectionFirstWhenClipboardBufferHasEntries() {
-        ActionMatcher matcher = new ActionMatcher();
-
-        FilesPanesHelper panesHelper = mock(FilesPanesHelper.class);
-        when(panesHelper.getSelectedItems()).thenReturn(List.of());
-
-        Commander commander = mock(Commander.class);
-        commander.filesPanesHelper = panesHelper;
-        when(commander.hasClipboardTransferEntries()).thenReturn(true);
-
-        ActionContext context = new ActionContext(commander);
-
-        AppAction alpha = new AppAction("a", "Alpha", "", List.of(), ctx -> true, ctx -> {});
-        AppAction paste = new AppAction("pasteSelection", "Paste", "", List.of(), ctx -> true, ctx -> {});
-
-        List<AppAction> ranked = matcher.rank("", List.of(alpha, paste), context);
-
-        Assertions.assertThat(ranked.getFirst().id()).isEqualTo("pasteSelection");
-    }
-
-    @Test
-    void blankQueryOrdersAudioMetadataActionsAtTopWhenAudioSelection() throws Exception {
-        ActionMatcher matcher = new ActionMatcher();
-        Path audio = Files.createTempFile(tempDir, "track", ".mp3");
-
-        FilesPanesHelper panesHelper = mock(FilesPanesHelper.class);
-        when(panesHelper.getSelectedItems()).thenReturn(List.of(new FileItem(audio.toFile())));
-
-        Commander commander = new Commander();
-        commander.filesPanesHelper = panesHelper;
-        ActionContext context = new ActionContext(commander);
-
-        AppAction alpha = new AppAction("a", "Alpha", "", List.of(), ctx -> true, ctx -> {});
-        AppAction convertAudio = new AppAction("convertAudioFiles", "Convert Audio Files", "", List.of(), ctx -> true, ctx -> {});
-        AppAction editAudio = new AppAction("editAudioMetadata", "Edit Audio Metadata", "", List.of(), ctx -> true, ctx -> {});
-        AppAction removeAudio = new AppAction("removeAudioMetadata", "Remove Audio Metadata", "", List.of(), ctx -> true, ctx -> {});
-
-        List<AppAction> ranked = matcher.rank("", List.of(alpha, convertAudio, removeAudio, editAudio), context);
-
-        Assertions.assertThat(ranked.get(0).id()).isEqualTo("editAudioMetadata");
-        Assertions.assertThat(ranked.get(1).id()).isEqualTo("removeAudioMetadata");
-    }
-
-    @Test
-    void blankQueryOrdersVideoMetadataActionsAtTopWhenVideoSelection() throws Exception {
-        ActionMatcher matcher = new ActionMatcher();
-        Path video = Files.createTempFile(tempDir, "clip", ".mp4");
-
-        FilesPanesHelper panesHelper = mock(FilesPanesHelper.class);
-        when(panesHelper.getSelectedItems()).thenReturn(List.of(new FileItem(video.toFile())));
-
-        Commander commander = new Commander();
-        commander.filesPanesHelper = panesHelper;
-        ActionContext context = new ActionContext(commander);
-
-        AppAction alpha = new AppAction("a", "Alpha", "", List.of(), ctx -> true, ctx -> {});
-        AppAction convertAudio = new AppAction("convertAudioFiles", "Convert Audio Files", "", List.of(), ctx -> true, ctx -> {});
-        AppAction editVideo = new AppAction("editVideoMetadata", "Edit Video Metadata", "", List.of(), ctx -> true, ctx -> {});
-        AppAction removeVideo = new AppAction("removeVideoMetadata", "Remove Video Metadata", "", List.of(), ctx -> true, ctx -> {});
-
-        List<AppAction> ranked = matcher.rank("", List.of(alpha, convertAudio, removeVideo, editVideo), context);
-
-        Assertions.assertThat(ranked.get(0).id()).isEqualTo("editVideoMetadata");
-        Assertions.assertThat(ranked.get(1).id()).isEqualTo("removeVideoMetadata");
-    }
-
-    @Test
-    void blankQueryPinsCompressExecutableFirstWhenExecutableSelected() throws Exception {
-        ActionMatcher matcher = new ActionMatcher();
-        Path executable = Files.createTempFile(tempDir, "tool", ".exe");
-
-        FilesPanesHelper panesHelper = mock(FilesPanesHelper.class);
-        when(panesHelper.getSelectedItems()).thenReturn(List.of(new FileItem(executable.toFile())));
-
-        Commander commander = mock(Commander.class);
-        commander.filesPanesHelper = panesHelper;
-        when(commander.hasClipboardTransferEntries()).thenReturn(true);
-        ActionContext context = new ActionContext(commander);
-
-        AppAction alpha = new AppAction("a", "Alpha", "", List.of(), ctx -> true, ctx -> {
+        AppAction edit = new AppAction("edit", "Edit", "", List.of(), ctx -> 100, ctx -> true, ctx -> {
         });
-        AppAction paste = new AppAction("pasteSelection", "Paste", "", List.of(), ctx -> true, ctx -> {
+        AppAction remove = new AppAction("remove", "Remove", "", List.of(), ctx -> 100, ctx -> true, ctx -> {
         });
-        AppAction compress = new AppAction("compressExecutable", "Compress Executable", "", List.of(), ctx -> true, ctx -> {
+        AppAction convert = new AppAction("convert", "Convert", "", List.of(), ctx -> 50, ctx -> true, ctx -> {
         });
 
-        List<AppAction> ranked = matcher.rank("", List.of(alpha, paste, compress), context);
+        List<AppAction> ranked = matcher.rank("", List.of(alpha, remove, convert, edit), context);
 
-        Assertions.assertThat(ranked.getFirst().id()).isEqualTo("compressExecutable");
+        Assertions.assertThat(ranked)
+                .extracting(AppAction::id)
+                .containsExactly("edit", "remove", "convert", "a");
     }
 
     @Test
-    void blankQueryPinsCompressExecutableFirstWhenMultipleExecutablesSelected() throws Exception {
+    void queryRankingUsesPriorityThenScoreThenAlphabetical() {
         ActionMatcher matcher = new ActionMatcher();
-        Path exe = Files.createTempFile(tempDir, "app", ".exe");
-        Path dll = Files.createTempFile(tempDir, "lib", ".dll");
+        ActionContext context = new ActionContext(null);
 
-        FilesPanesHelper panesHelper = mock(FilesPanesHelper.class);
-        when(panesHelper.getSelectedItems()).thenReturn(List.of(
-                new FileItem(exe.toFile()),
-                new FileItem(dll.toFile())
-        ));
-
-        Commander commander = new Commander();
-        commander.filesPanesHelper = panesHelper;
-        ActionContext context = new ActionContext(commander);
-
-        AppAction alpha = new AppAction("a", "Alpha", "", List.of(), ctx -> true, ctx -> {
+        AppAction higherPriorityContains = new AppAction("1", "Reopen Tab", "", List.of(), ctx -> 20, null, ctx -> {
         });
-        AppAction compress = new AppAction("compressExecutable", "Compress Executable", "", List.of(), ctx -> true, ctx -> {
+        AppAction lowerPriorityExact = new AppAction("2", "Open", "", List.of(), ctx -> 10, null, ctx -> {
+        });
+        AppAction lowerPriorityPrefix = new AppAction("3", "Open Folder", "", List.of(), ctx -> 10, null, ctx -> {
         });
 
-        List<AppAction> ranked = matcher.rank("", List.of(alpha, compress), context);
+        List<AppAction> ranked = matcher.rank("open", List.of(lowerPriorityPrefix, lowerPriorityExact, higherPriorityContains), context);
 
-        Assertions.assertThat(ranked.getFirst().id()).isEqualTo("compressExecutable");
+        Assertions.assertThat(ranked)
+                .extracting(AppAction::id)
+                .containsExactly("1", "2", "3");
     }
 }

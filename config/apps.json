@@ -137,7 +137,13 @@
       "contexts": ["filePane", "commandPalette"],
       "selection": "none",
       "type": "builtin",
-      "builtin": "pasteSelection"
+      "builtin": "pasteSelection",
+      "priorityRules": [
+        {
+          "score": 160,
+          "clipboardNotEmpty": true
+        }
+      ]
     },
     {
       "id": "move",
@@ -286,7 +292,13 @@
       "aliases": ["convert image", "image convert", "convert graphics", "caesium"],
       "contexts": ["commandPalette"],
       "selection": "any",
-      "type": "builtin"
+      "type": "builtin",
+      "priorityRules": [
+        {
+          "score": 120,
+          "selection": "singleOrMultipleFiles"
+        }
+      ]
     },
     {
       "id": "convertAudioFiles",
@@ -294,7 +306,21 @@
       "aliases": ["convert audio", "audio convert", "sndfile", "transcode audio"],
       "contexts": ["commandPalette"],
       "selection": "any",
-      "type": "builtin"
+      "type": "builtin",
+      "priorityRules": [
+        {
+          "score": 200,
+          "extensions": [
+            "mp3"
+          ],
+          "extensionMatch": "all",
+          "selection": "singleOrMultipleFiles"
+        },
+        {
+          "score": 140,
+          "selection": "singleOrMultipleFiles"
+        }
+      ]
     },
     {
       "id": "checksumFile",
@@ -322,7 +348,13 @@
       "type": "builtin",
       "path": "apps/pack_unpack/7zG.exe",
       "args": ["x", "-o${destinationPathQuoted}", "${selectedFile}"],
-      "refreshAfter": true
+      "refreshAfter": true,
+      "priorityRules": [
+        {
+          "score": 260,
+          "selection": "any"
+        }
+      ]
     },
     {
       "id": "extractAll",
@@ -334,7 +366,13 @@
       "type": "builtin",
       "path": "apps/extract_all/UniExtract/UniExtract.exe",
       "args": ["${selectedFile}", "${destinationPath}"],
-      "refreshAfter": true
+      "refreshAfter": true,
+      "priorityRules": [
+        {
+          "score": 250,
+          "selection": "any"
+        }
+      ]
     },
     {
       "id": "mergePdf",
@@ -345,7 +383,17 @@
       "type": "builtin",
       "path": "apps/pdf/pdftk.exe",
       "args": ["${selectedFiles}", "cat", "output", "${outputPdf}"],
-      "refreshAfter": true
+      "refreshAfter": true,
+      "priorityRules": [
+        {
+          "score": 130,
+          "extensions": [
+            "pdf"
+          ],
+          "extensionMatch": "all",
+          "selection": "multi"
+        }
+      ]
     },
     {
       "id": "extractPdfPages",
@@ -356,7 +404,17 @@
       "type": "builtin",
       "path": "apps/pdf/pdftk.exe",
       "args": ["${selectedFile}", "burst", "output", "${outputPattern}"],
-      "refreshAfter": true
+      "refreshAfter": true,
+      "priorityRules": [
+        {
+          "score": 130,
+          "extensions": [
+            "pdf"
+          ],
+          "extensionMatch": "all",
+          "selection": "singleFile"
+        }
+      ]
     },
     {
       "id": "compareFiles",
@@ -397,7 +455,13 @@
       "aliases": ["image metadata", "metadata editor", "exiv2", "edit exif", "exif editor"],
       "contexts": ["filePane", "commandPalette"],
       "selection": "singleFile",
-      "type": "builtin"
+      "type": "builtin",
+      "priorityRules": [
+        {
+          "score": 140,
+          "selection": "singleFile"
+        }
+      ]
     },
     {
       "id": "removeImageMetadata",
@@ -405,7 +469,13 @@
       "aliases": ["strip metadata", "remove exif", "strip exif", "delete metadata", "wipe metadata"],
       "contexts": ["filePane", "commandPalette"],
       "selection": "singleOrMultipleFiles",
-      "type": "builtin"
+      "type": "builtin",
+      "priorityRules": [
+        {
+          "score": 130,
+          "selection": "singleOrMultipleFiles"
+        }
+      ]
     },
     {
       "id": "editVideoMetadata",
@@ -413,7 +483,13 @@
       "aliases": ["video metadata", "atomicparsley", "edit mp4 metadata", "mp4 tags", "m4v tags", "3gp metadata"],
       "contexts": ["filePane", "commandPalette"],
       "selection": "singleFile",
-      "type": "builtin"
+      "type": "builtin",
+      "priorityRules": [
+        {
+          "score": 220,
+          "selection": "singleFile"
+        }
+      ]
     },
     {
       "id": "removeVideoMetadata",
@@ -421,7 +497,13 @@
       "aliases": ["strip video metadata", "wipe video metadata", "delete video tags", "remove mp4 metadata", "atomicparsley wipe"],
       "contexts": ["filePane", "commandPalette"],
       "selection": "singleOrMultipleFiles",
-      "type": "builtin"
+      "type": "builtin",
+      "priorityRules": [
+        {
+          "score": 210,
+          "selection": "singleOrMultipleFiles"
+        }
+      ]
     },
     {
       "id": "editAudioMetadata",
@@ -429,7 +511,21 @@
       "aliases": ["audio metadata", "edit mp3 metadata", "id3", "mp3 tags", "id3 editor"],
       "contexts": ["filePane", "commandPalette"],
       "selection": "singleFile",
-      "type": "builtin"
+      "type": "builtin",
+      "priorityRules": [
+        {
+          "score": 300,
+          "extensions": [
+            "mp3"
+          ],
+          "extensionMatch": "all",
+          "selection": "singleFile"
+        },
+        {
+          "score": 230,
+          "selection": "singleFile"
+        }
+      ]
     },
     {
       "id": "removeAudioMetadata",
@@ -437,7 +533,21 @@
       "aliases": ["strip audio metadata", "delete audio tags", "wipe audio metadata", "remove id3 tags"],
       "contexts": ["filePane", "commandPalette"],
       "selection": "singleOrMultipleFiles",
-      "type": "builtin"
+      "type": "builtin",
+      "priorityRules": [
+        {
+          "score": 280,
+          "extensions": [
+            "mp3"
+          ],
+          "extensionMatch": "all",
+          "selection": "singleOrMultipleFiles"
+        },
+        {
+          "score": 220,
+          "selection": "singleOrMultipleFiles"
+        }
+      ]
     },
     {
       "id": "compressExecutable",
@@ -445,7 +555,13 @@
       "aliases": ["compress exe", "upx", "upx compress", "pack exe"],
       "contexts": ["commandPalette"],
       "selection": "singleOrMultipleFiles",
-      "type": "builtin"
+      "type": "builtin",
+      "priorityRules": [
+        {
+          "score": 240,
+          "selection": "singleOrMultipleFiles"
+        }
+      ]
     },
     {
       "id": "refresh",

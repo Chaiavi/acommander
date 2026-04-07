@@ -12,6 +12,7 @@ import java.util.stream.Collectors;
 
 public class ActionRegistry {
     private final List<AppAction> actions;
+    private final ActionPriorityEngine priorityEngine = new ActionPriorityEngine();
 
     public ActionRegistry(AppRegistry appRegistry, ActionExecutor executor) {
         actions = appRegistry.actionsForScope(ActionScope.COMMAND_PALETTE).stream()
@@ -31,6 +32,7 @@ public class ActionRegistry {
                     this::getFilePropertiesDynamicLabel,
                     action.getShortcut(),
                     action.getAliases(),
+                    ctx -> priorityEngine.priority(action, ctx),
                     ctx -> rule.isSatisfied(selectedItemsOrEmpty(ctx))
                             && isSelectionAllowedForBuiltin(builtin, ctx),
                     ctx -> executor.execute(action)
@@ -45,6 +47,7 @@ public class ActionRegistry {
                     this::getDuplicateDynamicLabel,
                     action.getShortcut(),
                     action.getAliases(),
+                    ctx -> priorityEngine.priority(action, ctx),
                     ctx -> rule.isSatisfied(selectedItemsOrEmpty(ctx))
                             && isSelectionAllowedForBuiltin(builtin, ctx),
                     ctx -> executor.execute(action)
@@ -58,6 +61,7 @@ public class ActionRegistry {
                     action.getLabel(),
                     action.getShortcut(),
                     action.getAliases(),
+                    ctx -> priorityEngine.priority(action, ctx),
                     ctx -> {
                         List<FileItem> selected = selectedItemsOrEmpty(ctx);
                         return rule.isSatisfied(selected)
@@ -73,6 +77,7 @@ public class ActionRegistry {
                 action.getLabel(),
                 action.getShortcut(),
                 action.getAliases(),
+                ctx -> priorityEngine.priority(action, ctx),
                 ctx -> rule.isSatisfied(selectedItemsOrEmpty(ctx))
                         && isSelectionAllowedForBuiltin(builtin, ctx),
                 ctx -> executor.execute(action)
