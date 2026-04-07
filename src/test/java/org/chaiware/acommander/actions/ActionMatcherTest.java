@@ -219,4 +219,55 @@ class ActionMatcherTest {
         Assertions.assertThat(ranked.get(0).id()).isEqualTo("editVideoMetadata");
         Assertions.assertThat(ranked.get(1).id()).isEqualTo("removeVideoMetadata");
     }
+
+    @Test
+    void blankQueryPinsCompressExecutableFirstWhenExecutableSelected() throws Exception {
+        ActionMatcher matcher = new ActionMatcher();
+        Path executable = Files.createTempFile(tempDir, "tool", ".exe");
+
+        FilesPanesHelper panesHelper = mock(FilesPanesHelper.class);
+        when(panesHelper.getSelectedItems()).thenReturn(List.of(new FileItem(executable.toFile())));
+
+        Commander commander = mock(Commander.class);
+        commander.filesPanesHelper = panesHelper;
+        when(commander.hasClipboardTransferEntries()).thenReturn(true);
+        ActionContext context = new ActionContext(commander);
+
+        AppAction alpha = new AppAction("a", "Alpha", "", List.of(), ctx -> true, ctx -> {
+        });
+        AppAction paste = new AppAction("pasteSelection", "Paste", "", List.of(), ctx -> true, ctx -> {
+        });
+        AppAction compress = new AppAction("compressExecutable", "Compress Executable", "", List.of(), ctx -> true, ctx -> {
+        });
+
+        List<AppAction> ranked = matcher.rank("", List.of(alpha, paste, compress), context);
+
+        Assertions.assertThat(ranked.getFirst().id()).isEqualTo("compressExecutable");
+    }
+
+    @Test
+    void blankQueryPinsCompressExecutableFirstWhenMultipleExecutablesSelected() throws Exception {
+        ActionMatcher matcher = new ActionMatcher();
+        Path exe = Files.createTempFile(tempDir, "app", ".exe");
+        Path dll = Files.createTempFile(tempDir, "lib", ".dll");
+
+        FilesPanesHelper panesHelper = mock(FilesPanesHelper.class);
+        when(panesHelper.getSelectedItems()).thenReturn(List.of(
+                new FileItem(exe.toFile()),
+                new FileItem(dll.toFile())
+        ));
+
+        Commander commander = new Commander();
+        commander.filesPanesHelper = panesHelper;
+        ActionContext context = new ActionContext(commander);
+
+        AppAction alpha = new AppAction("a", "Alpha", "", List.of(), ctx -> true, ctx -> {
+        });
+        AppAction compress = new AppAction("compressExecutable", "Compress Executable", "", List.of(), ctx -> true, ctx -> {
+        });
+
+        List<AppAction> ranked = matcher.rank("", List.of(alpha, compress), context);
+
+        Assertions.assertThat(ranked.getFirst().id()).isEqualTo("compressExecutable");
+    }
 }

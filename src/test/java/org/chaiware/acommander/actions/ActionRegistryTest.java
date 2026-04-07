@@ -201,6 +201,39 @@ class ActionRegistryTest {
         Assertions.assertThat(action.isEnabled(context)).isTrue();
     }
 
+    @Test
+    void compressExecutableActionVisibleForMultipleSupportedExecutablesOnly() throws Exception {
+        Path exe = Files.createTempFile(tempDir, "app", ".exe");
+        Path dll = Files.createTempFile(tempDir, "lib", ".dll");
+        Path text = Files.createTempFile(tempDir, "note", ".txt");
+
+        FilesPanesHelper panesHelper = mock(FilesPanesHelper.class);
+        when(panesHelper.getSelectedItems()).thenReturn(List.of(
+                new FileItem(exe.toFile()),
+                new FileItem(dll.toFile())
+        ));
+
+        Commander commander = new Commander();
+        commander.filesPanesHelper = panesHelper;
+
+        AppRegistry registry = new AppRegistry(configWithCompressExecutableAction());
+        ActionRegistry actionRegistry = new ActionRegistry(registry, new ActionExecutor(commander, registry));
+        ActionContext context = new ActionContext(commander);
+
+        AppAction action = actionRegistry.all().stream()
+                .filter(a -> "compressExecutable".equals(a.id()))
+                .findFirst()
+                .orElseThrow();
+
+        Assertions.assertThat(action.isEnabled(context)).isTrue();
+
+        when(panesHelper.getSelectedItems()).thenReturn(List.of(
+                new FileItem(exe.toFile()),
+                new FileItem(text.toFile())
+        ));
+        Assertions.assertThat(action.isEnabled(context)).isFalse();
+    }
+
     private static AppConfig configWithConvertActions() {
         ActionDefinition imageConvert = new ActionDefinition();
         imageConvert.setId("convertGraphicsFiles");
@@ -271,6 +304,19 @@ class ActionRegistryTest {
 
         AppConfig config = new AppConfig();
         config.setActions(List.of(removeVideoMetadata));
+        return config;
+    }
+
+    private static AppConfig configWithCompressExecutableAction() {
+        ActionDefinition compressExecutable = new ActionDefinition();
+        compressExecutable.setId("compressExecutable");
+        compressExecutable.setLabel("Compress Executable");
+        compressExecutable.setType("builtin");
+        compressExecutable.setContexts(List.of("commandPalette"));
+        compressExecutable.setSelection("singleOrMultipleFiles");
+
+        AppConfig config = new AppConfig();
+        config.setActions(List.of(compressExecutable));
         return config;
     }
 }

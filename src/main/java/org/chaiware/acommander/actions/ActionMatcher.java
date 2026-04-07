@@ -90,7 +90,7 @@ public class ActionMatcher {
             return 1;
         }
         if ("compressExecutable".equals(action.id()) && ExecutableCompressionSupport.areAllSupportedExecutables(selectedItems)) {
-            return 2;
+            return 0;
         }
         if (("mergePdf".equals(action.id()) || "extractPdfPages".equals(action.id()))
                 && areAllSelectedItemsPdf(selectedItems)) {

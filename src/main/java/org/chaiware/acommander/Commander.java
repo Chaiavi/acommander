@@ -4564,8 +4564,7 @@ public class Commander {
                 return;
             }
 
-            FileItem selectedItem = selectedItems.getFirst();
-            if (selectedItem.isDirectory() || !ExecutableCompressionSupport.isSupportedExecutable(selectedItem)) {
+            if (!ExecutableCompressionSupport.areAllSupportedExecutables(selectedItems)) {
                 return;
             }
 
@@ -4574,13 +4573,21 @@ public class Commander {
                 return;
             }
 
-            File file = selectedItem.getFile();
-            if (file == null || !file.exists()) {
-                showError("Compress Executable", "Selected file does not exist on disk.");
+            List<File> files = new ArrayList<>();
+            for (FileItem selectedItem : selectedItems) {
+                File file = selectedItem.getFile();
+                if (file == null || !file.exists()) {
+                    showError("Compress Executable", "One or more selected files do not exist on disk.");
+                    return;
+                }
+                files.add(file);
+            }
+
+            if (files.isEmpty()) {
                 return;
             }
 
-            Optional<ExecutableCompressionRequest> request = promptExecutableCompressionOptions(selectedItem);
+            Optional<ExecutableCompressionRequest> request = promptExecutableCompressionOptions(selectedItems);
             if (request.isEmpty()) {
                 return;
             }
@@ -4592,13 +4599,13 @@ public class Commander {
                 return;
             }
 
-            long sizeBefore = file.length();
-            List<String> command = buildExecutableCompressionCommand(upxPath, compressionRequest, file);
+            long sizeBefore = files.stream().mapToLong(File::length).sum();
+            List<String> command = buildExecutableCompressionCommand(upxPath, compressionRequest, files);
 
             runExternal(command, true)
-                    .thenAccept(output -> Platform.runLater(() -> showExecutableCompressionResult(file, sizeBefore)))
+                    .thenAccept(output -> Platform.runLater(() -> showExecutableCompressionResult(files, sizeBefore)))
                     .exceptionally(throwable -> {
-                        Platform.runLater(() -> handleExecutableCompressionFailure(file, command, throwable));
+                        Platform.runLater(() -> handleExecutableCompressionFailure(files, command, throwable));
                         return null;
                     });
         } catch (Exception ex) {
@@ -4606,7 +4613,7 @@ public class Commander {
         }
     }
 
-    private Optional<ExecutableCompressionRequest> promptExecutableCompressionOptions(FileItem selectedItem) {
+    private Optional<ExecutableCompressionRequest> promptExecutableCompressionOptions(List<FileItem> selectedItems) {
         Dialog<ExecutableCompressionRequest> dialog = new Dialog<>();
         dialog.setTitle("Compress Executable");
         dialog.setHeaderText(null);
@@ -4617,7 +4624,11 @@ public class Commander {
         Label title = new Label("Compress Executable");
         title.setStyle("-fx-font-size: 16px; -fx-font-weight: bold;");
 
-        Label subtitle = new Label("Selected file: " + selectedItem.getName());
+        FileItem firstItem = selectedItems.getFirst();
+        String subtitleText = selectedItems.size() == 1
+                ? "Selected file: " + firstItem.getName()
+                : "Selected files: " + selectedItems.size();
+        Label subtitle = new Label(subtitleText);
         subtitle.setWrapText(true);
 
         ToggleGroup modeGroup = new ToggleGroup();
@@ -4638,11 +4649,16 @@ public class Commander {
         valueCol.setHgrow(Priority.ALWAYS);
         metadataGrid.getColumnConstraints().addAll(labelCol, valueCol);
 
-        long sizeBytes = selectedItem.getSizeInBytes();
+        long sizeBytes = selectedItems.stream()
+                .mapToLong(FileItem::getSizeInBytes)
+                .sum();
         String sizeText = sizeBytes > 0 ? humanSize(sizeBytes) : "Unknown";
-        addMetadataRow(metadataGrid, 0, "Path:", selectedItem.getFullPath());
+        addMetadataRow(metadataGrid, 0, "Path:", firstItem.getFullPath());
         addMetadataRow(metadataGrid, 1, "Size:", sizeText);
-        addMetadataRow(metadataGrid, 2, "Modified:", selectedItem.getDate());
+        addMetadataRow(metadataGrid, 2, "Modified:", firstItem.getDate());
+        if (selectedItems.size() > 1) {
+            addMetadataRow(metadataGrid, 3, "Selection:", selectedItems.size() + " files");
+        }
 
         ToggleGroup compressionGroup = new ToggleGroup();
         RadioButton good = new RadioButton("Good compression (-9)");
@@ -4730,7 +4746,7 @@ public class Commander {
         return ExecutableCompressionProfile.GOOD;
     }
 
-    private List<String> buildExecutableCompressionCommand(Path upxPath, ExecutableCompressionRequest request, File file) {
+    private List<String> buildExecutableCompressionCommand(Path upxPath, ExecutableCompressionRequest request, List<File> files) {
         List<String> command = new ArrayList<>();
         command.add(upxPath.toString());
         if (request.mode() == ExecutableCompressionMode.DECOMPRESS) {
@@ -4738,16 +4754,21 @@ public class Commander {
         } else {
             command.add(request.profile().flag());
         }
-        command.add(file.getAbsolutePath());
+        for (File file : files) {
+            command.add(file.getAbsolutePath());
+        }
         return command;
     }
 
-    private void showExecutableCompressionResult(File file, long sizeBefore) {
-        long sizeAfter = file == null ? 0 : file.length();
+    private void showExecutableCompressionResult(List<File> files, long sizeBefore) {
+        long sizeAfter = files == null ? 0 : files.stream().mapToLong(File::length).sum();
         String beforeText = sizeBefore > 0 ? humanSize(sizeBefore) : "Unknown";
         String afterText = sizeAfter > 0 ? humanSize(sizeAfter) : "Unknown";
         String percentText = formatPercentChange(sizeBefore, sizeAfter);
-        String message = "Size before: " + beforeText
+        int count = files == null ? 0 : files.size();
+        String message = "Files: " + count
+                + System.lineSeparator()
+                + "Size before: " + beforeText
                 + System.lineSeparator()
                 + "Size after: " + afterText
                 + System.lineSeparator()
@@ -4782,14 +4803,14 @@ public class Commander {
         grid.add(value, 1, row);
     }
 
-    private void handleExecutableCompressionFailure(File file, List<String> command, Throwable throwable) {
+    private void handleExecutableCompressionFailure(List<File> files, List<String> command, Throwable throwable) {
         Throwable root = unwrapCompletionException(throwable);
         if (root instanceof ExternalCommandException ex) {
             String outputTail = ex.getOutputTail();
             String reason = describeUpxFailure(outputTail);
             logger.error(
-                    "Executable compression failed. file={} exitCode={} command={} reason={} outputTail={}",
-                    file == null ? "<null>" : file.getAbsolutePath(),
+                    "Executable compression failed. files={} exitCode={} command={} reason={} outputTail={}",
+                    files == null ? "<null>" : files.size(),
                     ex.getExitCode(),
                     ex.getCommand(),
                     reason,
@@ -4800,8 +4821,8 @@ public class Commander {
         }
 
         logger.error(
-                "Executable compression failed. file={} command={}",
-                file == null ? "<null>" : file.getAbsolutePath(),
+                "Executable compression failed. files={} command={}",
+                files == null ? "<null>" : files.size(),
                 command == null ? "<null>" : String.join(" ", command),
                 root
         );

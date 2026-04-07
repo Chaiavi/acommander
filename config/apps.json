@@ -444,7 +444,7 @@
       "label": "Compress Executable",
       "aliases": ["compress exe", "upx", "upx compress", "pack exe"],
       "contexts": ["commandPalette"],
-      "selection": "singleFile",
+      "selection": "singleOrMultipleFiles",
       "type": "builtin"
     },
     {
