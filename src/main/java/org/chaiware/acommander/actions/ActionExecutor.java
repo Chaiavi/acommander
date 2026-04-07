@@ -154,6 +154,7 @@ public class ActionExecutor {
             case "convertAudioFiles" -> commander.convertAudioFiles();
             case "checksumFile" -> commander.checksumFile();
             case "checksumFolderContents" -> commander.checksumFolderContents();
+            case "analyzeFile" -> commander.analyzeFile();
             case "unpack" -> commander.unpackFile();
             case "extractAll" -> commander.extractAll();
             case "mergePdf" -> commander.mergePDFFiles();

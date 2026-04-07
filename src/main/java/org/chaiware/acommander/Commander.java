@@ -3427,6 +3427,227 @@ public class Commander {
         return candidate;
     }
 
+    public void analyzeFile() {
+        logger.info("Analyze File");
+        List<FileItem> selectedItems = commands.filterValidItems(new ArrayList<>(filesPanesHelper.getSelectedItems()));
+        if (selectedItems.size() != 1) {
+            logger.warn("Analyze File requires exactly one selected file, but got {}", selectedItems.size());
+            showError("Analyze File", "Select exactly one file.");
+            requestFocusedFileListFocus();
+            return;
+        }
+
+        FileItem selectedItem = selectedItems.getFirst();
+        if (selectedItem.isDirectory()) {
+            logger.warn("Analyze File rejected directory selection: {}", selectedItem.getFullPath());
+            showError("Analyze File", "The selected item is a folder. Please select a single file.");
+            requestFocusedFileListFocus();
+            return;
+        }
+        Path selectedPath = Paths.get(selectedItem.getFullPath());
+        if (!Files.isRegularFile(selectedPath)) {
+            logger.error("Analyze File selected path is not a regular file: {}", selectedPath);
+            showError("Analyze File", "Selected file does not exist: " + selectedPath);
+            requestFocusedFileListFocus();
+            return;
+        }
+
+        Path fileToolPath = Paths.get(System.getProperty("user.dir"), "apps", "file_analysis", "file.exe");
+        if (!Files.isRegularFile(fileToolPath)) {
+            logger.error("Analyze File tool was not found: {}", fileToolPath);
+            showError("Analyze File", "file executable was not found at: " + fileToolPath);
+            requestFocusedFileListFocus();
+            return;
+        }
+
+        Path magicPath = Paths.get(System.getProperty("user.dir"), "apps", "file_analysis", "magic.mgc");
+        List<String> command = buildAnalyzeFileCommand(fileToolPath, magicPath, selectedItem.getFullPath());
+        logger.debug("Analyze File command: {}", command);
+
+        runExternal(command, false)
+                .thenAccept(output -> {
+                    logger.debug("Analyze File raw output lines: {}", output == null ? 0 : output.size());
+                    String resultText = sanitizeFileAnalysisOutput(output, selectedItem);
+                    if (isFileAnalysisFailure(resultText)) {
+                        logger.error("Analyze File primary attempt failed for {}: {}", selectedItem.getFullPath(), resultText);
+                        if (containsNonAscii(selectedItem.getFullPath())) {
+                            runAnalyzeFileFallbackForNonAsciiPath(selectedItem, fileToolPath, magicPath, resultText);
+                            return;
+                        }
+                        Platform.runLater(() -> {
+                            showError("Analyze File", resultText);
+                            requestFocusedFileListFocus();
+                        });
+                        return;
+                    }
+                    if (resultText.isBlank()) {
+                        logger.warn("Analyze File returned empty output for {}", selectedItem.getFullPath());
+                        Platform.runLater(() -> {
+                            showError("Analyze File", "No analysis output was returned by file.");
+                            requestFocusedFileListFocus();
+                        });
+                        return;
+                    }
+                    logger.info("Analyze File response for {}: {}", selectedItem.getFullPath(), resultText);
+                    logger.info("Analyze File completed for {}", selectedItem.getFullPath());
+                    Platform.runLater(() -> {
+                        showInfo("Analyze File", resultText);
+                        requestFocusedFileListFocus();
+                    });
+                })
+                .exceptionally(throwable -> {
+                    logger.error("Analyze File failed for {}", selectedItem.getFullPath(), throwable);
+                    Platform.runLater(() -> {
+                        showError("Analyze File", "Failed running file analysis: " + throwable.getMessage());
+                        requestFocusedFileListFocus();
+                    });
+                    return null;
+                });
+    }
+
+    private List<String> buildAnalyzeFileCommand(Path fileToolPath, Path magicPath, String targetPath) {
+        List<String> command = new ArrayList<>();
+        command.add(fileToolPath.toString());
+        command.add("-b");
+        command.add("-k");
+        command.add("-z");
+        if (Files.isRegularFile(magicPath)) {
+            command.add("-m");
+            command.add(magicPath.toString());
+        }
+        command.add(targetPath);
+        return command;
+    }
+
+    private void runAnalyzeFileFallbackForNonAsciiPath(
+            FileItem selectedItem,
+            Path fileToolPath,
+            Path magicPath,
+            String primaryFailureText
+    ) {
+        Path stagedFile = null;
+        try {
+            stagedFile = stageFileForAsciiAnalysis(selectedItem);
+        } catch (Exception ex) {
+            logger.error("Analyze File fallback staging failed for {}", selectedItem.getFullPath(), ex);
+            Path finalStagedFile = stagedFile;
+            Platform.runLater(() -> {
+                showError("Analyze File", primaryFailureText);
+                requestFocusedFileListFocus();
+            });
+            deleteStagedAnalysisFile(finalStagedFile);
+            return;
+        }
+
+        Path finalStagedFile = stagedFile;
+        List<String> fallbackCommand = buildAnalyzeFileCommand(fileToolPath, magicPath, finalStagedFile.toString());
+        logger.debug("Analyze File fallback command: {}", fallbackCommand);
+        runExternal(fallbackCommand, false)
+                .thenAccept(fallbackOutput -> {
+                    try {
+                        String fallbackText = sanitizeFileAnalysisOutput(fallbackOutput, new FileItem(finalStagedFile.toFile()));
+                        if (isFileAnalysisFailure(fallbackText) || fallbackText.isBlank()) {
+                            logger.error(
+                                    "Analyze File fallback failed for {} using {}: {}",
+                                    selectedItem.getFullPath(),
+                                    finalStagedFile,
+                                    fallbackText
+                            );
+                            Platform.runLater(() -> {
+                                showError("Analyze File", primaryFailureText);
+                                requestFocusedFileListFocus();
+                            });
+                            return;
+                        }
+                        logger.info("Analyze File fallback succeeded for {}", selectedItem.getFullPath());
+                        logger.info("Analyze File response for {}: {}", selectedItem.getFullPath(), fallbackText);
+                        logger.info("Analyze File completed for {}", selectedItem.getFullPath());
+                        Platform.runLater(() -> {
+                            showInfo("Analyze File", fallbackText);
+                            requestFocusedFileListFocus();
+                        });
+                    } finally {
+                        deleteStagedAnalysisFile(finalStagedFile);
+                    }
+                })
+                .exceptionally(throwable -> {
+                    try {
+                        logger.error("Analyze File fallback execution failed for {}", selectedItem.getFullPath(), throwable);
+                        Platform.runLater(() -> {
+                            showError("Analyze File", primaryFailureText);
+                            requestFocusedFileListFocus();
+                        });
+                    } finally {
+                        deleteStagedAnalysisFile(finalStagedFile);
+                    }
+                    return null;
+                });
+    }
+
+    private Path stageFileForAsciiAnalysis(FileItem selectedItem) throws IOException {
+        String originalName = selectedItem.getName();
+        String extension = "";
+        int dot = originalName.lastIndexOf('.');
+        if (dot >= 0 && dot < originalName.length() - 1) {
+            String extPart = originalName.substring(dot + 1).replaceAll("[^A-Za-z0-9]", "");
+            if (!extPart.isEmpty()) {
+                extension = "." + extPart.toLowerCase(Locale.ROOT);
+            }
+        }
+        Path stagedFile = Files.createTempFile("acommander_file_analysis_", extension);
+        Files.copy(Paths.get(selectedItem.getFullPath()), stagedFile, StandardCopyOption.REPLACE_EXISTING);
+        logger.debug("Analyze File staged unicode path to temporary file: {}", stagedFile);
+        return stagedFile;
+    }
+
+    private void deleteStagedAnalysisFile(Path stagedFile) {
+        if (stagedFile == null) {
+            return;
+        }
+        try {
+            Files.deleteIfExists(stagedFile);
+        } catch (IOException ex) {
+            logger.warn("Analyze File failed to delete staged temp file: {}", stagedFile, ex);
+        }
+    }
+
+    private boolean isFileAnalysisFailure(String text) {
+        if (text == null) {
+            return true;
+        }
+        String normalized = text.trim().toLowerCase(Locale.ROOT);
+        if (normalized.isBlank()) {
+            return true;
+        }
+        return normalized.contains("cannot open")
+                || normalized.contains("no such file or directory")
+                || normalized.startsWith("error:")
+                || normalized.contains("failed");
+    }
+
+    private String sanitizeFileAnalysisOutput(List<String> output, FileItem selectedItem) {
+        if (output == null || output.isEmpty()) {
+            return "";
+        }
+        String fullPath = selectedItem == null ? "" : selectedItem.getFullPath();
+        String fileName = selectedItem == null ? "" : selectedItem.getName();
+        List<String> cleaned = output.stream()
+                .filter(line -> line != null && !line.isBlank())
+                .map(String::trim)
+                .map(line -> {
+                    if (!fullPath.isEmpty() && line.startsWith(fullPath + ":")) {
+                        return line.substring(fullPath.length() + 1).trim();
+                    }
+                    if (!fileName.isEmpty() && line.startsWith(fileName + ":")) {
+                        return line.substring(fileName.length() + 1).trim();
+                    }
+                    return line;
+                })
+                .filter(line -> !line.isBlank())
+                .toList();
+        return String.join(System.lineSeparator(), cleaned).trim();
+    }
+
     public void checksumFile() {
         logger.info("Checksum File");
         List<FileItem> selectedItems = commands.filterValidItems(new ArrayList<>(filesPanesHelper.getSelectedItems()));

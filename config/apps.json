@@ -339,6 +339,23 @@
       "type": "builtin"
     },
     {
+      "id": "analyzeFile",
+      "label": "Analyze File",
+      "aliases": [
+        "inspect file",
+        "file analysis",
+        "analyze",
+        "inspect",
+        "file type",
+        "magic"
+      ],
+      "contexts": [
+        "commandPalette"
+      ],
+      "selection": "singleFile",
+      "type": "builtin"
+    },
+    {
       "id": "unpack",
       "label": "Unpack",
       "shortcut": "F12",
