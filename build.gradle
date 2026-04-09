@@ -172,6 +172,11 @@ tasks.named('startScripts') {
 
 tasks.named('test') {
     useJUnitPlatform()
+    testLogging {
+        events 'passed', 'failed', 'skipped'
+        exceptionFormat 'full'
+        showStandardStreams = true
+    }
 }
 
 // IntelliJ injects temporary debugger init scripts (ijJvmDebugger*.gradle) for Gradle `run`.
