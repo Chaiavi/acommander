@@ -28,6 +28,7 @@ A Commander keeps file operations fast and keyboard-driven, and offloads special
 
 ## 📑 Table of Contents
 
+- [What's New in v4.5](#-whats-new-in-v45)
 - [What's New in v4.0](#-whats-new-in-v40)
 - [Core Features](#-core-features)
 - [File Operations](#-file-operations)
@@ -41,6 +42,30 @@ A Commander keeps file operations fast and keyboard-driven, and offloads special
 - [Build & Run](#-build--run)
 - [Project Layout](#-project-layout)
 - [License](#-license)
+
+---
+
+## 🆕 What's New in v4.5
+
+v4.5 is a quality-focused update that adds small but practical workflow features and fixes a set of day-to-day issues.
+
+### New Features & Enhancements
+
+- **Open hosts file** — open the Windows hosts file directly from the Command Palette
+- **Report Bug / Contact** — quickly open a bug/contact flow from inside the app
+- **Analyze File** — identify file type/content details for a single selected file
+- **Extract PDF Pages (upgraded)** — interactive extraction modes with page expressions (`,`, `:`, `-`) and chunking
+  options
+- **Natural numeric sort** — filename sorting now treats numbers naturally (`... 9, 10 ...`)
+
+### Bug Fixes
+
+- Fixed Ant Renamer not opening/showing correctly
+- Fixed multi-file move reliability
+- Fixed PDF merge failures
+- Fixed PDF page extraction failures
+- Fixed Hebrew rename caret/navigation behavior with arrow keys
+- Improved post-move focus to stay on the next item in the source pane
 
 ---
 
@@ -169,7 +194,7 @@ directories.
 | Category     | Actions                                                                                                                                                           |
 |--------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | **Archive**  | Pack to zip (`F11`) via 7-Zip GUI · Unpack (`F12`) via 7-Zip GUI · Extract anything (`Alt+F12`) via Universal Extractor · Split large file (`Alt+F11`) via 7z CLI |
-| **PDF**      | Merge PDF files · Extract PDF pages                                                                                                                               |
+| **PDF**      | Merge PDF files · Extract PDF pages (all pages, specific pages/ranges, pages-per-output chunking)                                                                 |
 | **Convert**  | Media conversion (`Alt+F5`) auto-routes to image or audio · Graphics via `caesiumclt.exe` · Audio via `sndfile-convert.exe`                                       |
 | **Checksum** | Single file or recursive folder checksum via `rhash.exe`                                                                                                          |
 | **UPX**      | Compress/decompress EXE and DLL files via `upx.exe`                                                                                                               |
