@@ -18,6 +18,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.stream.Collectors;
 
@@ -956,7 +957,24 @@ public class CommandsAdvancedImpl extends ACommands {
             final String finalLocalDestPath = localDestPath;
             final PdfExtractOptions finalOptions = effectiveOptions;
 
-            runExecutable(command, false).thenRun(() -> {
+            CompletableFuture<Void> extractFuture = runExecutable(command, false)
+                    .handle((ignored, ex) -> {
+                        if (ex == null) {
+                            return null;
+                        }
+                        Throwable cause = ex instanceof CompletionException && ex.getCause() != null
+                                ? ex.getCause()
+                                : ex;
+                        log.warn(
+                                "pdftk burst failed for '{}', falling back to page-by-page extraction",
+                                fileItem.getName(),
+                                cause
+                        );
+                        extractPdfPagesWithCat(action, asciiInputPdf, finalExtractionWorkDir, totalPages);
+                        return null;
+                    });
+
+            extractFuture.thenRun(() -> {
                 try {
                     Path effectiveDestDir = finalUploadRequired && finalTempDestDir != null
                             ? finalTempDestDir.toPath()
@@ -1007,6 +1025,20 @@ public class CommandsAdvancedImpl extends ACommands {
             throw e;
         } catch (Exception e) {
             log.error("Failed to extract PDF pages", e);
+        }
+    }
+
+    private void extractPdfPagesWithCat(ActionDefinition extractAction, Path asciiInputPdf, Path extractionWorkDir, int totalPages) {
+        for (int pageNumber = 1; pageNumber <= totalPages; pageNumber++) {
+            String outputPath = extractionWorkDir.resolve(String.format("page_%04d.pdf", pageNumber)).toString();
+            List<String> catCommand = ToolCommandBuilder.buildCommand(
+                    extractAction.getPath(),
+                    List.of("${selectedFile}", "cat", String.valueOf(pageNumber), "output", "${outputPdf}"),
+                    fileListsLoader,
+                    Map.of("${outputPdf}", outputPath),
+                    List.of(asciiInputPdf.toString())
+            );
+            runExecutable(catCommand, false).join();
         }
     }
 
