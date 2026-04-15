@@ -59,4 +59,11 @@ class FileItemTest {
 
         Assertions.assertThat(parent.toString()).isEqualTo("..");
     }
+
+    @Test
+    void malformedPathDateIsBlank() {
+        FileItem malformed = new FileItem(new java.io.File("E:\\DCIM\\102NCD90\\J*??bad"));
+
+        Assertions.assertThat(malformed.getDate()).isEqualTo("");
+    }
 }

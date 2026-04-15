@@ -4,8 +4,6 @@ import lombok.EqualsAndHashCode;
 import lombok.Getter;
 
 import java.io.File;
-import java.io.IOException;
-import java.nio.file.Files;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
@@ -77,23 +75,28 @@ public class FileItem {
     }
 
     public String getDate() {
-        try {
-            if (getPresentableFilename().equals("..")) return "";
+        if ("..".equals(getPresentableFilename())) return "";
 
-            Instant instant;
+        try {
+            long modifiedMillis;
             if (lastModified != null) {
-                instant = Instant.ofEpochMilli(lastModified);
+                modifiedMillis = lastModified;
             } else if (file != null) {
-                instant = Files.getLastModifiedTime(file.toPath()).toInstant();
+                // Avoid Path parsing here: corrupted/bad media can surface names that are invalid on Windows.
+                modifiedMillis = file.lastModified();
             } else {
                 return "";
             }
-            
-            LocalDateTime ldt = instant.atZone(ZoneId.systemDefault()).toLocalDateTime();
 
+            if (modifiedMillis <= 0) {
+                return "";
+            }
+
+            Instant instant = Instant.ofEpochMilli(modifiedMillis);
+            LocalDateTime ldt = instant.atZone(ZoneId.systemDefault()).toLocalDateTime();
             return ldt.format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm"));
-        } catch (IOException e) {
-            return "Buggy Date";
+        } catch (RuntimeException e) {
+            return "";
         }
     }
 

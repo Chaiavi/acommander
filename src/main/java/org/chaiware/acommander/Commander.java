@@ -47,10 +47,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.nio.file.StandardCopyOption;
+import java.nio.file.*;
 import java.security.DigestInputStream;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -885,7 +882,12 @@ public class Commander {
         if (marks == null || marks.isEmpty()) {
             return;
         }
-        String key = normalizePathKey(item.getFile().toPath());
+        String key;
+        try {
+            key = normalizePathKey(item.getFile().toPath());
+        } catch (InvalidPathException | SecurityException e) {
+            return;
+        }
         FolderCompareMark mark = marks.get(key);
         if (mark == null) {
             return;
