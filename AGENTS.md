@@ -3,31 +3,48 @@
 ## Build Commands
 
 - **Build & test**: `.\gradlew.bat build`
-- **Single test class**: `.\gradlew.bat test --tests "org.chaiware.acommander.model.FileItemTest"`
 - **Run app**: `.\gradlew.bat run`
+- **Build fat JAR**: `.\gradlew.bat shadowJar`
+- **Create distribution** (EXE + runtime + apps + config + zip): `.\gradlew.bat dist`
+- **Single test class**: `.\gradlew.bat test --tests "org.chaiware.acommander.model.FileItemTest"`
 
-## Adding New Features
+**Output locations**: `build/libs/` (JAR), `build/launch4j/` (EXE), `dist/` (distribution)
 
-### Adding a Builtin Action (Command Palette)
+**JVM args**: `--enable-native-access=javafx.graphics` (required for JavaFX)
 
-1. Add action to `config/apps.json` with `type: "builtin"` and appropriate `contexts` (e.g., `"global"`,
-   `"commandPalette"`)
-2. Add case in `ActionExecutor.java:executeBuiltin()` to call a new method in `Commander.java`
+**Main class**: `org.chaiware.acommander.Launcher`
+
+## Adding Features
+
+### Builtin Action (Command Palette)
+
+1. Add action to `config/apps.json` with `type: "builtin"` and `contexts` (e.g., `"global"`, `"commandPalette"`)
+2. Add case in `ActionExecutor.java:executeBuiltin()` calling a method in `Commander.java`
 3. Implement the method in `Commander.java`
 
-### Adding an External Tool
+### External Tool
 
-1. Add configuration to `config/apps.json` with `type: "external"` and `path` to the executable
-2. Place tool in `apps/` directory or reference existing installation
-3. Use placeholders like `${selectedFile}`, `${targetFolder}` for arguments
+1. Add config to `config/apps.json` with `type: "external"` and `path`
+2. Place tool in `apps/` directory or reference installed path
+3. Use placeholders: `${selectedFile}`, `${targetFolder}`, `${selectedFiles}`, `${selectedName}`
 
 ## Common Patterns
 
-- **Admin elevation**: Use `Start-Process -Verb RunAs` via PowerShell for elevated operations
-- **File existence check**: Use `new File(path).exists() && new File(path).isFile()`
-- **Get app config**: Use `appRegistry.findAction("actionId")` to retrieve action definitions
+- **Admin elevation**: `Start-Process -Verb RunAs` via PowerShell
+- **File existence check**: `new File(path).exists() && new File(path).isFile()`
+- **Get action config**: `appRegistry.findAction("actionId")`
 
 ## IntelliJ Notes
 
-- After clean build, if debugger errors occur: **File → Invalidate Caches → Invalidate and Restart**
-- LSP errors in `Commander.java` (e.g., "getPath() undefined for Folder") are false positives - build succeeds
+- After clean build, debugger errors: **File → Invalidate Caches → Invalidate and Restart**
+- LSP errors in `Commander.java` (e.g., "getPath() undefined for Folder") are false positives — build succeeds
+- Gradle `run` task is incompatible with configuration cache due to IntelliJ debugger init scripts
+
+## After Completing Work
+
+After finishing a task, review what you did and consider:
+- **Create a new skill**: If similar tasks recur and have reusable steps/warnings
+- **Add to `AGENTS.md`**: If only a command, pattern, or fact — keep it simple
+- **Do nothing**: If it was a one-off or already in docs/skills
+
+Never create an agent or skill just "for future" without a specific use case.
