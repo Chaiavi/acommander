@@ -106,12 +106,12 @@ Rechecked after Phase 2. Dropped the `UiFeedback` and `CommanderContext` interfa
 `Commander` show the error, and a narrow context can't cover `ActionExecutor.handler` (~60 `Commander` methods) or
 `FilePaneKeyHandlerImpl` (12).
 
-- [ ] 3.1 Tool paths. `helpers/AppPaths` (app root = `user.dir`, `config/`, `apps/`) and a `tools` map in
-  `apps.json` read by `ToolLocator.path(name)`, which fails with a clear message when a tool is missing. Replace the
-  ~20 hard-coded paths: 14 `Paths.get(user.dir, "apps", ...)` in `Commander`, the relative `"apps/..."` exe paths
-  (Commander metadata removers; `EXIV2_PATH` / `ID3_PATH` / `ATOMIC_PARSLEY_PATH` in the dialogs),
-  `ArchiveManager.SEVEN_Z_PATH`, `FtpFileSystem.curlPath`, `ACommands.APP_PATH`; `ToolCommandBuilder` resolves
-  through `AppPaths`. Test: every `tools` entry and every action `path` exists on disk.
+- [x] 3.1 Tool paths. Changed from the plan: no `tools` map in `apps.json` / `ToolLocator`. A `tools/BundledTool`
+  enum (compile-checked names, one list) + `helpers/AppPaths` (app root, `config(name)`, `resolve`). Replaced all
+  hard-coded paths (Commander, the 3 metadata dialogs, `ArchiveManager`, `FtpFileSystem`, `ToolCommandBuilder`),
+  deleted the unused `ACommands.APP_PATH` and the dialogs' no-op `.directory(user.dir)`. The callers' own
+  "not found" checks stay. `BundledToolTest`: every enum entry and every apps.json action `path` is on disk.
+  `ArchitectureRulesTest`: `user.dir` only in `AppPaths`, `"apps/` only in `BundledTool`.
 - [ ] 3.2 `SettingsStore` over `acommander.properties`: typed get/set + atomic save (temp file, then move) for
   left/right folder, theme, `last_selection_pattern`, bookmarks and FTP connections (absorbs the old 4.2). Password
   stays plaintext until 10.6. Test on a temp dir: round trip, and an interrupted save keeps the old file.
@@ -176,8 +176,8 @@ checksum, compare, convert, metadata).
 - [ ] 4.11 `ThemeManager` (`applyTheme`, `ThemeMode`, `applyThemeToDialog`).
 - [ ] 4.12 `ExternalProgressController` (`buildExternalCommandListener`, `show/hideOrUpdateExternalProgress`,
   `stopExternalTasks`, `runWithProgress`).
-- [ ] 4.13 `ArchitectureRulesTest`: `Commander` has no `Files.walk` / `Files.list`, `Properties` access,
-  `MessageDigest` or `"apps` tool path. (`new ProcessBuilder` is already banned everywhere by 1.7.)
+- [ ] 4.13 `ArchitectureRulesTest`: `Commander` has no `Files.walk` / `Files.list`, `Properties` access or
+  `MessageDigest`. (`new ProcessBuilder` is banned everywhere by 1.7, tool paths by 3.1.)
 
 Smoke items: Compare Folders, checksum, split, convert audio + image, remove metadata, Report Bug opens the browser,
 copy/cut/paste, type-to-filter, theme toggle, Stop button on a long copy.

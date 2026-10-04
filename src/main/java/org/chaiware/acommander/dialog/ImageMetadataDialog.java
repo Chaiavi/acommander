@@ -11,6 +11,7 @@ import javafx.stage.Window;
 import org.chaiware.acommander.Commander;
 import org.chaiware.acommander.helpers.AppTempDir;
 import org.chaiware.acommander.helpers.BackgroundTasks;
+import org.chaiware.acommander.tools.BundledTool;
 import org.chaiware.acommander.tools.ProcessRunner;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -28,7 +29,7 @@ import java.util.concurrent.CompletableFuture;
 @SuppressWarnings({"unchecked", "deprecation"})
 public class ImageMetadataDialog {
     private static final Logger logger = LoggerFactory.getLogger(ImageMetadataDialog.class);
-    private static final String EXIV2_PATH = "apps/image_metadata/exiv2.exe";
+    private static final String EXIV2_PATH = BundledTool.EXIV2.path().toString();
 
     private final Window owner;
     private final File imageFile;
@@ -453,7 +454,7 @@ public class ImageMetadataDialog {
         
         ProcessRunner.Result run;
         try {
-            run = ProcessRunner.of(command).directory(new File(System.getProperty("user.dir"))).run();
+            run = ProcessRunner.of(command).run();
         } catch (IOException e) {
             logger.error("Failed to run exiv2 process", e);
             return "ERROR: Failed to start exiv2.exe\n" + e.getMessage() +
@@ -742,7 +743,7 @@ public class ImageMetadataDialog {
 
                 ProcessRunner.Result run;
                 try {
-                    run = ProcessRunner.of(command).directory(new File(System.getProperty("user.dir"))).run();
+                    run = ProcessRunner.of(command).run();
                 } catch (IOException e) {
                     Platform.runLater(() -> showError(
                         "Failed to run exiv2.exe: " + e.getMessage(),
@@ -817,7 +818,7 @@ public class ImageMetadataDialog {
 
                 ProcessRunner.Result run;
                 try {
-                    run = ProcessRunner.of(command).directory(new File(System.getProperty("user.dir"))).run();
+                    run = ProcessRunner.of(command).run();
                 } catch (IOException e) {
                     Platform.runLater(() -> showError(
                         "Failed to run exiv2.exe: " + e.getMessage(),
@@ -898,7 +899,7 @@ public class ImageMetadataDialog {
 
                 ProcessRunner.Result run;
                 try {
-                    run = ProcessRunner.of(command).directory(new File(System.getProperty("user.dir"))).run();
+                    run = ProcessRunner.of(command).run();
                 } catch (IOException e) {
                     Platform.runLater(() -> showError(
                         "Failed to run exiv2.exe: " + e.getMessage(),

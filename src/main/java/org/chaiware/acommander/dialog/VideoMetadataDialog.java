@@ -11,6 +11,7 @@ import javafx.stage.Modality;
 import javafx.stage.Window;
 import org.chaiware.acommander.Commander;
 import org.chaiware.acommander.helpers.BackgroundTasks;
+import org.chaiware.acommander.tools.BundledTool;
 import org.chaiware.acommander.tools.ProcessRunner;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -27,7 +28,7 @@ import java.util.regex.Pattern;
  */
 public class VideoMetadataDialog {
     private static final Logger logger = LoggerFactory.getLogger(VideoMetadataDialog.class);
-    private static final String ATOMIC_PARSLEY_PATH = "apps/video_metadata/AtomicParsley.exe";
+    private static final String ATOMIC_PARSLEY_PATH = BundledTool.ATOMIC_PARSLEY.path().toString();
     private static final Pattern ATOM_TEXTDATA_PATTERN =
             Pattern.compile("^Atom\\s+\"([^\"]+)\"(?:\\s+\\[[^\\]]+\\])?\\s+contains:\\s*(.*)$");
 
@@ -349,7 +350,7 @@ public class VideoMetadataDialog {
     }
 
     private ProcessResult runCommand(List<String> command) throws IOException, InterruptedException {
-        ProcessRunner.Result run = ProcessRunner.of(command).directory(new File(System.getProperty("user.dir"))).run();
+        ProcessRunner.Result run = ProcessRunner.of(command).run();
         return new ProcessResult(run.exitCode(), run.stdoutText(), run.stderrText());
     }
 

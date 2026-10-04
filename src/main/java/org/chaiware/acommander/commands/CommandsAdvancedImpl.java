@@ -490,14 +490,6 @@ public class CommandsAdvancedImpl extends ACommands {
 
     @Override
     public void searchFiles(String sourcePath, String filenameWildcard) throws Exception {
-//        List<String> command = new ArrayList<>();
-//        command.add(APP_PATH + "search\\SearchMyFiles.exe");
-//        command.add("/StartSearch");
-//        command.add("/scomma \"%TEMP%\\1.csv\"");
-//        command.add("/BaseFolder \"" + sourcePath + "\"");
-//        command.add("/FilesWildcard " + filenameWildcard);
-//        runExecutable(command, true);
-//        log.debug("Searched for: {} under: {}", filenameWildcard, sourcePath);
         commandsSimpleImpl.searchFiles(sourcePath, filenameWildcard);
     }
 

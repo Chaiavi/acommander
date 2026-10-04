@@ -2,6 +2,7 @@ package org.chaiware.acommander.helpers;
 
 import org.chaiware.acommander.model.ArchiveMode;
 import org.chaiware.acommander.model.ArchiveSession;
+import org.chaiware.acommander.tools.BundledTool;
 import org.chaiware.acommander.tools.ProcessRunner;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -22,7 +23,7 @@ import java.util.List;
  */
 public class ArchiveManager {
     private static final Logger logger = LoggerFactory.getLogger(ArchiveManager.class);
-    private static final String SEVEN_Z_PATH = Paths.get(System.getProperty("user.dir"), "apps", "extract_all", "UniExtract", "bin", "x64", "7z.exe").toString();
+    private static final String SEVEN_Z_PATH = BundledTool.SEVEN_ZIP.path().toString();
     private static final DateTimeFormatter RECOVERY_STAMP = DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss");
     
     /**

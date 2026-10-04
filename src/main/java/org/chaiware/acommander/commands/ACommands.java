@@ -10,7 +10,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -22,7 +21,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 public abstract class ACommands {
-    protected final String APP_PATH = Paths.get(System.getProperty("user.dir"), "apps") + "\\";
     protected FilesPanesHelper fileListsLoader;
     protected ExternalCommandListener externalCommandListener;
     private final Set<Process> runningProcesses = ConcurrentHashMap.newKeySet();

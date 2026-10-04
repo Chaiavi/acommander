@@ -35,6 +35,7 @@ import org.chaiware.acommander.model.ArchiveSession;
 import org.chaiware.acommander.model.FileItem;
 import org.chaiware.acommander.model.Folder;
 import org.chaiware.acommander.palette.CommandPaletteController;
+import org.chaiware.acommander.tools.BundledTool;
 import org.chaiware.acommander.tools.ProcessRunner;
 import org.chaiware.acommander.vfs.FtpConnectionOptions;
 import org.chaiware.acommander.vfs.FtpFileSystem;
@@ -613,7 +614,7 @@ public class Commander {
     }
 
     private Path getConfigFilePath() {
-        return Paths.get(System.getProperty("user.dir"), "config", "acommander.properties");
+        return AppPaths.config("acommander.properties");
     }
 
     private String resolveInitialPath(String key) {
@@ -624,7 +625,7 @@ public class Commander {
     }
 
     private AppRegistry loadAppRegistry() {
-        Path appConfig = Paths.get(System.getProperty("user.dir"), "config", "apps.json");
+        Path appConfig = AppPaths.config("apps.json");
         try {
             return new AppRegistry(new AppConfigLoader().load(appConfig));
         } catch (IOException ex) {
@@ -1144,10 +1145,8 @@ public class Commander {
         logger.info("Help (F1)");
 
         try {
-            File helpFile = Paths.get(System.getProperty("user.dir"), "config", "f1-help.html").toFile();
             // Open help file using the internal UniversalViewer
-            String viewerPath = Paths.get(System.getProperty("user.dir"), "apps", "view", "UniversalViewer", "Viewer.exe").toString();
-            ProcessRunner.of(viewerPath, helpFile.getAbsolutePath()).launch();
+            ProcessRunner.of(BundledTool.VIEWER.path().toString(), AppPaths.config("f1-help.html").toString()).launch();
         } catch (Exception ex) {
             error("Failed Viewing help file", ex);
         }
@@ -1883,7 +1882,7 @@ public class Commander {
 
     private void runFindInFiles(FindInFilesOptions options) {
         String sourcePath = filesPanesHelper.getFocusedPath();
-        Path rgPath = Paths.get(System.getProperty("user.dir"), "apps", "search_in_files", "rg.exe");
+        Path rgPath = BundledTool.RIPGREP.path();
         if (!Files.isRegularFile(rgPath)) {
             showError("Find in Files", "Ripgrep executable was not found at: " + rgPath);
             return;
@@ -2046,15 +2045,7 @@ public class Commander {
 
             String outputFilename = buildSplitArchiveName(selectedItem.getName());
             String outputArchivePath = filesPanesHelper.getUnfocusedPath() + "\\" + outputFilename;
-            String sevenZipPath = Paths.get(
-                    System.getProperty("user.dir"),
-                    "apps",
-                    "extract_all",
-                    "UniExtract",
-                    "bin",
-                    "x64",
-                    "7z.exe"
-            ).toString();
+            String sevenZipPath = BundledTool.SEVEN_ZIP.path().toString();
 
             List<String> command = List.of(
                     sevenZipPath,
@@ -2087,7 +2078,7 @@ public class Commander {
             return;
         }
 
-        Path caesiumPath = Paths.get(System.getProperty("user.dir"), "apps", "image_convert", "caesiumclt.exe");
+        Path caesiumPath = BundledTool.CAESIUM.path();
         if (!Files.isRegularFile(caesiumPath)) {
             showError("Convert Graphics Files", "caesiumclt executable was not found at: " + caesiumPath);
             requestFocusedFileListFocus();
@@ -2479,14 +2470,14 @@ public class Commander {
             return;
         }
 
-        Path sndfileConverterPath = Paths.get(System.getProperty("user.dir"), "apps", "sound_convert", "sndfile-convert.exe");
+        Path sndfileConverterPath = BundledTool.SNDFILE_CONVERT.path();
         if (!Files.isRegularFile(sndfileConverterPath)) {
             showError("Convert Audio Files", "sndfile-convert executable was not found at: " + sndfileConverterPath);
             requestFocusedFileListFocus();
             return;
         }
-        Path faacPath = Paths.get(System.getProperty("user.dir"), "apps", "sound_convert", "faac.exe");
-        Path faadPath = Paths.get(System.getProperty("user.dir"), "apps", "sound_convert", "faad.exe");
+        Path faacPath = BundledTool.FAAC.path();
+        Path faadPath = BundledTool.FAAD.path();
 
         String outputFolder = filesPanesHelper.getUnfocusedPath();
         AudioConversionRequest options = request.get();
@@ -3040,7 +3031,7 @@ public class Commander {
     private Path createAudioStagingDirectory() throws IOException {
         List<Path> candidates = List.of(
                 AppTempDir.root(),
-                Paths.get(System.getProperty("user.dir"))
+                AppPaths.root()
         );
         for (Path candidate : candidates) {
             if (candidate == null || containsNonAscii(candidate)) {
@@ -3209,7 +3200,7 @@ public class Commander {
             return;
         }
 
-        Path fileToolPath = Paths.get(System.getProperty("user.dir"), "apps", "file_analysis", "file.exe");
+        Path fileToolPath = BundledTool.FILE.path();
         if (!Files.isRegularFile(fileToolPath)) {
             logger.error("Analyze File tool was not found: {}", fileToolPath);
             showError("Analyze File", "file executable was not found at: " + fileToolPath);
@@ -3217,7 +3208,7 @@ public class Commander {
             return;
         }
 
-        Path magicPath = Paths.get(System.getProperty("user.dir"), "apps", "file_analysis", "magic.mgc");
+        Path magicPath = BundledTool.FILE_MAGIC.path();
         List<String> command = buildAnalyzeFileCommand(fileToolPath, magicPath, selectedItem.getFullPath());
         logger.debug("Analyze File command: {}", command);
 
@@ -3427,7 +3418,7 @@ public class Commander {
             return;
         }
 
-        Path rhashPath = Paths.get(System.getProperty("user.dir"), "apps", "checksum", "rhash.exe");
+        Path rhashPath = BundledTool.RHASH.path();
         if (!Files.exists(rhashPath)) {
             showError("Checksum File", "rhash executable was not found at: " + rhashPath);
             requestFocusedFileListFocus();
@@ -3485,7 +3476,7 @@ public class Commander {
             return;
         }
 
-        Path rhashPath = Paths.get(System.getProperty("user.dir"), "apps", "checksum", "rhash.exe");
+        Path rhashPath = BundledTool.RHASH.path();
         if (!Files.exists(rhashPath)) {
             showError("Checksum Folder Contents", "rhash executable was not found at: " + rhashPath);
             requestFocusedFileListFocus();
@@ -3672,7 +3663,7 @@ public class Commander {
             return;
         }
 
-        String examDiffPath = Paths.get(System.getProperty("user.dir"), "apps", "file_compare", "ExamDiff.exe").toString();
+        String examDiffPath = BundledTool.EXAM_DIFF.path().toString();
         if (!Files.exists(Path.of(examDiffPath))) {
             showError("Compare Files", "ExamDiff executable was not found at: " + examDiffPath);
             restoreFocusToFile(lastSelectedSide, lastSelectedFile);
@@ -4131,7 +4122,7 @@ public class Commander {
             return;
         }
         removeMetadata("Remove Image Metadata", "image(s)", selectedItems,
-                file -> ProcessRunner.of("apps/image_metadata/exiv2.exe", "-d", "a", file.getAbsolutePath())
+                file -> ProcessRunner.of(BundledTool.EXIV2.path().toString(), "-d", "a", file.getAbsolutePath())
                         .mergeStderr().run().succeeded());
     }
 
@@ -4237,7 +4228,7 @@ public class Commander {
     private boolean runVideoMetadataDeleteCommand(File file) {
         Set<String> existingArtifacts = listAtomicParsleyArtifacts(file);
         List<String> command = new ArrayList<>();
-        command.add("apps/video_metadata/AtomicParsley.exe");
+        command.add(BundledTool.ATOMIC_PARSLEY.path().toString());
         command.add(file.getAbsolutePath());
         command.add("--metaEnema");
         command.add("--preserveTime");
@@ -4362,7 +4353,7 @@ public class Commander {
 
     private boolean runAudioMetadataDeleteCommand(File file, String tagVersionFlag) {
         List<String> command = new ArrayList<>();
-        command.add("apps/audio_metadata/id3.exe");
+        command.add(BundledTool.ID3.path().toString());
         command.add(tagVersionFlag);
         command.add("--delete");
         command.add(file.getAbsolutePath());
@@ -4421,7 +4412,7 @@ public class Commander {
             }
             ExecutableCompressionRequest compressionRequest = request.get();
 
-            Path upxPath = Paths.get(System.getProperty("user.dir"), "apps", "exe_compress", "upx.exe");
+            Path upxPath = BundledTool.UPX.path();
             if (!Files.exists(upxPath)) {
                 showError("Compress Executable", "Missing tool: " + upxPath);
                 return;
@@ -6948,7 +6939,7 @@ public class Commander {
 
         logger.info("Opening bug report URL: {}", url);
 
-        String curlPath = Paths.get(System.getProperty("user.dir"), "apps", "remote_connectivity", "curl.exe").toString();
+        String curlPath = BundledTool.CURL.path().toString();
         List<String> command = List.of(
                 curlPath,
                 "-s",

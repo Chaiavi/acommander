@@ -11,6 +11,7 @@ import javafx.stage.Modality;
 import javafx.stage.Window;
 import org.chaiware.acommander.Commander;
 import org.chaiware.acommander.helpers.BackgroundTasks;
+import org.chaiware.acommander.tools.BundledTool;
 import org.chaiware.acommander.tools.ProcessRunner;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -27,7 +28,7 @@ import java.util.concurrent.CompletableFuture;
  */
 public class AudioMetadataDialog {
     private static final Logger logger = LoggerFactory.getLogger(AudioMetadataDialog.class);
-    private static final String ID3_PATH = "apps/audio_metadata/id3.exe";
+    private static final String ID3_PATH = BundledTool.ID3.path().toString();
     private static final String QUERY_SEPARATOR = "\t";
     private static final List<String> QUERY_KEYS = List.of("title", "artist", "album", "track", "year", "genre", "comment");
     private static final String QUERY_FORMAT = "%t\t%a\t%l\t%n\t%y\t%g\t%c";
@@ -329,7 +330,6 @@ public class AudioMetadataDialog {
     private ProcessResult runCommand(List<String> command) throws IOException, InterruptedException {
         logger.info("Executing id3 command: {}", formatCommand(command));
         ProcessRunner.Result run = ProcessRunner.of(command)
-                .directory(new File(System.getProperty("user.dir")))
                 .charset(id3IoCharset)
                 .run();
         String stdout = run.stdoutText();

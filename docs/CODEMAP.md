@@ -205,6 +205,7 @@ Other dialogs are built inline in `Commander` (`prompt*` methods).
 | `FileHelper` | `isTextFile` sniffing; `folderSize` (skips unreadable entries); `copyTree`; `deleteQuietly` (best-effort temp tree delete). |
 | `BackgroundTasks` | The one background executor (virtual threads): `run`, `supply`. Never use `CompletableFuture.runAsync` without it. |
 | `AppTempDir` | Every temp file/folder goes under `%TEMP%/acommander-<pid>`: `createTempFile`, `createTempDirectory`. Deleted on exit; `deleteStaleRoots` (run at startup by `Main`) removes roots of dead runs. |
+| `AppPaths` | The app root (`user.dir`), `config(name)`, `resolve(relative)`. The only reader of `user.dir`. |
 | `AppVersion` | Running version from `app-version.properties`, which the build fills from `appVersion` in `build.gradle`. |
 | `ImageConversionSupport`, `AudioConversionSupport` | Which files convert, target formats. |
 | `ImageMetadataSupport`, `VideoMetadataSupport`, `AudioMetadataSupport` | Which files the metadata editors accept. |
@@ -237,7 +238,8 @@ Other dialogs are built inline in `Commander` (`prompt*` methods).
 ### `tools/`
 | File | Role |
 |---|---|
-| `ToolCommandBuilder` | Expands `${...}` placeholders in apps.json `args`; resolves `path` against `user.dir`. |
+| `ToolCommandBuilder` | Expands `${...}` placeholders in apps.json `args`; resolves `path` with `AppPaths`. |
+| `BundledTool` | Every tool under `apps/` the code runs directly (7z, curl, exiv2, rg, rhash, …) → `path()`. Tools of apps.json actions are listed there instead. `BundledToolTest` checks both lists are on disk. |
 | `ProcessRunner` | The one way to start a process: `run()` drains stdout/stderr (merged or apart) and returns `Result`; `launch()` for GUI tools; `trackIn` for the Stop button. |
 
 ### `vfs/` — pane file systems
@@ -270,7 +272,7 @@ Under `src/test/java/org/chaiware/acommander/`, same package as the class tested
 
 `actions/` ActionMatcher, ActionPriorityEngine, ActionRegistry, BuiltinAction, ActionRulesSnapshot (FTP / read-only / palette
 rules per action vs `src/test/resources/action-rules-snapshot.txt`) · `commands/` CommandsAdvancedImpl, CommandsSimpleImpl,
-PackVfs · `config/` ActionScope, AppConfigLoader, AppRegistryShortcutMatching · `helpers/` AppTempDir, ArchiveManager, AudioConversionSupport,
+PackVfs, ReportFailure · `config/` ActionScope, AppConfigLoader, AppRegistryShortcutMatching · `helpers/` AppTempDir, AppVersion, ArchiveManager, AudioConversionSupport,
 BugReportUrl, FileAttributesHelper, FileHelper, FilesPanesHelperNaturalSort, ImageConversionSupport · `model/` ArchiveMode,
-FileItem · `tools/` ToolCommandBuilder, ProcessRunner · `vfs/` FtpFileSystem · root: ArchitectureRules (process / background / temp-file rules), CommanderCopy, `CodeMapTest` (fails when a main
+FileItem · `tools/` BundledTool, ToolCommandBuilder, ProcessRunner · `vfs/` FtpFileSystem · root: ArchitectureRules (process / background / temp-file / app-path / version / fire-and-forget rules), CommanderCopy, `CodeMapTest` (fails when a main
 class or an apps.json action is missing from this file).

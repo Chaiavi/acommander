@@ -129,6 +129,10 @@ All actions and external tools live in `config/apps.json`; shortcuts are declare
 - Start processes with `tools/ProcessRunner`, run background work with `helpers/BackgroundTasks`, create temp files
   with `helpers/AppTempDir`. `ArchitectureRulesTest` fails the build on `new ProcessBuilder`,
   `CompletableFuture.runAsync`, `deleteOnExit` or a temp file in the default temp dir anywhere else.
+- A tool under `apps/` that Java runs directly is a `tools/BundledTool` entry; other app files come from
+  `helpers/AppPaths`. `ArchitectureRulesTest` fails on `"user.dir"` or an `"apps/` literal anywhere else.
+- A tool run nobody waits on goes through `ACommands.reportFailure` (or `Commander.runExternalReported`), or its
+  failure is only logged. `ArchitectureRulesTest` fails on a bare `runExecutable(...);` / `runExternal(...);`.
 - New storage types implement `VFileSystem` and are wired through `VfsManager`.
 - Metadata editing: `*MetadataSupport` runs the external tool, `*MetadataDialog` collects input; refresh the pane after.
 - Admin elevation: PowerShell `Start-Process -Verb RunAs`.

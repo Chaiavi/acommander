@@ -1,9 +1,9 @@
 package org.chaiware.acommander.tools;
 
+import org.chaiware.acommander.helpers.AppPaths;
 import org.chaiware.acommander.helpers.FilesPanesHelper;
 import org.chaiware.acommander.model.FileItem;
 
-import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -81,11 +81,7 @@ public class ToolCommandBuilder {
         if (isBuiltinCommand(path)) {
             return path;
         }
-        Path resolved = Paths.get(path);
-        if (resolved.isAbsolute()) {
-            return resolved.toString();
-        }
-        return Paths.get(System.getProperty("user.dir"), path).toString();
+        return AppPaths.resolve(path).toString();
     }
 
     private static String replacePlaceholders(String template, Map<String, String> values) {

@@ -5,6 +5,7 @@ import org.chaiware.acommander.helpers.AppTempDir;
 import org.chaiware.acommander.helpers.ArchiveManager;
 import org.chaiware.acommander.model.ArchiveSession;
 import org.chaiware.acommander.model.FileItem;
+import org.chaiware.acommander.tools.BundledTool;
 import org.chaiware.acommander.tools.ProcessRunner;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -13,7 +14,6 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
@@ -83,7 +83,7 @@ public class FtpFileSystem implements VFileSystem {
 
     public FtpFileSystem(FtpConnectionOptions options) {
         this.options = options;
-        this.curlPath = Paths.get(System.getProperty("user.dir"), "apps", "remote_connectivity", "curl.exe").toString();
+        this.curlPath = BundledTool.CURL.path().toString();
     }
 
     /**

@@ -42,6 +42,15 @@ class ArchitectureRulesTest {
     }
 
     @Test
+    void appFilesAreFoundThroughAppPaths() throws IOException {
+        assertThat(violations("user\\.dir\"", "AppPaths.java"))
+                .as("resolve config/ and apps/ files with helpers/AppPaths").isEmpty();
+        assertThat(violations("\"apps[/\\\\\"]", "BundledTool.java"))
+                .as("add a tool the code runs directly to tools/BundledTool; its test checks the file is shipped")
+                .isEmpty();
+    }
+
+    @Test
     void toolRunsAreNeverFireAndForget() throws IOException {
         assertThat(violations("^\\s*(runExecutable|runExternal)\\((?:[^()]|\\([^()]*\\))*\\);\\s*$", null))
                 .as("a dropped tool future hides its failure; wrap it in reportFailure or use runExternalReported")
