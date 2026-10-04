@@ -98,7 +98,7 @@ public class ArchiveManager {
         IOException lastError = null;
         for (Path target : targets) {
             try {
-                FileHelper.copyTree(tempFolder, target);
+                FileHelper.copyTree(tempFolder, target, java.nio.file.StandardCopyOption.COPY_ATTRIBUTES);
                 logger.warn("Repack failed; edited files copied to {}", target);
                 return target;
             } catch (IOException e) {

@@ -1,6 +1,7 @@
 package org.chaiware.acommander.vfs;
 
 import org.chaiware.acommander.helpers.ArchiveManager;
+import org.chaiware.acommander.helpers.FileHelper;
 import org.chaiware.acommander.helpers.FilesPanesHelper;
 import org.chaiware.acommander.model.ArchiveMode;
 import org.chaiware.acommander.model.ArchiveSession;
@@ -118,7 +119,7 @@ public class ArchiveFileSystem implements VFileSystem {
         if (targetFs instanceof ArchiveFileSystem targetArchiveFs && targetArchiveFs.session.getTempFolder().equals(this.session.getTempFolder())) {
             Path target = session.getTempFolder().resolve(targetInternalPath);
             if (Files.isDirectory(source)) {
-                copyDirectory(source, target);
+                FileHelper.copyTree(source, target, StandardCopyOption.REPLACE_EXISTING);
             } else {
                 Files.copy(source, target, StandardCopyOption.REPLACE_EXISTING);
             }
@@ -126,14 +127,14 @@ public class ArchiveFileSystem implements VFileSystem {
         } else if (targetFs instanceof LocalFileSystem) {
             Path target = Paths.get(targetInternalPath);
             if (Files.isDirectory(source)) {
-                copyDirectory(source, target);
+                FileHelper.copyTree(source, target, StandardCopyOption.REPLACE_EXISTING);
             } else {
                 Files.copy(source, target, StandardCopyOption.REPLACE_EXISTING);
             }
         } else if (targetFs instanceof ArchiveFileSystem targetArchiveFs) {
             Path target = targetArchiveFs.session.getTempFolder().resolve(targetInternalPath);
             if (Files.isDirectory(source)) {
-                copyDirectory(source, target);
+                FileHelper.copyTree(source, target, StandardCopyOption.REPLACE_EXISTING);
             } else {
                 Files.copy(source, target, StandardCopyOption.REPLACE_EXISTING);
             }
@@ -145,29 +146,6 @@ public class ArchiveFileSystem implements VFileSystem {
             uploadCmd.add(source.toString());
             uploadCmd.add(targetFtpFs.getOptions().getFullUrl(targetInternalPath));
             targetFtpFs.runCurl(uploadCmd);
-        }
-    }
-
-    private void copyDirectory(Path sourceDir, Path targetDir) throws IOException {
-        try (var walk = Files.walk(sourceDir)) {
-            walk.forEach(path -> {
-                try {
-                    Path relative = sourceDir.relativize(path);
-                    Path target = targetDir.resolve(relative);
-                    if (Files.isDirectory(path)) {
-                        Files.createDirectories(target);
-                    } else {
-                        Files.copy(path, target, StandardCopyOption.REPLACE_EXISTING);
-                    }
-                } catch (IOException ex) {
-                    throw new RuntimeException(ex);
-                }
-            });
-        } catch (RuntimeException e) {
-            if (e.getCause() instanceof IOException) {
-                throw (IOException) e.getCause();
-            }
-            throw e;
         }
     }
 

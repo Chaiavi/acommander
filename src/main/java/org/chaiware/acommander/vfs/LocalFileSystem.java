@@ -1,5 +1,6 @@
 package org.chaiware.acommander.vfs;
 
+import org.chaiware.acommander.helpers.FileHelper;
 import org.chaiware.acommander.model.FileItem;
 
 import java.io.File;
@@ -93,14 +94,14 @@ public class LocalFileSystem implements VFileSystem {
         Path source = Paths.get(sourceInternalPath);
         if (targetFs instanceof LocalFileSystem) {
             if (Files.isDirectory(source)) {
-                copyDirectory(source, Paths.get(targetInternalPath));
+                FileHelper.copyTree(source, Paths.get(targetInternalPath), StandardCopyOption.REPLACE_EXISTING);
             } else {
                 Files.copy(source, Paths.get(targetInternalPath), StandardCopyOption.REPLACE_EXISTING);
             }
         } else if (targetFs instanceof ArchiveFileSystem archiveFs) {
             Path targetPathInTemp = archiveFs.getSession().getTempFolder().resolve(targetInternalPath);
             if (Files.isDirectory(source)) {
-                copyDirectory(source, targetPathInTemp);
+                FileHelper.copyTree(source, targetPathInTemp, StandardCopyOption.REPLACE_EXISTING);
             } else {
                 Files.copy(source, targetPathInTemp, StandardCopyOption.REPLACE_EXISTING);
             }
@@ -113,29 +114,6 @@ public class LocalFileSystem implements VFileSystem {
             uploadCmd.add(sourceInternalPath);
             uploadCmd.add(targetFtpFs.getOptions().getFullUrl(targetInternalPath));
             targetFtpFs.runCurl(uploadCmd);
-        }
-    }
-
-    private void copyDirectory(Path sourceDir, Path targetDir) throws IOException {
-        try (var walk = Files.walk(sourceDir)) {
-            walk.forEach(path -> {
-                try {
-                    Path relative = sourceDir.relativize(path);
-                    Path target = targetDir.resolve(relative);
-                    if (Files.isDirectory(path)) {
-                        Files.createDirectories(target);
-                    } else {
-                        Files.copy(path, target, StandardCopyOption.REPLACE_EXISTING);
-                    }
-                } catch (IOException ex) {
-                    throw new RuntimeException(ex);
-                }
-            });
-        } catch (RuntimeException e) {
-            if (e.getCause() instanceof IOException) {
-                throw (IOException) e.getCause();
-            }
-            throw e;
         }
     }
 

@@ -276,21 +276,31 @@ Smoke items: Duplicate inside a zip; edit + save + reload metadata on a copied j
 
 ## Phase 7 — Commands Layer (depends on 1, 3)
 
-Rechecked after Phase 5: all four steps still apply. 7.4 is tiny and independent; do it first.
+Rechecked after Phase 6 (gate). Order: 7.4, 7.2, then 7.1 in three commits (PDF, archive, files); 7.3 falls out of
+7.1. Changed: three services instead of six, and the runner keeps today's API (see 7.2). Found: PDF merge / extract
+failures are only logged, and a merge into an FTP or archive pane writes to the wrong place (fixed in 7.1a).
 
-- [ ] 7.1 Replace `ACommands` (374) / `CommandsAdvancedImpl` (1,122) / `CommandsSimpleImpl` (369) with `CopyMoveService`,
-  `DeleteService`, `ArchiveOps`, `PdfService`, `ShellService`, `ViewEditService`. Keep what 3.3 built: services
-  throw, copy batches name every failed item, `verifyBatchCopy` stays, `unpackWith` stays one method.
-  JavaFX still in `commands/`: `CommandsSimpleImpl.searchFiles` (`Alert` "No files found", `Platform.runLater`), a
-  `Dialog` in `CommandsSimpleImpl` (~line 308), and 5 `Platform.runLater(refreshFileListViews)` in
-  `CommandsAdvancedImpl`. Return results / take a refresh callback, so no service touches JavaFX.
-- [ ] 7.2 `ExternalToolRunner`, the process side of external runs: `runExecutable`, `reportFailure`, the Stop
-  counter, `ProcessRunner.trackIn`. Make reporting the default: `run(command, title)` reports failures itself, and
-  only `runAndWait` hands back a future. Then the `ArchitectureRulesTest` regex for a bare `runExecutable(...);` is
-  replaced by "only `ExternalToolRunner` calls `runExecutable`". `ReportFailureTest` moves with it.
+- [ ] 7.1 Replace `ACommands` (374) / `CommandsAdvancedImpl` (1,122) / `CommandsSimpleImpl` (369) with three
+  `services/` classes: (a) `PdfOperations` (merge, extract pages, page count; `parsePageExpression` tested),
+  (b) `ArchiveOperations` (pack, unpack / extract all = `unpackWith`), (c) `FileOperations` (rename, copy / move and
+  their batches, delete / wipe / unlock, new folder / file, view / edit, terminal / explorer). Keep what 3.3 built:
+  services throw, copy batches name every failed item, `verifyBatchCopy` stays, `unpackWith` stays one method.
+  No JavaFX in services: `FilesPanesHelper.refreshFileListViews` posts itself to the FX thread, so the
+  `Platform.runLater` wrappers go. Search by name (F10) runs a PowerShell command and shows its own copy of the
+  found-files dialog in `CommandsSimpleImpl`; the command moves to `tools/BundledToolCommands` and `Commander` shows
+  the existing `FoundFilesDialog`, like Find in Files. `PdfExtractOptions` moves to `services/`.
+- [ ] 7.2 Changed: `commands/ExternalToolRunner` (next to its listener and exception) owns `runExecutable`,
+  `reportFailure`, the Stop counter and `ProcessRunner.trackIn`, under the same names. Dropped "reporting by
+  default": callers chain follow-up steps (upload, verify, cleanup) whose failure must reach the user with the
+  tool's, and one `reportFailure` on the chain already does that. It takes a `Runnable` to run when a tool changed
+  files instead of `FilesPanesHelper`, so it has no JavaFX. One runner is shared: today the advanced commands and
+  their inner simple commands each have their own Stop counter and process set. `ArchitectureRulesTest` also catches
+  a qualified `runner.runExecutable(...);`. `ReportFailureTest` becomes `ExternalToolRunnerTest`.
 - [ ] 7.3 Delete the 8 "Not implemented" stubs; move tests with the code (`CommanderCopyTest` builds a
-  `CommandsSimpleImpl`).
-- [ ] 7.4 `LocalFileSystem.copyDirectory` and `ArchiveFileSystem.copyDirectory` are the same method; keep one.
+  `CommandsSimpleImpl`). Falls out of 7.1: the stubs exist only to fill the abstract class.
+- [x] 7.4 `LocalFileSystem.copyDirectory` and `ArchiveFileSystem.copyDirectory` are the same method; keep one.
+  Done: both call `FileHelper.copyTree(source, target, REPLACE_EXISTING)`; the archive recovery passes
+  `COPY_ATTRIBUTES`, as before.
 
 Smoke items: the full checklist, on local, archive and (if available) FTP panes.
 
