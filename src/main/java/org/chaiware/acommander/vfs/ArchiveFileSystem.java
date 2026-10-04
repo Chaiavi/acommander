@@ -2,7 +2,6 @@ package org.chaiware.acommander.vfs;
 
 import org.chaiware.acommander.helpers.ArchiveManager;
 import org.chaiware.acommander.helpers.FileHelper;
-import org.chaiware.acommander.helpers.FilesPanesHelper;
 import org.chaiware.acommander.model.ArchiveMode;
 import org.chaiware.acommander.model.ArchiveSession;
 import org.chaiware.acommander.model.FileItem;
@@ -62,7 +61,7 @@ public class ArchiveFileSystem implements VFileSystem {
         List<FileItem> items = new ArrayList<>();
 
         // Add ".." entry
-        items.add(new FilesPanesHelper.ArchiveParentItem(folder, "..", session));
+        items.add(new FileItem(folder, ".."));
 
         if (files != null) {
             for (File f : files) {

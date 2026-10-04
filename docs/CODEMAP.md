@@ -93,7 +93,7 @@ Adding or renaming an action id? Check each of these:
 | `compressExecutable` | `compressExecutable` | `dialog/ExecutableCompressionDialog`, `helpers/ExecutableCompressionSupport` (`UpxAction`, `upxCommand`, `percentChange`) | `exe_compress/upx.exe` |
 | `refresh` (Ctrl+R) | — | `FilesPanesHelper.refreshFileListViews` | — |
 | `selectAll` / `unselectAll` / `invertSelection` / `selectByPattern` | same names | `dialog/SelectByPatternDialog`, `FilesPanesHelper.selectAllItems` … `selectByPattern` | — |
-| `sortByName` / `sortBySize` / `sortByDate` | same names, `onSortHeaderClicked` | `FilesPanesHelper.setSort`, `compareNaturalNames` | — |
+| `sortByName` / `sortBySize` / `sortByDate` | same names, `onSortHeaderClicked` | `FilesPanesHelper.toggleSort` → `helpers/PaneSorter` | — |
 | `toggleDarkMode` | same name, `applyTheme` | `dialog/DialogTheme` (`ThemeMode`, `apply(scene)`) | `styles/app-theme.css` |
 | `bookmarkThisPath` / `gotoBookmark` / `removeBookmark` | `bookmarkCurrentPath` / `gotoBookmark` / `removeBookmark`, `pickBookmark` | `dialog/BookmarkPickerDialog`; stored as `bookmark.*` properties | — |
 | `ftpConnect` / `ftpDisconnect` | `ftpConnect` / `ftpDisconnect` | `dialog/FtpConnectDialog`, `vfs/FtpFileSystem`, `FtpConnectionOptions` | `remote_connectivity/curl.exe` |
@@ -211,7 +211,8 @@ Not actions, but often asked for:
 ### `helpers/`
 | File | Role |
 |---|---|
-| `FilesPanesHelper` | Two panes: focus side, current `VFileSystem` per side, path, listing, sorting (`compareNaturalNames`), selection, archive enter/exit. Inner `ArchiveFolder`, `ArchiveParentItem`, `FilePane`. |
+| `FilesPanesHelper` | Two panes: focus side, current `VFileSystem` per side, path (`getPath(side)`), listing, sort state, selection, archive enter/exit. Inner `ArchiveFolder` (combo entry for archive/FTP panes), `FilePane`. |
+| `PaneSorter` | Pane order: `..` first, folders first, then the column (`SortColumn`, `SortState.toggle`), then `compareNaturalNames` (file2 before file10). |
 | `ArchiveManager` | Opens an archive by extracting to a temp folder (`7z.exe`), repacks on close if modified. A failed repack copies the edits to `<archive>.recovered-<stamp>` and throws a message naming it. |
 | `FileAttributesHelper` | Read/apply R/H/S/A attributes (NIO, `attrib` fallback). |
 | `FileHelper` | `isTextFile` sniffing; `folderSize` (skips unreadable entries); `copyTree`; `deleteQuietly` (best-effort temp tree delete). |
@@ -302,6 +303,6 @@ Under `src/test/java/org/chaiware/acommander/`, same package as the class tested
 
 `actions/` ActionMatcher, ActionPriorityEngine, ActionRegistry, BuiltinAction, ActionRulesSnapshot (FTP / read-only / palette
 rules per action vs `src/test/resources/action-rules-snapshot.txt`) · `commands/` ExternalToolRunner · `config/` ActionScope, AppConfigLoader, AppRegistryShortcutMatching · `dialog/` DialogTheme, MetadataFormDialog · `helpers/` AppTempDir, AppVersion, ArchiveManager, AudioConversionSupport, AudioMetadataSupport,
-BugReportUrl, ExecutableCompressionSupport, ExternalProgressController, FileAttributesHelper, FileHelper, FileIcons, FilesPanesHelperNaturalSort, IncrementalFilter, ImageConversionSupport, ImageMetadataSupport, SettingsStore, VideoMetadataSupport · `model/` ArchiveMode,
+BugReportUrl, ExecutableCompressionSupport, ExternalProgressController, FileAttributesHelper, FileHelper, FileIcons, IncrementalFilter, ImageConversionSupport, ImageMetadataSupport, PaneSorter, SettingsStore, VideoMetadataSupport · `model/` ArchiveMode,
 FileItem · `services/` ArchiveOperations, AudioConversionService, ClipboardTransfer, FileOperations, FolderComparer, ImageConversionService, PdfOperations · `tools/` BundledTool, BundledToolCommands, ToolCommandBuilder, ProcessRunner · `vfs/` FtpFileSystem · root: ArchitectureRules (process / background / temp-file / app-path / version / fire-and-forget / no file walking or hashing in `Commander` rules), CommanderCopy, `CodeMapTest` (fails when a main
 class or an apps.json action is missing from this file).

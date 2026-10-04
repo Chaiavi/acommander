@@ -43,7 +43,7 @@ Command Palette; theme toggle; one metadata edit on a copied jpg/mp3/mp4; checks
 server is available.
 
 `Commander` line count: 7459 (start), 7199 (after Phase 1), 7038 (after Phase 2), 6929 (after Phase 3), 5380 (after
-Phase 4), 3632 (after Phase 5), 3533 (after Phase 6), 3553 (after Phase 7; Search moved in from the commands).
+Phase 4), 3632 (after Phase 5), 3533 (after Phase 6), 3553 (after Phase 7; Search moved in from the commands), 3554 (after Phase 8).
 
 ## Phase 0 — Prep and Safety Net (no behaviour change)
 
@@ -317,8 +317,16 @@ Smoke items: the full checklist, on local, archive and (if available) FTP panes.
 Rechecked after Phase 5: `FilesPanesHelper` is 848 lines, unchanged. Do 8.2 and the pure `PaneSorter` (already tested
 by `FilesPanesHelperNaturalSortTest`); split archive navigation and selection only if Phase 7 or 9 needs it.
 
-- [ ] 8.1 `PaneSorter` (`SortState`, `SortColumn`, `compareNaturalNames`), `ArchiveNavigator`, selection helpers.
-- [ ] 8.2 Top-level `FilePane`, `ArchiveFolder`, `ArchiveParentItem`.
+- [x] 8.1 `PaneSorter` (`SortState`, `SortColumn`, `compareNaturalNames`), `ArchiveNavigator`, selection helpers.
+  Done: `helpers/PaneSorter` (pure: `sort`, comparator, `SortState.toggle`, natural compare), tested for `..` first,
+  folders first, size / date order and toggling. No `ArchiveNavigator` or selection class: Phase 7 and 9 don't need
+  them. On the way: deleted the unused `setSort` and `getArchiveManager`; `getFocusedPath` / `getUnfocusedPath` call
+  `getPath(side)` instead of repeating it; one `withoutDriveSpace` replaces two copies of the path-combo regex.
+- [x] 8.2 Top-level `FilePane`, `ArchiveFolder`, `ArchiveParentItem`. Changed: `ArchiveParentItem` was dead (nothing
+  read its session), so the archive `..` row is a plain `FileItem` and `vfs/` no longer imports `FilesPanesHelper`.
+  `FilePane` and `ArchiveFolder` stay nested: only `FilesPanesHelper` uses them, and every `ArchiveFolder` is equal to
+  the next (its `Folder.path` is ""), which keeps the path-combo change listener quiet while moving inside an archive
+  or FTP site; a plain `Folder` would change that.
 
 Smoke items: sort by each header, enter/leave nested archive folders, select by pattern, invert selection.
 

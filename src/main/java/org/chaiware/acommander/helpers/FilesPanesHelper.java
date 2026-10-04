@@ -6,6 +6,8 @@ import javafx.scene.control.ComboBox;
 import javafx.scene.control.ListView;
 import lombok.Data;
 import org.chaiware.acommander.commands.ExternalCommandListener;
+import org.chaiware.acommander.helpers.PaneSorter.SortColumn;
+import org.chaiware.acommander.helpers.PaneSorter.SortState;
 import org.chaiware.acommander.model.ArchiveSession;
 import org.chaiware.acommander.model.FileItem;
 import org.chaiware.acommander.model.Folder;
@@ -22,13 +24,12 @@ import static org.chaiware.acommander.helpers.FilesPanesHelper.FocusSide.RIGHT;
 
 public class FilesPanesHelper {
     public enum FocusSide {LEFT, RIGHT}
-    public enum SortColumn {NAME, SIZE, MODIFIED}
 
     private static final Logger logger = LoggerFactory.getLogger(FilesPanesHelper.class);
     private final VfsManager vfsManager = new VfsManager();
 
     Map<FocusSide, FilePane> filePanes = new HashMap<>();
-    private final Map<FocusSide, SortState> sortStates = new HashMap<>();
+    private final Map<FocusSide, SortState> sortStates = new EnumMap<>(FocusSide.class);
     private final Map<FocusSide, VFileSystem> fileSystems = new EnumMap<>(FocusSide.class);
     private final Map<FocusSide, String> currentInternalPaths = new EnumMap<>(FocusSide.class);
     private FocusSide focusedSide;
@@ -50,10 +51,6 @@ public class FilesPanesHelper {
 
     public VfsManager getVfsManager() {
         return vfsManager;
-    }
-
-    public org.chaiware.acommander.helpers.ArchiveManager getArchiveManager() {
-        return vfsManager.getArchiveManager();
     }
 
     public VFileSystem getFileSystem(FocusSide side) {
@@ -101,8 +98,8 @@ public class FilesPanesHelper {
 
         filePanes.put(LEFT, new FilePane(leftFileList, leftPathComboBox));
         filePanes.put(RIGHT, new FilePane(rightFileList, rightPathComboBox));
-        sortStates.put(LEFT, new SortState(SortColumn.NAME, true));
-        sortStates.put(RIGHT, new SortState(SortColumn.NAME, true));
+        sortStates.put(LEFT, SortState.DEFAULT);
+        sortStates.put(RIGHT, SortState.DEFAULT);
         
         // Initialize with default local file systems
         fileSystems.put(LEFT, vfsManager.createLocalFileSystem(""));
@@ -390,30 +387,20 @@ public class FilesPanesHelper {
     }
 
     public void toggleSort(FocusSide focusSide, SortColumn column) {
-        SortState current = sortStates.getOrDefault(focusSide, new SortState(SortColumn.NAME, true));
-        SortState updated;
-        if (current.column == column) {
-            updated = new SortState(column, !current.ascending);
-        } else {
-            // Default ascending for NAME and SIZE, default descending (newest-first) for MODIFIED
-            boolean defaultAscending = column == SortColumn.MODIFIED ? false : true;
-            updated = new SortState(column, defaultAscending);
-        }
-        sortStates.put(focusSide, updated);
-        applySort(focusSide);
-    }
-
-    public void setSort(FocusSide focusSide, SortColumn column, boolean ascending) {
-        sortStates.put(focusSide, new SortState(column, ascending));
+        sortStates.put(focusSide, sortState(focusSide).toggle(column));
         applySort(focusSide);
     }
 
     public SortColumn getSortColumn(FocusSide focusSide) {
-        return sortStates.getOrDefault(focusSide, new SortState(SortColumn.NAME, true)).column;
+        return sortState(focusSide).column();
     }
 
     public boolean isSortAscending(FocusSide focusSide) {
-        return sortStates.getOrDefault(focusSide, new SortState(SortColumn.NAME, true)).ascending;
+        return sortState(focusSide).ascending();
+    }
+
+    private SortState sortState(FocusSide focusSide) {
+        return sortStates.getOrDefault(focusSide, SortState.DEFAULT);
     }
 
     private void applySort(FocusSide focusSide) {
@@ -422,134 +409,7 @@ public class FilesPanesHelper {
             return;
         }
         ObservableList<FileItem> items = filePanes.get(focusSide).getFileListView().getItems();
-        FileItem parent = items.stream()
-                .filter(this::isParentFolder)
-                .findFirst()
-                .orElse(null);
-
-        List<FileItem> sortable = items.stream()
-                .filter(item -> !isParentFolder(item))
-                .toList();
-
-        SortState sortState = sortStates.getOrDefault(focusSide, new SortState(SortColumn.NAME, true));
-        Comparator<FileItem> comparator = buildComparator(sortState);
-        List<FileItem> sorted = sortable.stream().sorted(comparator).toList();
-
-        items.clear();
-        if (parent != null) {
-            items.add(parent);
-        }
-        items.addAll(sorted);
-    }
-
-    private Comparator<FileItem> buildComparator(SortState state) {
-        Comparator<FileItem> directoriesFirst = Comparator.comparing(FileItem::isDirectory).reversed();
-
-        Comparator<FileItem> byColumn = switch (state.column) {
-            case NAME -> this::compareByNameNatural;
-            case SIZE -> Comparator.comparingLong(this::sizeForSort);
-            case MODIFIED -> Comparator.comparingLong(this::modifiedForSort);
-        };
-
-        if (!state.ascending) {
-            byColumn = byColumn.reversed();
-        }
-
-        Comparator<FileItem> byName = this::compareByNameNatural;
-        return directoriesFirst.thenComparing(byColumn).thenComparing(byName);
-    }
-
-    private int compareByNameNatural(FileItem left, FileItem right) {
-        return compareNaturalNames(left.getPresentableFilename(), right.getPresentableFilename());
-    }
-
-    static int compareNaturalNames(String left, String right) {
-        if (left == null || right == null) {
-            if (left == right) {
-                return 0;
-            }
-            return left == null ? -1 : 1;
-        }
-
-        int leftIndex = 0;
-        int rightIndex = 0;
-
-        while (leftIndex < left.length() && rightIndex < right.length()) {
-            char leftChar = left.charAt(leftIndex);
-            char rightChar = right.charAt(rightIndex);
-
-            if (Character.isDigit(leftChar) && Character.isDigit(rightChar)) {
-                int leftDigitsStart = leftIndex;
-                int rightDigitsStart = rightIndex;
-
-                while (leftIndex < left.length() && Character.isDigit(left.charAt(leftIndex))) {
-                    leftIndex++;
-                }
-                while (rightIndex < right.length() && Character.isDigit(right.charAt(rightIndex))) {
-                    rightIndex++;
-                }
-
-                int leftNonZero = leftDigitsStart;
-                while (leftNonZero < leftIndex && left.charAt(leftNonZero) == '0') {
-                    leftNonZero++;
-                }
-                int rightNonZero = rightDigitsStart;
-                while (rightNonZero < rightIndex && right.charAt(rightNonZero) == '0') {
-                    rightNonZero++;
-                }
-
-                int leftSignificantLength = leftIndex - leftNonZero;
-                int rightSignificantLength = rightIndex - rightNonZero;
-                if (leftSignificantLength != rightSignificantLength) {
-                    return Integer.compare(leftSignificantLength, rightSignificantLength);
-                }
-
-                for (int i = 0; i < leftSignificantLength; i++) {
-                    char leftDigit = left.charAt(leftNonZero + i);
-                    char rightDigit = right.charAt(rightNonZero + i);
-                    if (leftDigit != rightDigit) {
-                        return Character.compare(leftDigit, rightDigit);
-                    }
-                }
-
-                int leftRunLength = leftIndex - leftDigitsStart;
-                int rightRunLength = rightIndex - rightDigitsStart;
-                if (leftRunLength != rightRunLength) {
-                    return Integer.compare(leftRunLength, rightRunLength);
-                }
-                continue;
-            }
-
-            char leftLower = Character.toLowerCase(leftChar);
-            char rightLower = Character.toLowerCase(rightChar);
-            if (leftLower != rightLower) {
-                return Character.compare(leftLower, rightLower);
-            }
-
-            leftIndex++;
-            rightIndex++;
-        }
-
-        int lengthCompare = Integer.compare(left.length(), right.length());
-        if (lengthCompare != 0) {
-            return lengthCompare;
-        }
-        return left.compareTo(right);
-    }
-
-    private long sizeForSort(FileItem item) {
-        return item.isDirectory() ? 0L : item.getSizeInBytes();
-    }
-
-    private long modifiedForSort(FileItem item) {
-        if (item.getLastModified() != null) {
-            return item.getLastModified();
-        }
-        return (item.getFile() != null) ? item.getFile().lastModified() : 0L;
-    }
-
-    private boolean isParentFolder(FileItem item) {
-        return "..".equals(item.getPresentableFilename());
+        items.setAll(PaneSorter.sort(items, sortState(focusSide)));
     }
 
     private boolean selectItemByPresentableFilename(FocusSide focusSide, String filename) {
@@ -587,16 +447,10 @@ public class FilesPanesHelper {
     }
 
     public String getFocusedPath() {
-        VFileSystem fs = fileSystems.get(focusedSide);
-        if (fs instanceof LocalFileSystem || fs instanceof FtpFileSystem) {
-            return currentInternalPaths.get(focusedSide);
-        }
-        if (fs instanceof ArchiveFileSystem archiveFs) {
-            return archiveFs.getSession().getTempFolderPath().toString();
-        }
-        return filePanes.get(focusedSide).getPath();
+        return getPath(focusedSide);
     }
 
+    /** The pane's folder: the internal path on local and FTP panes, the extracted temp folder inside an archive. */
     public String getPath(FocusSide focusSide) {
         VFileSystem fs = fileSystems.get(focusSide);
         if (fs instanceof LocalFileSystem || fs instanceof FtpFileSystem) {
@@ -609,16 +463,7 @@ public class FilesPanesHelper {
     }
 
     public String getUnfocusedPath() {
-        FocusSide unfocusedSide = focusedSide == LEFT ? RIGHT : LEFT;
-        VFileSystem fs = fileSystems.get(unfocusedSide);
-        if (fs instanceof LocalFileSystem || fs instanceof FtpFileSystem) {
-            return currentInternalPaths.get(unfocusedSide);
-        }
-        if (fs instanceof ArchiveFileSystem archiveFs) {
-            return archiveFs.getSession().getTempFolderPath().toString();
-        }
-        if (focusedSide == LEFT) return filePanes.get(RIGHT).getPath();
-        return filePanes.get(LEFT).getPath();
+        return getPath(focusedSide == LEFT ? RIGHT : LEFT);
     }
 
     public FileItem getSelectedItem() {
@@ -776,30 +621,23 @@ public class FilesPanesHelper {
 
         String getPath() {
             Folder value = pathComboBox.getValue();
-            if (value == null || value.getPath() == null) {
-                return "";
-            }
-            String path = value.getPath().trim();
-            path = path.replaceFirst("\\s*\\(\\s*[\\d.,]+\\s*[KMGTPE]?B\\s*/\\s*[\\d.,]+\\s*[KMGTPE]?B\\s*\\)\\s*$", "");
-            path = path.replaceFirst("\\s*\\([^)]*free\\)\\s*$", "");
-            return path.trim();
+            return value == null || value.getPath() == null ? "" : withoutDriveSpace(value.getPath());
         }
     }
 
-    private boolean samePath(String left, String right) {
+    /** A path-combo entry without its "(12 GB / 100 GB)" or "(… free)" drive-space suffix. */
+    private static String withoutDriveSpace(String path) {
+        return path.trim()
+                .replaceFirst("\\s*\\(\\s*[\\d.,]+\\s*[KMGTPE]?B\\s*/\\s*[\\d.,]+\\s*[KMGTPE]?B\\s*\\)\\s*$", "")
+                .replaceFirst("\\s*\\([^)]*free\\)\\s*$", "")
+                .trim();
+    }
+
+    private static boolean samePath(String left, String right) {
         if (left == null || right == null) {
             return Objects.equals(left, right);
         }
-        String normalizedLeft = normalizePathForCompare(left);
-        String normalizedRight = normalizePathForCompare(right);
-        return normalizedLeft.equalsIgnoreCase(normalizedRight);
-    }
-
-    private String normalizePathForCompare(String path) {
-        String value = path.trim();
-        value = value.replaceFirst("\\s*\\(\\s*[\\d.,]+\\s*[KMGTPE]?B\\s*/\\s*[\\d.,]+\\s*[KMGTPE]?B\\s*\\)\\s*$", "");
-        value = value.replaceFirst("\\s*\\([^)]*free\\)\\s*$", "");
-        return value.trim();
+        return withoutDriveSpace(left).equalsIgnoreCase(withoutDriveSpace(right));
     }
     
     /**
@@ -823,27 +661,4 @@ public class FilesPanesHelper {
             return displayPath;
         }
     }
-    
-    /**
-     * Special FileItem for the ".." entry in archives.
-     * Holds reference to the archive session for proper navigation.
-     */
-    public static class ArchiveParentItem extends FileItem {
-        private final ArchiveSession session;
-        
-        public ArchiveParentItem(File file, String filename, ArchiveSession session) {
-            super(file, filename);
-            this.session = session;
-        }
-        
-        public ArchiveSession getSession() {
-            return session;
-        }
-        
-        public boolean isArchiveRoot() {
-            return session.isRoot();
-        }
-    }
-
-    private record SortState(SortColumn column, boolean ascending) {}
 }

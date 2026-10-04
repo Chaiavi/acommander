@@ -41,6 +41,7 @@ import org.chaiware.acommander.services.AudioConversionService.AudioConversionRe
 import org.chaiware.acommander.services.ClipboardTransfer;
 import org.chaiware.acommander.services.ImageConversionService;
 import org.chaiware.acommander.services.ImageConversionService.ImageConversionRequest;
+import org.chaiware.acommander.helpers.PaneSorter.SortColumn;
 import org.chaiware.acommander.services.ArchiveOperations;
 import org.chaiware.acommander.services.FileOperations;
 import org.chaiware.acommander.services.PdfExtractOptions;
@@ -306,13 +307,13 @@ public class Commander {
         alignHeaderToList(leftHeaderBox, leftFileList.getWidth());
         alignHeaderToList(rightHeaderBox, rightFileList.getWidth());
 
-        configureSortableHeader(leftNameHeader, () -> onSortHeaderClicked(LEFT, FilesPanesHelper.SortColumn.NAME));
-        configureSortableHeader(leftSizeHeader, () -> onSortHeaderClicked(LEFT, FilesPanesHelper.SortColumn.SIZE));
-        configureSortableHeader(leftModifiedHeader, () -> onSortHeaderClicked(LEFT, FilesPanesHelper.SortColumn.MODIFIED));
+        configureSortableHeader(leftNameHeader, () -> onSortHeaderClicked(LEFT, SortColumn.NAME));
+        configureSortableHeader(leftSizeHeader, () -> onSortHeaderClicked(LEFT, SortColumn.SIZE));
+        configureSortableHeader(leftModifiedHeader, () -> onSortHeaderClicked(LEFT, SortColumn.MODIFIED));
 
-        configureSortableHeader(rightNameHeader, () -> onSortHeaderClicked(RIGHT, FilesPanesHelper.SortColumn.NAME));
-        configureSortableHeader(rightSizeHeader, () -> onSortHeaderClicked(RIGHT, FilesPanesHelper.SortColumn.SIZE));
-        configureSortableHeader(rightModifiedHeader, () -> onSortHeaderClicked(RIGHT, FilesPanesHelper.SortColumn.MODIFIED));
+        configureSortableHeader(rightNameHeader, () -> onSortHeaderClicked(RIGHT, SortColumn.NAME));
+        configureSortableHeader(rightSizeHeader, () -> onSortHeaderClicked(RIGHT, SortColumn.SIZE));
+        configureSortableHeader(rightModifiedHeader, () -> onSortHeaderClicked(RIGHT, SortColumn.MODIFIED));
 
         updateSortHeaderTexts(LEFT);
         updateSortHeaderTexts(RIGHT);
@@ -330,24 +331,24 @@ public class Commander {
         headerBox.setMaxWidth(contentWidth);
     }
 
-    private void onSortHeaderClicked(FilesPanesHelper.FocusSide side, FilesPanesHelper.SortColumn column) {
+    private void onSortHeaderClicked(FilesPanesHelper.FocusSide side, SortColumn column) {
         filesPanesHelper.toggleSort(side, column);
         updateSortHeaderTexts(side);
     }
 
     public void sortByName() {
-        applySortFromPalette(FilesPanesHelper.SortColumn.NAME);
+        applySortFromPalette(SortColumn.NAME);
     }
 
     public void sortBySize() {
-        applySortFromPalette(FilesPanesHelper.SortColumn.SIZE);
+        applySortFromPalette(SortColumn.SIZE);
     }
 
     public void sortByDate() {
-        applySortFromPalette(FilesPanesHelper.SortColumn.MODIFIED);
+        applySortFromPalette(SortColumn.MODIFIED);
     }
 
-    private void applySortFromPalette(FilesPanesHelper.SortColumn column) {
+    private void applySortFromPalette(SortColumn column) {
         FilesPanesHelper.FocusSide side = filesPanesHelper.getFocusedSide();
         filesPanesHelper.toggleSort(side, column);
         updateSortHeaderTexts(side);
@@ -355,16 +356,16 @@ public class Commander {
     }
 
     private void updateSortHeaderTexts(FilesPanesHelper.FocusSide side) {
-        FilesPanesHelper.SortColumn activeColumn = filesPanesHelper.getSortColumn(side);
+        SortColumn activeColumn = filesPanesHelper.getSortColumn(side);
         boolean ascending = filesPanesHelper.isSortAscending(side);
 
         Label nameHeader = side == LEFT ? leftNameHeader : rightNameHeader;
         Label sizeHeader = side == LEFT ? leftSizeHeader : rightSizeHeader;
         Label modifiedHeader = side == LEFT ? leftModifiedHeader : rightModifiedHeader;
 
-        nameHeader.setText("Name" + sortIndicator(activeColumn == FilesPanesHelper.SortColumn.NAME, ascending));
-        sizeHeader.setText("Size" + sortIndicator(activeColumn == FilesPanesHelper.SortColumn.SIZE, ascending));
-        modifiedHeader.setText("Modified" + sortIndicator(activeColumn == FilesPanesHelper.SortColumn.MODIFIED, ascending));
+        nameHeader.setText("Name" + sortIndicator(activeColumn == SortColumn.NAME, ascending));
+        sizeHeader.setText("Size" + sortIndicator(activeColumn == SortColumn.SIZE, ascending));
+        modifiedHeader.setText("Modified" + sortIndicator(activeColumn == SortColumn.MODIFIED, ascending));
     }
 
     private String sortIndicator(boolean active, boolean ascending) {
