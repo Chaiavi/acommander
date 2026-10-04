@@ -27,7 +27,7 @@ import org.chaiware.acommander.commands.*;
 import org.chaiware.acommander.config.ActionDefinition;
 import org.chaiware.acommander.config.AppConfigLoader;
 import org.chaiware.acommander.config.AppRegistry;
-import org.chaiware.acommander.dialog.DialogTheme;
+import org.chaiware.acommander.dialog.*;
 import org.chaiware.acommander.dialog.DialogTheme.ThemeMode;
 import org.chaiware.acommander.helpers.*;
 import org.chaiware.acommander.keybinding.KeyBindingManager;
@@ -50,7 +50,6 @@ import org.chaiware.acommander.tools.BundledTool;
 import org.chaiware.acommander.tools.BundledToolCommands;
 import org.chaiware.acommander.tools.BundledToolCommands.ChecksumOptions;
 import org.chaiware.acommander.tools.BundledToolCommands.CompareFilesOptions;
-import org.chaiware.acommander.tools.BundledToolCommands.SplitSize;
 import org.chaiware.acommander.tools.BundledToolCommands.WhiteSpaceCompareMode;
 import org.chaiware.acommander.tools.FilePropertiesLauncher;
 import org.chaiware.acommander.tools.ProcessRunner;
@@ -75,6 +74,7 @@ import java.util.regex.Pattern;
 import static java.awt.Desktop.getDesktop;
 import static org.chaiware.acommander.helpers.FilesPanesHelper.FocusSide.LEFT;
 import static org.chaiware.acommander.helpers.FilesPanesHelper.FocusSide.RIGHT;
+import static org.chaiware.acommander.model.FileItem.humanSize;
 
 
 public class Commander {
@@ -1807,7 +1807,8 @@ public class Commander {
             }
 
             long originalFileSize = selectedItem.getFile().length();
-            Optional<String> splitArg = promptSplitSize(selectedItem, originalFileSize);
+            Optional<String> splitArg = SplitSizeDialog.show(dialogOwner(), currentThemeMode.styleClass,
+                    selectedItem.getName(), originalFileSize);
             if (splitArg.isEmpty()) {
                 logger.info("User cancelled split");
                 return;
@@ -2849,7 +2850,8 @@ public class Commander {
             return;
         }
 
-        Optional<FolderComparer.Options> options = promptCompareFoldersOptions(leftRoot, rightRoot);
+        Optional<FolderComparer.Options> options = CompareFoldersDialog.show(dialogOwner(), currentThemeMode.styleClass,
+                leftRoot, rightRoot);
         if (options.isEmpty()) {
             return;
         }
@@ -2869,64 +2871,6 @@ public class Commander {
                     requestFocusedFileListFocus();
                 },
                 "Failed comparing folders");
-    }
-
-    private Optional<FolderComparer.Options> promptCompareFoldersOptions(Path leftRoot, Path rightRoot) {
-        Dialog<FolderComparer.Options> dialog = new Dialog<>();
-        dialog.setTitle("Compare Folders");
-        dialog.setHeaderText(null);
-
-        ButtonType compareType = new ButtonType("Compare", ButtonBar.ButtonData.OK_DONE);
-        dialog.getDialogPane().getButtonTypes().addAll(compareType, ButtonType.CANCEL);
-
-        Label title = new Label("Compare Folders");
-        title.setStyle("-fx-font-size: 16px; -fx-font-weight: bold;");
-        Label subtitle = new Label("Left: " + leftRoot + " | Right: " + rightRoot);
-        subtitle.setWrapText(true);
-
-        CheckBox compareByDate = new CheckBox("Compare also by date");
-        CheckBox checksum = new CheckBox("Checksum files for comparison (slower)");
-        CheckBox recursive = new CheckBox("Compare also subfolders (recursively)");
-        recursive.setSelected(true);
-        CheckBox caseSensitive = new CheckBox("Case-sensitive filename matching");
-
-        VBox content = new VBox(
-                10,
-                title,
-                subtitle,
-                new Separator(),
-                compareByDate,
-                checksum,
-                recursive,
-                caseSensitive
-        );
-        content.setPadding(new Insets(12));
-        dialog.getDialogPane().setContent(content);
-        dialog.getDialogPane().setPrefSize(700, 320);
-        applyThemeToDialog(dialog);
-        Button compareButton = (Button) dialog.getDialogPane().lookupButton(compareType);
-        dialog.getDialogPane().addEventFilter(KeyEvent.KEY_PRESSED, event -> {
-            if (event.getCode() != KeyCode.ENTER) {
-                return;
-            }
-            if (compareButton != null && !compareButton.isDisabled()) {
-                compareButton.fire();
-            }
-            event.consume();
-        });
-
-        dialog.setResultConverter(button -> {
-            if (button != compareType) {
-                return null;
-            }
-            return new FolderComparer.Options(
-                    compareByDate.isSelected(),
-                    checksum.isSelected(),
-                    recursive.isSelected(),
-                    caseSensitive.isSelected()
-            );
-        });
-        return dialog.showAndWait();
     }
 
     private void clearFolderCompareHighlights(boolean refresh) {
@@ -4338,75 +4282,6 @@ public class Commander {
         return commands.runExternal(command, refreshAfter, acceptedNonZeroExitCodes);
     }
 
-    private Optional<String> promptSplitSize(FileItem selectedItem, long originalFileSize) {
-        Dialog<String> dialog = new Dialog<>();
-        dialog.setTitle("Split a Large File");
-        dialog.setHeaderText(null);
-
-        ButtonType splitType = new ButtonType("Split", ButtonBar.ButtonData.OK_DONE);
-        dialog.getDialogPane().getButtonTypes().addAll(splitType, ButtonType.CANCEL);
-
-        Label title = new Label("Split a Large File");
-        title.setStyle("-fx-font-size: 16px; -fx-font-weight: bold;");
-
-        Label details = new Label(
-                "File: " + selectedItem.getName() + " (" + humanSize(originalFileSize) + ")"
-        );
-        TextField sizeField = new TextField("16m");
-        sizeField.setPromptText("Chunk size (examples: 16m, 64k, 1g, 16mb)");
-
-        Label validationLabel = new Label();
-        validationLabel.setWrapText(true);
-
-        VBox content = new VBox(10,
-                title,
-                details,
-                new Label("Size per split file:"),
-                sizeField,
-                validationLabel
-        );
-        content.setPadding(new Insets(12));
-        dialog.getDialogPane().setContent(content);
-        applyThemeToDialog(dialog);
-
-        Button splitButton = (Button) dialog.getDialogPane().lookupButton(splitType);
-        final SplitSize[] parsed = new SplitSize[1];
-        Runnable validate = () -> {
-            parsed[0] = BundledToolCommands.parseSplitSize(sizeField.getText());
-            if (!parsed[0].valid()) {
-                validationLabel.setText(parsed[0].message());
-                splitButton.setDisable(true);
-                return;
-            }
-
-            long chunkBytes = parsed[0].bytes();
-            if (chunkBytes > originalFileSize) {
-                validationLabel.setText(
-                        "Requested split size (" + humanSize(chunkBytes) + ") is larger than the original file ("
-                                + humanSize(originalFileSize) + "). Splitting does not make sense."
-                );
-                splitButton.setDisable(true);
-                return;
-            }
-
-            long filesCount = (originalFileSize + chunkBytes - 1) / chunkBytes;
-            validationLabel.setText("This will create " + filesCount + " file(s).");
-            splitButton.setDisable(false);
-        };
-
-        sizeField.textProperty().addListener((obs, oldValue, newValue) -> validate.run());
-        validate.run();
-
-        dialog.setResultConverter(buttonType -> {
-            if (buttonType == splitType && parsed[0] != null && parsed[0].valid()) {
-                return parsed[0].sevenZipArg();
-            }
-            return null;
-        });
-
-        return dialog.showAndWait();
-    }
-
     private Optional<PdfExtractOptions> promptPdfExtractOptions(FileItem selectedItem, int totalPages) {
         Dialog<PdfExtractOptions> dialog = new Dialog<>();
         dialog.setTitle("Extract PDF Pages");
@@ -4666,22 +4541,6 @@ public class Commander {
             return sourceFilename.substring(0, dotIndex) + ".7z";
         }
         return sourceFilename + ".7z";
-    }
-
-    private String humanSize(long bytes) {
-        if (bytes < 1024) {
-            return bytes + " B";
-        }
-        double kb = bytes / 1024.0;
-        if (kb < 1024) {
-            return String.format(Locale.ROOT, "%.2f KB", kb);
-        }
-        double mb = kb / 1024.0;
-        if (mb < 1024) {
-            return String.format(Locale.ROOT, "%.2f MB", mb);
-        }
-        double gb = mb / 1024.0;
-        return String.format(Locale.ROOT, "%.2f GB", gb);
     }
 
     private Optional<ChecksumOptions> promptChecksumOptions(String titleText, String selectedName, boolean includeNamesByDefault) {
@@ -5369,6 +5228,10 @@ public class Commander {
             settings.setThemeMode(themeMode.configValue);
             saveSettings();
         }
+    }
+
+    private Window dialogOwner() {
+        return rootPane == null || rootPane.getScene() == null ? null : rootPane.getScene().getWindow();
     }
 
     private void applyThemeToDialog(Dialog<?> dialog) {

@@ -8,6 +8,7 @@ import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
+import java.util.Locale;
 
 @Getter
 @EqualsAndHashCode(of = {"file", "presentableFilename"})
@@ -51,15 +52,16 @@ public class FileItem {
 
     public String getHumanReadableSize() {
         long sizeInBytes = getSizeInBytes();
-        if (sizeInBytes <= 0) return "";
+        return sizeInBytes <= 0 ? "" : humanSize(sizeInBytes);
+    }
 
+    /** "512 B", "2 KB", "1.5 MB": one decimal, dropped when it is zero. */
+    public static String humanSize(long sizeInBytes) {
         if (sizeInBytes < 1024) return sizeInBytes + " B";
         int exp = (int) (Math.log(sizeInBytes) / Math.log(1024));
         String unit = "KMGTPE".charAt(exp - 1) + "B";
-        double value = sizeInBytes / Math.pow(1024, exp);
-        return (Double.parseDouble(String.format("%.1f", value)) % 1 == 0)
-                ? String.format("%.0f %s", value, unit)
-                : String.format("%.1f %s", value, unit);
+        String value = String.format(Locale.ROOT, "%.1f", sizeInBytes / Math.pow(1024, exp));
+        return (value.endsWith(".0") ? value.substring(0, value.length() - 2) : value) + " " + unit;
     }
 
     public void setSize(long sizeInBytes) {

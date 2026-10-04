@@ -74,7 +74,7 @@ Adding or renaming an action id? Check each of these:
 | `search` (F10, Ctrl+F) | `search` | `CommandsSimpleImpl.searchFiles` (PowerShell `Get-ChildItem`) | — |
 | `findInFiles` (Alt+F10) | `findInFiles`, `runFindInFiles`, `showFileResultsDialog` | `FindInFilesOptions` record | `search_in_files/rg.exe` |
 | `pack` (F11) | `pack` | `CommandsAdvancedImpl.doPack` | `pack_unpack/7zG.exe` |
-| `splitLargeFile` (Alt+F11) | `splitLargeFile`, `promptSplitSize` | `tools/BundledToolCommands.parseSplitSize` | `extract_all/UniExtract/bin/x64/7z.exe` |
+| `splitLargeFile` (Alt+F11) | `splitLargeFile` | `dialog/SplitSizeDialog`, `tools/BundledToolCommands.parseSplitSize` | `extract_all/UniExtract/bin/x64/7z.exe` |
 | `unpack` (F12) | `unpackFile` | `CommandsAdvancedImpl.doUnpack` → `unpackWith` | `pack_unpack/7zG.exe` |
 | `extractAll` (Alt+F12) | `extractAll` | `doExtractAll` → `unpackWith` | `extract_all/UniExtract/UniExtract.exe` |
 | `mergePdf` / `extractPdfPages` | `mergePDFFiles` / `extractPDFPages`, `promptPdfExtractOptions` | `doMergePDFs` / `doExtractPDFPages`, `PdfExtractOptions` | `pdf/pdftk.exe` |
@@ -84,7 +84,7 @@ Adding or renaming an action id? Check each of these:
 | `checksumFile` / `checksumFolderContents` | `checksumFile` / `checksumFolderContents`, `promptChecksumOptions` | `tools/BundledToolCommands.checksum` | `checksum/rhash.exe` |
 | `analyzeFile` | `analyzeFile` | `tools/BundledToolCommands.analyzeFile` | `file_analysis/file.exe` + `magic.mgc` |
 | `compareFiles` | `compareFiles`, `canCompareSelectedFiles`, `promptCompareFilesOptions` | `tools/BundledToolCommands.compareFiles` | `file_compare/ExamDiff.exe` |
-| `compareFolders` | `compareFolders`, `promptCompareFoldersOptions`, `applyFolderCompareStyle` | `services/FolderComparer` (SHA-256 optional) | — |
+| `compareFolders` | `compareFolders`, `applyFolderCompareStyle` | `dialog/CompareFoldersDialog`, `services/FolderComparer` (SHA-256 optional) | — |
 | `fileProperties` (Alt+Enter) | `fileProperties` | `tools/FilePropertiesLauncher` (temp `.vbs` via `wscript.exe`, Windows Properties dialog) | — |
 | `changeAttributes` | `changeAttributes`, `promptAttributes` | `helpers/FileAttributesHelper` | `attrib` |
 | `editImageMetadata` / `removeImageMetadata` | `editImageMetadata` / `removeImageMetadata` → `removeMetadata` (shared confirm + background run) | `dialog/ImageMetadataDialog`, `helpers/ImageMetadataSupport` | `image_metadata/exiv2.exe` |
@@ -186,9 +186,12 @@ Not actions, but often asked for:
 | `ActionScope` | `global` / `filePane` / `commandPalette`; maps from `KeyContext`. |
 | `AppRegistry` | Index by scope, `findAction(id)`, `matchShortcut(scope, event)`. |
 
-### `dialog/` — metadata editors (each runs its own exe)
+### `dialog/` — dialogs (each takes owner window + theme class, not `Commander`)
 | File | Role |
 |---|---|
+| `OptionsDialog` | Shared options-dialog shell: heading, rows, OK (Enter) / Cancel (Escape), theme, owner; `tip(control, text)` sets a tooltip inline. |
+| `CompareFoldersDialog` | Compare Folders options → `FolderComparer.Options`. |
+| `SplitSizeDialog` | Part size for Alt+F11 split → 7-Zip `-v` argument. |
 | `ImageMetadataDialog` | EXIF/IPTC/XMP editor via `exiv2.exe`. |
 | `VideoMetadataDialog` | MP4-family tags via `AtomicParsley.exe`. |
 | `AudioMetadataDialog` | ID3 tags via `id3.exe`. |

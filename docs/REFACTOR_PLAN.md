@@ -213,7 +213,7 @@ type-to-filter, theme toggle, Stop button on a long copy, a failing tool still s
 
 ## Phase 5 — Move Dialogs out of Commander (depends on 4)
 
-- [ ] 5.1 `dialog/OptionsDialog` helper: layout, OK/Cancel, validation, Enter/Escape, theme, owner.
+- [x] 5.1 `dialog/OptionsDialog` helper: layout, OK/Cancel, validation, Enter/Escape, theme, owner.
 - [ ] 5.2 One class per dialog, ~1,640 lines today: FTP connect (inline in `ftpConnect`, 209), image conversion (190),
   audio conversion (175), PDF extract (131), bookmark picker (120), UPX (115), report bug (91), checksum options +
   checksum result, find-in-files options + file results, compare files, compare folders, split size, attributes,

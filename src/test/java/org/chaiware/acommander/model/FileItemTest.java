@@ -45,6 +45,19 @@ class FileItemTest {
     }
 
     @Test
+    void humanSizeUsesADotInEveryLocale() {
+        java.util.Locale original = java.util.Locale.getDefault();
+        try {
+            java.util.Locale.setDefault(java.util.Locale.GERMANY);
+            Assertions.assertThat(FileItem.humanSize(0)).isEqualTo("0 B");
+            Assertions.assertThat(FileItem.humanSize(3L * 1024 * 1024 / 2)).isEqualTo("1.5 MB");
+            Assertions.assertThat(FileItem.humanSize(5L * 1024 * 1024 * 1024)).isEqualTo("5 GB");
+        } finally {
+            java.util.Locale.setDefault(original);
+        }
+    }
+
+    @Test
     void parentFolderDateIsBlank() throws IOException {
         Path dir = Files.createTempDirectory(tempDir, "dir");
         FileItem parent = new FileItem(dir.toFile(), "..");
