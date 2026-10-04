@@ -1,13 +1,11 @@
 ---
 description: "Use when editing JavaFX UI classes: Commander.java (main FXML controller), dialog/** or palette/**. Keeps business logic out of UI classes so it can be unit-tested."
-applyTo:
-  - "src/main/java/org/chaiware/acommander/Commander.java"
-  - "src/main/java/org/chaiware/acommander/dialog/**"
-  - "src/main/java/org/chaiware/acommander/palette/**"
+applyTo: "src/main/java/org/chaiware/acommander/Commander.java, src/main/java/org/chaiware/acommander/dialog/**, src/main/java/org/chaiware/acommander/palette/**"
 ---
 # Keep Logic Out of JavaFX UI Classes
 
-Tests can't start the JavaFX toolkit, so logic left in a UI class is untestable. `Commander` alone is ~7.5k lines.
+Tests can't start the JavaFX toolkit, so logic left in a UI class is untestable. `Commander` alone is ~7.4k lines.
+Find the method you need through [CODEMAP.md](../../docs/CODEMAP.md) instead of reading the file.
 
 - Keep in UI classes only: reading UI state (selection, focused pane, field values), showing dialogs,
   `Platform.runLater`, refreshing panes.

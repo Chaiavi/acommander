@@ -1,11 +1,6 @@
 ---
 description: "Use when adding or editing UI text in JavaFX: buttons, labels, column headers, dialog titles, menu items, Command Palette entries, tooltips. Covers Title Case and one-sentence tooltips."
-applyTo:
-  - "src/main/java/org/chaiware/acommander/Commander.java"
-  - "src/main/java/org/chaiware/acommander/dialog/**"
-  - "src/main/java/org/chaiware/acommander/palette/**"
-  - "src/main/resources/**/*.fxml"
-  - "config/apps.json"
+applyTo: "src/main/java/org/chaiware/acommander/Commander.java, src/main/java/org/chaiware/acommander/dialog/**, src/main/java/org/chaiware/acommander/palette/**, src/main/resources/**/*.fxml, config/apps.json"
 ---
 # UI Text Rules
 
