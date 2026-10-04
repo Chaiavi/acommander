@@ -35,3 +35,4 @@ Thumbs.db
 /run_build.py
 /verify_changes.py
 /bin
+.claude/settings.local.json
