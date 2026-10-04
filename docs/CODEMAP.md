@@ -24,7 +24,7 @@ key press on Scene
       3. type external →  executeExternal: optional prompt → ToolCommandBuilder.buildCommand → commander.runExternal
          type builtin  →  BuiltinAction.fromId(`builtin` or `id`) → ActionExecutor.handler: exhaustive switch → a public Commander method
   → Commander.<method>()  reads selection, shows dialogs
-  → commands (ACommands → CommandsAdvancedImpl) or a helper/*Support class, or a bundled exe directly
+  → services/FileOperations, ArchiveOperations, PdfOperations, another service or helper/*Support class, or a bundled exe
 ```
 
 Mouse on the bottom F-key buttons: `Commander.setupFunctionButtonActions()` looks up the apps.json action whose
@@ -58,26 +58,26 @@ Adding or renaming an action id? Check each of these:
 | Action id (apps.json) | `Commander` method | Logic / runs via | Tool |
 |---|---|---|---|
 | `help` (F1) | `help` | — | `view/UniversalViewer/Viewer.exe` on `config/f1-help.html` |
-| `settings` | `openSettings` | `commands.edit` | edits `config/acommander.properties` |
-| `rename` (F2, Shift+F6) | `renameFile` | `ACommands.rename` → single: Java, many: `multiRename` | `multi_rename/Renamer.exe` |
-| `view` (F3) | `viewFile` / `calculateDirSpace` (folder) | `CommandsAdvancedImpl.doView` / `FileHelper.folderSize` | `view/UniversalViewer/Viewer.exe` |
-| `edit` (F4) | `editFile` | `CommandsAdvancedImpl.doEdit` | `edit/Notepad4.exe` |
-| `copy` (F5) | `copyFile`, `handleF5Button` | `CommandsAdvancedImpl.copyBatch` / VFS `copy` | `copy/fcp.exe` (FastCopy) |
-| `move` (F6) | `moveFile`, `handleF6Button` | `CommandsAdvancedImpl.moveBatch` | `copy/fcp.exe` |
+| `settings` | `openSettings` | `FileOperations.edit` | edits `config/acommander.properties` |
+| `rename` (F2, Shift+F6) | `renameFile` | `FileOperations.rename` → single: VFS, many: `multiRename` | `multi_rename/Renamer.exe` |
+| `view` (F3) | `viewFile` / `calculateDirSpace` (folder) | `FileOperations.view` / `FileHelper.folderSize` | `view/UniversalViewer/Viewer.exe` |
+| `edit` (F4) | `editFile` | `FileOperations.edit` | `edit/Notepad4.exe` |
+| `copy` (F5) | `copyFile` | `FileOperations.copy` / `copyBatch` (local: FastCopy, else VFS `copy`) | `copy/fcp.exe` (FastCopy) |
+| `move` (F6) | `moveFile` | `FileOperations.move` / `moveBatch` (same drive or VFS: rename) | `copy/fcp.exe` |
 | `duplicate` (Alt+F6) | `duplicateFile` | `ClipboardTransfer.duplicateName`, VFS `copy` | — |
 | `copySelection` / `cutSelection` / `pasteSelection` | `copySelectionToClipboard`, `cutSelectionToClipboard`, `pasteClipboardSelection` | `services/ClipboardTransfer` (state, paste loop, duplicate names, target paths) | — |
-| `mkdir` (F7) / `mkfile` (Alt+F7) | `makeDirectory` / `makeFile` | VFS `makeDirectory` / `makeFile` | — |
-| `delete` (F8, Del) | `deleteFile` | `CommandsAdvancedImpl.doDelete` / VFS `delete` | — |
-| `deleteWipe` (Shift+F8) | `deleteWipe` | `doWipeDelete` | `delete/wipe/sdelete64.exe` |
+| `mkdir` (F7) / `mkfile` (Alt+F7) | `makeDirectory` / `makeFile` | `FileOperations.mkdir` / `mkFile` (VFS) | — |
+| `delete` (F8, Del) | `deleteFile` | `FileOperations.delete` (VFS; locked local files → `unlockDelete`) | — |
+| `deleteWipe` (Shift+F8) | `deleteWipe` | `FileOperations.wipeDelete` | `delete/wipe/sdelete64.exe` |
 | `unlockDelete`, `wipeDelete`, `multiRename` | — (type `external`) | `ActionExecutor.executeExternal` | `delete/unlock_delete/ThisIsMyFile.exe`, `sdelete64.exe`, `Renamer.exe` |
-| `terminal` (F9) / `explorer` (Alt+F9) | `terminalHere` / `explorerHere` | `CommandsSimpleImpl.openTerminal` / `openExplorer` | PowerShell (cmd fallback), `explorer.exe` |
-| `search` (F10, Ctrl+F) | `search` | `CommandsSimpleImpl.searchFiles` (PowerShell `Get-ChildItem`) | — |
-| `findInFiles` (Alt+F10) | `findInFiles` | `dialog/FindInFilesDialog`, `FoundFilesDialog`; `tools/BundledToolCommands.findInFiles`, `foundFiles` | `search_in_files/rg.exe` |
-| `pack` (F11) | `pack` | `CommandsAdvancedImpl.doPack` | `pack_unpack/7zG.exe` |
+| `terminal` (F9) / `explorer` (Alt+F9) | `terminalHere` / `explorerHere` | `FileOperations.openTerminal` / `openExplorer` | PowerShell (cmd fallback), `explorer.exe` |
+| `search` (F10, Ctrl+F) | `search` → `pickFoundFile` | `tools/BundledToolCommands.findByName`, `foundFiles`; `FoundFilesDialog` | `search_in_files/rg.exe` |
+| `findInFiles` (Alt+F10) | `findInFiles` → `pickFoundFile` | `dialog/FindInFilesDialog`, `FoundFilesDialog`; `tools/BundledToolCommands.findInFiles`, `foundFiles` | `search_in_files/rg.exe` |
+| `pack` (F11) | `pack` | `ArchiveOperations.pack` | `pack_unpack/7zG.exe` |
 | `splitLargeFile` (Alt+F11) | `splitLargeFile` | `dialog/SplitSizeDialog`, `tools/BundledToolCommands.parseSplitSize` | `extract_all/UniExtract/bin/x64/7z.exe` |
-| `unpack` (F12) | `unpackFile` | `CommandsAdvancedImpl.doUnpack` → `unpackWith` | `pack_unpack/7zG.exe` |
-| `extractAll` (Alt+F12) | `extractAll` | `doExtractAll` → `unpackWith` | `extract_all/UniExtract/UniExtract.exe` |
-| `mergePdf` / `extractPdfPages` | `mergePDFFiles` / `extractPDFPages` | `dialog/PdfExtractDialog`, `doMergePDFs` / `doExtractPDFPages`, `PdfExtractOptions` | `pdf/pdftk.exe` |
+| `unpack` (F12) | `unpackFile` | `ArchiveOperations.unpack` → `unpackWith` | `pack_unpack/7zG.exe` |
+| `extractAll` (Alt+F12) | `extractAll` | `ArchiveOperations.extractAll` → `unpackWith` | `extract_all/UniExtract/UniExtract.exe` |
+| `mergePdf` / `extractPdfPages` | `mergePDFFiles` / `extractPDFPages` | `dialog/PdfExtractDialog`, `services/PdfOperations.merge` / `extractPages` / `pageCount`, `PdfExtractOptions` | `pdf/pdftk.exe` |
 | `convertMediaFile` (Alt+F5) | `convertMediaFile` → image or audio below | `ImageConversionSupport`, `AudioConversionSupport` | — |
 | `convertGraphicsFiles` | `convertGraphicsFiles` | `dialog/ImageConversionDialog`, `services/ImageConversionService` (command, output lookup), `ImageConversionSupport` | `image_convert/caesiumclt.exe` |
 | `convertAudioFiles` | `convertAudioFiles` | `dialog/AudioConversionDialog`, `services/AudioConversionService` (commands, AAC bridge, ASCII staging), `AudioConversionSupport` | `sound_convert/sndfile-convert.exe`, `faac.exe`, `faad.exe` |
@@ -164,16 +164,12 @@ Not actions, but often asked for:
 | `ActionPriorityEngine` | Scores actions from `priority` / `priorityRules` (extension, selection, clipboard). |
 | `SelectionRule` | `none` / `single` / `multi` / `any` / `singleFile` check on the selection. |
 
-### `commands/` — file operations behind the UI
+### `commands/` — running external tools
 | File | Role |
 |---|---|
-| `ACommands` | Base: filters `..`/invalid items, template methods (`rename` → `doRename`, …); runs tools through the shared `ExternalToolRunner`. |
-| `CommandsAdvancedImpl` | Used by the app. Runs apps.json tool paths (`requireAction(id)`), batches copy/move, PDFs, pack/unpack; falls back to `CommandsSimpleImpl`. |
-| `CommandsSimpleImpl` | Pure-Java/OS ops: single rename, copy/move, mkdir, terminal, explorer, PowerShell file search. Pack/PDF throw "not implemented". |
 | `ExternalToolRunner` | One per app: `runExecutable` (background run, listener events, accepted exit codes, a callback when a tool changed files), `reportFailure` (shows the failure of a run nobody waits on; every fire-and-forget run must use it, or `Commander.runExternalReported`), `stopAll` (Stop button). No JavaFX. |
 | `ExternalCommandListener` | Callback for tool start/finish (drives the progress bar) and `onFailure` (error dialog). |
 | `ExternalCommandException` | Non-zero exit with command + output tail. |
-| `PdfExtractOptions` | Record: extract all / page expression / pages per PDF. |
 
 ### `config/` — `config/apps.json` model
 | File | Role |
@@ -183,7 +179,7 @@ Not actions, but often asked for:
 | `ActionDefinition` | One action (fields in README "Fields" table); nested enums `WriteTarget`, `FileType`, `Requirement`. |
 | `PromptDefinition` / `PriorityRuleDefinition` | `prompt` and `priorityRules` sub-objects. |
 | `ActionScope` | `global` / `filePane` / `commandPalette`; maps from `KeyContext`. |
-| `AppRegistry` | Index by scope, `findAction(id)`, `matchShortcut(scope, event)`. |
+| `AppRegistry` | Index by scope, `findAction(id)`, `requireAction(id)` (throws when missing), `matchShortcut(scope, event)`. |
 
 ### `dialog/` — dialogs (each takes owner window + theme class, not `Commander`)
 | File | Role |
@@ -262,13 +258,17 @@ Not actions, but often asked for:
 | `ImageConversionService` | caesiumclt command from an `ImageConversionRequest`; finds the first output file to select. |
 | `AudioConversionService` | Runs sndfile-convert (faad/faac for AAC/M4A) per file through an injected runner; stages non-ASCII paths; collision policy; encoding choices for the dialog. |
 | `ClipboardTransfer` | Copy/cut/paste between panes on any VFS: clipboard `State`, `paste` (move or copy, per-item failures), `duplicateName` (`_copy`, `_copy_2`, …), `isSameFolder`, `targetInternalPath`. F5 into the same folder uses it too. |
+| `FileOperations` | Rename, copy / move (+ batches; FastCopy for local, VFS otherwise; `verifyBatchCopy`), delete / wipe / unlock, new folder / file, view / edit (temp copy for archive/FTP, saved back), terminal, explorer; `filterValidItems` drops "..". |
+| `ArchiveOperations` | Pack (non-local items staged under their own names), Unpack and Extract All (`unpackWith`; remote sides through temp copies). |
+| `PdfOperations` | Merge, extract pages, page count with pdftk on ASCII temp copies; results saved to any pane type; `parsePageExpression`, `validateExtractRequest`. |
+| `PdfExtractOptions` | Record: extract all / page expression / pages per PDF. |
 
 ### `tools/`
 | File | Role |
 |---|---|
 | `ToolCommandBuilder` | Expands `${...}` placeholders in apps.json `args`; resolves `path` with `AppPaths`. |
 | `BundledTool` | Every tool under `apps/` the code runs directly (7z, curl, exiv2, rg, rhash, …) → `path()`. Tools of apps.json actions are listed there instead. `BundledToolTest` checks both lists are on disk. |
-| `BundledToolCommands` | Argument lists + option types for rhash (checksum), file (analyze), ExamDiff (compare files) and the 7-Zip split size. |
+| `BundledToolCommands` | Argument lists + option types for rhash (checksum), file (analyze), ExamDiff (compare files), ripgrep (find by name / in files, `foundFiles`) and the 7-Zip split size. |
 | `FilePropertiesLauncher` | Opens the Windows Properties dialog of a path: writes a VBS script to the temp dir, runs it with `wscript.exe`. |
 | `ProcessRunner` | The one way to start a process: `run()` drains stdout/stderr (merged or apart) and returns `Result`; `launch()` for GUI tools; `trackIn` for the Stop button. |
 
@@ -301,8 +301,7 @@ Not actions, but often asked for:
 Under `src/test/java/org/chaiware/acommander/`, same package as the class tested:
 
 `actions/` ActionMatcher, ActionPriorityEngine, ActionRegistry, BuiltinAction, ActionRulesSnapshot (FTP / read-only / palette
-rules per action vs `src/test/resources/action-rules-snapshot.txt`) · `commands/` CommandsAdvancedImpl, CommandsSimpleImpl,
-PackVfs, ExternalToolRunner · `config/` ActionScope, AppConfigLoader, AppRegistryShortcutMatching · `dialog/` DialogTheme, MetadataFormDialog · `helpers/` AppTempDir, AppVersion, ArchiveManager, AudioConversionSupport, AudioMetadataSupport,
+rules per action vs `src/test/resources/action-rules-snapshot.txt`) · `commands/` ExternalToolRunner · `config/` ActionScope, AppConfigLoader, AppRegistryShortcutMatching · `dialog/` DialogTheme, MetadataFormDialog · `helpers/` AppTempDir, AppVersion, ArchiveManager, AudioConversionSupport, AudioMetadataSupport,
 BugReportUrl, ExecutableCompressionSupport, ExternalProgressController, FileAttributesHelper, FileHelper, FileIcons, FilesPanesHelperNaturalSort, IncrementalFilter, ImageConversionSupport, ImageMetadataSupport, SettingsStore, VideoMetadataSupport · `model/` ArchiveMode,
-FileItem · `services/` AudioConversionService, ClipboardTransfer, FolderComparer, ImageConversionService · `tools/` BundledTool, BundledToolCommands, ToolCommandBuilder, ProcessRunner · `vfs/` FtpFileSystem · root: ArchitectureRules (process / background / temp-file / app-path / version / fire-and-forget / no file walking or hashing in `Commander` rules), CommanderCopy, `CodeMapTest` (fails when a main
+FileItem · `services/` ArchiveOperations, AudioConversionService, ClipboardTransfer, FileOperations, FolderComparer, ImageConversionService, PdfOperations · `tools/` BundledTool, BundledToolCommands, ToolCommandBuilder, ProcessRunner · `vfs/` FtpFileSystem · root: ArchitectureRules (process / background / temp-file / app-path / version / fire-and-forget / no file walking or hashing in `Commander` rules), CommanderCopy, `CodeMapTest` (fails when a main
 class or an apps.json action is missing from this file).

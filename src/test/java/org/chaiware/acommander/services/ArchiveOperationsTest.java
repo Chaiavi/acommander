@@ -1,5 +1,7 @@
-package org.chaiware.acommander.commands;
+package org.chaiware.acommander.services;
 
+import org.chaiware.acommander.commands.ExternalToolRunner;
+import org.chaiware.acommander.config.AppConfig;
 import org.chaiware.acommander.config.AppRegistry;
 import org.chaiware.acommander.helpers.FilesPanesHelper;
 import org.chaiware.acommander.model.FileItem;
@@ -11,7 +13,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.mockito.ArgumentCaptor;
 
-import java.io.IOException;
 import java.nio.file.Path;
 import java.util.List;
 
@@ -21,37 +22,34 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
-class PackVfsTest {
+class ArchiveOperationsTest {
 
     @TempDir
     Path tempDir;
 
-    private FilesPanesHelper filesPanesHelper;
-    private CommandsAdvancedImpl commands;
     private VFileSystem sourceFs;
-    private VFileSystem targetFs;
+    private ArchiveOperations operations;
 
     @BeforeEach
-    void setUp() throws IOException {
-        filesPanesHelper = mock(FilesPanesHelper.class);
-        commands = new CommandsAdvancedImpl(filesPanesHelper, mock(AppRegistry.class), new ExternalToolRunner(() -> {}));
+    void setUp() {
+        FilesPanesHelper panes = mock(FilesPanesHelper.class);
         sourceFs = mock(FtpFileSystem.class);
-        targetFs = new LocalFileSystem(tempDir.toString());
-
-        when(filesPanesHelper.getFocusedFileSystem()).thenReturn(sourceFs);
-        when(filesPanesHelper.getUnfocusedFileSystem()).thenReturn(targetFs);
-        when(sourceFs.getDisplayName()).thenReturn("ftp://host/");
+        when(panes.getFocusedFileSystem()).thenReturn(sourceFs);
+        when(panes.getUnfocusedFileSystem()).thenReturn(new LocalFileSystem(tempDir.toString()));
+        AppConfig config = new AppConfig();
+        config.setActions(List.of());
+        operations = new ArchiveOperations(panes, new AppRegistry(config), new ExternalToolRunner(() -> {}));
     }
 
     @Test
-    void doPack_stagesRemoteItemsUnderTheirOwnNames() throws Exception {
+    void packStagesRemoteItemsUnderTheirOwnNames() throws Exception {
         FileItem dir = new FileItem(null, "dir1", 0, 0, true);
         FileItem file = new FileItem(null, "file1.txt", 100, 0, false);
         when(sourceFs.getInternalPath(dir)).thenReturn("/dir1");
         when(sourceFs.getInternalPath(file)).thenReturn("/file1.txt");
 
         // No pack tool configured, so it stops after the downloads
-        assertThatThrownBy(() -> commands.pack(List.of(dir, file), tempDir.resolve("test.zip").toString()))
+        assertThatThrownBy(() -> operations.pack(List.of(dir, file), tempDir.resolve("test.zip").toString()))
                 .hasMessageContaining("Missing action config: pack");
 
         ArgumentCaptor<String> dirTarget = ArgumentCaptor.forClass(String.class);
@@ -66,12 +64,19 @@ class PackVfsTest {
     }
 
     @Test
-    void doPack_rejectsANameThatLeavesTheStagingFolder() throws Exception {
+    void packRejectsANameThatLeavesTheStagingFolder() throws Exception {
         FileItem item = new FileItem(null, "../evil.txt", 0, 0, false);
         when(sourceFs.getInternalPath(item)).thenReturn("/../evil.txt");
 
-        assertThatThrownBy(() -> commands.pack(List.of(item), tempDir.resolve("test.zip").toString()))
+        assertThatThrownBy(() -> operations.pack(List.of(item), tempDir.resolve("test.zip").toString()))
                 .hasMessageContaining("Can't pack an item with this name");
         verify(sourceFs, never()).copy(anyString(), any(), anyString());
+    }
+
+    @Test
+    void unpackRejectsAFileThatIsNotAnArchive() {
+        assertThatThrownBy(() -> operations.unpack(new FileItem(null, "notes.txt", 1, 0, false), tempDir.toString()))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("not a supported archive");
     }
 }

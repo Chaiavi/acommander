@@ -58,6 +58,16 @@ class ArchitectureRulesTest {
     }
 
     @Test
+    void servicesAndToolRunsStayFreeOfJavaFx() throws IOException {
+        Path root = MAIN.resolve(Path.of("org", "chaiware", "acommander"));
+        try (Stream<Path> files = Stream.concat(Files.list(root.resolve("services")), Files.list(root.resolve("commands")))) {
+            assertThat(files.flatMap(file -> matchingLines(file, Pattern.compile("^import javafx\\."))).toList())
+                    .as("services/ and commands/ run off the FX thread and are unit-tested; leave JavaFX to Commander and dialog/")
+                    .isEmpty();
+        }
+    }
+
+    @Test
     void commanderLeavesFileTreesHashesAndSettingsToTestableClasses() {
         Path commander = MAIN.resolve(Path.of("org", "chaiware", "acommander", "Commander.java"));
         assertThat(matchingLines(commander, Pattern.compile("Files\\.(walk|list)\\(|MessageDigest|\\bProperties\\s+\\w+\\s*[;=]|new Properties\\(")).toList())

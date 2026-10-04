@@ -43,7 +43,7 @@ Command Palette; theme toggle; one metadata edit on a copied jpg/mp3/mp4; checks
 server is available.
 
 `Commander` line count: 7459 (start), 7199 (after Phase 1), 7038 (after Phase 2), 6929 (after Phase 3), 5380 (after
-Phase 4), 3632 (after Phase 5), 3533 (after Phase 6).
+Phase 4), 3632 (after Phase 5), 3533 (after Phase 6), 3553 (after Phase 7; Search moved in from the commands).
 
 ## Phase 0 — Prep and Safety Net (no behaviour change)
 
@@ -280,7 +280,7 @@ Rechecked after Phase 6 (gate). Order: 7.4, 7.2, then 7.1 in three commits (PDF,
 7.1. Changed: three services instead of six, and the runner keeps today's API (see 7.2). Found: PDF merge / extract
 failures are only logged, and a merge into an FTP or archive pane writes to the wrong place (fixed in 7.1a).
 
-- [ ] 7.1 Replace `ACommands` (374) / `CommandsAdvancedImpl` (1,122) / `CommandsSimpleImpl` (369) with three
+- [x] 7.1 Replace `ACommands` (374) / `CommandsAdvancedImpl` (1,122) / `CommandsSimpleImpl` (369) with three
   `services/` classes: (a) `PdfOperations` (merge, extract pages, page count; `parsePageExpression` tested),
   (b) `ArchiveOperations` (pack, unpack / extract all = `unpackWith`), (c) `FileOperations` (rename, copy / move and
   their batches, delete / wipe / unlock, new folder / file, view / edit, terminal / explorer). Keep what 3.3 built:
@@ -289,6 +289,12 @@ failures are only logged, and a merge into an FTP or archive pane writes to the 
   `Platform.runLater` wrappers go. Search by name (F10) runs a PowerShell command and shows its own copy of the
   found-files dialog in `CommandsSimpleImpl`; the command moves to `tools/BundledToolCommands` and `Commander` shows
   the existing `FoundFilesDialog`, like Find in Files. `PdfExtractOptions` moves to `services/`.
+  Done in one commit, not three: removing the PDF methods from the abstract class meant editing the classes 7.1c
+  deletes anyway. `FileOperations` keeps the old public API, so `Commander` changed little. Search by name now runs
+  ripgrep (`BundledToolCommands.findByName`), not PowerShell, and shares `pickFoundFile` with Find in Files. Fixed on
+  the way: #159 (PDF merge / extract failures silent, merge into an FTP pane saved locally) and #160 (Search showed
+  nothing when a subfolder was unreadable; Find in Files showed an error when nothing matched). `AppRegistry` got
+  `requireAction`. `ArchitectureRulesTest` now also keeps JavaFX out of `services/` and `commands/`.
 - [x] 7.2 Changed: `commands/ExternalToolRunner` (next to its listener and exception) owns `runExecutable`,
   `reportFailure`, the Stop counter and `ProcessRunner.trackIn`, under the same names. Dropped "reporting by
   default": callers chain follow-up steps (upload, verify, cleanup) whose failure must reach the user with the
@@ -297,8 +303,9 @@ failures are only logged, and a merge into an FTP or archive pane writes to the 
   their inner simple commands each have their own Stop counter and process set. `ArchitectureRulesTest` also catches
   a qualified `runner.runExecutable(...);`. `ReportFailureTest` becomes `ExternalToolRunnerTest`. Done; `Commander`
   owns the runner and passes it to the commands (the `ACommands.runExecutable` wrappers live until 7.1).
-- [ ] 7.3 Delete the 8 "Not implemented" stubs; move tests with the code (`CommanderCopyTest` builds a
-  `CommandsSimpleImpl`). Falls out of 7.1: the stubs exist only to fill the abstract class.
+- [x] 7.3 Delete the 8 "Not implemented" stubs; move tests with the code (`CommanderCopyTest` builds a
+  `CommandsSimpleImpl`). Falls out of 7.1: the stubs exist only to fill the abstract class. Done with 7.1; the tests
+  are `FileOperationsTest`, `ArchiveOperationsTest`, `PdfOperationsTest`.
 - [x] 7.4 `LocalFileSystem.copyDirectory` and `ArchiveFileSystem.copyDirectory` are the same method; keep one.
   Done: both call `FileHelper.copyTree(source, target, REPLACE_EXISTING)`; the archive recovery passes
   `COPY_ATTRIBUTES`, as before.
@@ -343,11 +350,11 @@ Rechecked after Phase 5: 10.1–10.7 still apply as written; no new item. Open q
   `FtpConnectionOptions` (Lombok `@Data` prints it).
 - [ ] 10.2 FTP credentials on the command line (visible in Task Manager): pass `user:password` to curl via
   `--config -` on stdin (add stdin to `ProcessRunner`), not `-u`. Guard remote names starting with `-`.
-- [ ] 10.3 PowerShell injection. `CommandsSimpleImpl.openTerminal` (F9) puts the folder in
+- [ ] 10.3 PowerShell injection. `FileOperations.openTerminal` (F9; was `CommandsSimpleImpl`) puts the folder in
   `-Command "cd '<path>'"` without escaping `'`, so a folder named `a';calc;'` runs calc. Start the terminal in the
-  folder (process working dir) instead of building a command string. Same review for `searchFiles` (escapes `'`,
-  still string-built: pass the values as script arguments) and `openHostsFile` (`Start-Process` string built from
-  apps.json). `ComboBoxSetup`'s script has no user input. Test with such a folder in a temp dir.
+  folder (process working dir) instead of building a command string. Same review for `openHostsFile`
+  (`Start-Process` string built from apps.json). `searchFiles` is gone (7.1: ripgrep with list arguments).
+  `ComboBoxSetup`'s script has no user input. Test with such a folder in a temp dir.
 - [ ] 10.4 `cmd.exe` with file names. `enterSelectedItem` runs `.bat` / `.cmd` as `cmd.exe /c <path>`, and
   `openFileWithSystemDefault` falls back to `cmd.exe /c start "" "<path>"`; `&`, `^`, `%VAR%` in a name are
   interpreted. Use `Desktop.open` / ShellExecute. Test with `a&b %PATH%.bat` in a temp folder.
@@ -395,3 +402,7 @@ Bugs noticed during the work, fixed in the phase named.
 17. Fixed (#156): file sizes failed to parse in comma-decimal locales (`Double.parseDouble` of a formatted size).
 18. Fixed (#157): Duplicate inside an archive loops forever on the FX thread (`Commander.fileExists` is always true
     for an archive).
+19. Fixed (#158): Unpack refused archives that Enter opens (two extension lists).
+20. Fixed (#159): PDF merge / extract failures were only logged; a merge into an FTP pane was saved locally.
+21. Fixed (#160): Search showed nothing when a subfolder was unreadable; Find in Files showed an error when nothing
+    matched (ripgrep exits 1 / 2).

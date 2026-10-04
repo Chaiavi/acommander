@@ -41,6 +41,10 @@ import org.chaiware.acommander.services.AudioConversionService.AudioConversionRe
 import org.chaiware.acommander.services.ClipboardTransfer;
 import org.chaiware.acommander.services.ImageConversionService;
 import org.chaiware.acommander.services.ImageConversionService.ImageConversionRequest;
+import org.chaiware.acommander.services.ArchiveOperations;
+import org.chaiware.acommander.services.FileOperations;
+import org.chaiware.acommander.services.PdfExtractOptions;
+import org.chaiware.acommander.services.PdfOperations;
 import org.chaiware.acommander.tools.BundledTool;
 import org.chaiware.acommander.tools.BundledToolCommands;
 import org.chaiware.acommander.tools.BundledToolCommands.ChecksumOptions;
@@ -104,7 +108,9 @@ public class Commander {
     private CommandPaletteController commandPaletteController;
 
     private final SettingsStore settings = new SettingsStore(AppPaths.config("acommander.properties"));
-    ACommands commands;
+    FileOperations fileOps;
+    private ArchiveOperations archiveOps;
+    private PdfOperations pdfOps;
     private ExternalToolRunner toolRunner;
     private AppRegistry appRegistry;
     private ActionExecutor actionExecutor;
@@ -149,7 +155,9 @@ public class Commander {
             filesPanesHelper.refreshFileListViews();
         }));
         toolRunner.setListener(externalCommandListener);
-        commands = new CommandsAdvancedImpl(filesPanesHelper, appRegistry, toolRunner);
+        fileOps = new FileOperations(filesPanesHelper, appRegistry, toolRunner);
+        archiveOps = new ArchiveOperations(filesPanesHelper, appRegistry, toolRunner);
+        pdfOps = new PdfOperations(filesPanesHelper, appRegistry, toolRunner);
         configMouseDoubleClick();
 
         logger.debug("Loading file lists into the double panes file views");
@@ -940,7 +948,7 @@ public class Commander {
             }
             FileItem selectedItem = new FileItem(configFile.toFile(), configFile.getFileName().toString());
             restoreFileListFocusAfterSettingsEdit = true;
-            commands.edit(selectedItem);
+            fileOps.edit(selectedItem);
         } catch (Exception ex) {
             restoreFileListFocusAfterSettingsEdit = false;
             error("Failed Opening settings", ex);
@@ -980,7 +988,7 @@ public class Commander {
         logger.info("Rename (F2)");
 
         try {
-            List<FileItem> selectedItems = commands.filterValidItems(filesPanesHelper.getSelectedItems());
+            List<FileItem> selectedItems = fileOps.filterValidItems(filesPanesHelper.getSelectedItems());
             if (selectedItems.isEmpty())
                 return;
             if (selectedItems.size() == 1) {
@@ -998,7 +1006,7 @@ public class Commander {
                     if (fs instanceof FtpFileSystem) {
                         BackgroundTasks.run(() -> {
                             try {
-                                commands.rename(Collections.singletonList(selectedItem), newName);
+                                fileOps.rename(Collections.singletonList(selectedItem), newName);
                             } catch (Exception e) {
                                 Platform.runLater(() -> error("Failed Renaming file/s", e));
                             }
@@ -1017,7 +1025,7 @@ public class Commander {
                             filesPanesHelper.selectFileItem(true, renamedFileItem);
                         }));
                     } else {
-                        commands.rename(Collections.singletonList(selectedItem), newName);
+                        fileOps.rename(Collections.singletonList(selectedItem), newName);
                         
                         String currentPath = filesPanesHelper.getFocusedPath();
                         String separator = fs.getSeparator();
@@ -1034,7 +1042,7 @@ public class Commander {
                     }
                 }
             } else // Multi files selected (multi rename)
-                commands.rename(selectedItems, "");
+                fileOps.rename(selectedItems, "");
         } catch (Exception e) {
             error("Failed Renaming file/s", e);
         }
@@ -1052,14 +1060,14 @@ public class Commander {
                 BackgroundTasks.run(() -> {
                     try {
                         for (FileItem selectedItem : selectedItems)
-                            commands.view(selectedItem);
+                            fileOps.view(selectedItem);
                     } catch (Exception e) {
                         Platform.runLater(() -> error("Failed Viewing file", e));
                     }
                 });
             } else {
                 for (FileItem selectedItem : selectedItems)
-                    commands.view(selectedItem);
+                    fileOps.view(selectedItem);
             }
         } catch (Exception ex) {
             error("Failed Viewing file", ex);
@@ -1097,7 +1105,7 @@ public class Commander {
                     try {
                         for (FileItem fileItem : fileItems) {
                             if (org.chaiware.acommander.helpers.FileHelper.isTextFile(fileItem, fs)) {
-                                commands.edit(fileItem);
+                                fileOps.edit(fileItem);
                             } else {
                                 Platform.runLater(() -> showError("Edit File", "Cannot edit binary file: " + fileItem.getName()));
                             }
@@ -1109,7 +1117,7 @@ public class Commander {
             } else {
                 for (FileItem fileItem : fileItems) {
                     if (org.chaiware.acommander.helpers.FileHelper.isTextFile(fileItem, fs)) {
-                        commands.edit(fileItem);
+                        fileOps.edit(fileItem);
                     } else {
                         showError("Edit File", "Cannot edit binary file: " + fileItem.getName());
                     }
@@ -1125,7 +1133,7 @@ public class Commander {
         logger.info("Copy (F5)");
 
         try {
-            List<FileItem> selectedItems = new ArrayList<>(commands.filterValidItems(filesPanesHelper.getSelectedItems()));
+            List<FileItem> selectedItems = new ArrayList<>(fileOps.filterValidItems(filesPanesHelper.getSelectedItems()));
             if (selectedItems.isEmpty()) {
                 return;
             }
@@ -1179,14 +1187,14 @@ public class Commander {
             if (fs instanceof FtpFileSystem) {
                 BackgroundTasks.run(() -> {
                     try {
-                        if (selectedItems.size() > 1 && commands instanceof CommandsAdvancedImpl advancedCommands) {
-                            advancedCommands.copyBatch(selectedItems, targetFolderSnapshot);
+                        if (selectedItems.size() > 1) {
+                            fileOps.copyBatch(selectedItems, targetFolderSnapshot);
                         } else {
                             for (FileItem selectedItem : selectedItems) {
                                 String target = targetFolderSnapshot;
                                 if (selectedItem.isDirectory())
                                     target += "\\" + selectedItem.getName();
-                                commands.copy(selectedItem, target);
+                                fileOps.copy(selectedItem, target);
                             }
                         }
                     } catch (Exception e) {
@@ -1201,8 +1209,8 @@ public class Commander {
                     }
                 }));
             } else {
-                if (selectedItems.size() > 1 && commands instanceof CommandsAdvancedImpl advancedCommands) {
-                    advancedCommands.copyBatch(selectedItems, targetFolderSnapshot);
+                if (selectedItems.size() > 1) {
+                    fileOps.copyBatch(selectedItems, targetFolderSnapshot);
                     for (FileItem selectedItem : selectedItems) {
                         File target = new File(targetFolderSnapshot, selectedItem.getName());
                         filesPanesHelper.selectFileItem(false, new FileItem(target));
@@ -1214,7 +1222,7 @@ public class Commander {
                     String targetFolder = filesPanesHelper.getUnfocusedPath();
                     if (selectedItem.isDirectory())
                         targetFolder += "\\" + selectedItem.getName();
-                    commands.copy(selectedItem, targetFolder);
+                    fileOps.copy(selectedItem, targetFolder);
 
                     // taking care of the selected files
                     File target = selectedItem.isDirectory()
@@ -1233,7 +1241,7 @@ public class Commander {
         logger.info("Duplicate");
 
         try {
-            List<FileItem> selectedItems = new ArrayList<>(commands.filterValidItems(filesPanesHelper.getSelectedItems()));
+            List<FileItem> selectedItems = new ArrayList<>(fileOps.filterValidItems(filesPanesHelper.getSelectedItems()));
             if (selectedItems.isEmpty()) {
                 return;
             }
@@ -1280,7 +1288,7 @@ public class Commander {
         logger.info("Move (F6)");
 
         try {
-            List<FileItem> selectedItems = new ArrayList<>(commands.filterValidItems(filesPanesHelper.getSelectedItems()));
+            List<FileItem> selectedItems = new ArrayList<>(fileOps.filterValidItems(filesPanesHelper.getSelectedItems()));
             if (selectedItems.isEmpty()) {
                 return;
             }
@@ -1297,10 +1305,10 @@ public class Commander {
                     targetFolderSnapshot
             );
 
-            if (selectedItems.size() > 1 && commands instanceof CommandsAdvancedImpl advancedCommands) {
+            if (selectedItems.size() > 1) {
                 BackgroundTasks.run(() -> {
                     try {
-                        advancedCommands.moveBatch(selectedItems, targetFolderSnapshot);
+                        fileOps.moveBatch(selectedItems, targetFolderSnapshot);
                     } catch (Exception e) {
                         throw new CompletionException(e);
                     }
@@ -1321,7 +1329,7 @@ public class Commander {
                 BackgroundTasks.run(() -> {
                     try {
                         for (FileItem selectedItem : selectedItems) {
-                            commands.move(selectedItem, targetFolderSnapshot);
+                            fileOps.move(selectedItem, targetFolderSnapshot);
                         }
                     } catch (Exception e) {
                         Platform.runLater(() -> error("Failed Moving file", e));
@@ -1335,7 +1343,7 @@ public class Commander {
                 }));
             } else {
                 for (FileItem selectedItem : selectedItems) {
-                    commands.move(selectedItem, targetFolderSnapshot);
+                    fileOps.move(selectedItem, targetFolderSnapshot);
 
                     selectFocusedItemByIndex(sourceSelectionIndexAfterMove);
                     File target = new File(targetFolderSnapshot, selectedItem.getName());
@@ -1378,7 +1386,7 @@ public class Commander {
                 if (fs instanceof FtpFileSystem) {
                     BackgroundTasks.run(() -> {
                         try {
-                            commands.mkdir(focusedPath, dirName);
+                            fileOps.mkdir(focusedPath, dirName);
                         } catch (Exception e) {
                             Platform.runLater(() -> error("Failed Creating Directory", e));
                         }
@@ -1387,7 +1395,7 @@ public class Commander {
                         filesPanesHelper.selectFileItem(true, newFolder);
                     }));
                 } else {
-                    commands.mkdir(focusedPath, dirName);
+                    fileOps.mkdir(focusedPath, dirName);
                     FileItem newFolder = new FileItem(new File(focusedPath + "\\" + dirName));
                     filesPanesHelper.selectFileItem(true, newFolder);
                 }
@@ -1410,7 +1418,7 @@ public class Commander {
                 if (fs instanceof FtpFileSystem) {
                     BackgroundTasks.run(() -> {
                         try {
-                            commands.mkFile(focusedPath, fileName);
+                            fileOps.mkFile(focusedPath, fileName);
                         } catch (Exception e) {
                             Platform.runLater(() -> error("Failed Creating File", e));
                         }
@@ -1419,7 +1427,7 @@ public class Commander {
                         filesPanesHelper.selectFileItem(true, newFile);
                     }));
                 } else {
-                    commands.mkFile(focusedPath, fileName);
+                    fileOps.mkFile(focusedPath, fileName);
                     FileItem newFile = new FileItem(new File(focusedPath + "\\" + fileName));
                     filesPanesHelper.selectFileItem(true, newFile);
                 }
@@ -1433,7 +1441,7 @@ public class Commander {
     public void deleteFile() {
         logger.info("Delete (F8/DEL)");
         try {
-            List<FileItem> selectedItems = new ArrayList<>(commands.filterValidItems(filesPanesHelper.getSelectedItems()));
+            List<FileItem> selectedItems = new ArrayList<>(fileOps.filterValidItems(filesPanesHelper.getSelectedItems()));
             if (selectedItems.isEmpty()) {
                 return;
             }
@@ -1443,7 +1451,7 @@ public class Commander {
             if (fs instanceof FtpFileSystem) {
                 BackgroundTasks.run(() -> {
                     try {
-                        commands.delete(selectedItems);
+                        fileOps.delete(selectedItems);
                     } catch (Exception e) {
                         Platform.runLater(() -> error("Failed to delete", e));
                     }
@@ -1451,7 +1459,7 @@ public class Commander {
                     selectItemAboveDeleted(selectionIndexBeforeDelete);
                 }));
             } else {
-                commands.delete(selectedItems);
+                fileOps.delete(selectedItems);
                 selectItemAboveDeleted(selectionIndexBeforeDelete);
             }
         } catch (Exception ex) {
@@ -1462,7 +1470,7 @@ public class Commander {
     public void deleteWipe() {
         logger.info("Delete & Wipe (Shift+F8/DEL)");
         try {
-            List<FileItem> selectedItems = new ArrayList<>(commands.filterValidItems(filesPanesHelper.getSelectedItems()));
+            List<FileItem> selectedItems = new ArrayList<>(fileOps.filterValidItems(filesPanesHelper.getSelectedItems()));
             if (selectedItems.isEmpty()) {
                 return;
             }
@@ -1472,7 +1480,7 @@ public class Commander {
             if (fs instanceof FtpFileSystem) {
                 BackgroundTasks.run(() -> {
                     try {
-                        commands.wipeDelete(selectedItems);
+                        fileOps.wipeDelete(selectedItems);
                     } catch (Exception e) {
                         Platform.runLater(() -> error("Failed to delete", e));
                     }
@@ -1480,7 +1488,7 @@ public class Commander {
                     selectItemAboveDeleted(selectionIndexBeforeDelete);
                 }));
             } else {
-                commands.wipeDelete(selectedItems);
+                fileOps.wipeDelete(selectedItems);
                 selectItemAboveDeleted(selectionIndexBeforeDelete);
             }
         } catch (Exception ex) {
@@ -1505,7 +1513,7 @@ public class Commander {
         logger.info("Open Terminal Here (F9)");
         String openHerePath = filesPanesHelper.getFocusedPath();
         try {
-            commands.openTerminal(openHerePath);
+            fileOps.openTerminal(openHerePath);
         } catch (Exception ex) {
             error("Failed starting command line shell here: " + openHerePath, ex);
         }
@@ -1515,7 +1523,7 @@ public class Commander {
         logger.info("Open Explorer Here (ALT+F9)");
         String openHerePath = filesPanesHelper.getFocusedPath();
         try {
-            commands.openExplorer(openHerePath);
+            fileOps.openExplorer(openHerePath);
         } catch (Exception ex) {
             error("Failed opening explorer here: " + openHerePath, ex);
         }
@@ -1528,12 +1536,29 @@ public class Commander {
         Optional<String> result = getUserFeedback("", "Search for File/s", "Enter (partial/wildcard) filename");
         if (result.isPresent()) {
             String searchFromPath = filesPanesHelper.getFocusedPath();
-            try {
-                commands.searchFiles(searchFromPath, result.get().contains("*") ? result.get() : "*" + result.get() + "*");
-            } catch (Exception e) {
-                error("Failed searching for: " + result.get(), e);
-            }
+            String pattern = result.get().contains("*") ? result.get() : "*" + result.get() + "*";
+            // ripgrep exits 1 when nothing matched and 2 when some folder could not be read
+            runExternal(BundledToolCommands.findByName(BundledTool.RIPGREP.path(), searchFromPath, pattern), false, Set.of(1, 2))
+                    .thenAccept(output -> Platform.runLater(() ->
+                            pickFoundFile("Search", BundledToolCommands.foundFiles(output, searchFromPath))))
+                    .exceptionally(throwable -> {
+                        Platform.runLater(() -> showError("Search", "Failed searching for: " + result.get() + "\n" + throwable.getMessage()));
+                        return null;
+                    });
         }
+    }
+
+    /** Lists the files a search found and goes to the one the user picks. */
+    private void pickFoundFile(String title, List<String> files) {
+        if (files.isEmpty()) {
+            showInfo(title, "No files found :-(");
+            return;
+        }
+        FoundFilesDialog.show(dialogOwner(), currentThemeMode.styleClass, files).ifPresent(selectedFile -> {
+            filesPanesHelper.setFocusedFileListPath(selectedFile.getFile().getParent());
+            filesPanesHelper.selectFileItem(true, selectedFile);
+            requestFocusedFileListFocus();
+        });
     }
 
     public void findInFiles() {
@@ -1549,19 +1574,9 @@ public class Commander {
             return;
         }
 
-        runExternal(BundledToolCommands.findInFiles(rgPath, sourcePath, options.get()), false)
-                .thenAccept(output -> Platform.runLater(() -> {
-                    List<String> files = BundledToolCommands.foundFiles(output == null ? List.of() : output, sourcePath);
-                    if (files.isEmpty()) {
-                        showInfo("Find in Files", "No files found :-(");
-                        return;
-                    }
-                    FoundFilesDialog.show(dialogOwner(), currentThemeMode.styleClass, files).ifPresent(selectedFile -> {
-                        filesPanesHelper.setFocusedFileListPath(selectedFile.getFile().getParent());
-                        filesPanesHelper.selectFileItem(true, selectedFile);
-                        requestFocusedFileListFocus();
-                    });
-                }))
+        runExternal(BundledToolCommands.findInFiles(rgPath, sourcePath, options.get()), false, Set.of(1, 2))
+                .thenAccept(output -> Platform.runLater(() ->
+                        pickFoundFile("Find in Files", BundledToolCommands.foundFiles(output, sourcePath))))
                 .exceptionally(throwable -> {
                     Platform.runLater(() -> showError("Find in Files", "Failed running ripgrep: " + throwable.getMessage()));
                     return null;
@@ -1572,7 +1587,7 @@ public class Commander {
     public void pack() {
         logger.info("Pack (F11)");
         try {
-            List<FileItem> selectedItems = new ArrayList<>(commands.filterValidItems(filesPanesHelper.getSelectedItems()));
+            List<FileItem> selectedItems = new ArrayList<>(fileOps.filterValidItems(filesPanesHelper.getSelectedItems()));
             if (selectedItems.isEmpty()) {
                 return;
             }
@@ -1583,7 +1598,7 @@ public class Commander {
             Optional<String> result = getUserFeedback(zipFilename, "Pack to zip", "Zip filename");
             if (result.isPresent()) {
                 String filenameWithPath = filesPanesHelper.getUnfocusedPath() + "\\" + result.get();
-                commands.pack(selectedItems, filenameWithPath);
+                archiveOps.pack(selectedItems, filenameWithPath);
                 FileItem packedFile = new FileItem(new File(filenameWithPath));
                 filesPanesHelper.selectFileItem(false, packedFile);
             } else
@@ -1596,7 +1611,7 @@ public class Commander {
     public void splitLargeFile() {
         logger.info("Split Large File (ALT+F11)");
         try {
-            List<FileItem> selectedItems = commands.filterValidItems(new ArrayList<>(filesPanesHelper.getSelectedItems()));
+            List<FileItem> selectedItems = fileOps.filterValidItems(new ArrayList<>(filesPanesHelper.getSelectedItems()));
             if (selectedItems.size() != 1) {
                 showError(
                         "Split a Large File",
@@ -1641,7 +1656,7 @@ public class Commander {
 
     public void convertGraphicsFiles() {
         logger.info("Convert Graphics Files");
-        List<FileItem> selectedItems = commands.filterValidItems(new ArrayList<>(filesPanesHelper.getSelectedItems()));
+        List<FileItem> selectedItems = fileOps.filterValidItems(new ArrayList<>(filesPanesHelper.getSelectedItems()));
         if (!ImageConversionSupport.areAllConvertibleImages(selectedItems)) {
             showError("Convert Graphics Files", "Select one or more image files only.");
             requestFocusedFileListFocus();
@@ -1700,7 +1715,7 @@ public class Commander {
 
     public void convertMediaFile() {
         logger.info("Convert Media File");
-        List<FileItem> selectedItems = commands.filterValidItems(new ArrayList<>(filesPanesHelper.getSelectedItems()));
+        List<FileItem> selectedItems = fileOps.filterValidItems(new ArrayList<>(filesPanesHelper.getSelectedItems()));
         if (ImageConversionSupport.areAllConvertibleImages(selectedItems)) {
             convertGraphicsFiles();
             return;
@@ -1715,7 +1730,7 @@ public class Commander {
 
     public void convertAudioFiles() {
         logger.info("Convert Audio Files");
-        List<FileItem> selectedItems = commands.filterValidItems(new ArrayList<>(filesPanesHelper.getSelectedItems()));
+        List<FileItem> selectedItems = fileOps.filterValidItems(new ArrayList<>(filesPanesHelper.getSelectedItems()));
         if (!AudioConversionSupport.areAllConvertibleAudio(selectedItems)) {
             showError("Convert Audio Files", "Select one or more audio files only.");
             requestFocusedFileListFocus();
@@ -1778,7 +1793,7 @@ public class Commander {
 
     public void analyzeFile() {
         logger.info("Analyze File");
-        List<FileItem> selectedItems = commands.filterValidItems(new ArrayList<>(filesPanesHelper.getSelectedItems()));
+        List<FileItem> selectedItems = fileOps.filterValidItems(new ArrayList<>(filesPanesHelper.getSelectedItems()));
         if (selectedItems.size() != 1) {
             logger.warn("Analyze File requires exactly one selected file, but got {}", selectedItems.size());
             showError("Analyze File", "Select exactly one file.");
@@ -1985,7 +2000,7 @@ public class Commander {
 
     public void checksumFile() {
         logger.info("Checksum File");
-        List<FileItem> selectedItems = commands.filterValidItems(new ArrayList<>(filesPanesHelper.getSelectedItems()));
+        List<FileItem> selectedItems = fileOps.filterValidItems(new ArrayList<>(filesPanesHelper.getSelectedItems()));
         if (selectedItems.size() != 1) {
             showError("Checksum File", "Select exactly one file.");
             requestFocusedFileListFocus();
@@ -2041,7 +2056,7 @@ public class Commander {
 
     public void checksumFolderContents() {
         logger.info("Checksum Folder Contents");
-        List<FileItem> selectedItems = commands.filterValidItems(new ArrayList<>(filesPanesHelper.getSelectedItems()));
+        List<FileItem> selectedItems = fileOps.filterValidItems(new ArrayList<>(filesPanesHelper.getSelectedItems()));
         if (selectedItems.size() != 1) {
             showError("Checksum Folder Contents", "Select exactly one folder.");
             requestFocusedFileListFocus();
@@ -2099,7 +2114,7 @@ public class Commander {
         try {
             List<FileItem> selectedItems = new ArrayList<>(filesPanesHelper.getSelectedItems());
             for (FileItem selectedItem : selectedItems)
-                commands.unpack(selectedItem, filesPanesHelper.getUnfocusedPath());
+                archiveOps.unpack(selectedItem, filesPanesHelper.getUnfocusedPath());
         } catch (IllegalArgumentException e) {
             showError("Unpack", e.getMessage());
         } catch (Exception e) {
@@ -2112,7 +2127,7 @@ public class Commander {
         try {
             List<FileItem> selectedItems = new ArrayList<>(filesPanesHelper.getSelectedItems());
             for (FileItem selectedItem : selectedItems)
-                commands.extractAll(selectedItem, filesPanesHelper.getUnfocusedPath());
+                archiveOps.extractAll(selectedItem, filesPanesHelper.getUnfocusedPath());
         } catch (IllegalArgumentException e) {
             logger.warn("Extract All failed for file '{}': {}", 
                     filesPanesHelper.getSelectedItems().isEmpty() ? "unknown" 
@@ -2153,7 +2168,7 @@ public class Commander {
                 logger.debug("Parent dir: '{}'", parentDir);
                 logger.debug("Filename: '{}'", filename);
                 logger.debug("Merged file full path: {}", mergedFile.getFullPath());
-                commands.mergePDFs(selectedItems, mergedFile.getFullPath());
+                pdfOps.merge(selectedItems, parentDir, filename);
                 filesPanesHelper.selectFileItem(false, mergedFile);
             } else
                 logger.info("User cancelled the packing");
@@ -2173,7 +2188,7 @@ public class Commander {
 
         BackgroundTasks.supply(() -> {
                     try {
-                        return commands.getPdfPageCount(firstSelected);
+                        return pdfOps.pageCount(firstSelected);
                     } catch (Exception e) {
                         throw new CompletionException(e);
                     }
@@ -2198,7 +2213,7 @@ public class Commander {
                         }
                         PdfExtractOptions effectiveOptions = options.get().withKnownTotalPages(totalPages);
                         for (FileItem selectedItem : selectedItems) {
-                            commands.extractPDFPages(selectedItem, destinationPath, effectiveOptions);
+                            pdfOps.extractPages(selectedItem, destinationPath, effectiveOptions);
                         }
                     } catch (IllegalArgumentException e) {
                         showError("Extract PDF Pages", e.getMessage());
@@ -2309,7 +2324,7 @@ public class Commander {
     public void fileProperties() {
         logger.info("File Properties");
         try {
-            List<FileItem> selectedItems = commands.filterValidItems(new ArrayList<>(filesPanesHelper.getSelectedItems()));
+            List<FileItem> selectedItems = fileOps.filterValidItems(new ArrayList<>(filesPanesHelper.getSelectedItems()));
             if (selectedItems.size() != 1) {
                 logger.info("File Properties skipped: selection count is {}", selectedItems.size());
                 return;
@@ -2340,7 +2355,7 @@ public class Commander {
         logger.info("Change Attributes");
 
         try {
-            List<FileItem> selectedItems = commands.filterValidItems(new ArrayList<>(filesPanesHelper.getSelectedItems()));
+            List<FileItem> selectedItems = fileOps.filterValidItems(new ArrayList<>(filesPanesHelper.getSelectedItems()));
             if (selectedItems.isEmpty()) {
                 return;
             }
@@ -2391,7 +2406,7 @@ public class Commander {
     /** Opens {@code editor} on the first selected file; refreshes the panes when it saved. */
     private void editMetadata(String kind, MetadataEditor editor) {
         logger.info("Edit {} metadata", kind);
-        List<FileItem> selectedItems = commands.filterValidItems(filesPanesHelper.getSelectedItems());
+        List<FileItem> selectedItems = fileOps.filterValidItems(filesPanesHelper.getSelectedItems());
         if (selectedItems.isEmpty() || selectedItems.getFirst().isDirectory()) {
             return;
         }
@@ -2415,7 +2430,7 @@ public class Commander {
     @FXML
     public void removeImageMetadata() {
         logger.info("Remove Image Metadata");
-        List<FileItem> selectedItems = commands.filterValidItems(filesPanesHelper.getSelectedItems());
+        List<FileItem> selectedItems = fileOps.filterValidItems(filesPanesHelper.getSelectedItems());
         if (selectedItems.isEmpty()) {
             return;
         }
@@ -2486,7 +2501,7 @@ public class Commander {
     @FXML
     public void removeVideoMetadata() {
         logger.info("Remove Video Metadata");
-        List<FileItem> selectedItems = commands.filterValidItems(filesPanesHelper.getSelectedItems());
+        List<FileItem> selectedItems = fileOps.filterValidItems(filesPanesHelper.getSelectedItems());
         if (selectedItems.isEmpty()) {
             return;
         }
@@ -2506,7 +2521,7 @@ public class Commander {
     @FXML
     public void removeAudioMetadata() {
         logger.info("Remove Audio Metadata");
-        List<FileItem> selectedItems = commands.filterValidItems(filesPanesHelper.getSelectedItems());
+        List<FileItem> selectedItems = fileOps.filterValidItems(filesPanesHelper.getSelectedItems());
         if (selectedItems.isEmpty()) {
             return;
         }
@@ -2523,7 +2538,7 @@ public class Commander {
         logger.info("Compress Executable");
 
         try {
-            List<FileItem> selectedItems = commands.filterValidItems(filesPanesHelper.getSelectedItems());
+            List<FileItem> selectedItems = fileOps.filterValidItems(filesPanesHelper.getSelectedItems());
             if (selectedItems.isEmpty()) {
                 return;
             }
@@ -3288,7 +3303,7 @@ public class Commander {
     }
 
     private void setClipboardTransferState(boolean cut) {
-        List<FileItem> selectedItems = new ArrayList<>(commands.filterValidItems(filesPanesHelper.getSelectedItems()));
+        List<FileItem> selectedItems = new ArrayList<>(fileOps.filterValidItems(filesPanesHelper.getSelectedItems()));
         if (selectedItems.isEmpty()) {
             showToast("No files selected");
             return;

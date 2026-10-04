@@ -96,7 +96,7 @@ lessons about this repo in the files above, not in memory.
 
 - Entry point is `Launcher` (calls `Application.launch(Main.class)`), not `Main` — needed for the non-modular JavaFX jar.
 - `Commander` (~3.6k lines) is the FXML controller for `Commander.fxml` and holds most UI behaviour. Prefer putting new
-  logic in `services/` (feature logic), `helpers/`, `commands/` or `tools/` and calling it from `Commander`, so it can
+  logic in `services/` (feature logic), `helpers/` or `tools/` and calling it from `Commander`, so it can
   be unit-tested.
 - Read [docs/CODEMAP.md](docs/CODEMAP.md) to find code instead of reading `Commander`. When you add, move, rename or
   delete a class, action, bundled tool or `Commander` feature method, update the map in the same change.
@@ -105,7 +105,8 @@ lessons about this repo in the files above, not in memory.
 - Packages: `actions/` dispatch + matching, `config/` apps.json loading (`AppRegistry`, `AppConfigLoader`),
   `keybinding/` key handlers, `palette/` Command Palette, `tools/ToolCommandBuilder` placeholder expansion,
   `vfs/` local/FTP/archive file systems, `dialog/` every dialog (`OptionsDialog` shell) + `DialogTheme`, `services/`
-  feature logic moved out of `Commander` (no JavaFX).
+  feature logic moved out of `Commander` (file, archive and PDF operations, …; no JavaFX), `commands/`
+  `ExternalToolRunner` (tool runs, Stop button, failure reports).
 
 ## Adding an action
 
@@ -133,7 +134,7 @@ All actions and external tools live in `config/apps.json`; shortcuts are declare
   `CompletableFuture.runAsync`, `deleteOnExit` or a temp file in the default temp dir anywhere else.
 - A tool under `apps/` that Java runs directly is a `tools/BundledTool` entry; other app files come from
   `helpers/AppPaths`. `ArchitectureRulesTest` fails on `"user.dir"` or an `"apps/` literal anywhere else.
-- A tool run nobody waits on goes through `ACommands.reportFailure` (or `Commander.runExternalReported`), or its
+- A tool run nobody waits on goes through `ExternalToolRunner.reportFailure` (or `Commander.runExternalReported`), or its
   failure is only logged. `ArchitectureRulesTest` fails on a bare `runExecutable(...);` / `runExternal(...);`.
 - A service that runs tools takes the runner as a `Function<List<String>, CompletableFuture<List<String>>>`
   (`Commander` passes `command -> runExternal(command, false)`, which drives the progress bar and Stop), so its test
@@ -164,5 +165,8 @@ All actions and external tools live in `config/apps.json`; shortcuts are declare
   (cmd keeps the bytes; PowerShell `>` re-encodes), make your edit in both `%TEMP%\x` and the working file, then
   `git update-index --cacheinfo 100644,$(git hash-object -w --path <file> $env:TEMP\x),<file>` and `git commit -m`
   without a pathspec. A test failing on a class you never wrote is the same signal.
+- After `git mv` / `git rm`, `git commit -- <old path>` fails ("pathspec did not match any file(s) known to git").
+  `git add` the other paths (the move/delete is already staged), check `git status` lists only your files, then
+  `git commit -m` without a pathspec.
 - IntelliJ: after a clean build, debugger errors → **File → Invalidate Caches → Invalidate and Restart**. LSP errors in
   `Commander.java` (e.g. "getPath() undefined for Folder") are false positives if Gradle builds.

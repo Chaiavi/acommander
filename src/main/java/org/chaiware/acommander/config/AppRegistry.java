@@ -47,6 +47,15 @@ public class AppRegistry {
                 .findFirst();
     }
 
+    /** The action a feature runs by id; throws when apps.json lacks it or its {@code path}. */
+    public ActionDefinition requireAction(String id) {
+        ActionDefinition action = findAction(id).orElseThrow(() -> new IllegalStateException("Missing action config: " + id));
+        if (action.getPath() == null || action.getPath().isBlank()) {
+            throw new IllegalStateException("Missing action path: " + id);
+        }
+        return action;
+    }
+
     public Optional<ActionDefinition> findByShortcut(String shortcut) {
         return actions.stream()
                 .filter(action -> shortcut.equalsIgnoreCase(action.getShortcut()))

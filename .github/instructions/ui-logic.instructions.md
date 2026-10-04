@@ -9,7 +9,7 @@ Find the method you need through [CODEMAP.md](../../docs/CODEMAP.md) instead of 
 
 - Keep in UI classes only: reading UI state (selection, focused pane, field values), showing dialogs,
   `Platform.runLater`, refreshing panes.
-- Put decisions, parsing, validation, filtering and argument building in a class under `helpers/`, `commands/` or
+- Put decisions, parsing, validation, filtering and argument building in a class under `services/`, `helpers/` or
   `tools/`, taking plain inputs (`List<FileItem>`, `Path`, `String`) — no JavaFX types.
 - Pattern to copy: [ImageConversionSupport](../../src/main/java/org/chaiware/acommander/helpers/ImageConversionSupport.java)
   is a `final` class with static methods. `Commander` calls `ImageConversionSupport.areAllConvertibleImages(selected)`.

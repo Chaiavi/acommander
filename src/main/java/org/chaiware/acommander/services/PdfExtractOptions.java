@@ -1,4 +1,4 @@
-package org.chaiware.acommander.commands;
+package org.chaiware.acommander.services;
 
 public record PdfExtractOptions(Mode mode, String pageExpression, Integer pagesPerPdf, Integer knownTotalPages) {
     public enum Mode {

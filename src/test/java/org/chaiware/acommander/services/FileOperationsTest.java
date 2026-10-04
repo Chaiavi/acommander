@@ -1,0 +1,95 @@
+package org.chaiware.acommander.services;
+
+import org.chaiware.acommander.commands.ExternalToolRunner;
+import org.chaiware.acommander.config.AppConfig;
+import org.chaiware.acommander.config.AppRegistry;
+import org.chaiware.acommander.helpers.FilesPanesHelper;
+import org.chaiware.acommander.model.FileItem;
+import org.chaiware.acommander.vfs.LocalFileSystem;
+import org.chaiware.acommander.vfs.VFileSystem;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
+
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.List;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.*;
+
+class FileOperationsTest {
+
+    @TempDir
+    Path tempDir;
+
+    private final FilesPanesHelper panes = mock(FilesPanesHelper.class);
+    private FileOperations operations;
+
+    @BeforeEach
+    void setUp() {
+        VFileSystem localFs = new LocalFileSystem("");
+        when(panes.getFocusedFileSystem()).thenReturn(localFs);
+        when(panes.getUnfocusedFileSystem()).thenReturn(localFs);
+        AppConfig config = new AppConfig();
+        config.setActions(List.of());
+        operations = new FileOperations(panes, new AppRegistry(config), new ExternalToolRunner(() -> {}));
+    }
+
+    @Test
+    void renameRenamesSingleFile() throws Exception {
+        Path file = Files.writeString(tempDir.resolve("old.txt"), "rename");
+
+        operations.rename(List.of(new FileItem(file.toFile())), "new.txt");
+
+        assertThat(file).doesNotExist();
+        assertThat(tempDir.resolve("new.txt")).exists();
+        verify(panes).refreshFileListViews();
+    }
+
+    @Test
+    void moveOnTheSameDriveMovesTheFile() throws Exception {
+        Path targetDir = Files.createDirectory(tempDir.resolve("target"));
+        Path file = Files.writeString(tempDir.resolve("move.txt"), "move");
+
+        operations.move(new FileItem(file.toFile()), targetDir.toString());
+
+        assertThat(file).doesNotExist();
+        assertThat(targetDir.resolve("move.txt")).exists();
+        verify(panes).refreshFileListViews();
+    }
+
+    @Test
+    void moveBatchMovesEveryFile() throws Exception {
+        Path targetDir = Files.createDirectory(tempDir.resolve("target"));
+        Path first = Files.writeString(tempDir.resolve("one.txt"), "first");
+        Path second = Files.writeString(tempDir.resolve("two.txt"), "second");
+
+        operations.moveBatch(List.of(new FileItem(first.toFile()), new FileItem(second.toFile())), targetDir.toString());
+
+        assertThat(first).doesNotExist();
+        assertThat(second).doesNotExist();
+        assertThat(targetDir.resolve("one.txt")).hasContent("first");
+        assertThat(targetDir.resolve("two.txt")).hasContent("second");
+    }
+
+    @Test
+    void mkdirAndMkFileCreateInTheFolder() throws Exception {
+        operations.mkdir(tempDir.toString(), "created");
+        operations.mkFile(tempDir.toString(), "file.txt");
+
+        assertThat(tempDir.resolve("created")).isDirectory();
+        assertThat(tempDir.resolve("file.txt")).isRegularFile();
+        verify(panes, times(2)).refreshFileListViews();
+    }
+
+    @Test
+    void deleteSkipsTheParentEntry() throws Exception {
+        Path file = Files.writeString(tempDir.resolve("gone.txt"), "x");
+
+        operations.delete(List.of(new FileItem(tempDir.toFile(), ".."), new FileItem(file.toFile())));
+
+        assertThat(file).doesNotExist();
+        assertThat(tempDir).exists();
+    }
+}

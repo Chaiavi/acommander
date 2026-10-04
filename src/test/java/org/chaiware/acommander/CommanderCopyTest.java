@@ -1,10 +1,12 @@
 package org.chaiware.acommander;
 
 import org.assertj.core.api.Assertions;
-import org.chaiware.acommander.commands.CommandsSimpleImpl;
 import org.chaiware.acommander.commands.ExternalToolRunner;
+import org.chaiware.acommander.config.AppConfig;
+import org.chaiware.acommander.config.AppRegistry;
 import org.chaiware.acommander.helpers.FilesPanesHelper;
 import org.chaiware.acommander.model.FileItem;
+import org.chaiware.acommander.services.FileOperations;
 import org.chaiware.acommander.vfs.LocalFileSystem;
 import org.chaiware.acommander.vfs.VFileSystem;
 import org.junit.jupiter.api.Test;
@@ -37,7 +39,9 @@ class CommanderCopyTest {
 
         Commander commander = new Commander();
         commander.filesPanesHelper = panesHelper;
-        commander.commands = new CommandsSimpleImpl(panesHelper, new ExternalToolRunner(() -> {}));
+        AppConfig config = new AppConfig();
+        config.setActions(List.of());
+        commander.fileOps = new FileOperations(panesHelper, new AppRegistry(config), new ExternalToolRunner(() -> {}));
 
         commander.copyFile();
 

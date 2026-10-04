@@ -90,6 +90,11 @@ public final class BundledToolCommands {
         return command;
     }
 
+    /** ripgrep listing the files under {@code sourcePath} whose name matches a wildcard, ignoring case and .gitignore. */
+    public static List<String> findByName(Path rgPath, String sourcePath, String wildcard) {
+        return List.of(rgPath.toString(), "--files", "--no-messages", "--no-ignore", "--iglob", wildcard, sourcePath);
+    }
+
     /** ripgrep's output lines as distinct absolute paths (relative lines resolve against {@code sourcePath}). */
     public static List<String> foundFiles(List<String> output, String sourcePath) {
         return output.stream()

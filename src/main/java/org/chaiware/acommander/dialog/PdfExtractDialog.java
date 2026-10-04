@@ -6,7 +6,7 @@ import javafx.scene.control.Separator;
 import javafx.scene.control.TextField;
 import javafx.scene.control.ToggleGroup;
 import javafx.stage.Window;
-import org.chaiware.acommander.commands.PdfExtractOptions;
+import org.chaiware.acommander.services.PdfExtractOptions;
 
 import java.util.Optional;
 import java.util.regex.Pattern;

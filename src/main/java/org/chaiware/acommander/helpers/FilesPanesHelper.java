@@ -323,8 +323,12 @@ public class FilesPanesHelper {
             return filePanes.get(focusedSide == FocusSide.LEFT ? FocusSide.RIGHT : FocusSide.LEFT).getFileListView();
     }
 
-    /* Refreshes both of the file views */
+    /* Refreshes both of the file views; safe to call from any thread */
     public void refreshFileListViews() {
+        if (!Platform.isFxApplicationThread()) {
+            Platform.runLater(this::refreshFileListViews);
+            return;
+        }
         FileItem focusedSelectedItem = getFileList(true).getSelectionModel().getSelectedItem();
         FileItem nonFocusedSelectedItem = getFileList(false).getSelectionModel().getSelectedItem();
         refreshFileListView(LEFT);
