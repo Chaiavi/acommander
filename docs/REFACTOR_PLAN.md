@@ -47,8 +47,9 @@ server is available.
 
 ## Phase 1 — Processes, Threads, Temp Files (real bugs)
 
-- [ ] 1.1 `tools/ProcessRunner`: list-form command, working dir, merged stderr drained on a background thread,
-  charset, optional stdin bytes, timeout, cancel hook (Stop button). Returns `ProcessResult(exitCode, output)`.
+- [x] 1.1 `tools/ProcessRunner`: list-form command, working dir, charset, merged or separate stderr drained on a
+  virtual thread, `trackIn` for the Stop button, `launch()` for GUI tools. Stdin and timeout left out until a caller
+  needs them (Phase 10 adds stdin for curl).
 - [ ] 1.2 `BackgroundTasks`: one app executor (virtual threads), shut down in `Main` on close. Replaces
   `CompletableFuture.runAsync` without an executor and `newCachedThreadPool` in the three metadata dialogs.
 - [ ] 1.3 Move every `ProcessBuilder` site to `ProcessRunner` (Commander, `ACommands.runExecutable`, 3 dialogs,

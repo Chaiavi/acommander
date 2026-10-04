@@ -236,6 +236,7 @@ Other dialogs are built inline in `Commander` (`prompt*` methods).
 | File | Role |
 |---|---|
 | `ToolCommandBuilder` | Expands `${...}` placeholders in apps.json `args`; resolves `path` against `user.dir`. |
+| `ProcessRunner` | The one way to start a process: `run()` drains stdout/stderr (merged or apart) and returns `Result`; `launch()` for GUI tools; `trackIn` for the Stop button. |
 
 ### `vfs/` — pane file systems
 | File | Role |
@@ -269,5 +270,5 @@ Under `src/test/java/org/chaiware/acommander/`, same package as the class tested
 rules per action vs `src/test/resources/action-rules-snapshot.txt`) · `commands/` CommandsAdvancedImpl, CommandsSimpleImpl,
 PackVfs · `config/` ActionScope, AppConfigLoader, AppRegistryShortcutMatching · `helpers/` AudioConversionSupport,
 FileAttributesHelper, FileHelper, FilesPanesHelperNaturalSort, ImageConversionSupport · `model/` ArchiveMode,
-FileItem · `tools/` ToolCommandBuilder · `vfs/` FtpFileSystem · root: CommanderCopy, `CodeMapTest` (fails when a main
+FileItem · `tools/` ToolCommandBuilder, ProcessRunner · `vfs/` FtpFileSystem · root: CommanderCopy, `CodeMapTest` (fails when a main
 class or an apps.json action is missing from this file).
