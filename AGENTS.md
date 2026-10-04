@@ -145,8 +145,6 @@ All actions and external tools live in `config/apps.json`; shortcuts are declare
 - Build fails with `:processResources` "Failed to clean up stale outputs": a running app (`gradlew run`) locks
   `build/resources`. Stop the `org.chaiware.acommander.Launcher` java process, build, then start the app again.
   Killing the terminal that ran `gradlew run` does not stop the app's java process.
-- `gh` "not recognized" in an older terminal: it was installed later. Reload PATH:
-  `$env:Path = [Environment]::GetEnvironmentVariable('Path','Machine') + ';' + [Environment]::GetEnvironmentVariable('Path','User')`.
 - A file you must commit already has another session's uncommitted edits (`git diff <file>` shows hunks you didn't
   write): `git commit -- <file>` would take theirs too. Stage only yours: `cmd /c "git show HEAD:<file> > %TEMP%\x"`
   (cmd keeps the bytes; PowerShell `>` re-encodes), make your edit in both `%TEMP%\x` and the working file, then
