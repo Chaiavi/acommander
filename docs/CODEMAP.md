@@ -192,6 +192,7 @@ Not actions, but often asked for:
 | `ImageMetadataDialog` | EXIF/IPTC/XMP editor via `exiv2.exe`. |
 | `VideoMetadataDialog` | MP4-family tags via `AtomicParsley.exe`. |
 | `AudioMetadataDialog` | ID3 tags via `id3.exe`. |
+| `DialogTheme` | `apply(dialog, owner, themeClass)`: theme style class + the owner's stylesheets. Used by the metadata dialogs (which take owner + theme class, not `Commander`) and `Commander.applyThemeToDialog`. |
 
 Other dialogs are built inline in `Commander` (`prompt*` methods).
 

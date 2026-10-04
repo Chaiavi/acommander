@@ -9,7 +9,6 @@ import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
 import javafx.stage.Modality;
 import javafx.stage.Window;
-import org.chaiware.acommander.Commander;
 import org.chaiware.acommander.helpers.BackgroundTasks;
 import org.chaiware.acommander.tools.BundledTool;
 import org.chaiware.acommander.tools.ProcessRunner;
@@ -34,7 +33,7 @@ public class VideoMetadataDialog {
 
     private final Window owner;
     private final File videoFile;
-    private final Commander commander;
+    private final String themeClass;
 
     private TextField titleField;
     private TextField artistField;
@@ -55,10 +54,10 @@ public class VideoMetadataDialog {
     private final Map<String, String> originalValues = new LinkedHashMap<>();
     private boolean metadataModified;
 
-    public VideoMetadataDialog(Window owner, File videoFile, Commander commander) {
+    public VideoMetadataDialog(Window owner, File videoFile, String themeClass) {
         this.owner = owner;
         this.videoFile = videoFile;
-        this.commander = commander;
+        this.themeClass = themeClass;
     }
 
     public boolean showAndWait() {
@@ -71,7 +70,7 @@ public class VideoMetadataDialog {
         dialogPane.setMinWidth(860);
         dialogPane.setMinHeight(560);
 
-        applyTheme(dialog);
+        DialogTheme.apply(dialog, owner, themeClass);
         dialogPane.setContent(buildContent());
         dialog.setOnShown(e -> loadMetadata());
         dialog.setResultConverter(button -> metadataModified);
@@ -144,23 +143,6 @@ public class VideoMetadataDialog {
         GridPane.setHgrow(composerField, Priority.ALWAYS);
         GridPane.setHgrow(descriptionField, Priority.ALWAYS);
         return grid;
-    }
-
-    private void applyTheme(Dialog<?> dialog) {
-        if (commander == null || dialog == null) {
-            return;
-        }
-        DialogPane pane = dialog.getDialogPane();
-        String themeClass = commander.getCurrentThemeMode() == Commander.ThemeMode.DARK ? "theme-dark" : "theme-light";
-        pane.getStyleClass().removeAll("theme-dark", "theme-light");
-        pane.getStyleClass().add(themeClass);
-        if (commander.rootPane != null && commander.rootPane.getScene() != null) {
-            for (String stylesheet : commander.rootPane.getScene().getStylesheets()) {
-                if (!pane.getStylesheets().contains(stylesheet)) {
-                    pane.getStylesheets().add(stylesheet);
-                }
-            }
-        }
     }
 
     private void loadMetadata() {
@@ -389,25 +371,8 @@ public class VideoMetadataDialog {
         alert.setResizable(true);
         alert.getDialogPane().setMinHeight(javafx.scene.layout.Region.USE_PREF_SIZE);
         alert.getDialogPane().setPrefWidth(520);
-        applyThemeToAlert(alert);
+        DialogTheme.apply(alert, owner, themeClass);
         alert.showAndWait();
-    }
-
-    private void applyThemeToAlert(Alert alert) {
-        if (commander == null || alert == null) {
-            return;
-        }
-        DialogPane pane = alert.getDialogPane();
-        String themeClass = commander.getCurrentThemeMode() == Commander.ThemeMode.DARK ? "theme-dark" : "theme-light";
-        pane.getStyleClass().removeAll("theme-dark", "theme-light");
-        pane.getStyleClass().add(themeClass);
-        if (commander.rootPane != null && commander.rootPane.getScene() != null) {
-            for (String stylesheet : commander.rootPane.getScene().getStylesheets()) {
-                if (!pane.getStylesheets().contains(stylesheet)) {
-                    pane.getStylesheets().add(stylesheet);
-                }
-            }
-        }
     }
 
     private String normalize(String value) {

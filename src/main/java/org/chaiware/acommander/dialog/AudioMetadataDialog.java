@@ -9,7 +9,6 @@ import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
 import javafx.stage.Modality;
 import javafx.stage.Window;
-import org.chaiware.acommander.Commander;
 import org.chaiware.acommander.helpers.BackgroundTasks;
 import org.chaiware.acommander.tools.BundledTool;
 import org.chaiware.acommander.tools.ProcessRunner;
@@ -35,7 +34,7 @@ public class AudioMetadataDialog {
 
     private final Window owner;
     private final File audioFile;
-    private final Commander commander;
+    private final String themeClass;
     private final Charset id3IoCharset = detectNativeProcessCharset();
 
     private TextField titleField;
@@ -54,10 +53,10 @@ public class AudioMetadataDialog {
     private final Map<String, String> originalValues = new LinkedHashMap<>();
     private boolean metadataModified;
 
-    public AudioMetadataDialog(Window owner, File audioFile, Commander commander) {
+    public AudioMetadataDialog(Window owner, File audioFile, String themeClass) {
         this.owner = owner;
         this.audioFile = audioFile;
-        this.commander = commander;
+        this.themeClass = themeClass;
     }
 
     public boolean showAndWait() {
@@ -70,7 +69,7 @@ public class AudioMetadataDialog {
         pane.setMinWidth(760);
         pane.setMinHeight(500);
 
-        applyTheme(dialog);
+        DialogTheme.apply(dialog, owner, themeClass);
         pane.setContent(buildContent());
         dialog.setOnShown(e -> loadMetadata());
         dialog.setResultConverter(button -> metadataModified);
@@ -460,23 +459,6 @@ public class AudioMetadataDialog {
         return Charset.defaultCharset();
     }
 
-    private void applyTheme(Dialog<?> dialog) {
-        if (commander == null || dialog == null) {
-            return;
-        }
-        DialogPane pane = dialog.getDialogPane();
-        String themeClass = commander.getCurrentThemeMode() == Commander.ThemeMode.DARK ? "theme-dark" : "theme-light";
-        pane.getStyleClass().removeAll("theme-dark", "theme-light");
-        pane.getStyleClass().add(themeClass);
-        if (commander.rootPane != null && commander.rootPane.getScene() != null) {
-            for (String stylesheet : commander.rootPane.getScene().getStylesheets()) {
-                if (!pane.getStylesheets().contains(stylesheet)) {
-                    pane.getStylesheets().add(stylesheet);
-                }
-            }
-        }
-    }
-
     private void showError(String message, String title, String details) {
         Alert alert = new Alert(Alert.AlertType.ERROR);
         alert.setTitle(title);
@@ -489,25 +471,8 @@ public class AudioMetadataDialog {
         alert.setResizable(true);
         alert.getDialogPane().setMinHeight(javafx.scene.layout.Region.USE_PREF_SIZE);
         alert.getDialogPane().setPrefWidth(520);
-        applyThemeToAlert(alert);
+        DialogTheme.apply(alert, owner, themeClass);
         alert.showAndWait();
-    }
-
-    private void applyThemeToAlert(Alert alert) {
-        if (commander == null || alert == null) {
-            return;
-        }
-        DialogPane pane = alert.getDialogPane();
-        String themeClass = commander.getCurrentThemeMode() == Commander.ThemeMode.DARK ? "theme-dark" : "theme-light";
-        pane.getStyleClass().removeAll("theme-dark", "theme-light");
-        pane.getStyleClass().add(themeClass);
-        if (commander.rootPane != null && commander.rootPane.getScene() != null) {
-            for (String stylesheet : commander.rootPane.getScene().getStylesheets()) {
-                if (!pane.getStylesheets().contains(stylesheet)) {
-                    pane.getStylesheets().add(stylesheet);
-                }
-            }
-        }
     }
 
     private record LoadResult(boolean success, Map<String, String> values, String message, String details) {

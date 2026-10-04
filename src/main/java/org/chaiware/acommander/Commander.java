@@ -27,6 +27,7 @@ import org.chaiware.acommander.commands.*;
 import org.chaiware.acommander.config.ActionDefinition;
 import org.chaiware.acommander.config.AppConfigLoader;
 import org.chaiware.acommander.config.AppRegistry;
+import org.chaiware.acommander.dialog.DialogTheme;
 import org.chaiware.acommander.helpers.*;
 import org.chaiware.acommander.keybinding.KeyBindingManager;
 import org.chaiware.acommander.keybinding.KeyBindingManager.KeyContext;
@@ -65,8 +66,8 @@ import static org.chaiware.acommander.helpers.FilesPanesHelper.FocusSide.RIGHT;
 
 
 public class Commander {
-    private static final String THEME_DARK_CLASS = "theme-dark";
-    private static final String THEME_LIGHT_CLASS = "theme-light";
+    private static final String THEME_DARK_CLASS = DialogTheme.DARK;
+    private static final String THEME_LIGHT_CLASS = DialogTheme.LIGHT;
 
     @FXML
     public BorderPane rootPane;
@@ -125,10 +126,6 @@ public class Commander {
 
     private KeyBindingManager keyBindingManager;
     private javafx.scene.input.MouseEvent functionButtonClick;
-
-    public ThemeMode getCurrentThemeMode() {
-        return currentThemeMode;
-    }
 
 
     @FXML
@@ -4087,7 +4084,7 @@ public class Commander {
             // Show the metadata editor dialog
             org.chaiware.acommander.dialog.ImageMetadataDialog dialog =
                     new org.chaiware.acommander.dialog.ImageMetadataDialog(
-                            rootPane.getScene().getWindow(), file, this);
+                            rootPane.getScene().getWindow(), file, currentThemeMode.styleClass);
             boolean modified = dialog.showAndWait();
 
             if (modified) {
@@ -4189,7 +4186,7 @@ public class Commander {
 
             org.chaiware.acommander.dialog.VideoMetadataDialog dialog =
                     new org.chaiware.acommander.dialog.VideoMetadataDialog(
-                            rootPane.getScene().getWindow(), file, this);
+                            rootPane.getScene().getWindow(), file, currentThemeMode.styleClass);
             boolean modified = dialog.showAndWait();
 
             if (modified) {
@@ -4313,7 +4310,7 @@ public class Commander {
 
             org.chaiware.acommander.dialog.AudioMetadataDialog dialog =
                     new org.chaiware.acommander.dialog.AudioMetadataDialog(
-                            rootPane.getScene().getWindow(), file, this);
+                            rootPane.getScene().getWindow(), file, currentThemeMode.styleClass);
             boolean modified = dialog.showAndWait();
 
             if (modified) {
@@ -6904,17 +6901,10 @@ public class Commander {
         if (dialog == null || rootPane == null || rootPane.getScene() == null) {
             return;
         }
-        DialogPane pane = dialog.getDialogPane();
-        pane.getStyleClass().removeAll(THEME_DARK_CLASS, THEME_LIGHT_CLASS);
-        pane.getStyleClass().add(currentThemeMode.styleClass);
-        for (String stylesheet : rootPane.getScene().getStylesheets()) {
-            if (!pane.getStylesheets().contains(stylesheet)) {
-                pane.getStylesheets().add(stylesheet);
-            }
-        }
+        DialogTheme.apply(dialog, rootPane.getScene().getWindow(), currentThemeMode.styleClass);
     }
 
-    public enum ThemeMode {
+    private enum ThemeMode {
         DARK("dark", THEME_DARK_CLASS),
         REGULAR("regular", THEME_LIGHT_CLASS);
 
@@ -6924,10 +6914,6 @@ public class Commander {
         ThemeMode(String configValue, String styleClass) {
             this.configValue = configValue;
             this.styleClass = styleClass;
-        }
-
-        public String getStyleClass() {
-            return styleClass;
         }
 
         private static ThemeMode from(String value) {

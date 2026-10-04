@@ -136,9 +136,10 @@ Rechecked after Phase 2. Dropped the `UiFeedback` and `CommanderContext` interfa
      copy batches report per-item failures, and F4 on FTP/archive names the temp copy when the save-back fails.
      Also fixed: pack/unpack to an FTP or archive pane uploaded with `targetFs.copy(localPath, …)`, which reads
      the local path as remote. `doUnpack` / `doExtractAll` merged into `unpackWith` (was 7.1).
-- [ ] 3.4 Metadata dialogs take the owner `Window` + theme instead of `Commander` (they use only `rootPane` and
-  `getCurrentThemeMode`). `ActionContext` and the public fields stay: changing them is churn with no payoff, and
-  `ActionRulesSnapshotTest` already covers `ActionExecutor` with a mocked `Commander`.
+- [x] 3.4 Metadata dialogs take the owner `Window` + theme style class instead of `Commander`. Their 6 copies of
+  the theme code and `Commander.applyThemeToDialog`'s became `dialog/DialogTheme.apply`. `ActionContext` and the
+  public fields stay: changing them is churn with no payoff, and `ActionRulesSnapshotTest` already covers
+  `ActionExecutor` with a mocked `Commander`.
 - [x] 3.5 App version from the build (bug fix: Report Bug shows and sends 4.0 while the build is 4.5). Done as
   planned: `processResources` fills `app-version.properties` from `appVersion`, `helpers/AppVersion` reads it,
   `APP_VERSION` deleted, `AppVersionTest` + `ArchitectureRulesTest.versionIsNeverHardCoded` guard it.

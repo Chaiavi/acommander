@@ -8,7 +8,6 @@ import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
 import javafx.stage.Modality;
 import javafx.stage.Window;
-import org.chaiware.acommander.Commander;
 import org.chaiware.acommander.helpers.AppTempDir;
 import org.chaiware.acommander.helpers.BackgroundTasks;
 import org.chaiware.acommander.tools.BundledTool;
@@ -33,7 +32,7 @@ public class ImageMetadataDialog {
 
     private final Window owner;
     private final File imageFile;
-    private final Commander commander;
+    private final String themeClass;
     @SuppressWarnings("unchecked")
 
     private TreeTableView<MetadataEntry> metadataTreeTable;
@@ -70,10 +69,10 @@ public class ImageMetadataDialog {
             new MetadataTemplate("IPTC Source", "Iptc.Application2.Source", "String")
     );
 
-    public ImageMetadataDialog(Window owner, File imageFile, Commander commander) {
+    public ImageMetadataDialog(Window owner, File imageFile, String themeClass) {
         this.owner = owner;
         this.imageFile = imageFile;
-        this.commander = commander;
+        this.themeClass = themeClass;
     }
 
     /**
@@ -91,9 +90,7 @@ public class ImageMetadataDialog {
         dialogPane.setMinHeight(650);
 
         // Apply theme
-        if (commander != null) {
-            applyTheme(dialog);
-        }
+        DialogTheme.apply(dialog, owner, themeClass);
 
         // Build UI
         VBox content = buildContent();
@@ -335,10 +332,7 @@ public class ImageMetadataDialog {
                 confirm.setTitle("Reload");
                 confirm.setHeaderText(null);
                 confirm.setContentText("You have " + pendingModifications.size() + " pending change(s) that will be discarded. Reload anyway?");
-                confirm.getDialogPane().getStyleClass().removeAll("theme-dark", "theme-light");
-                if (commander != null) {
-                    confirm.getDialogPane().getStyleClass().add(commander.getCurrentThemeMode().getStyleClass());
-                }
+                DialogTheme.apply(confirm, owner, themeClass);
                 if (confirm.showAndWait().orElse(ButtonType.CANCEL) != ButtonType.OK) {
                     return;
                 }
@@ -365,23 +359,6 @@ public class ImageMetadataDialog {
         HBox buttonBox = new HBox(10, leftButtons, rightButtons);
         HBox.setHgrow(leftButtons, Priority.ALWAYS);
         return buttonBox;
-    }
-
-    private void applyTheme(Dialog<?> dialog) {
-        if (commander == null || dialog == null) {
-            return;
-        }
-        DialogPane pane = dialog.getDialogPane();
-        String themeClass = commander.getCurrentThemeMode() == Commander.ThemeMode.DARK ? "theme-dark" : "theme-light";
-        pane.getStyleClass().removeAll("theme-dark", "theme-light");
-        pane.getStyleClass().add(themeClass);
-        if (commander.rootPane != null && commander.rootPane.getScene() != null) {
-            for (String stylesheet : commander.rootPane.getScene().getStylesheets()) {
-                if (!pane.getStylesheets().contains(stylesheet)) {
-                    pane.getStylesheets().add(stylesheet);
-                }
-            }
-        }
     }
 
     private void loadMetadata() {
@@ -950,9 +927,7 @@ public class ImageMetadataDialog {
         dialog.initOwner(owner);
         dialog.initModality(Modality.WINDOW_MODAL);
         dialog.getDialogPane().getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
-        if (commander != null) {
-            applyTheme(dialog);
-        }
+        DialogTheme.apply(dialog, owner, themeClass);
 
         ComboBox<MetadataTemplate> tagCombo = new ComboBox<>();
         tagCombo.getItems().addAll(COMMON_METADATA_TEMPLATES);
@@ -1085,7 +1060,7 @@ public class ImageMetadataDialog {
             alert.getDialogPane().setMinHeight(javafx.scene.layout.Region.USE_PREF_SIZE);
             alert.getDialogPane().setPrefWidth(500);
             
-            applyThemeToAlert(alert);
+            DialogTheme.apply(alert, owner, themeClass);
             alert.showAndWait();
         });
     }
@@ -1110,7 +1085,7 @@ public class ImageMetadataDialog {
             alert.getDialogPane().setMinHeight(javafx.scene.layout.Region.USE_PREF_SIZE);
             alert.getDialogPane().setPrefWidth(500);
             
-            applyThemeToAlert(alert);
+            DialogTheme.apply(alert, owner, themeClass);
             alert.showAndWait();
         });
     }
@@ -1124,23 +1099,6 @@ public class ImageMetadataDialog {
         );
         rootItem.getChildren().add(errorItem);
         metadataTreeTable.setRoot(rootItem);
-    }
-
-    private void applyThemeToAlert(Alert alert) {
-        if (commander == null || alert == null) {
-            return;
-        }
-        DialogPane pane = alert.getDialogPane();
-        String themeClass = commander.getCurrentThemeMode() == Commander.ThemeMode.DARK ? "theme-dark" : "theme-light";
-        pane.getStyleClass().removeAll("theme-dark", "theme-light");
-        pane.getStyleClass().add(themeClass);
-        if (commander.rootPane != null && commander.rootPane.getScene() != null) {
-            for (String stylesheet : commander.rootPane.getScene().getStylesheets()) {
-                if (!pane.getStylesheets().contains(stylesheet)) {
-                    pane.getStylesheets().add(stylesheet);
-                }
-            }
-        }
     }
 
     /**
