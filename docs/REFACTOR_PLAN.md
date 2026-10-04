@@ -159,32 +159,46 @@ checksum, compare, convert, metadata).
 
 ## Phase 4 — Move Logic out of Commander (depends on 3; one commit + tests per item)
 
+Rechecked after Phase 3: every symbol below still exists in `Commander`. Bug fixes first (4.0, 4.7), then moves.
+
+- [ ] 4.0 Pack from an archive pane (bug fix). `CommandsAdvancedImpl.doPack` copies each item of a non-local
+  source to `AppTempDir.createTempFile("acommander_pack_", "_" + name)`, so the archive entries get the temp name
+  (`acommander_pack_123_name`), and it skips folders with only a warn log. Pack is `ftp=no`, but an archive pane is
+  not `LocalFileSystem`, so this runs whenever you pack from inside an archive. Fix: copy each item into one
+  `AppTempDir.createTempDirectory` under its own name (`VFileSystem.copy` already handles folders) and pack those.
+  Test with a mocked source `VFileSystem`: the paths handed to 7-Zip end in the original names, folders included.
 - [ ] 4.1 `FolderComparer`: `compareFolderTrees`, `collectFolderEntries`, `checksumSha256`, `FolderEntry` /
   `FolderCompareResult` / `FolderCompareMark`. Test: only-left / only-right / different by size, date, checksum.
 - [x] 4.2 Merged into 3.2 (bookmark storage); the bookmark picker moves with the dialogs in Phase 5.
 - [ ] 4.3 `buildChecksumCommand`, `buildAnalyzeFileCommand`, `buildCompareCommand`, `parseSplitSize` → `tools/`,
   each with a test of the argument list.
-- [ ] 4.4 `AudioConversionService` (`runAudioConversion*`, staging, AAC bridge), `ImageConversionService`.
+- [ ] 4.4 `AudioConversionService` (`runAudioConversion*`, staging, AAC bridge), `ImageConversionService`
+  (`buildImageConvertCommand` and the run). The option prompts (`promptImageConversionOptions`, …) stay for Phase 5.
 - [ ] 4.5 Metadata remove runners (`runVideoMetadataDeleteCommand`, `runAudioMetadataDeleteCommand`, the exiv2
-  lambda in `removeImageMetadata`) → `*MetadataSupport`. Merge the AtomicParsley artifact cleanup that is duplicated
-  in `Commander` and `VideoMetadataDialog`.
+  lambda in `removeImageMetadata`) → `*MetadataSupport`. `listAtomicParsleyArtifacts` + cleanup is in both
+  `Commander` and `VideoMetadataDialog`; keep one copy in `VideoMetadataSupport`.
 - [ ] 4.6 `FilePropertiesLauncher` (VBS, moved as-is; hardened in 10.7).
-- [ ] 4.7 Report Bug (bug fix): `submitBugReport` first runs curl against the new-issue URL, ignores the HTTP code it
-  asks for, and opens the browser only if curl exits 0. Offline or behind a proxy curl can't pass, Report Bug never
-  opens. Fix: drop the curl call and open the browser directly (the copy-the-URL fallback stays). What a check could
-  have caught is a URL GitHub rejects as too long, so `BugReportUrl` caps the body to keep the URL under ~8,000
-  characters and notes the cut. Test: a huge "steps" text still yields a URL under the cap.
+- [ ] 4.7 Report Bug (bug fix): `submitBugReport` first runs curl (`BundledTool.CURL`) against the new-issue URL,
+  ignores the HTTP code it asks for, and opens the browser only if curl exits 0. Offline or behind a proxy curl
+  can't pass, Report Bug never opens. Fix: drop the curl call and open the browser directly (the copy-the-URL
+  fallback stays). What a check could have caught is a URL GitHub rejects as too long, so `BugReportUrl` caps the
+  body to keep the URL under ~8,000 characters and notes the cut. Test: a huge "steps" text still yields a URL
+  under the cap.
 - [ ] 4.8 `ClipboardTransfer` (`ClipboardEntry`, `ClipboardTransferState`, copy/cut/paste).
 - [ ] 4.9 `FileIcons` (`resolveIconSpec`, `IconSpec`, `is*Extension`).
 - [ ] 4.10 `IncrementalFilter` (`filterByChar`, `applyIncrementalFilter`), pure prefix logic tested.
-- [ ] 4.11 `ThemeManager` (`applyTheme`, `ThemeMode`, `applyThemeToDialog`).
-- [ ] 4.12 `ExternalProgressController` (`buildExternalCommandListener`, `show/hideOrUpdateExternalProgress`,
-  `stopExternalTasks`, `runWithProgress`).
-- [ ] 4.13 `ArchitectureRulesTest`: `Commander` has no `Files.walk` / `Files.list`, `Properties` access or
-  `MessageDigest`. (`new ProcessBuilder` is banned everywhere by 1.7, tool paths by 3.1.)
+- [ ] 4.11 Theme: `applyTheme`, `ThemeMode` and `applyThemeToDialog` join `dialog/DialogTheme` (3.4) in one theme
+  class, not a second one. `ThemeMode.from` gets a test (unknown / blank value → default).
+- [ ] 4.12 `ExternalProgressController`, the UI side of external runs: `buildExternalCommandListener` (progress,
+  Settings-editor reload, the `onFailure` error dialog), `show/hideOrUpdateExternalProgress`, `stopExternalTasks`,
+  `runWithProgress`. The process side (`runExecutable`, `reportFailure`, Stop counter) is 7.2.
+- [ ] 4.13 `ArchitectureRulesTest`: `Commander` has no `Files.walk` / `Files.list` / `MessageDigest` (all leave with
+  4.1) and no `java.util.Properties` (already true since 3.2). `new ProcessBuilder` is banned everywhere by 1.7,
+  tool paths by 3.1.
 
-Smoke items: Compare Folders, checksum, split, convert audio + image, remove metadata, Report Bug opens the browser,
-copy/cut/paste, type-to-filter, theme toggle, Stop button on a long copy.
+Smoke items: F11 inside an archive with a file and a folder selected (entries keep their names), Compare Folders,
+checksum, split, convert audio + image, remove metadata, Report Bug opens the browser, copy/cut/paste,
+type-to-filter, theme toggle, Stop button on a long copy, a failing tool still shows its error.
 
 ## Phase 5 — Move Dialogs out of Commander (depends on 4)
 
@@ -196,9 +210,8 @@ copy/cut/paste, type-to-filter, theme toggle, Stop button on a long copy.
   missing tooltips and Title Case labels (`ui-text.instructions.md`).
 - [ ] 5.3 Options records (`SplitSize`, `ChecksumOptions`, `CompareFilesOptions`, `ImageConversionRequest`, …)
   top-level next to their service.
-- [ ] 5.4 Target: `Commander` under 4,000 lines (7038 now; Phases 4-5 move ~3,000). The rest is feature handlers
-  (read selection → validate → run), which Phase 7's services shrink further. Was 2,500, which the sizing doesn't
-  support.
+- [ ] 5.4 Target: `Commander` under 4,000 lines (6,929 after Phase 3; Phase 4 moves ~1,200, Phase 5 ~1,700). The
+  rest is feature handlers (read selection → validate → run), which Phase 7's services shrink further.
 
 Smoke items: open every moved dialog once; Enter confirms, Escape cancels, dark theme applies, tooltips show.
 
@@ -208,18 +221,23 @@ Smoke items: open every moved dialog once; Enter confirms, Escape cancels, dark 
   `Image/Video/AudioMetadataSupport`, `ExecutableCompressionSupport`, `ArchiveService`, `ACommands.isArchive/isPdf`
   and `Commander.getFileExtension/normalizedExtension`. `ActionRegistry.areAllOfType` moves there. Target-format
   lists stay with the conversion services (4.4). `ActionRulesSnapshotTest` must not change.
-- [ ] 6.2 `MetadataDialogBase`; image (1,189 lines) / audio (544) / video (477) become adapters.
+- [ ] 6.2 `MetadataDialogBase`; image (1,148 lines) / audio (509) / video (443) become adapters.
 - [ ] 6.3 Output parsers (exiv2, AtomicParsley, id3) as pure functions, tested on captured sample output.
 
 Smoke items: edit + save + reload metadata on a copied jpg, mp3, mp4.
 
 ## Phase 7 — Commands Layer (depends on 1, 3)
 
-- [ ] 7.1 Replace `ACommands` / `CommandsAdvancedImpl` (1,248) / `CommandsSimpleImpl` with `CopyMoveService`,
-  `DeleteService`, `ArchiveOps`, `PdfService`, `ShellService`, `ViewEditService`. (`doUnpack` / `doExtractAll`
-  already merged in 3.3.)
-- [ ] 7.2 `ExternalToolRunner` (run, listener, stop).
-- [ ] 7.3 Delete the "Not implemented yet" stubs; move tests with the code (`CommanderCopyTest` builds a
+- [ ] 7.1 Replace `ACommands` / `CommandsAdvancedImpl` (1,119) / `CommandsSimpleImpl` (369) with `CopyMoveService`,
+  `DeleteService`, `ArchiveOps`, `PdfService`, `ShellService`, `ViewEditService`. Keep what 3.3 built: services
+  throw, copy batches name every failed item, `verifyBatchCopy` stays, `unpackWith` stays one method.
+  `CommandsSimpleImpl.searchFiles` shows its own `Alert` ("No files found"); return the result and let `Commander`
+  show it, so no service touches JavaFX.
+- [ ] 7.2 `ExternalToolRunner`, the process side of external runs: `runExecutable`, `reportFailure`, the Stop
+  counter, `ProcessRunner.trackIn`. Make reporting the default: `run(command, title)` reports failures itself, and
+  only `runAndWait` hands back a future. Then the `ArchitectureRulesTest` regex for a bare `runExecutable(...);` is
+  replaced by "only `ExternalToolRunner` calls `runExecutable`". `ReportFailureTest` moves with it.
+- [ ] 7.3 Delete the 8 "Not implemented" stubs; move tests with the code (`CommanderCopyTest` builds a
   `CommandsSimpleImpl`).
 - [ ] 7.4 `LocalFileSystem.copyDirectory` and `ArchiveFileSystem.copyDirectory` are the same method; keep one.
 
@@ -236,7 +254,7 @@ Smoke items: sort by each header, enter/leave nested archive folders, select by 
 
 - [x] 9.1 Decided by the code: FTP items already have `file == null` (name only, path from the pane), so `FileItem`
   can hold a nullable `Path` for local and archive items.
-- [ ] 9.2 `FileItem` holds `Path`; temporary `getFile()`; migrate the ~30 `getFile()` call sites (`vfs/`, services,
+- [ ] 9.2 `FileItem` holds `Path`; temporary `getFile()`; migrate the 29 `getFile()` call sites (`vfs/`, services,
   `Commander`); delete `getFile()`.
 
 Smoke items: the full checklist, plus Hebrew file and folder names.
@@ -246,11 +264,13 @@ Smoke items: the full checklist, plus Hebrew file and folder names.
 Gate: re-grep every shell-out and every log call that prints a command; list anything earlier phases added. Order is
 by severity. File each issue in the same step as its fix (decision 7).
 
-- [ ] 10.1 Passwords in logs (live leak). `FtpFileSystem.runCurl` hands the curl command, `-u user:pass` included, to
-  the `ExternalCommandListener`, and `Commander`'s listener logs `String.join(" ", command)` whenever a command fails;
-  `ACommands.runExecutable` also logs every command at debug. Fix: one `CommandLog.redact(command)` used by every log
-  of a command; the FTP listener gets the redacted form. Test: no logged form of an FTP command contains the
-  password. Then delete the old `logs/*.log` files that may hold one.
+- [ ] 10.1 Passwords in logs (live leak). `FtpFileSystem.runCurl` redacts its own debug log (`obfuscateCommand`) but
+  hands the raw curl command, `-u user:pass` included, to the `ExternalCommandListener`, and the listener (4.12)
+  logs `String.join(" ", command)` whenever a command fails. `runExecutable` (7.2) logs every command at debug, and
+  since 3.3 `ExternalCommandException`'s message (the full command) is shown in the error dialog. Fix: move
+  `obfuscateCommand` to `tools/CommandLog.redact(command)` and use it for every log line, exception message and
+  listener call that carries a command. Test: no logged or shown form of an FTP command contains the password. Then
+  delete the old `logs/*.log` files that may hold one.
 - [ ] 10.2 FTP credentials on the command line (visible in Task Manager): pass `user:password` to curl via
   `--config -` on stdin (add stdin to `ProcessRunner`), not `-u`. Guard remote names starting with `-`.
 - [ ] 10.3 PowerShell injection. `CommandsSimpleImpl.openTerminal` (F9) puts the folder in
@@ -270,7 +290,7 @@ by severity. File each issue in the same step as its fix (decision 7).
   closes.
 - [x] 10.8 Bug report URL parameters are encoded (`BugReportUrl`, #144; labels are constants).
 - [ ] 10.9 `ArchitectureRulesTest` locks the above: no `"cmd.exe", "/c"` with a path, no `"-u"` for curl, no command
-  logged without `CommandLog.redact`.
+  logged or put in an exception message without `CommandLog.redact`.
 
 Smoke items: FTP connect, browse, copy both ways, a failing FTP command (wrong password) — then check `logs/` holds
 no password; F9 in a folder named `a';calc;'`; Enter on `a&b.bat`; File Properties.
@@ -297,3 +317,4 @@ Bugs noticed during the work, fixed in the phase named.
     edit silently when the upload fails.
 12. Fixed (#150): pack/unpack to an FTP or archive pane uploaded with `targetFs.copy(localPath, …)`.
 13. Fixed (#151): a malformed settings file crashes every start; Settings edits are overwritten by the next save.
+14. Phase 4.0: packing from inside an archive names the entries after their temp copies and drops folders.
