@@ -10,6 +10,7 @@ import javafx.scene.layout.VBox;
 import javafx.stage.Modality;
 import javafx.stage.Window;
 import org.chaiware.acommander.Commander;
+import org.chaiware.acommander.helpers.BackgroundTasks;
 import org.chaiware.acommander.tools.ProcessRunner;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -19,7 +20,6 @@ import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -35,7 +35,7 @@ public class VideoMetadataDialog {
     private final Window owner;
     private final File videoFile;
     private final Commander commander;
-    private final ExecutorService executor = Executors.newCachedThreadPool();
+    private final ExecutorService executor = BackgroundTasks.executor();
 
     private TextField titleField;
     private TextField artistField;

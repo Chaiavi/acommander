@@ -50,8 +50,11 @@ server is available.
 - [x] 1.1 `tools/ProcessRunner`: list-form command, working dir, charset, merged or separate stderr drained on a
   virtual thread, `trackIn` for the Stop button, `launch()` for GUI tools. Stdin and timeout left out until a caller
   needs them (Phase 10 adds stdin for curl).
-- [ ] 1.2 `BackgroundTasks`: one app executor (virtual threads), shut down in `Main` on close. Replaces
-  `CompletableFuture.runAsync` without an executor and `newCachedThreadPool` in the three metadata dialogs.
+- [x] 1.2 `helpers/BackgroundTasks`: one virtual-thread executor. Replaced every `CompletableFuture.runAsync` /
+  `supplyAsync` on the common pool (Commander, `ACommands.runExecutable`) and the per-dialog `newCachedThreadPool`.
+  Fixed: an open viewer/editor held a common-pool thread until closed, so a few open viewers stalled all background
+  work. No shutdown hook: virtual threads are daemon. The 5 archive-navigation blocks became
+  `Commander.runWithProgress`.
 - [x] 1.3 Every `ProcessBuilder` site now uses `ProcessRunner` (Commander, `ACommands.runExecutable`, 3 dialogs,
   `ArchiveManager`, `ComboBoxSetup`, `FileAttributesHelper`, `FtpFileSystem` x2). Args identical. Fixed: metadata
   delete runners and `attrib` waited without draining output; the dialogs read stdout then stderr (hangs on a full

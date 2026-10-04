@@ -2,6 +2,7 @@ package org.chaiware.acommander.commands;
 
 import javafx.application.Platform;
 import org.chaiware.acommander.helpers.ArchiveService;
+import org.chaiware.acommander.helpers.BackgroundTasks;
 import org.chaiware.acommander.helpers.FilesPanesHelper;
 import org.chaiware.acommander.model.FileItem;
 import org.chaiware.acommander.tools.ProcessRunner;
@@ -232,7 +233,7 @@ public abstract class ACommands {
             acceptedExitCodes.addAll(acceptedNonZeroExitCodes);
         }
         notifyCommandStarted(commandSnapshot);
-        return CompletableFuture.supplyAsync(() -> {
+        return BackgroundTasks.supply(() -> {
             int exitCode = -1;
             Throwable failure = null;
             try {

@@ -9,6 +9,7 @@ import javafx.scene.layout.VBox;
 import javafx.stage.Modality;
 import javafx.stage.Window;
 import org.chaiware.acommander.Commander;
+import org.chaiware.acommander.helpers.BackgroundTasks;
 import org.chaiware.acommander.tools.ProcessRunner;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -19,7 +20,6 @@ import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 /**
  * Dialog for viewing and editing image metadata using exiv2.
@@ -34,7 +34,7 @@ public class ImageMetadataDialog {
     private final File imageFile;
     private final Commander commander;
     @SuppressWarnings("unchecked")
-    private final ExecutorService executor = Executors.newCachedThreadPool();
+    private final ExecutorService executor = BackgroundTasks.executor();
 
     private TreeTableView<MetadataEntry> metadataTreeTable;
     private TreeItem<MetadataEntry> rootItem;

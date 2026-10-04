@@ -10,6 +10,7 @@ import javafx.scene.layout.VBox;
 import javafx.stage.Modality;
 import javafx.stage.Window;
 import org.chaiware.acommander.Commander;
+import org.chaiware.acommander.helpers.BackgroundTasks;
 import org.chaiware.acommander.tools.ProcessRunner;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -21,7 +22,6 @@ import java.nio.charset.CharsetEncoder;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 /**
  * Dialog for editing MP3 metadata using id3.exe.
@@ -36,7 +36,7 @@ public class AudioMetadataDialog {
     private final Window owner;
     private final File audioFile;
     private final Commander commander;
-    private final ExecutorService executor = Executors.newCachedThreadPool();
+    private final ExecutorService executor = BackgroundTasks.executor();
     private final Charset id3IoCharset = detectNativeProcessCharset();
 
     private TextField titleField;

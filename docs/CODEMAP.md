@@ -114,7 +114,7 @@ Not actions, but often asked for:
 | Type-to-filter popup | `Commander.filterByChar`, `backspaceCharFilter`, `applyIncrementalFilter` |
 | Pane list cells, icons, colours | `Commander.configListViewLookAndBehavior`, `resolveIconSpec`, `is*Extension` |
 | Pane footer (counts / sizes) | `Commander.updatePaneSummary` |
-| Running-tool progress bar + Stop button | `Commander.buildExternalCommandListener`, `showExternalProgress`, `stopExternalTasks` |
+| Running-tool progress bar + Stop button | `Commander.buildExternalCommandListener`, `showExternalProgress`, `stopExternalTasks`; `runWithProgress` for background work behind the bar |
 | Error / info / toast | `Commander.showError`, `showInfo`, `showToast` |
 | Text-input prompt | `Commander.promptUser` / `getUserFeedback` |
 | Startup paths + persistence | `Commander.loadConfigFile`, `resolveInitialPath`, `persistCurrentPaths` (on window close in `Main`) |
@@ -205,6 +205,7 @@ Other dialogs are built inline in `Commander` (`prompt*` methods).
 | `ActionMutator` | Action id sets: always-write, conditional-write, read-only. |
 | `FileAttributesHelper` | Read/apply R/H/S/A attributes (NIO, `attrib` fallback). |
 | `FileHelper` | `isTextFile` sniffing. |
+| `BackgroundTasks` | The one background executor (virtual threads): `run`, `supply`, `executor()`. Never use `CompletableFuture.runAsync` without it. |
 | `ImageConversionSupport`, `AudioConversionSupport` | Which files convert, target formats. |
 | `ImageMetadataSupport`, `VideoMetadataSupport`, `AudioMetadataSupport` | Which files the metadata editors accept. |
 | `ExecutableCompressionSupport` | Which files UPX accepts. |

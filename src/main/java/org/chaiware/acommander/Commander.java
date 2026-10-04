@@ -1100,24 +1100,10 @@ public class Commander {
             String extension = getFileExtension(selectedItem.getName());
 
             if (ArchiveMode.isReadWriteExtension(extension) || ArchiveMode.isReadOnlyExtension(extension)) {
-                // Enter the archive (extract to temp folder)
-                int active = runningExternalCommands.incrementAndGet();
-                showExternalProgress(active, "VFS: Opening " + selectedItem.getName());
-                
-                CompletableFuture.runAsync(() -> {
-                    filesPanesHelper.enterArchive(focusedSide, selectedItem.getFullPath());
-                }).thenRun(() -> {
-                    int remaining = runningExternalCommands.updateAndGet(current -> Math.max(0, current - 1));
-                    Platform.runLater(() -> {
-                        hideOrUpdateExternalProgress(remaining);
-                        focusCurrentFileList();
-                    });
-                }).exceptionally(ex -> {
-                    logger.error("Failed to enter archive: {}", selectedItem.getName(), ex);
-                    int remaining = runningExternalCommands.updateAndGet(current -> Math.max(0, current - 1));
-                    Platform.runLater(() -> hideOrUpdateExternalProgress(remaining));
-                    return null;
-                });
+                runWithProgress("VFS: Opening " + selectedItem.getName(),
+                        () -> filesPanesHelper.enterArchive(focusedSide, selectedItem.getFullPath()),
+                        this::focusCurrentFileList,
+                        "Failed to enter archive: " + selectedItem.getName());
             } else if (isExecutableExtension(extension)) {
                 try {
                     List<String> command = switch (extension) {
@@ -1146,67 +1132,19 @@ public class Commander {
         FilesPanesHelper.FocusSide focusedSide = filesPanesHelper.getFocusedSide();
 
         if ("..".equals(selectedItem.getPresentableFilename())) {
-            // Check if this is an archive parent item
-            if (selectedItem instanceof FilesPanesHelper.ArchiveParentItem api) {
-                if (api.isArchiveRoot()) {
-                    // At archive root - exit archive and show parent folder of archive file
-                    exitArchiveAndShowParent(focusedSide, api.getSession());
-                } else {
-                    // In subdirectory - go up one level in archive
-                    int active = runningExternalCommands.incrementAndGet();
-                    showExternalProgress(active, "VFS: Navigating up");
-                    CompletableFuture.runAsync(() -> {
-                        filesPanesHelper.goUpInArchive(focusedSide);
-                    }).thenRun(() -> {
-                        int remaining = runningExternalCommands.updateAndGet(current -> Math.max(0, current - 1));
-                        Platform.runLater(() -> {
-                            hideOrUpdateExternalProgress(remaining);
-                            focusCurrentFileList();
-                        });
-                    }).exceptionally(ex -> {
-                        logger.error("Failed to navigate up in archive", ex);
-                        int remaining = runningExternalCommands.updateAndGet(current -> Math.max(0, current - 1));
-                        Platform.runLater(() -> hideOrUpdateExternalProgress(remaining));
-                        return null;
-                    });
-                }
+            if (selectedItem instanceof FilesPanesHelper.ArchiveParentItem api && api.isArchiveRoot()) {
+                exitArchiveAndShowParent(focusedSide, api.getSession());
             } else {
-                // Fallback - go up in archive
-                int active = runningExternalCommands.incrementAndGet();
-                showExternalProgress(active, "VFS: Navigating up");
-                CompletableFuture.runAsync(() -> {
-                    filesPanesHelper.goUpInArchive(focusedSide);
-                }).thenRun(() -> {
-                    int remaining = runningExternalCommands.updateAndGet(current -> Math.max(0, current - 1));
-                    Platform.runLater(() -> {
-                        hideOrUpdateExternalProgress(remaining);
-                        focusCurrentFileList();
-                    });
-                }).exceptionally(ex -> {
-                    logger.error("Failed to navigate up in archive", ex);
-                    int remaining = runningExternalCommands.updateAndGet(current -> Math.max(0, current - 1));
-                    Platform.runLater(() -> hideOrUpdateExternalProgress(remaining));
-                    return null;
-                });
+                runWithProgress("VFS: Navigating up",
+                        () -> filesPanesHelper.goUpInArchive(focusedSide),
+                        this::focusCurrentFileList,
+                        "Failed to navigate up in archive");
             }
         } else if (selectedItem.isDirectory()) {
-            // Enter subdirectory in archive
-            int active = runningExternalCommands.incrementAndGet();
-            showExternalProgress(active, "VFS: Entering " + selectedItem.getName());
-            CompletableFuture.runAsync(() -> {
-                filesPanesHelper.enterArchiveSubdirectory(focusedSide, selectedItem.getName());
-            }).thenRun(() -> {
-                int remaining = runningExternalCommands.updateAndGet(current -> Math.max(0, current - 1));
-                Platform.runLater(() -> {
-                    hideOrUpdateExternalProgress(remaining);
-                    focusCurrentFileList();
-                });
-            }).exceptionally(ex -> {
-                logger.error("Failed to enter archive subdirectory: {}", selectedItem.getName(), ex);
-                int remaining = runningExternalCommands.updateAndGet(current -> Math.max(0, current - 1));
-                Platform.runLater(() -> hideOrUpdateExternalProgress(remaining));
-                return null;
-            });
+            runWithProgress("VFS: Entering " + selectedItem.getName(),
+                    () -> filesPanesHelper.enterArchiveSubdirectory(focusedSide, selectedItem.getName()),
+                    this::focusCurrentFileList,
+                    "Failed to enter archive subdirectory: " + selectedItem.getName());
         } else {
             // It's a file - open it with default viewer
             openFileWithSystemDefault(selectedItem, true);
@@ -1249,30 +1187,34 @@ public class Commander {
      */
     private void exitArchiveAndShowParent(FilesPanesHelper.FocusSide focusedSide, ArchiveSession session) {
         String archivePath = session.getArchivePath();
-        
-        // Exit the archive (repack if needed, cleanup temp)
-        int active = runningExternalCommands.incrementAndGet();
-        showExternalProgress(active, "VFS: Closing archive");
+        runWithProgress("VFS: Closing archive",
+                () -> filesPanesHelper.exitArchive(focusedSide),
+                () -> {
+                    File archiveFile = new File(archivePath);
+                    File parentFolder = archiveFile.getParentFile();
+                    if (parentFolder != null) {
+                        filesPanesHelper.setFileListPath(focusedSide, parentFolder.getAbsolutePath(), archiveFile.getName());
+                        logger.info("Exited archive, showing parent folder: {}", parentFolder.getAbsolutePath());
+                    }
+                },
+                "Failed to exit archive: " + archivePath);
+    }
 
-        CompletableFuture.runAsync(() -> {
-            filesPanesHelper.exitArchive(focusedSide);
-        }).thenRun(() -> {
+    /** Runs {@code work} on the background executor behind the progress bar; {@code onSuccess} then runs on the FX thread. */
+    private void runWithProgress(String label, Runnable work, Runnable onSuccess, String failureMessage) {
+        int active = runningExternalCommands.incrementAndGet();
+        showExternalProgress(active, label);
+        BackgroundTasks.run(work).whenComplete((ignored, ex) -> {
+            if (ex != null) {
+                logger.error(failureMessage, ex);
+            }
             int remaining = runningExternalCommands.updateAndGet(current -> Math.max(0, current - 1));
             Platform.runLater(() -> {
                 hideOrUpdateExternalProgress(remaining);
-                // Show the parent folder of the archive file
-                File archiveFile = new File(archivePath);
-                File parentFolder = archiveFile.getParentFile();
-                if (parentFolder != null) {
-                    filesPanesHelper.setFileListPath(focusedSide, parentFolder.getAbsolutePath(), archiveFile.getName());
-                    logger.info("Exited archive, showing parent folder: {}", parentFolder.getAbsolutePath());
+                if (ex == null) {
+                    onSuccess.run();
                 }
             });
-        }).exceptionally(ex -> {
-            logger.error("Failed to exit archive: {}", archivePath, ex);
-            int remaining = runningExternalCommands.updateAndGet(current -> Math.max(0, current - 1));
-            Platform.runLater(() -> hideOrUpdateExternalProgress(remaining));
-            return null;
         });
     }
     
@@ -1381,7 +1323,7 @@ public class Commander {
                     
                     VFileSystem fs = filesPanesHelper.getFocusedFileSystem();
                     if (fs instanceof FtpFileSystem) {
-                        CompletableFuture.runAsync(() -> {
+                        BackgroundTasks.run(() -> {
                             try {
                                 commands.rename(Collections.singletonList(selectedItem), newName);
                             } catch (Exception e) {
@@ -1434,7 +1376,7 @@ public class Commander {
             VFileSystem fs = filesPanesHelper.getFocusedFileSystem();
 
             if (fs instanceof FtpFileSystem) {
-                CompletableFuture.runAsync(() -> {
+                BackgroundTasks.run(() -> {
                     try {
                         for (FileItem selectedItem : selectedItems)
                             commands.view(selectedItem);
@@ -1489,7 +1431,7 @@ public class Commander {
             VFileSystem fs = filesPanesHelper.getFocusedFileSystem();
             
             if (fs instanceof FtpFileSystem) {
-                CompletableFuture.runAsync(() -> {
+                BackgroundTasks.run(() -> {
                     try {
                         for (FileItem fileItem : fileItems) {
                             if (org.chaiware.acommander.helpers.FileHelper.isTextFile(fileItem, fs)) {
@@ -1539,7 +1481,7 @@ public class Commander {
 
             if (duplicateInSameFolder) {
                 if (fs instanceof FtpFileSystem) {
-                    CompletableFuture.runAsync(() -> {
+                    BackgroundTasks.run(() -> {
                         try {
                             List<ClipboardEntry> pastedSelections = new ArrayList<>();
                             for (FileItem selectedItem : selectedItems) {
@@ -1573,7 +1515,7 @@ public class Commander {
             }
             
             if (fs instanceof FtpFileSystem) {
-                CompletableFuture.runAsync(() -> {
+                BackgroundTasks.run(() -> {
                     try {
                         if (selectedItems.size() > 1 && commands instanceof CommandsAdvancedImpl advancedCommands) {
                             advancedCommands.copyBatch(selectedItems, targetFolderSnapshot);
@@ -1677,7 +1619,7 @@ public class Commander {
             VFileSystem fs = filesPanesHelper.getFocusedFileSystem();
 
             if (fs instanceof FtpFileSystem) {
-                CompletableFuture.runAsync(() -> {
+                BackgroundTasks.run(() -> {
                     try {
                         for (FileItem selectedItem : selectedItems) {
                             String duplicateName = generateDuplicateName(selectedItem.getName(), targetFolder, fs);
@@ -1777,7 +1719,7 @@ public class Commander {
             );
 
             if (selectedItems.size() > 1 && commands instanceof CommandsAdvancedImpl advancedCommands) {
-                CompletableFuture.runAsync(() -> {
+                BackgroundTasks.run(() -> {
                     try {
                         advancedCommands.moveBatch(selectedItems, targetFolderSnapshot);
                     } catch (Exception e) {
@@ -1797,7 +1739,7 @@ public class Commander {
             }
 
             if (fs instanceof FtpFileSystem) {
-                CompletableFuture.runAsync(() -> {
+                BackgroundTasks.run(() -> {
                     try {
                         for (FileItem selectedItem : selectedItems) {
                             commands.move(selectedItem, targetFolderSnapshot);
@@ -1855,7 +1797,7 @@ public class Commander {
                 VFileSystem fs = filesPanesHelper.getFocusedFileSystem();
                 
                 if (fs instanceof FtpFileSystem) {
-                    CompletableFuture.runAsync(() -> {
+                    BackgroundTasks.run(() -> {
                         try {
                             commands.mkdir(focusedPath, dirName);
                         } catch (Exception e) {
@@ -1887,7 +1829,7 @@ public class Commander {
                 VFileSystem fs = filesPanesHelper.getFocusedFileSystem();
                 
                 if (fs instanceof FtpFileSystem) {
-                    CompletableFuture.runAsync(() -> {
+                    BackgroundTasks.run(() -> {
                         try {
                             commands.mkFile(focusedPath, fileName);
                         } catch (Exception e) {
@@ -1920,7 +1862,7 @@ public class Commander {
             
             VFileSystem fs = filesPanesHelper.getFocusedFileSystem();
             if (fs instanceof FtpFileSystem) {
-                CompletableFuture.runAsync(() -> {
+                BackgroundTasks.run(() -> {
                     try {
                         commands.delete(selectedItems);
                     } catch (Exception e) {
@@ -1949,7 +1891,7 @@ public class Commander {
 
             VFileSystem fs = filesPanesHelper.getFocusedFileSystem();
             if (fs instanceof FtpFileSystem) {
-                CompletableFuture.runAsync(() -> {
+                BackgroundTasks.run(() -> {
                     try {
                         commands.wipeDelete(selectedItems);
                     } catch (Exception e) {
@@ -3842,7 +3784,7 @@ public class Commander {
         FileItem firstSelected = selectedItems.getFirst();
         String destinationPath = filesPanesHelper.getUnfocusedPath();
 
-        CompletableFuture.supplyAsync(() -> {
+        BackgroundTasks.supply(() -> {
                     try {
                         return commands.getPdfPageCount(firstSelected);
                     } catch (Exception e) {
@@ -5473,7 +5415,7 @@ public class Commander {
             // Show progress
             showExternalProgress(1, (options.isAutoDiscover() ? "Auto" : options.getProtocol()) + ": " + options.getName());
 
-            CompletableFuture.runAsync(() -> {
+            BackgroundTasks.run(() -> {
                 try {
                     // If auto-discover is enabled, try to find the right protocol
                     FtpConnectionOptions connectionOptions = options;
@@ -6704,7 +6646,7 @@ public class Commander {
 
         List<ClipboardEntry> entries = List.copyOf(clipboardTransferState.entries());
         VFileSystem sourceFs = clipboardTransferState.sourceFs();
-        CompletableFuture.runAsync(() -> {
+        BackgroundTasks.run(() -> {
             List<ClipboardEntry> failed = new ArrayList<>();
             List<ClipboardEntry> pastedSelections = new ArrayList<>();
             for (ClipboardEntry entry : entries) {
