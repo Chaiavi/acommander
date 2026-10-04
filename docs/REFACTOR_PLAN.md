@@ -42,7 +42,7 @@ F5/F6 to the other pane; Alt+F6; F7/Alt+F7; F8; F11 pack + F12 unpack; Enter an 
 Command Palette; theme toggle; one metadata edit on a copied jpg/mp3/mp4; checksum; compare files; FTP connect if a
 server is available.
 
-`Commander` line count: 7459 (start), 7199 (after Phase 1), 7038 (after Phase 2).
+`Commander` line count: 7459 (start), 7199 (after Phase 1), 7038 (after Phase 2), 6929 (after Phase 3).
 
 ## Phase 0 — Prep and Safety Net (no behaviour change)
 
@@ -288,8 +288,12 @@ Bugs noticed during the work, fixed in the phase named.
 4. Kept: `syncToOtherPane` stays blocked on FTP. Its FTP branch is unfinished (a page of open questions in comments);
    enabling it is a feature, not a refactor.
 5. Fixed (#146): mouse clicks on the F-key buttons call `Commander` directly and skip both gates.
-6. Phase 3.5: bug reports say version 4.0 (`APP_VERSION`) while the build is 4.5.
+6. Fixed (#149): bug reports say version 4.0 (`APP_VERSION`) while the build is 4.5.
 7. Phase 4.7: Report Bug's unchecked curl request blocks the browser when curl can't connect.
-8. Phase 3.3: a failure to open or close an archive is logged but never shown.
+8. Fixed (#148): a failure to open or close an archive is logged but never shown.
 9. Phase 10.1 (security, so last by the user's rule): failing FTP commands log the password.
-10. Phase 3.3: a failed repack deletes the user's edits inside the archive (data loss).
+10. Fixed (#147): a failed repack deletes the user's edits inside the archive (data loss).
+11. Fixed (#150): failed tool runs (copy, move, pack, unpack, view, edit, …) show nothing; F4 on FTP loses the
+    edit silently when the upload fails.
+12. Fixed (#150): pack/unpack to an FTP or archive pane uploaded with `targetFs.copy(localPath, …)`.
+13. Fixed (#151): a malformed settings file crashes every start; Settings edits are overwritten by the next save.
