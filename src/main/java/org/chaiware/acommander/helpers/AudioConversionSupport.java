@@ -3,7 +3,6 @@ package org.chaiware.acommander.helpers;
 import org.chaiware.acommander.model.FileItem;
 
 import java.util.List;
-import java.util.Locale;
 import java.util.Set;
 
 public final class AudioConversionSupport {
@@ -22,20 +21,7 @@ public final class AudioConversionSupport {
     }
 
     public static boolean areAllConvertibleAudio(List<FileItem> selectedItems) {
-        if (selectedItems == null || selectedItems.isEmpty()) {
-            return false;
-        }
-        return selectedItems.stream().allMatch(AudioConversionSupport::isConvertibleAudio);
-    }
-
-    public static boolean isConvertibleAudio(FileItem item) {
-        if (item == null || item.isDirectory()) {
-            return false;
-        }
-        if ("..".equals(item.getPresentableFilename())) {
-            return false;
-        }
-        return CONVERTIBLE_INPUT_EXTENSIONS.contains(normalizedExtension(item));
+        return FileItem.allFilesWithExtension(selectedItems, CONVERTIBLE_INPUT_EXTENSIONS::contains);
     }
 
     public static List<String> targetFormatsForSelection(List<FileItem> selectedItems) {
@@ -43,14 +29,5 @@ public final class AudioConversionSupport {
             return List.of();
         }
         return OUTPUT_FORMATS;
-    }
-
-    public static String normalizedExtension(FileItem item) {
-        String name = item == null ? "" : item.getName();
-        int dot = name.lastIndexOf('.');
-        if (dot < 0 || dot >= name.length() - 1) {
-            return "";
-        }
-        return name.substring(dot + 1).toLowerCase(Locale.ROOT);
     }
 }

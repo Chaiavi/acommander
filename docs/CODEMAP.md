@@ -215,7 +215,6 @@ Not actions, but often asked for:
 |---|---|
 | `FilesPanesHelper` | Two panes: focus side, current `VFileSystem` per side, path, listing, sorting (`compareNaturalNames`), selection, archive enter/exit. Inner `ArchiveFolder`, `ArchiveParentItem`, `FilePane`. |
 | `ArchiveManager` | Opens an archive by extracting to a temp folder (`7z.exe`), repacks on close if modified. A failed repack copies the edits to `<archive>.recovered-<stamp>` and throws a message naming it. |
-| `ArchiveService` | `isSupportedArchiveExtension` — extensions 7-Zip can unpack (enables unpack/extractAll). |
 | `FileAttributesHelper` | Read/apply R/H/S/A attributes (NIO, `attrib` fallback). |
 | `FileHelper` | `isTextFile` sniffing; `folderSize` (skips unreadable entries); `copyTree`; `deleteQuietly` (best-effort temp tree delete). |
 | `BackgroundTasks` | The one background executor (virtual threads): `run`, `supply`. Never use `CompletableFuture.runAsync` without it. |
@@ -244,9 +243,9 @@ Not actions, but often asked for:
 ### `model/`
 | File | Role |
 |---|---|
-| `FileItem` | A row: `File`, display name, size, date, directory flag. |
+| `FileItem` | A row: `File`, display name, size, date, directory flag. `extension()` (lower case, no dot) and `allFilesWithExtension` back every file-type check. |
 | `Folder`, `Drive`, `WindowsFolder` | Path-combo entries. |
-| `ArchiveMode` | Read-write vs read-only archive extensions. |
+| `ArchiveMode` | Read-write vs read-only archive extensions (browsable); `isUnpackable` adds the unpack-only ones (enables unpack). |
 | `ArchiveSession` | Open archive: temp folder, mode, needs-repack, parent/child for nested dirs. |
 
 ### `palette/`
@@ -274,8 +273,8 @@ Not actions, but often asked for:
 ### `vfs/` — pane file systems
 | File | Role |
 |---|---|
-| `VFileSystem` | Interface: list, copy/move across FS, delete, rename, mkdir, virtual folders, `close` (an archive repacks there). |
-| `VfsManager` | Creates local/FTP FS; enters archives (`enterVirtualFolder`). |
+| `VFileSystem` | Interface: list, copy/move across FS, delete, rename, mkdir, `close` (an archive repacks there). |
+| `VfsManager` | Creates local/FTP FS; opens archives (`openArchive`). |
 | `LocalFileSystem` | Disk. Archive files are virtual folders. |
 | `ArchiveFileSystem` | Inside an archive's temp folder; marks modified for repack. |
 | `FtpFileSystem` | FTP/FTPS/SFTP through `curl.exe`; `autoDiscoverProtocol`, `sanitizePath`. |
@@ -302,6 +301,6 @@ Under `src/test/java/org/chaiware/acommander/`, same package as the class tested
 `actions/` ActionMatcher, ActionPriorityEngine, ActionRegistry, BuiltinAction, ActionRulesSnapshot (FTP / read-only / palette
 rules per action vs `src/test/resources/action-rules-snapshot.txt`) · `commands/` CommandsAdvancedImpl, CommandsSimpleImpl,
 PackVfs, ReportFailure · `config/` ActionScope, AppConfigLoader, AppRegistryShortcutMatching · `dialog/` DialogTheme · `helpers/` AppTempDir, AppVersion, ArchiveManager, AudioConversionSupport,
-BugReportUrl, ExternalProgressController, FileAttributesHelper, FileHelper, FileIcons, FilesPanesHelperNaturalSort, IncrementalFilter, ImageConversionSupport, SettingsStore, VideoMetadataSupport · `model/` ArchiveMode,
+BugReportUrl, ExecutableCompressionSupport, ExternalProgressController, FileAttributesHelper, FileHelper, FileIcons, FilesPanesHelperNaturalSort, IncrementalFilter, ImageConversionSupport, SettingsStore, VideoMetadataSupport · `model/` ArchiveMode,
 FileItem · `services/` AudioConversionService, ClipboardTransfer, FolderComparer, ImageConversionService · `tools/` BundledTool, BundledToolCommands, ToolCommandBuilder, ProcessRunner · `vfs/` FtpFileSystem · root: ArchitectureRules (process / background / temp-file / app-path / version / fire-and-forget / no file walking or hashing in `Commander` rules), CommanderCopy, `CodeMapTest` (fails when a main
 class or an apps.json action is missing from this file).

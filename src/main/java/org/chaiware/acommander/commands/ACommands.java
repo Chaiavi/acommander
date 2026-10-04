@@ -1,9 +1,9 @@
 package org.chaiware.acommander.commands;
 
 import javafx.application.Platform;
-import org.chaiware.acommander.helpers.ArchiveService;
 import org.chaiware.acommander.helpers.BackgroundTasks;
 import org.chaiware.acommander.helpers.FilesPanesHelper;
+import org.chaiware.acommander.model.ArchiveMode;
 import org.chaiware.acommander.model.FileItem;
 import org.chaiware.acommander.tools.ProcessRunner;
 import org.slf4j.Logger;
@@ -50,36 +50,8 @@ public abstract class ACommands {
         return !isParentFolder(item);
     }
 
-    private boolean isArchive(FileItem item) {
-        if (item == null || item.isDirectory()) {
-            return false;
-        }
-        String name = item.getName();
-        int lastDot = name.lastIndexOf('.');
-        if (lastDot == -1 || lastDot == name.length() - 1) {
-            return false;
-        }
-        String extension = name.substring(lastDot + 1);
-        return ArchiveService.isSupportedArchiveExtension(extension);
-    }
-
-    private boolean isPdf(FileItem item) {
-        if (item == null || item.isDirectory()) {
-            return false;
-        }
-        return item.getName().toLowerCase().endsWith(".pdf");
-    }
-
-    private String getExtension(FileItem item) {
-        if (item == null || item.isDirectory()) {
-            return "";
-        }
-        String name = item.getName();
-        int lastDot = name.lastIndexOf('.');
-        if (lastDot == -1 || lastDot == name.length() - 1) {
-            return "";
-        }
-        return name.substring(lastDot + 1);
+    private static boolean isPdf(FileItem item) {
+        return !item.isDirectory() && "pdf".equals(item.extension());
     }
 
     // PUBLIC METHODS - These handle filtering automatically
@@ -146,9 +118,9 @@ public abstract class ACommands {
         if (!isValidSingleItem(selectedItem)) {
             return;
         }
-        if (!isArchive(selectedItem)) {
+        if (selectedItem.isDirectory() || !ArchiveMode.isUnpackable(selectedItem.extension())) {
             log.warn("Unpack rejected file '{}': extension '{}' is not a supported archive format", 
-                    selectedItem.getName(), getExtension(selectedItem));
+                    selectedItem.getName(), selectedItem.extension());
             throw new IllegalArgumentException("The selected file is not a supported archive: " + selectedItem.getName());
         }
         doUnpack(selectedItem, destinationPath);

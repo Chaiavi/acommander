@@ -20,8 +20,8 @@ class ImageConversionSupportTest {
         Path image = Files.createTempFile(tempDir, "photo", ".png");
         Path text = Files.createTempFile(tempDir, "notes", ".txt");
 
-        Assertions.assertThat(ImageConversionSupport.isConvertibleImage(new FileItem(image.toFile()))).isTrue();
-        Assertions.assertThat(ImageConversionSupport.isConvertibleImage(new FileItem(text.toFile()))).isFalse();
+        Assertions.assertThat(ImageConversionSupport.areAllConvertibleImages(List.of(new FileItem(image.toFile())))).isTrue();
+        Assertions.assertThat(ImageConversionSupport.areAllConvertibleImages(List.of(new FileItem(text.toFile())))).isFalse();
     }
 
     @Test

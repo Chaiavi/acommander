@@ -1,6 +1,5 @@
 package org.chaiware.acommander.vfs;
 
-import org.chaiware.acommander.model.ArchiveMode;
 import org.chaiware.acommander.model.FileItem;
 
 import java.io.File;
@@ -158,26 +157,6 @@ public class LocalFileSystem implements VFileSystem {
     @Override
     public void makeFile(String internalPath) throws IOException {
         Files.createFile(Paths.get(internalPath));
-    }
-
-    @Override
-    public boolean isVirtualFolder(FileItem item) {
-        if (item == null || item.isDirectory()) {
-            return false;
-        }
-        String filename = item.getName();
-        int lastDot = filename.lastIndexOf('.');
-        if (lastDot >= 0) {
-            String ext = filename.substring(lastDot + 1).toLowerCase();
-            return ArchiveMode.isSupportedExtension(ext);
-        }
-        return false;
-    }
-
-    @Override
-    public VFileSystem enterVirtualFolder(FileItem item) throws IOException {
-        // This will be handled by VfsManager to create an ArchiveFileSystem
-        return null; 
     }
 
     @Override

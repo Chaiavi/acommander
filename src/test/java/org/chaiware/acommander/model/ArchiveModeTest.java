@@ -24,6 +24,15 @@ class ArchiveModeTest {
     }
 
     @Test
+    void everyBrowsableArchiveCanAlsoBeUnpacked() {
+        assertThat(ArchiveMode.isUnpackable("txz")).isTrue();
+        assertThat(ArchiveMode.isUnpackable("001")).isTrue();
+        assertThat(ArchiveMode.isUnpackable("zipx")).isTrue();
+        assertThat(ArchiveMode.isSupportedExtension("zipx")).isFalse();
+        assertThat(ArchiveMode.isUnpackable("mp3")).isFalse();
+    }
+
+    @Test
     void fromExtensionRejectsUnsupportedExtensions() {
         assertThat(ArchiveMode.fromExtension("zip")).isEqualTo(ArchiveMode.READ_WRITE);
         assertThat(ArchiveMode.fromExtension("rar")).isEqualTo(ArchiveMode.READ_ONLY);

@@ -2,6 +2,7 @@ package org.chaiware.acommander.helpers;
 
 import org.chaiware.acommander.model.ArchiveMode;
 import org.chaiware.acommander.model.ArchiveSession;
+import org.chaiware.acommander.model.FileItem;
 import org.chaiware.acommander.tools.BundledTool;
 import org.chaiware.acommander.tools.ProcessRunner;
 import org.slf4j.Logger;
@@ -39,7 +40,7 @@ public class ArchiveManager {
         logger.info("Opening archive: {}", archivePath);
         
         // Determine the archive mode based on extension
-        String extension = getFileExtension(archivePath);
+        String extension = FileItem.extension(Paths.get(archivePath).getFileName().toString());
         if (!ArchiveMode.isSupportedExtension(extension)) {
             throw new IOException("Unsupported archive file type: " + archivePath);
         }
@@ -136,10 +137,7 @@ public class ArchiveManager {
         Path parentDir = archiveFile.getParent();
         
         // Use the same extension as the original archive for the temp file
-        String extension = getFileExtension(archivePath);
-        if (!extension.startsWith(".")) {
-            extension = "." + extension;
-        }
+        String extension = "." + FileItem.extension(archiveFile.getFileName().toString());
         
         Path tempArchive = Files.createTempFile(parentDir != null ? parentDir : Paths.get("."), "repack_", extension);
         
@@ -197,17 +195,5 @@ public class ArchiveManager {
             Thread.currentThread().interrupt();
             throw new IOException("7z " + operation + " interrupted", e);
         }
-    }
-    
-    /**
-     * Gets the file extension from a path.
-     */
-    private String getFileExtension(String path) {
-        String fileName = Paths.get(path).getFileName().toString();
-        int lastDot = fileName.lastIndexOf('.');
-        if (lastDot >= 0 && lastDot < fileName.length() - 1) {
-            return fileName.substring(lastDot + 1).toLowerCase();
-        }
-        return "";
     }
 }

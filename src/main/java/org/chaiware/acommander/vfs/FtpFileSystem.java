@@ -2,8 +2,6 @@ package org.chaiware.acommander.vfs;
 
 import org.chaiware.acommander.commands.ExternalCommandListener;
 import org.chaiware.acommander.helpers.AppTempDir;
-import org.chaiware.acommander.helpers.ArchiveManager;
-import org.chaiware.acommander.model.ArchiveSession;
 import org.chaiware.acommander.model.FileItem;
 import org.chaiware.acommander.tools.BundledTool;
 import org.chaiware.acommander.tools.ProcessRunner;
@@ -723,24 +721,6 @@ public class FtpFileSystem implements VFileSystem {
         logger.warn("Auto-discovery failed: No protocol (FTPS/SFTP/SSH/FTP) worked for {}:{}",
             baseOptions.getHost(), baseOptions.getPort());
         return null;
-    }
-
-    @Override
-    public boolean isVirtualFolder(FileItem item) {
-        String name = item.getName().toLowerCase();
-        return name.endsWith(".zip") || name.endsWith(".jar") || name.endsWith(".tar") || name.endsWith(".gz");
-    }
-
-    @Override
-    public VFileSystem enterVirtualFolder(FileItem item) throws IOException {
-        // To enter an archive on FTP, we first download it to a temp file
-        File tempFile = AppTempDir.createTempFile("acommander_ftp_vfs_", "_" + item.getName()).toFile();
-        
-        this.copy(getInternalPath(item), new LocalFileSystem(""), tempFile.getAbsolutePath());
-        
-        ArchiveManager archiveManager = new ArchiveManager();
-        ArchiveSession session = archiveManager.openArchive(tempFile.getAbsolutePath());
-        return new ArchiveFileSystem(session, archiveManager);
     }
 
     @Override

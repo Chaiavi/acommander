@@ -7,7 +7,6 @@ import org.chaiware.acommander.tools.ProcessRunner;
 import java.io.File;
 import java.io.IOException;
 import java.util.List;
-import java.util.Locale;
 import java.util.Set;
 
 /**
@@ -74,45 +73,6 @@ public final class ImageMetadataSupport {
      * Checks if all selected items are supported image files for metadata editing.
      */
     public static boolean areAllSupportedImages(List<FileItem> selectedItems) {
-        if (selectedItems == null || selectedItems.isEmpty()) {
-            return false;
-        }
-        return selectedItems.stream().allMatch(ImageMetadataSupport::isSupportedImage);
-    }
-
-    /**
-     * Checks if a single file item is a supported image format.
-     */
-    public static boolean isSupportedImage(FileItem item) {
-        if (item == null) {
-            return false;
-        }
-        if ("..".equals(item.getPresentableFilename())) {
-            return false;
-        }
-        if (item.isDirectory()) {
-            return false;
-        }
-        String extension = normalizedExtension(item);
-        return SUPPORTED_EXTENSIONS.contains(extension);
-    }
-
-    /**
-     * Gets the normalized (lowercase) file extension without the dot.
-     */
-    public static String normalizedExtension(FileItem item) {
-        String name = item == null ? "" : item.getName();
-        int dot = name.lastIndexOf('.');
-        if (dot < 0 || dot >= name.length() - 1) {
-            return "";
-        }
-        return name.substring(dot + 1).toLowerCase(Locale.ROOT);
-    }
-
-    /**
-     * Returns a human-readable list of supported formats.
-     */
-    public static String getSupportedFormatsDescription() {
-        return "JPEG, TIFF, PNG, WebP, GIF, BMP, HEIC, AVIF, and various RAW formats (CR2, NEF, ARW, DNG, etc.)";
+        return FileItem.allFilesWithExtension(selectedItems, SUPPORTED_EXTENSIONS::contains);
     }
 }

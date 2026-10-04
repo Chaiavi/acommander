@@ -3,7 +3,6 @@ package org.chaiware.acommander.helpers;
 import org.chaiware.acommander.model.ArchiveMode;
 import org.chaiware.acommander.model.FileItem;
 
-import java.util.Locale;
 import java.util.Set;
 
 /** The glyph and colour shown before each name in the panes. */
@@ -33,10 +32,7 @@ public final class FileIcons {
             return new Icon("📁", "#FFD54F");
         }
 
-        String name = item.getName();
-        int lastDot = name.lastIndexOf('.');
-        String extension = lastDot >= 0 && lastDot < name.length() - 1
-                ? name.substring(lastDot + 1).toLowerCase(Locale.ROOT) : "";
+        String extension = item.extension();
 
         if (ArchiveMode.isReadWriteExtension(extension) || ArchiveMode.isReadOnlyExtension(extension)) {
             return new Icon("📦", "#FFB74D");

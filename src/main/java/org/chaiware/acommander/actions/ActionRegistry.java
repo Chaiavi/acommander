@@ -5,12 +5,12 @@ import org.chaiware.acommander.config.ActionDefinition;
 import org.chaiware.acommander.config.ActionScope;
 import org.chaiware.acommander.config.AppRegistry;
 import org.chaiware.acommander.helpers.*;
+import org.chaiware.acommander.model.ArchiveMode;
 import org.chaiware.acommander.model.FileItem;
 import org.chaiware.acommander.vfs.FtpFileSystem;
 
 import java.util.Collections;
 import java.util.List;
-import java.util.Locale;
 import java.util.stream.Collectors;
 
 public class ActionRegistry {
@@ -150,16 +150,9 @@ public class ActionRegistry {
             case VIDEO_WITH_METADATA -> VideoMetadataSupport.areAllSupportedVideos(items);
             case AUDIO_WITH_METADATA -> AudioMetadataSupport.areAllSupportedAudio(items);
             case EXECUTABLE -> ExecutableCompressionSupport.areAllSupportedExecutables(items);
-            case ARCHIVE -> !items.isEmpty() && items.stream().allMatch(item -> !item.isDirectory()
-                    && ArchiveService.isSupportedArchiveExtension(extension(item.getName())));
-            case PDF -> !items.isEmpty() && items.stream().allMatch(item -> !item.isDirectory()
-                    && item.getName().toLowerCase(Locale.ROOT).endsWith(".pdf"));
+            case ARCHIVE -> FileItem.allFilesWithExtension(items, ArchiveMode::isUnpackable);
+            case PDF -> FileItem.allFilesWithExtension(items, "pdf"::equals);
         };
-    }
-
-    private static String extension(String name) {
-        int dot = name.lastIndexOf('.');
-        return dot < 0 ? "" : name.substring(dot + 1);
     }
 
     public List<AppAction> all() {

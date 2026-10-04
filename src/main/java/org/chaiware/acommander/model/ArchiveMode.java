@@ -58,6 +58,14 @@ public enum ArchiveMode {
     private static final Set<String> READ_WRITE_EXTENSIONS = Set.of(
         "7z", "zip", "tar", "gz", "tgz", "bz2", "tbz2", "xz", "txz", "wim"
     );
+
+    /** 7-Zip unpacks these, but they are not opened as browsable archives. */
+    private static final Set<String> UNPACK_ONLY_EXTENSIONS = Set.of("lzma", "lzma86", "zipx", "esd", "elf");
+
+    /** Unpack accepts every browsable archive plus the unpack-only formats. */
+    public static boolean isUnpackable(String extension) {
+        return isSupportedExtension(extension) || UNPACK_ONLY_EXTENSIONS.contains(normalizeExtension(extension));
+    }
     
     /**
      * Determines the archive mode based on file extension.

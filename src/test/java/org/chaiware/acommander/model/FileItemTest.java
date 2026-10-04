@@ -45,6 +45,27 @@ class FileItemTest {
     }
 
     @Test
+    void extensionIsLowerCaseWithoutTheDot() {
+        Assertions.assertThat(FileItem.extension("Photo.JPG")).isEqualTo("jpg");
+        Assertions.assertThat(FileItem.extension("a.tar.gz")).isEqualTo("gz");
+        Assertions.assertThat(FileItem.extension("README")).isEmpty();
+        Assertions.assertThat(FileItem.extension("trailing.")).isEmpty();
+        Assertions.assertThat(FileItem.extension(".gitignore")).isEqualTo("gitignore");
+    }
+
+    @Test
+    void allFilesWithExtensionSkipsFoldersAndTheParentEntry() {
+        FileItem pdf = new FileItem(null, "a.PDF", 1, 0, false);
+        FileItem folder = new FileItem(null, "b.pdf", 0, 0, true);
+        FileItem parent = new FileItem(null, "..", 0, 0, false);
+
+        Assertions.assertThat(FileItem.allFilesWithExtension(java.util.List.of(pdf), "pdf"::equals)).isTrue();
+        Assertions.assertThat(FileItem.allFilesWithExtension(java.util.List.of(pdf, folder), "pdf"::equals)).isFalse();
+        Assertions.assertThat(FileItem.allFilesWithExtension(java.util.List.of(parent), ext -> true)).isFalse();
+        Assertions.assertThat(FileItem.allFilesWithExtension(java.util.List.of(), ext -> true)).isFalse();
+    }
+
+    @Test
     void humanSizeUsesADotInEveryLocale() {
         java.util.Locale original = java.util.Locale.getDefault();
         try {

@@ -1,8 +1,6 @@
 package org.chaiware.acommander.vfs;
 
 import org.chaiware.acommander.helpers.ArchiveManager;
-import org.chaiware.acommander.model.ArchiveSession;
-import org.chaiware.acommander.model.FileItem;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -33,17 +31,10 @@ public class VfsManager {
         return new FtpFileSystem(options);
     }
 
-    /**
-     * Checks if the item is a virtual folder and returns a new VFileSystem if so.
-     */
-    public VFileSystem enterVirtualFolder(VFileSystem currentFs, FileItem item) throws IOException {
-        if (currentFs.isVirtualFolder(item)) {
-            String archivePath = item.getFullPath();
-            logger.info("Entering virtual folder (archive): {}", archivePath);
-            ArchiveSession session = archiveManager.openArchive(archivePath);
-            return new ArchiveFileSystem(session, archiveManager);
-        }
-        return null;
+    /** Opens a local archive file as a browsable file system (7-Zip extracts it to a temp folder). */
+    public VFileSystem openArchive(String archivePath) throws IOException {
+        logger.info("Entering archive: {}", archivePath);
+        return new ArchiveFileSystem(archiveManager.openArchive(archivePath), archiveManager);
     }
 
     /** Closes a file system; for an archive this repacks it, and a failure says where the edits were saved. */

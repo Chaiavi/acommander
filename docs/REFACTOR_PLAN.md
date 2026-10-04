@@ -240,14 +240,18 @@ not the sets. 6.3 now runs before 6.2, so the base class is judged on what is le
   name against it, for every file system; delete `fileExists`. Test: `duplicateName` with a taken-set ends. Done:
   `ClipboardTransfer.duplicateName(name, fs, folder)` checks the disk for local and archive panes (an archive pane's
   folder is its extracted temp folder) and one listing for FTP; `paste` lost its namer parameter.
-- [ ] 6.1 Changed. One `FileItem.extension()` (lower case, `""` when none) replaces ~16 copies of the
+- [x] 6.1 Changed. One `FileItem.extension()` (lower case, `""` when none) replaces ~16 copies of the
   `lastIndexOf('.')` code: `normalizedExtension` in the 5 `*Support` classes and `ActionPriorityEngine`,
   `getFileExtension` in `Commander` and `ArchiveManager`, `ACommands.isArchive/isPdf`, `ActionRegistry` (pdf),
   `FileIcons`, `LocalFileSystem`, `ArchiveFileSystem`. The archive extensions live in 3 places
   (`ArchiveService.SUPPORTED_EXTENSIONS`, `ArchiveMode` read-write / read-only sets, an inline zip/jar/tar/gz check in
   `FtpFileSystem`); keep one source and test that they agree. Each other set stays next to the feature that uses
   it; no `FileTypes` class. `ActionRegistry.areAllOfType` stays (it is one switch). `ActionRulesSnapshotTest` must
-  not change.
+  not change. Done: `FileItem.allFilesWithExtension` replaced the six `isX` + `areAllX` copies (each `areAllX` is
+  one line). `ArchiveService` became `ArchiveMode.isUnpackable` (browsable + unpack-only), which fixed #158: Unpack
+  refused txz, tbz2, 001, vhdx and others that Enter opens. `VFileSystem.isVirtualFolder/enterVirtualFolder` were
+  dead (only local panes enter archives; nobody called `enterVirtualFolder`) and held the FTP list; deleted, with
+  `VfsManager.openArchive` in their place. Also deleted the unused `ImageMetadataSupport.getSupportedFormatsDescription`.
 - [ ] 6.3 Output parsers as pure functions in the `*MetadataSupport` classes, tested on captured sample output:
   exiv2 (now inside `ImageMetadataDialog.populateTreeTable`, mixed with the tree), id3 (inside
   `AudioMetadataDialog.queryAllTagValues`, mixed with the process run), AtomicParsley (`VideoMetadataDialog`

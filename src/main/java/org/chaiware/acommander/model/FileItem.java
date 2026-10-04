@@ -8,7 +8,9 @@ import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
+import java.util.List;
 import java.util.Locale;
+import java.util.function.Predicate;
 
 @Getter
 @EqualsAndHashCode(of = {"file", "presentableFilename"})
@@ -48,6 +50,22 @@ public class FileItem {
 
     public String getFullPath() {
         return file != null ? file.getAbsolutePath() : "";
+    }
+
+    /** Lower-case extension without the dot; "" when the name has none. */
+    public String extension() {
+        return extension(getName());
+    }
+
+    public static String extension(String name) {
+        int dot = name.lastIndexOf('.');
+        return dot < 0 ? "" : name.substring(dot + 1).toLowerCase(Locale.ROOT);
+    }
+
+    /** True when {@code items} is not empty and each is a file (not a folder or "..") whose extension passes. */
+    public static boolean allFilesWithExtension(List<FileItem> items, Predicate<String> extension) {
+        return items != null && !items.isEmpty() && items.stream().allMatch(item -> item != null && !item.isDirectory()
+                && !"..".equals(item.getPresentableFilename()) && extension.test(item.extension()));
     }
 
     public String getHumanReadableSize() {

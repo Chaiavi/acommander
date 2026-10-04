@@ -66,16 +66,6 @@ public interface VFileSystem {
     void makeFile(String internalPath) throws IOException;
 
     /**
-     * Checks if the given item is a virtual folder (e.g., an archive file).
-     */
-    boolean isVirtualFolder(FileItem item);
-
-    /**
-     * Creates a child file system from the given item.
-     */
-    VFileSystem enterVirtualFolder(FileItem item) throws IOException;
-
-    /**
      * Cleans up resources.
      */
     void close() throws IOException;

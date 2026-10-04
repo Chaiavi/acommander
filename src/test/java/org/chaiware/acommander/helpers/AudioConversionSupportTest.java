@@ -20,8 +20,8 @@ class AudioConversionSupportTest {
         Path audio = Files.createTempFile(tempDir, "sound", ".wav");
         Path text = Files.createTempFile(tempDir, "notes", ".txt");
 
-        Assertions.assertThat(AudioConversionSupport.isConvertibleAudio(new FileItem(audio.toFile()))).isTrue();
-        Assertions.assertThat(AudioConversionSupport.isConvertibleAudio(new FileItem(text.toFile()))).isFalse();
+        Assertions.assertThat(AudioConversionSupport.areAllConvertibleAudio(List.of(new FileItem(audio.toFile())))).isTrue();
+        Assertions.assertThat(AudioConversionSupport.areAllConvertibleAudio(List.of(new FileItem(text.toFile())))).isFalse();
     }
 
     @Test

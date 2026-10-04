@@ -183,10 +183,7 @@ public class FilesPanesHelper {
      * For read-only archives, also extracts but marks as read-only.
      */
     public void enterArchive(FocusSide focusSide, String archivePath) throws IOException {
-        VFileSystem fs = vfsManager.enterVirtualFolder(fileSystems.get(focusSide), new FileItem(new File(archivePath)));
-        if (fs == null) {
-            return;
-        }
+        VFileSystem fs = vfsManager.openArchive(archivePath);
         currentInternalPaths.put(focusSide, "");
         setFileSystem(focusSide, fs, null);
 

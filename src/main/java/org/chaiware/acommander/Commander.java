@@ -794,7 +794,7 @@ public class Commander {
             filesPanesHelper.setFocusedFileListPath(selectedItem.getFullPath());
         } else {
             // It's a file - check if it's an archive we can enter
-            String extension = getFileExtension(selectedItem.getName());
+            String extension = selectedItem.extension();
 
             if (ArchiveMode.isReadWriteExtension(extension) || ArchiveMode.isReadOnlyExtension(extension)) {
                 runWithProgress("VFS: Opening " + selectedItem.getName(),
@@ -897,17 +897,6 @@ public class Commander {
     private <T> void runWithProgress(String label, Callable<T> work, Consumer<T> onSuccess, String failureMessage) {
         progress.run(label, work, onSuccess,
                 cause -> error(failureMessage, cause instanceof Exception e ? e : new RuntimeException(cause)));
-    }
-    
-    /**
-     * Gets the file extension from a filename.
-     */
-    private String getFileExtension(String filename) {
-        int lastDot = filename.lastIndexOf('.');
-        if (lastDot >= 0 && lastDot < filename.length() - 1) {
-            return filename.substring(lastDot + 1).toLowerCase(Locale.ROOT);
-        }
-        return "";
     }
 
     private String leafName(String path) {

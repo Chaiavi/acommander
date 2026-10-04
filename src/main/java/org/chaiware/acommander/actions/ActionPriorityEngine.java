@@ -58,7 +58,7 @@ public class ActionPriorityEngine {
 
             List<String> selectedExtensions = selected.stream()
                     .filter(item -> item != null && !item.isDirectory())
-                    .map(this::normalizedExtension)
+                    .map(FileItem::extension)
                     .filter(ext -> !ext.isBlank())
                     .toList();
 
@@ -87,14 +87,5 @@ public class ActionPriorityEngine {
         }
         List<FileItem> selected = context.commander().filesPanesHelper.getSelectedItems();
         return selected == null ? Collections.emptyList() : selected;
-    }
-
-    private String normalizedExtension(FileItem item) {
-        String name = item == null ? "" : item.getName();
-        int dot = name.lastIndexOf('.');
-        if (dot < 0 || dot >= name.length() - 1) {
-            return "";
-        }
-        return name.substring(dot + 1).toLowerCase(Locale.ROOT);
     }
 }

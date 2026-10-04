@@ -51,32 +51,6 @@ public final class ExecutableCompressionSupport {
     }
 
     public static boolean areAllSupportedExecutables(List<FileItem> selectedItems) {
-        if (selectedItems == null || selectedItems.isEmpty()) {
-            return false;
-        }
-        return selectedItems.stream().allMatch(ExecutableCompressionSupport::isSupportedExecutable);
-    }
-
-    public static boolean isSupportedExecutable(FileItem item) {
-        if (item == null) {
-            return false;
-        }
-        if ("..".equals(item.getPresentableFilename())) {
-            return false;
-        }
-        if (item.isDirectory()) {
-            return false;
-        }
-        String extension = normalizedExtension(item);
-        return SUPPORTED_EXTENSIONS.contains(extension);
-    }
-
-    public static String normalizedExtension(FileItem item) {
-        String name = item == null ? "" : item.getName();
-        int dot = name.lastIndexOf('.');
-        if (dot < 0 || dot >= name.length() - 1) {
-            return "";
-        }
-        return name.substring(dot + 1).toLowerCase(Locale.ROOT);
+        return FileItem.allFilesWithExtension(selectedItems, SUPPORTED_EXTENSIONS::contains);
     }
 }
