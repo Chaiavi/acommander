@@ -60,7 +60,8 @@ command palette. Free and open source.**
 - **Data-driven action system** via `config/apps.json` — no recompilation needed for tool changes
 - Built-in and external actions with selection/context rules
 - External task **progress bar** with stop button
-- **Persistent state** — left/right paths, theme mode, and bookmarks in `config/acommander.properties`
+- **Persistent state** — left/right paths, theme mode, bookmarks and saved FTP connections in
+  `config/acommander.properties` (the Settings action opens it; edits apply when the editor closes)
 - Sort by Name / Size / Modified (header click or palette actions)
 - Incremental **in-pane filtering** by typing letters/digits
 - **Dark / Light / Norton Commander themes** — switchable UI modes

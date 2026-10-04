@@ -44,9 +44,7 @@ import org.chaiware.acommander.vfs.VFileSystem;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.ByteArrayOutputStream;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
@@ -67,11 +65,6 @@ import static org.chaiware.acommander.helpers.FilesPanesHelper.FocusSide.RIGHT;
 
 
 public class Commander {
-    private static final String LEFT_FOLDER_KEY = "left_folder";
-    private static final String RIGHT_FOLDER_KEY = "right_folder";
-    private static final String THEME_MODE_KEY = "theme_mode";
-    private static final String BOOKMARK_KEY_PREFIX = "bookmark.";
-    private static final String FTP_KEY_PREFIX = "ftp.";
     private static final String THEME_DARK_CLASS = "theme-dark";
     private static final String THEME_LIGHT_CLASS = "theme-light";
 
@@ -106,7 +99,7 @@ public class Commander {
     @FXML
     private CommandPaletteController commandPaletteController;
 
-    Properties properties = new Properties();
+    private final SettingsStore settings = new SettingsStore(AppPaths.config("acommander.properties"));
     ACommands commands;
     private AppRegistry appRegistry;
     private ActionExecutor actionExecutor;
@@ -141,8 +134,7 @@ public class Commander {
     @FXML
     public void initialize() {
         logger.debug("Loading Properties");
-        loadConfigFile();
-        loadFtpConnectionsFromProperties();
+        loadSettings();
 
         // Configure left & right defaults
         filesPanesHelper = new FilesPanesHelper(leftFileList, leftPathComboBox, rightFileList, rightPathComboBox);
@@ -159,8 +151,8 @@ public class Commander {
         ComboBoxSetup setup = new ComboBoxSetup();
         setup.setupComboBox(leftPathComboBox);
         setup.setupComboBox(rightPathComboBox);
-        filesPanesHelper.setFileListPath(LEFT, resolveInitialPath(LEFT_FOLDER_KEY));
-        filesPanesHelper.setFileListPath(RIGHT, resolveInitialPath(RIGHT_FOLDER_KEY));
+        filesPanesHelper.setFileListPath(LEFT, resolveInitialPath(LEFT));
+        filesPanesHelper.setFileListPath(RIGHT, resolveInitialPath(RIGHT));
         folderCompareMarks.put(LEFT, new HashMap<>());
         folderCompareMarks.put(RIGHT, new HashMap<>());
         leftPathComboBox.valueProperty().addListener((observable, oldValue, newValue) -> onPathChanged(LEFT, newValue));
@@ -260,6 +252,11 @@ public class Commander {
                 }
                 Platform.runLater(() -> {
                     hideOrUpdateExternalProgress(active);
+                    if (finishedSettingsEditor) {
+                        // Take the user's edits; otherwise the next save writes the old values over them
+                        loadSettings();
+                        applyTheme(rootPane.getScene(), ThemeMode.from(settings.themeMode()), false);
+                    }
                     if (finishedSettingsEditor && restoreFileListFocusAfterSettingsEdit) {
                         restoreFileListFocusAfterSettingsEdit = false;
                         focusCurrentFileList();
@@ -488,8 +485,8 @@ public class Commander {
             }
         }
 
-        properties.setProperty(side == LEFT ? LEFT_FOLDER_KEY : RIGHT_FOLDER_KEY, path);
-        saveConfigFile();
+        settings.setFolder(side, path);
+        saveSettings();
         clearCharFilter(side);
         clearFolderCompareHighlights(false);
         VFileSystem fsAfterSwitch = filesPanesHelper.getFileSystem(side);
@@ -578,7 +575,7 @@ public class Commander {
     }
 
     public void initializeTheme(Scene scene) {
-        applyTheme(scene, ThemeMode.from(properties.getProperty(THEME_MODE_KEY)), false);
+        applyTheme(scene, ThemeMode.from(settings.themeMode()), false);
     }
 
     private void setDarkMode() {
@@ -598,27 +595,26 @@ public class Commander {
         requestFocusedFileListFocus();
     }
 
-    private void loadConfigFile() {
-        Path configFile = getConfigFilePath();
-        if (!Files.exists(configFile)) {
-            bookmarks.clear();
-            return;
+    /** Reads the settings file into the bookmark and FTP maps; an unreadable file is reported, not fatal. */
+    private void loadSettings() {
+        try {
+            settings.load();
+        } catch (IOException e) {
+            logger.error("Failed reading settings {}", settings.file(), e);
+            Platform.runLater(() -> showError("Settings Not Read", e.getMessage()));
         }
-
-        try (FileInputStream input = new FileInputStream(configFile.toFile())) {
-            properties.load(input);
-            loadBookmarksFromProperties();
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
+        bookmarks.clear();
+        bookmarks.putAll(settings.bookmarks());
+        ftpConnections.clear();
+        ftpConnections.putAll(settings.ftpConnections());
     }
 
     private Path getConfigFilePath() {
-        return AppPaths.config("acommander.properties");
+        return settings.file();
     }
 
-    private String resolveInitialPath(String key) {
-        String configuredPath = properties.getProperty(key);
+    private String resolveInitialPath(FilesPanesHelper.FocusSide side) {
+        String configuredPath = settings.folder(side);
         if (configuredPath != null && new File(configuredPath).exists())
             return configuredPath;
         return getDefaultRootPath();
@@ -640,20 +636,14 @@ public class Commander {
         return System.getProperty("user.home");
     }
 
-    private void saveConfigFile() {
-        Path configFile = getConfigFilePath();
+    private void saveSettings() {
+        settings.setBookmarks(bookmarks);
+        settings.setFtpConnections(ftpConnections);
         try {
-            syncBookmarksToProperties();
-            Files.createDirectories(configFile.getParent());
-            try (ByteArrayOutputStream output = new ByteArrayOutputStream()) {
-                properties.store(output, null);
-                String raw = output.toString(StandardCharsets.ISO_8859_1);
-                int firstLineEnd = raw.indexOf('\n');
-                String withoutTimestamp = firstLineEnd >= 0 ? raw.substring(firstLineEnd + 1) : "";
-                Files.writeString(configFile, withoutTimestamp, StandardCharsets.ISO_8859_1);
-            }
-        } catch (Exception ex) {
-            logger.error("Failed saving config file {}", configFile, ex);
+            settings.save();
+        } catch (IOException ex) {
+            logger.error("Failed saving settings {}", settings.file(), ex);
+            showToast("Settings not saved: " + ex.getMessage());
         }
     }
 
@@ -662,10 +652,10 @@ public class Commander {
             return;
 
         // Save the archive file path (not temp folder) if currently in an archive
-        properties.setProperty(LEFT_FOLDER_KEY, getPersistPath(LEFT));
-        properties.setProperty(RIGHT_FOLDER_KEY, getPersistPath(RIGHT));
-        properties.setProperty(THEME_MODE_KEY, currentThemeMode.configValue);
-        saveConfigFile();
+        settings.setFolder(LEFT, getPersistPath(LEFT));
+        settings.setFolder(RIGHT, getPersistPath(RIGHT));
+        settings.setThemeMode(currentThemeMode.configValue);
+        saveSettings();
     }
     
     /**
@@ -4757,7 +4747,7 @@ public class Commander {
         }
 
         bookmarks.put(name, focusedPath);
-        saveConfigFile();
+        saveSettings();
     }
 
     public void gotoBookmark() {
@@ -4789,7 +4779,7 @@ public class Commander {
             return;
         }
         bookmarks.remove(selected.get());
-        saveConfigFile();
+        saveSettings();
     }
 
     public void selectAll() {
@@ -4860,12 +4850,12 @@ public class Commander {
     }
 
     private String getLastUsedPattern() {
-        return properties.getProperty("last_selection_pattern", "*.*");
+        return settings.lastSelectionPattern();
     }
 
     private void saveLastUsedPattern(String pattern) {
-        properties.setProperty("last_selection_pattern", pattern);
-        saveConfigFile();
+        settings.setLastSelectionPattern(pattern);
+        saveSettings();
     }
 
     private record SelectPatternResult(String pattern, boolean useRegex) {}
@@ -5003,8 +4993,7 @@ public class Commander {
                 ftpConnections.remove(selectedConn);
                 savedConnectionsCombo.getItems().remove(selectedConn);
                 savedConnectionsCombo.getSelectionModel().clearSelection();
-                syncFtpConnectionsToProperties();
-                saveConfigFile();
+                saveSettings();
                 removeSavedButton.setDisable(true);
             }
         });
@@ -5069,8 +5058,7 @@ public class Commander {
                 // Only save immediately if NOT auto-discover (auto-discover saves after discovery)
                 if (saveCheckBox.isSelected() && !autoDiscover) {
                     ftpConnections.put(name, options);
-                    syncFtpConnectionsToProperties();
-                    saveConfigFile();
+                    saveSettings();
                 }
                 return options;
             }
@@ -5115,8 +5103,7 @@ public class Commander {
                             // If auto-discover was used and save was selected, save with discovered values
                             if (options.isAutoDiscover() && shouldSave) {
                                 ftpConnections.put(finalConnectionOptions.getName(), finalConnectionOptions);
-                                syncFtpConnectionsToProperties();
-                                saveConfigFile();
+                                saveSettings();
                             }
 
                             hideOrUpdateExternalProgress(0);
@@ -5140,53 +5127,6 @@ public class Commander {
             message = message.replace("FTP operation failed:", "").trim();
         }
         showError("FTP Connection Failed", (message == null || message.isEmpty()) ? "Unknown error" : message);
-    }
-
-    private void syncFtpConnectionsToProperties() {
-        // Clear old ones
-        properties.keySet().removeIf(k -> k.toString().startsWith(FTP_KEY_PREFIX));
-        for (Map.Entry<String, FtpConnectionOptions> entry : ftpConnections.entrySet()) {
-            String prefix = FTP_KEY_PREFIX + entry.getKey() + ".";
-            FtpConnectionOptions opt = entry.getValue();
-            properties.setProperty(prefix + "host", opt.getHost());
-            properties.setProperty(prefix + "port", String.valueOf(opt.getPort()));
-            properties.setProperty(prefix + "username", opt.getUsername());
-            properties.setProperty(prefix + "password", opt.getPassword());
-            properties.setProperty(prefix + "protocol", opt.getProtocol().name());
-        }
-    }
-
-    private void loadFtpConnectionsFromProperties() {
-        Map<String, FtpConnectionOptions.FtpConnectionOptionsBuilder> builders = new HashMap<>();
-        for (String key : properties.stringPropertyNames()) {
-            if (key.startsWith(FTP_KEY_PREFIX)) {
-                String sub = key.substring(FTP_KEY_PREFIX.length());
-                int lastDot = sub.lastIndexOf('.');
-                if (lastDot > 0) {
-                    String name = sub.substring(0, lastDot);
-                    String field = sub.substring(lastDot + 1);
-                    FtpConnectionOptions.FtpConnectionOptionsBuilder builder = builders.computeIfAbsent(name, n -> FtpConnectionOptions.builder().name(n));
-                    String val = properties.getProperty(key);
-                    switch (field) {
-                        case "host" -> builder.host(val);
-                        case "port" -> {
-                            try {
-                                builder.port(Integer.parseInt(val));
-                            } catch (NumberFormatException ignored) {}
-                        }
-                        case "username" -> builder.username(val);
-                        case "password" -> builder.password(val);
-                        case "protocol" -> {
-                            try {
-                                builder.protocol(FtpConnectionOptions.Protocol.valueOf(val));
-                            } catch (IllegalArgumentException ignored) {}
-                        }
-                    }
-                }
-            }
-        }
-        ftpConnections.clear();
-        builders.forEach((name, builder) -> ftpConnections.put(name, builder.build()));
     }
 
     public void filterByChar(char selectedChar) {
@@ -5568,32 +5508,6 @@ public class Commander {
             return normalizedText.substring(lastSlash + 1);
         }
         return normalizedText.isEmpty() ? "bookmark" : normalizedText;
-    }
-
-    private void loadBookmarksFromProperties() {
-        bookmarks.clear();
-        List<String> bookmarkKeys = properties.stringPropertyNames().stream()
-                .filter(key -> key.startsWith(BOOKMARK_KEY_PREFIX))
-                .toList();
-        for (String key : bookmarkKeys) {
-            String name = key.substring(BOOKMARK_KEY_PREFIX.length()).trim();
-            String path = properties.getProperty(key, "").trim();
-            if (!name.isEmpty() && !path.isEmpty()) {
-                bookmarks.put(name, path);
-            }
-        }
-    }
-
-    private void syncBookmarksToProperties() {
-        List<String> keysToRemove = properties.stringPropertyNames().stream()
-                .filter(key -> key.startsWith(BOOKMARK_KEY_PREFIX))
-                .toList();
-        for (String key : keysToRemove) {
-            properties.remove(key);
-        }
-        for (Map.Entry<String, String> entry : bookmarks.entrySet()) {
-            properties.setProperty(BOOKMARK_KEY_PREFIX + entry.getKey(), entry.getValue());
-        }
     }
 
     public CompletableFuture<List<String>> runExternal(List<String> command, boolean refreshAfter) {
@@ -6981,8 +6895,8 @@ public class Commander {
         scene.getRoot().getStyleClass().add(themeMode.styleClass);
         currentThemeMode = themeMode;
         if (persist) {
-            properties.setProperty(THEME_MODE_KEY, themeMode.configValue);
-            saveConfigFile();
+            settings.setThemeMode(themeMode.configValue);
+            saveSettings();
         }
     }
 

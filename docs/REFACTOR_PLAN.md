@@ -112,9 +112,12 @@ Rechecked after Phase 2. Dropped the `UiFeedback` and `CommanderContext` interfa
   deleted the unused `ACommands.APP_PATH` and the dialogs' no-op `.directory(user.dir)`. The callers' own
   "not found" checks stay. `BundledToolTest`: every enum entry and every apps.json action `path` is on disk.
   `ArchitectureRulesTest`: `user.dir` only in `AppPaths`, `"apps/` only in `BundledTool`.
-- [ ] 3.2 `SettingsStore` over `acommander.properties`: typed get/set + atomic save (temp file, then move) for
-  left/right folder, theme, `last_selection_pattern`, bookmarks and FTP connections (absorbs the old 4.2). Password
-  stays plaintext until 10.6. Test on a temp dir: round trip, and an interrupted save keeps the old file.
+- [x] 3.2 `helpers/SettingsStore` over `acommander.properties`: typed get/set + atomic save (temp file, then move)
+  for left/right folder, theme, `last_selection_pattern`, bookmarks and FTP connections (absorbs the old 4.2).
+  Password stays plaintext until 10.6. `SettingsStoreTest`: round trip (Hebrew path), missing file, a failed save
+  keeps the old file, an unreadable file is moved aside. Fixed on the way (#151): a malformed settings file
+  crashed every start (`loadConfigFile` threw), and edits made with the Settings action were overwritten by the
+  next save; the file is now reloaded when the editor closes.
 - [x] 3.3 Errors and data loss the user never sees (bug fixes; one issue each):
   1. Done (#147). **Data loss on repack failure.** `ArchiveManager.closeArchive` deleted the extracted folder in
      `finally`, even when the repack failed, and every caller only logged. Now the edits are copied to
