@@ -112,7 +112,7 @@ Not actions, but often asked for:
 | Type-to-filter popup | `Commander.filterByChar`, `backspaceCharFilter`, `clearCharFilter`; logic in `helpers/IncrementalFilter` (one per pane) |
 | Pane list cells, icons, colours | `Commander.configListViewLookAndBehavior`, `helpers/FileIcons` |
 | Pane footer (counts / sizes) | `Commander.updatePaneSummary` |
-| Running-tool progress bar + Stop button | `Commander.buildExternalCommandListener`, `showExternalProgress`, `stopExternalTasks`; `runWithProgress` for background work behind the bar |
+| Running-tool progress bar + Stop button | `helpers/ExternalProgressController` (count, show/hide, `run` for background work); `Commander.buildExternalCommandListener` feeds it, `stopExternalTasks`, `runWithProgress` |
 | Error / info / toast | `Commander.showError`, `showInfo`, `showToast` |
 | Text-input prompt | `Commander.promptUser` / `getUserFeedback` |
 | Startup paths + persistence | `Commander.loadConfigFile`, `resolveInitialPath`, `persistCurrentPaths` (on window close in `Main`) |
@@ -123,7 +123,7 @@ Not actions, but often asked for:
 ~7.4k lines. Sections in file order; search the first method name to land there.
 
 1. Fields, `@FXML` controls, `initialize`, `setupFunctionButtonActions`.
-2. External-tool progress UI: `configureExternalProgressUi` … `stopExternalTasks`.
+2. External-tool progress: `buildExternalCommandListener`, `stopExternalTasks` (UI in `ExternalProgressController`).
 3. Sort headers: `configSortHeaders` … `sortIndicator`; `onPathChanged`.
 4. Key bindings + palette: `setupBindings`, `determineCurrentContext`, `openCommandPalette` … `selectPreviousCommandPaletteAction`.
 5. Theme: `initializeTheme`, `toggleDarkMode` (apply logic at file end: `applyTheme`).
@@ -215,6 +215,7 @@ Other dialogs are built inline in `Commander` (`prompt*` methods).
 | `BugReportUrl` | Report Bug: prefilled GitHub new-issue URL with title prefix and label per report type; cuts the body to keep the URL under 8,000 chars. |
 | `FileIcons` | Glyph + colour per pane item (folder, archive, PDF, text, image, audio, video, executable, other). |
 | `IncrementalFilter` | Type-to-filter state of one pane: typed prefix, the unfiltered list, the matching items; starts over when the pane changed. |
+| `ExternalProgressController` | Progress bar + Stop button: one running count over tool runs (listener) and background work (`run`); `toolName`, `isFailedExit` (ExamDiff 27 and Explorer 1 are not failures). |
 | `ComboBoxSetup`, `FolderComboBoxCell` | Path combo: drives (with type/free space), Desktop/Documents/Downloads. |
 
 ### `keybinding/`
@@ -287,6 +288,6 @@ Under `src/test/java/org/chaiware/acommander/`, same package as the class tested
 `actions/` ActionMatcher, ActionPriorityEngine, ActionRegistry, BuiltinAction, ActionRulesSnapshot (FTP / read-only / palette
 rules per action vs `src/test/resources/action-rules-snapshot.txt`) · `commands/` CommandsAdvancedImpl, CommandsSimpleImpl,
 PackVfs, ReportFailure · `config/` ActionScope, AppConfigLoader, AppRegistryShortcutMatching · `dialog/` DialogTheme · `helpers/` AppTempDir, AppVersion, ArchiveManager, AudioConversionSupport,
-BugReportUrl, FileAttributesHelper, FileHelper, FileIcons, FilesPanesHelperNaturalSort, IncrementalFilter, ImageConversionSupport, SettingsStore, VideoMetadataSupport · `model/` ArchiveMode,
+BugReportUrl, ExternalProgressController, FileAttributesHelper, FileHelper, FileIcons, FilesPanesHelperNaturalSort, IncrementalFilter, ImageConversionSupport, SettingsStore, VideoMetadataSupport · `model/` ArchiveMode,
 FileItem · `services/` AudioConversionService, ClipboardTransfer, FolderComparer, ImageConversionService · `tools/` BundledTool, BundledToolCommands, ToolCommandBuilder, ProcessRunner · `vfs/` FtpFileSystem · root: ArchitectureRules (process / background / temp-file / app-path / version / fire-and-forget rules), CommanderCopy, `CodeMapTest` (fails when a main
 class or an apps.json action is missing from this file).

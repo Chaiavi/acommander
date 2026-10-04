@@ -196,9 +196,12 @@ Rechecked after Phase 3: every symbol below still exists in `Commander`. Bug fix
 - [x] 4.11 Theme: `applyTheme`, `ThemeMode` and `applyThemeToDialog` join `dialog/DialogTheme` (3.4) in one theme
   class, not a second one. `ThemeMode.from` gets a test (unknown / blank value → default). `applyTheme` (persists
   the choice) and `applyThemeToDialog` (needs the window) stay in `Commander` as one-liners.
-- [ ] 4.12 `ExternalProgressController`, the UI side of external runs: `buildExternalCommandListener` (progress,
+- [x] 4.12 `ExternalProgressController`, the UI side of external runs: `buildExternalCommandListener` (progress,
   Settings-editor reload, the `onFailure` error dialog), `show/hideOrUpdateExternalProgress`, `stopExternalTasks`,
-  `runWithProgress`. The process side (`runExecutable`, `reportFailure`, Stop counter) is 7.2.
+  `runWithProgress`. The process side (`runExecutable`, `reportFailure`, Stop counter) is 7.2. Done in `helpers/`:
+  the count, show/hide and the background `run` moved; the listener stays in `Commander` (it reloads settings and
+  shows dialogs) and feeds the controller. FTP connect now counts like any other task instead of forcing the bar
+  shut.
 - [ ] 4.13 `ArchitectureRulesTest`: `Commander` has no `Files.walk` / `Files.list` / `MessageDigest` (all leave with
   4.1) and no `java.util.Properties` (already true since 3.2). `new ProcessBuilder` is banned everywhere by 1.7,
   tool paths by 3.1.

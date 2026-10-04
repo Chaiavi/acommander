@@ -69,7 +69,6 @@ import java.util.*;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 import java.util.regex.Pattern;
 
@@ -123,7 +122,7 @@ public class Commander {
     private final FileAttributesHelper attributesHelper = new FileAttributesHelper();
     private ThemeMode currentThemeMode = ThemeMode.REGULAR;
     public final Set<KeyCode> activeModifiers = EnumSet.noneOf(KeyCode.class);
-    private final AtomicInteger runningExternalCommands = new AtomicInteger(0);
+    private ExternalProgressController progress;
     private volatile boolean restoreFileListFocusAfterSettingsEdit = false;
     private final Map<FilesPanesHelper.FocusSide, IncrementalFilter> incrementalFilters = new EnumMap<>(Map.of(
             LEFT, new IncrementalFilter(), RIGHT, new IncrementalFilter()));
@@ -146,12 +145,12 @@ public class Commander {
 
         // Configure left & right defaults
         filesPanesHelper = new FilesPanesHelper(leftFileList, leftPathComboBox, rightFileList, rightPathComboBox);
+        progress = new ExternalProgressController(externalProgressBox, externalProgressBar, externalProgressLabel, externalStopButton);
         ExternalCommandListener externalCommandListener = buildExternalCommandListener();
         filesPanesHelper.setExternalCommandListener(externalCommandListener);
         appRegistry = loadAppRegistry();
         actionExecutor = new ActionExecutor(this, appRegistry);
         commands = new CommandsAdvancedImpl(filesPanesHelper, appRegistry);
-        configureExternalProgressUi();
         commands.setExternalCommandListener(externalCommandListener);
         configMouseDoubleClick();
 
@@ -221,36 +220,18 @@ public class Commander {
         });
     }
 
-    private void configureExternalProgressUi() {
-        if (externalProgressBar != null) {
-            externalProgressBar.setProgress(ProgressIndicator.INDETERMINATE_PROGRESS);
-        }
-        if (externalProgressBox != null) {
-            externalProgressBox.setVisible(false);
-            externalProgressBox.setManaged(false);
-        }
-        if (externalProgressLabel != null) {
-            externalProgressLabel.setText("");
-        }
-        if (externalStopButton != null) {
-            externalStopButton.setDisable(true);
-        }
-    }
-
     private ExternalCommandListener buildExternalCommandListener() {
         return new ExternalCommandListener() {
             @Override
             public void onCommandStarted(List<String> command) {
-                int active = runningExternalCommands.incrementAndGet();
-                String toolName = extractToolName(command);
-                Platform.runLater(() -> showExternalProgress(active, toolName));
+                progress.started(ExternalProgressController.toolName(command));
             }
 
             @Override
             public void onCommandFinished(List<String> command, int exitCode, Throwable error) {
-                int active = runningExternalCommands.updateAndGet(current -> Math.max(0, current - 1));
+                progress.finished();
                 boolean finishedSettingsEditor = isSettingsEditCommand(command);
-                if (error != null || isUnexpectedNonZeroExit(command, exitCode)) {
+                if (error != null || ExternalProgressController.isFailedExit(command, exitCode)) {
                     logger.warn(
                             "External action failed. exitCode={} command={} error={}",
                             exitCode,
@@ -258,14 +239,14 @@ public class Commander {
                             error == null ? "<none>" : error.getMessage()
                     );
                 }
+                if (!finishedSettingsEditor) {
+                    return;
+                }
                 Platform.runLater(() -> {
-                    hideOrUpdateExternalProgress(active);
-                    if (finishedSettingsEditor) {
-                        // Take the user's edits; otherwise the next save writes the old values over them
-                        loadSettings();
-                        applyTheme(rootPane.getScene(), ThemeMode.from(settings.themeMode()), false);
-                    }
-                    if (finishedSettingsEditor && restoreFileListFocusAfterSettingsEdit) {
+                    // Take the user's edits; otherwise the next save writes the old values over them
+                    loadSettings();
+                    applyTheme(rootPane.getScene(), ThemeMode.from(settings.themeMode()), false);
+                    if (restoreFileListFocusAfterSettingsEdit) {
                         restoreFileListFocusAfterSettingsEdit = false;
                         focusCurrentFileList();
                     }
@@ -277,95 +258,6 @@ public class Commander {
                 Platform.runLater(() -> showError(title + " Failed", error.getMessage()));
             }
         };
-    }
-
-    private boolean isUnexpectedNonZeroExit(List<String> command, int exitCode) {
-        if (exitCode == 0) {
-            return false;
-        }
-        if (exitCode == 27 && isExamDiffCommand(command)) {
-            return false;
-        }
-        return !(exitCode == 1 && isExplorerCommand(command));
-    }
-
-    private boolean isExamDiffCommand(List<String> command) {
-        if (command == null || command.isEmpty() || command.getFirst() == null) {
-            return false;
-        }
-        try {
-            Path executable = Paths.get(command.getFirst());
-            Path fileName = executable.getFileName();
-            return fileName != null && "examdiff.exe".equalsIgnoreCase(fileName.toString());
-        } catch (Exception ex) {
-            return command.getFirst().toLowerCase(Locale.ROOT).contains("examdiff.exe");
-        }
-    }
-
-    private boolean isExplorerCommand(List<String> command) {
-        if (command == null || command.isEmpty() || command.getFirst() == null) {
-            return false;
-        }
-        try {
-            Path executable = Paths.get(command.getFirst());
-            Path fileName = executable.getFileName();
-            return fileName != null && "explorer.exe".equalsIgnoreCase(fileName.toString());
-        } catch (Exception ex) {
-            return command.getFirst().toLowerCase(Locale.ROOT).contains("explorer.exe");
-        }
-    }
-
-    private void showExternalProgress(int activeCommands, String toolName) {
-        if (externalProgressBox == null || externalProgressLabel == null || externalProgressBar == null) {
-            return;
-        }
-        externalProgressBar.setProgress(ProgressIndicator.INDETERMINATE_PROGRESS);
-        externalProgressBox.setVisible(true);
-        externalProgressBox.setManaged(true);
-        if (activeCommands == 1) {
-            externalProgressLabel.setText("Running: " + toolName);
-        } else {
-            externalProgressLabel.setText("Running " + activeCommands + " external tasks...");
-        }
-        if (externalStopButton != null) {
-            externalStopButton.setDisable(false);
-        }
-    }
-
-    private void hideOrUpdateExternalProgress(int activeCommands) {
-        if (externalProgressBox == null || externalProgressLabel == null) {
-            return;
-        }
-        if (activeCommands <= 0) {
-            externalProgressBox.setVisible(false);
-            externalProgressBox.setManaged(false);
-            externalProgressLabel.setText("");
-            if (externalStopButton != null) {
-                externalStopButton.setDisable(true);
-            }
-            return;
-        }
-        externalProgressLabel.setText("Running " + activeCommands + " external tasks...");
-        if (externalStopButton != null) {
-            externalStopButton.setDisable(false);
-        }
-    }
-
-    private String extractToolName(List<String> command) {
-        if (command == null || command.isEmpty() || command.getFirst() == null || command.getFirst().isBlank()) {
-            return "external command";
-        }
-        String executable = command.getFirst();
-        try {
-            Path path = Paths.get(executable);
-            Path fileName = path.getFileName();
-            if (fileName != null) {
-                return fileName.toString();
-            }
-        } catch (Exception ignored) {
-            // Keep raw value when path parsing fails.
-        }
-        return executable;
     }
 
     @FXML
@@ -1010,26 +902,8 @@ public class Commander {
 
     /** Like the Runnable form, but hands {@code work}'s result to {@code onSuccess}. Failures are logged and shown. */
     private <T> void runWithProgress(String label, Callable<T> work, Consumer<T> onSuccess, String failureMessage) {
-        int active = runningExternalCommands.incrementAndGet();
-        showExternalProgress(active, label);
-        BackgroundTasks.supply(() -> {
-            try {
-                return work.call();
-            } catch (Exception e) {
-                throw new CompletionException(e);
-            }
-        }).whenComplete((result, failure) -> {
-            int remaining = runningExternalCommands.updateAndGet(current -> Math.max(0, current - 1));
-            Platform.runLater(() -> {
-                hideOrUpdateExternalProgress(remaining);
-                if (failure == null) {
-                    onSuccess.accept(result);
-                } else {
-                    Throwable cause = unwrapCompletionException(failure);
-                    error(failureMessage, cause instanceof Exception e ? e : new RuntimeException(cause));
-                }
-            });
-        });
+        progress.run(label, work, onSuccess,
+                cause -> error(failureMessage, cause instanceof Exception e ? e : new RuntimeException(cause)));
     }
     
     /**
@@ -4047,7 +3921,7 @@ public class Commander {
                 options.isAutoDiscover() ? "Auto" : options.getProtocol());
 
             // Show progress
-            showExternalProgress(1, (options.isAutoDiscover() ? "Auto" : options.getProtocol()) + ": " + options.getName());
+            progress.started((options.isAutoDiscover() ? "Auto" : options.getProtocol()) + ": " + options.getName());
 
             BackgroundTasks.run(() -> {
                 try {
@@ -4078,7 +3952,7 @@ public class Commander {
                                 saveSettings();
                             }
 
-                            hideOrUpdateExternalProgress(0);
+                            progress.finished();
                             filesPanesHelper.getFileList(true).requestFocus();
                         } catch (Exception e) {
                             handleFtpConnectionError(finalConnectionOptions, e);
@@ -4092,7 +3966,7 @@ public class Commander {
     }
 
     private void handleFtpConnectionError(FtpConnectionOptions options, Exception e) {
-        hideOrUpdateExternalProgress(0);
+        progress.finished();
         logger.error("FTP Connection Failed for {}: {}", options.getName(), e.getMessage());
         String message = e.getMessage();
         if (message != null && message.contains("FTP operation failed:")) {
