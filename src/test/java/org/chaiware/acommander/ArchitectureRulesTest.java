@@ -35,6 +35,12 @@ class ArchitectureRulesTest {
                 .as("create temp files with helpers/AppTempDir; it deletes them on exit").isEmpty();
     }
 
+    @Test
+    void versionIsNeverHardCoded() throws IOException {
+        assertThat(violations("(?i)version\\w*\\s*=\\s*\"\\d+\\.\\d", null))
+                .as("read the version with helpers/AppVersion; build.gradle appVersion is the only source").isEmpty();
+    }
+
     private static List<String> violations(String regex, String allowedFileName) throws IOException {
         Pattern pattern = Pattern.compile(regex);
         List<Path> sources;

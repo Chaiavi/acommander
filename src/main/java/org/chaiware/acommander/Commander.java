@@ -113,7 +113,6 @@ public class Commander {
     private final Map<String, FtpConnectionOptions> ftpConnections = new LinkedHashMap<>();
 
     private static final Logger logger = LoggerFactory.getLogger(Commander.class);
-    private static final String APP_VERSION = "4.0";
     public FilesPanesHelper filesPanesHelper;
     private final FileAttributesHelper attributesHelper = new FileAttributesHelper();
     private ThemeMode currentThemeMode = ThemeMode.REGULAR;
@@ -6876,7 +6875,7 @@ public class Commander {
         actualArea.setPrefRowCount(2);
 
         Label versionLabel = new Label("App version:");
-        Label versionValue = new Label(APP_VERSION);
+        Label versionValue = new Label(AppVersion.current());
         versionValue.setStyle("-fx-font-weight: bold;");
 
         GridPane grid = new GridPane();
@@ -6918,7 +6917,7 @@ public class Commander {
                 String steps = stepsArea.getText();
                 String expected = expectedArea.getText();
                 String actual = actualArea.getText();
-                return new BugReportData(type, title, steps, expected, actual, APP_VERSION);
+                return new BugReportData(type, title, steps, expected, actual, AppVersion.current());
             }
             return null;
         });

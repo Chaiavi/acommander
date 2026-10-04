@@ -60,6 +60,15 @@ application {
     mainClass = 'org.chaiware.acommander.Launcher'
 }
 
+// appVersion is the only place the version is written; the app reads it from app-version.properties.
+def appVersionValue = appVersion
+tasks.named('processResources') {
+    inputs.property('appVersion', appVersionValue)
+    filesMatching('app-version.properties') {
+        expand(appVersion: appVersionValue)
+    }
+}
+
 shadowJar {
     archiveBaseName = 'acommander'
     archiveClassifier = ''
@@ -187,6 +196,7 @@ tasks.named('test') {
     // Tests read these directly; without them a docs- or apps.json-only edit leaves `test` up-to-date (a false green).
     inputs.files('config/apps.json', 'config/f1-help.html', 'README.md', 'docs/CODEMAP.md')
     inputs.dir('src/main/java')
+    systemProperty 'acommander.appVersion', appVersionValue
     testLogging {
         events 'passed', 'failed', 'skipped'
         exceptionFormat 'full'
