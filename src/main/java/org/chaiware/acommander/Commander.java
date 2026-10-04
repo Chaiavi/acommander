@@ -3341,9 +3341,7 @@ public class Commander {
             requestFocusedFileListFocus();
             return;
         }
-        removeMetadata("Remove Image Metadata", "image(s)", selectedItems,
-                file -> ProcessRunner.of(BundledTool.EXIV2.path().toString(), "-d", "a", file.getAbsolutePath())
-                        .mergeStderr().run().succeeded());
+        removeMetadata("Remove Image Metadata", "image(s)", selectedItems, ImageMetadataSupport::remove);
     }
 
     /** Confirms, then runs {@code removeOne} on each selected file off the FX thread and reports how many succeeded. */
@@ -3442,83 +3440,7 @@ public class Commander {
             requestFocusedFileListFocus();
             return;
         }
-        removeMetadata("Remove Video Metadata", "video file(s)", selectedItems, this::runVideoMetadataDeleteCommand);
-    }
-
-    private boolean runVideoMetadataDeleteCommand(File file) {
-        Set<String> existingArtifacts = listAtomicParsleyArtifacts(file);
-        List<String> command = new ArrayList<>();
-        command.add(BundledTool.ATOMIC_PARSLEY.path().toString());
-        command.add(file.getAbsolutePath());
-        command.add("--metaEnema");
-        command.add("--preserveTime");
-        command.add("--overWrite");
-
-        try {
-            int exitCode = ProcessRunner.of(command).mergeStderr().run().exitCode();
-            if (exitCode != 0) {
-                logger.warn("Video metadata delete command failed (exit={}): {}", exitCode, file.getAbsolutePath());
-                return false;
-            }
-            return true;
-        } catch (Exception ex) {
-            logger.warn("Video metadata delete command threw error: {}", file.getAbsolutePath(), ex);
-            return false;
-        } finally {
-            cleanupNewAtomicParsleyArtifacts(file, existingArtifacts);
-        }
-    }
-
-    private Set<String> listAtomicParsleyArtifacts(File videoFile) {
-        Set<String> artifacts = new HashSet<>();
-        if (videoFile == null) {
-            return artifacts;
-        }
-        File parent = videoFile.getParentFile();
-        if (parent == null || !parent.isDirectory()) {
-            return artifacts;
-        }
-        String baseName = baseName(videoFile.getName());
-        File[] files = parent.listFiles();
-        if (files == null) {
-            return artifacts;
-        }
-        for (File file : files) {
-            if (!file.isFile()) {
-                continue;
-            }
-            String name = file.getName();
-            if (name.startsWith(baseName + "-data-") || name.startsWith(baseName + "-temp-")) {
-                artifacts.add(file.getAbsolutePath());
-            }
-        }
-        return artifacts;
-    }
-
-    private void cleanupNewAtomicParsleyArtifacts(File videoFile, Set<String> existingArtifacts) {
-        Set<String> after = listAtomicParsleyArtifacts(videoFile);
-        for (String path : after) {
-            if (existingArtifacts.contains(path)) {
-                continue;
-            }
-            File file = new File(path);
-            if (!file.delete()) {
-                logger.warn("Could not delete AtomicParsley temp artifact: {}", path);
-            } else {
-                logger.info("Deleted AtomicParsley temp artifact: {}", path);
-            }
-        }
-    }
-
-    private String baseName(String fileName) {
-        if (fileName == null) {
-            return "";
-        }
-        int dot = fileName.lastIndexOf('.');
-        if (dot <= 0) {
-            return fileName;
-        }
-        return fileName.substring(0, dot);
+        removeMetadata("Remove Video Metadata", "video file(s)", selectedItems, VideoMetadataSupport::remove);
     }
 
     @FXML
@@ -3566,31 +3488,7 @@ public class Commander {
             requestFocusedFileListFocus();
             return;
         }
-        // Non-short-circuit &: always try to delete both the ID3v2 and the ID3v1 tag.
-        removeMetadata("Remove Audio Metadata", "audio file(s)", selectedItems,
-                file -> runAudioMetadataDeleteCommand(file, "-2") & runAudioMetadataDeleteCommand(file, "-1"));
-    }
-
-    private boolean runAudioMetadataDeleteCommand(File file, String tagVersionFlag) {
-        List<String> command = new ArrayList<>();
-        command.add(BundledTool.ID3.path().toString());
-        command.add(tagVersionFlag);
-        command.add("--delete");
-        command.add(file.getAbsolutePath());
-
-        try {
-            int exitCode = ProcessRunner.of(command).mergeStderr().run().exitCode();
-            if (exitCode != 0) {
-                logger.warn("Audio metadata delete command failed (flag={}, exit={}): {}",
-                        tagVersionFlag, exitCode, file.getAbsolutePath());
-                return false;
-            }
-            return true;
-        } catch (Exception ex) {
-            logger.warn("Audio metadata delete command threw error (flag={}): {}",
-                    tagVersionFlag, file.getAbsolutePath(), ex);
-            return false;
-        }
+        removeMetadata("Remove Audio Metadata", "audio file(s)", selectedItems, AudioMetadataSupport::remove);
     }
 
     @FXML

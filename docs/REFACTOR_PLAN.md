@@ -177,7 +177,7 @@ Rechecked after Phase 3: every symbol below still exists in `Commander`. Bug fix
 - [x] 4.4 `AudioConversionService` (`runAudioConversion*`, staging, AAC bridge), `ImageConversionService`
   (`buildImageConvertCommand` and the run). The option prompts (`promptImageConversionOptions`, …) stay for Phase 5.
   The audio service runs tools through an injected function (`Commander.runExternal`), so its tests use a fake.
-- [ ] 4.5 Metadata remove runners (`runVideoMetadataDeleteCommand`, `runAudioMetadataDeleteCommand`, the exiv2
+- [x] 4.5 Metadata remove runners (`runVideoMetadataDeleteCommand`, `runAudioMetadataDeleteCommand`, the exiv2
   lambda in `removeImageMetadata`) → `*MetadataSupport`. `listAtomicParsleyArtifacts` + cleanup is in both
   `Commander` and `VideoMetadataDialog`; keep one copy in `VideoMetadataSupport`.
 - [ ] 4.6 `FilePropertiesLauncher` (VBS, moved as-is; hardened in 10.7).

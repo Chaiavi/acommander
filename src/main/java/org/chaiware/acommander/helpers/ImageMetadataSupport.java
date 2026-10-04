@@ -1,7 +1,11 @@
 package org.chaiware.acommander.helpers;
 
 import org.chaiware.acommander.model.FileItem;
+import org.chaiware.acommander.tools.BundledTool;
+import org.chaiware.acommander.tools.ProcessRunner;
 
+import java.io.File;
+import java.io.IOException;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
@@ -58,6 +62,12 @@ public final class ImageMetadataSupport {
 
     private ImageMetadataSupport() {
         // Private constructor to prevent instantiation
+    }
+
+    /** Deletes all metadata (EXIF, IPTC, XMP, comment) in place. */
+    public static boolean remove(File image) throws IOException, InterruptedException {
+        return ProcessRunner.of(BundledTool.EXIV2.path().toString(), "-d", "a", image.getAbsolutePath())
+                .mergeStderr().run().succeeded();
     }
 
     /**

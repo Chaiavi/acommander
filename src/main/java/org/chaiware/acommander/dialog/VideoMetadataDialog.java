@@ -10,6 +10,7 @@ import javafx.scene.layout.VBox;
 import javafx.stage.Modality;
 import javafx.stage.Window;
 import org.chaiware.acommander.helpers.BackgroundTasks;
+import org.chaiware.acommander.helpers.VideoMetadataSupport;
 import org.chaiware.acommander.tools.BundledTool;
 import org.chaiware.acommander.tools.ProcessRunner;
 import org.slf4j.Logger;
@@ -315,7 +316,7 @@ public class VideoMetadataDialog {
     }
 
     private SaveResult runSave(List<String> command, boolean preserveTime) {
-        Set<String> existingArtifacts = listAtomicParsleyArtifacts();
+        Set<String> existingArtifacts = VideoMetadataSupport.atomicParsleyArtifacts(videoFile);
         try {
             ProcessResult processResult = runCommand(command);
             if (processResult.exitCode() != 0) {
@@ -327,7 +328,7 @@ public class VideoMetadataDialog {
             logger.error("Failed saving video metadata", ex);
             return new SaveResult(false, "Failed saving metadata", ex.getMessage());
         } finally {
-            cleanupNewArtifacts(existingArtifacts);
+            VideoMetadataSupport.deleteNewArtifacts(videoFile, existingArtifacts);
         }
     }
 
@@ -387,52 +388,6 @@ public class VideoMetadataDialog {
             return value.substring(1);
         }
         return value;
-    }
-
-    private Set<String> listAtomicParsleyArtifacts() {
-        Set<String> artifacts = new HashSet<>();
-        File parent = videoFile.getParentFile();
-        if (parent == null || !parent.isDirectory()) {
-            return artifacts;
-        }
-        String baseName = baseName(videoFile.getName());
-        File[] files = parent.listFiles();
-        if (files == null) {
-            return artifacts;
-        }
-        for (File file : files) {
-            if (!file.isFile()) {
-                continue;
-            }
-            String name = file.getName();
-            if (name.startsWith(baseName + "-data-") || name.startsWith(baseName + "-temp-")) {
-                artifacts.add(file.getAbsolutePath());
-            }
-        }
-        return artifacts;
-    }
-
-    private void cleanupNewArtifacts(Set<String> existingArtifacts) {
-        Set<String> after = listAtomicParsleyArtifacts();
-        for (String path : after) {
-            if (existingArtifacts.contains(path)) {
-                continue;
-            }
-            File file = new File(path);
-            if (!file.delete()) {
-                logger.warn("Could not delete AtomicParsley temp artifact: {}", path);
-            } else {
-                logger.info("Deleted AtomicParsley temp artifact: {}", path);
-            }
-        }
-    }
-
-    private String baseName(String fileName) {
-        int dot = fileName.lastIndexOf('.');
-        if (dot <= 0) {
-            return fileName;
-        }
-        return fileName.substring(0, dot);
     }
 
     private record LoadResult(boolean success, Map<String, String> metadata, String message, String details) {}
