@@ -37,6 +37,13 @@ import org.chaiware.acommander.model.FileItem;
 import org.chaiware.acommander.model.Folder;
 import org.chaiware.acommander.palette.CommandPaletteController;
 import org.chaiware.acommander.services.FolderComparer;
+import org.chaiware.acommander.services.AudioConversionService;
+import org.chaiware.acommander.services.AudioConversionService.AudioCompressionProfile;
+import org.chaiware.acommander.services.AudioConversionService.AudioConversionRequest;
+import org.chaiware.acommander.services.ImageConversionService;
+import org.chaiware.acommander.services.ImageConversionService.ImageCompressionMode;
+import org.chaiware.acommander.services.ImageConversionService.ImageConversionRequest;
+import org.chaiware.acommander.services.ImageConversionService.ImageResizeMode;
 import org.chaiware.acommander.tools.BundledTool;
 import org.chaiware.acommander.tools.BundledToolCommands;
 import org.chaiware.acommander.tools.BundledToolCommands.ChecksumOptions;
@@ -2077,7 +2084,8 @@ public class Commander {
 
         String outputFolder = filesPanesHelper.getUnfocusedPath();
         ImageConversionRequest options = request.get();
-        List<String> command = buildImageConvertCommand(caesiumPath, outputFolder, selectedItems, options);
+        List<String> command = ImageConversionService.buildCommand(caesiumPath, outputFolder,
+                selectedItems.stream().map(FileItem::getFullPath).toList(), options);
         runExternal(command, true)
                 .thenAccept(output -> Platform.runLater(() -> {
                     focusConvertedFileInOtherPane(selectedItems, outputFolder, options);
@@ -2300,134 +2308,17 @@ public class Commander {
         }
     }
 
-    private List<String> buildImageConvertCommand(
-            Path caesiumPath,
-            String outputFolder,
-            List<FileItem> selectedItems,
-            ImageConversionRequest options
-    ) {
-        List<String> command = new ArrayList<>();
-        command.add(caesiumPath.toString());
-
-        switch (options.compressionMode()) {
-            case QUALITY -> {
-                command.add("--quality");
-                command.add(String.valueOf(options.quality() == null ? 80 : options.quality()));
-            }
-            case LOSSLESS -> command.add("--lossless");
-            case MAX_SIZE -> {
-                command.add("--max-size");
-                command.add(options.maxSize());
-            }
-        }
-
-        command.add("--output");
-        command.add(outputFolder);
-        command.add("--format");
-        command.add(options.targetFormat());
-
-        if (options.keepExif()) {
-            command.add("--exif");
-        }
-        if (options.keepDates()) {
-            command.add("--keep-dates");
-        }
-        switch (options.resizeMode()) {
-            case WIDTH -> {
-                command.add("--width");
-                command.add(String.valueOf(options.resizeValue()));
-            }
-            case HEIGHT -> {
-                command.add("--height");
-                command.add(String.valueOf(options.resizeValue()));
-            }
-            case LONG_EDGE -> {
-                command.add("--long-edge");
-                command.add(String.valueOf(options.resizeValue()));
-            }
-            case SHORT_EDGE -> {
-                command.add("--short-edge");
-                command.add(String.valueOf(options.resizeValue()));
-            }
-            case NONE -> {
-            }
-        }
-        if (options.resizeMode() != ImageResizeMode.NONE && options.noUpscale()) {
-            command.add("--no-upscale");
-        }
-        if ("png".equals(options.targetFormat())) {
-            command.add("--png-opt-level");
-            command.add("3");
-            command.add("--zopfli");
-        }
-        if (options.suffix() != null && !options.suffix().isBlank()) {
-            command.add("--suffix");
-            command.add(options.suffix());
-        }
-
-        command.add("--overwrite");
-        command.add(mapCaesiumOverwritePolicy(options.overwritePolicy()));
-
-        for (FileItem item : selectedItems) {
-            command.add(item.getFullPath());
-        }
-        return command;
-    }
-
-    private String mapCaesiumOverwritePolicy(String label) {
-        if (label == null) {
-            return "all";
-        }
-        return switch (label.trim().toLowerCase(Locale.ROOT)) {
-            case "never" -> "never";
-            case "bigger" -> "bigger";
-            default -> "all";
-        };
-    }
-
     private void focusConvertedFileInOtherPane(
             List<FileItem> selectedItems,
             String outputFolder,
             ImageConversionRequest options
     ) {
-        FileItem firstFound = findFirstConvertedItem(selectedItems, outputFolder, options);
+        Path firstFound = ImageConversionService.findFirstConverted(
+                selectedItems.stream().map(FileItem::getName).toList(), outputFolder, options);
         if (firstFound != null) {
-            filesPanesHelper.selectFileItem(false, firstFound);
+            filesPanesHelper.selectFileItem(false, new FileItem(firstFound.toFile()));
         }
         requestUnfocusedFileListFocus();
-    }
-
-    private FileItem findFirstConvertedItem(
-            List<FileItem> selectedItems,
-            String outputFolder,
-            ImageConversionRequest options
-    ) {
-        for (FileItem source : selectedItems) {
-            for (String outputName : buildCandidateOutputNames(source, options)) {
-                Path candidate = Paths.get(outputFolder, outputName);
-                if (Files.exists(candidate)) {
-                    return new FileItem(candidate.toFile());
-                }
-            }
-        }
-        return null;
-    }
-
-    private List<String> buildCandidateOutputNames(FileItem source, ImageConversionRequest options) {
-        String baseName = source.getName();
-        int dotIndex = baseName.lastIndexOf('.');
-        String stem = dotIndex > 0 ? baseName.substring(0, dotIndex) : baseName;
-        String suffix = options.suffix() == null ? "" : options.suffix();
-        String normalizedFormat = options.targetFormat().toLowerCase(Locale.ROOT);
-
-        List<String> extensions = switch (normalizedFormat) {
-            case "jpeg" -> List.of("jpeg", "jpg");
-            case "tiff" -> List.of("tiff", "tif");
-            default -> List.of(normalizedFormat);
-        };
-        return extensions.stream()
-                .map(ext -> stem + suffix + "." + ext)
-                .toList();
     }
 
     public void convertMediaFile() {
@@ -2460,68 +2351,23 @@ public class Commander {
             return;
         }
 
-        Path sndfileConverterPath = BundledTool.SNDFILE_CONVERT.path();
-        if (!Files.isRegularFile(sndfileConverterPath)) {
-            showError("Convert Audio Files", "sndfile-convert executable was not found at: " + sndfileConverterPath);
-            requestFocusedFileListFocus();
-            return;
-        }
-        Path faacPath = BundledTool.FAAC.path();
-        Path faadPath = BundledTool.FAAD.path();
-
-        String outputFolder = filesPanesHelper.getUnfocusedPath();
+        AudioConversionService converter = new AudioConversionService(command -> runExternal(command, false),
+                BundledTool.SNDFILE_CONVERT.path(), BundledTool.FAAD.path(), BundledTool.FAAC.path());
         AudioConversionRequest options = request.get();
-        String targetFormat = options.targetFormat().toLowerCase(Locale.ROOT);
-        boolean targetNeedsAacBridge = isAacFamilyFormat(targetFormat);
-        boolean sourceNeedsAacBridge = selectedItems.stream()
-                .map(AudioConversionSupport::normalizedExtension)
-                .anyMatch(this::isAacFamilyFormat);
-        if (targetNeedsAacBridge && !Files.isRegularFile(faacPath)) {
-            showError("Convert Audio Files", "faac executable was not found at: " + faacPath);
-            requestFocusedFileListFocus();
-            return;
-        }
-        if (sourceNeedsAacBridge && !Files.isRegularFile(faadPath)) {
-            showError("Convert Audio Files", "faad executable was not found at: " + faadPath);
-            requestFocusedFileListFocus();
-            return;
-        }
-        Path outputFolderPath = Paths.get(outputFolder);
-        final Path[] firstConverted = {null};
-
-        CompletableFuture<Void> chain = CompletableFuture.completedFuture(null);
-        for (FileItem source : selectedItems) {
-            chain = chain.thenCompose(ignored -> {
-                Path outputPath = buildAudioOutputPath(outputFolderPath, source, options);
-                try {
-                    outputPath = resolveAudioOutputCollision(outputPath, options.conflictPolicy());
-                } catch (IOException ioException) {
-                    return CompletableFuture.failedFuture(ioException);
-                }
-                if (outputPath == null) {
-                    return CompletableFuture.completedFuture(null);
-                }
-                Path sourcePath = Path.of(source.getFullPath());
-                Path finalOutputPath = outputPath;
-                return runAudioConversionWithAacBridge(
-                        sndfileConverterPath,
-                        faadPath,
-                        faacPath,
-                        sourcePath,
-                        finalOutputPath,
-                        options
-                ).thenAccept(lines -> {
-                    if (firstConverted[0] == null) {
-                        firstConverted[0] = finalOutputPath;
-                    }
-                });
-            });
+        List<Path> sources = selectedItems.stream().map(item -> Path.of(item.getFullPath())).toList();
+        for (Path tool : converter.requiredTools(sources, options.targetFormat())) {
+            if (!Files.isRegularFile(tool)) {
+                showError("Convert Audio Files", tool.getFileName() + " was not found at: " + tool);
+                requestFocusedFileListFocus();
+                return;
+            }
         }
 
-        chain.thenAccept(ignored -> Platform.runLater(() -> {
+        converter.convertAll(sources, Paths.get(filesPanesHelper.getUnfocusedPath()), options)
+                .thenAccept(firstConverted -> Platform.runLater(() -> {
                     filesPanesHelper.refreshFileListViews();
-                    if (firstConverted[0] != null) {
-                        filesPanesHelper.selectFileItem(false, new FileItem(firstConverted[0].toFile()));
+                    if (firstConverted != null) {
+                        filesPanesHelper.selectFileItem(false, new FileItem(firstConverted.toFile()));
                     }
                     requestUnfocusedFileListFocus();
                 }))
@@ -2602,7 +2448,7 @@ public class Commander {
                     : String.valueOf(formatGroup.getSelectedToggle().getUserData());
             AudioCompressionProfile profile = selectedAudioCompressionProfile(profileGroup);
             encodingChoices.clear();
-            encodingChoices.putAll(audioEncodingOptionsFor(targetFormat, profile));
+            encodingChoices.putAll(AudioConversionService.encodingOptionsFor(targetFormat, profile));
             encodingCombo.getItems().setAll(encodingChoices.keySet());
             if (!encodingCombo.getItems().isEmpty()) {
                 encodingCombo.getSelectionModel().selectFirst();
@@ -2644,7 +2490,8 @@ public class Commander {
             String targetFormat = String.valueOf(formatGroup.getSelectedToggle().getUserData());
             String selectedEncodingLabel = encodingCombo.getSelectionModel().getSelectedItem();
             String selectedEncodingFlag = selectedEncodingLabel == null ? "" : encodingChoices.getOrDefault(selectedEncodingLabel, "");
-            if (sampleRate != null && isOpusOutput(targetFormat, selectedEncodingFlag) && !isValidOpusSampleRate(sampleRate)) {
+            if (sampleRate != null && AudioConversionService.isOpus(targetFormat, selectedEncodingFlag)
+                    && !AudioConversionService.isOpusSampleRate(sampleRate)) {
                 convertButton.setDisable(true);
                 validationLabel.setText("Opus sample rate must be one of: 8000, 12000, 16000, 24000, 48000.");
                 return;
@@ -2716,332 +2563,6 @@ public class Commander {
         return (AudioCompressionProfile) group.getSelectedToggle().getUserData();
     }
 
-    private Map<String, String> audioEncodingOptionsFor(String targetFormat, AudioCompressionProfile profile) {
-        String fmt = targetFormat == null ? "" : targetFormat.toLowerCase(Locale.ROOT);
-        Map<String, String> options = new LinkedHashMap<>();
-        switch (profile) {
-            case LOSSLESS -> {
-                switch (fmt) {
-                    case "wav", "aif", "au", "rf64", "w64", "raw", "flac" -> {
-                        options.put("16-bit PCM", "-pcm16");
-                        options.put("24-bit PCM", "-pcm24");
-                        if (!"flac".equals(fmt)) {
-                            options.put("32-bit PCM", "-pcm32");
-                            options.put("32-bit Float", "-float32");
-                        }
-                    }
-                    case "caf" -> {
-                        options.put("ALAC 16-bit", "-alac16");
-                        options.put("ALAC 24-bit", "-alac24");
-                        options.put("PCM 24-bit", "-pcm24");
-                    }
-                    default -> options.put("Auto (source/default)", "");
-                }
-            }
-            case LOSSY -> {
-                switch (fmt) {
-                    case "ogg", "oga" -> {
-                        options.put("Vorbis", "-vorbis");
-                        options.put("Opus", "-opus");
-                    }
-                    case "opus" -> options.put("Opus", "-opus");
-                    case "aac", "m4a" -> options.put("AAC (FAAC default)", "");
-                    case "wav" -> {
-                        options.put("IMA ADPCM", "-ima-adpcm");
-                        options.put("MS ADPCM", "-ms-adpcm");
-                        options.put("GSM 6.10", "-gsm610");
-                    }
-                    case "mp3" -> options.put("MP3 (container default)", "");
-                    default -> options.put("Auto (source/default)", "");
-                }
-            }
-            case CUSTOM -> {
-                options.put("Auto (source/default)", "");
-                options.put("16-bit PCM", "-pcm16");
-                options.put("24-bit PCM", "-pcm24");
-                options.put("32-bit PCM", "-pcm32");
-                options.put("32-bit Float", "-float32");
-                options.put("64-bit Float", "-float64");
-                options.put("uLaw", "-ulaw");
-                options.put("aLaw", "-alaw");
-                if ("flac".equals(fmt)) {
-                    options.put("FLAC-safe PCM 16-bit", "-pcm16");
-                    options.put("FLAC-safe PCM 24-bit", "-pcm24");
-                }
-                if ("caf".equals(fmt)) {
-                    options.put("ALAC 16-bit (CAF)", "-alac16");
-                    options.put("ALAC 24-bit (CAF)", "-alac24");
-                }
-                if ("wav".equals(fmt)) {
-                    options.put("IMA ADPCM (WAV)", "-ima-adpcm");
-                    options.put("MS ADPCM (WAV)", "-ms-adpcm");
-                    options.put("GSM 6.10 (WAV)", "-gsm610");
-                }
-                if ("ogg".equals(fmt) || "oga".equals(fmt) || "opus".equals(fmt)) {
-                    options.put("Vorbis (OGG)", "-vorbis");
-                    options.put("Opus (OGG)", "-opus");
-                }
-            }
-        }
-        if (options.isEmpty()) {
-            options.put("Auto (source/default)", "");
-        }
-        return options;
-    }
-
-    private List<String> buildAudioConvertCommand(
-            Path converterPath,
-            String inputPath,
-            Path outputPath,
-            AudioConversionRequest options
-    ) {
-        List<String> command = new ArrayList<>();
-        command.add(converterPath.toString());
-
-        String encodingFlag = options.encodingFlag();
-        if (encodingFlag == null || encodingFlag.isBlank()) {
-            encodingFlag = defaultEncodingForTargetFormat(options.targetFormat());
-        }
-
-        boolean opusOutput = isOpusOutput(options.targetFormat(), encodingFlag);
-        Integer effectiveSampleRate = normalizeSampleRateForOutput(options.sampleRateOverride(), opusOutput);
-        if (effectiveSampleRate != null) {
-            command.add("-override-sample-rate=" + effectiveSampleRate);
-        }
-
-        if (options.endian() != null && isEndianAllowedForTargetFormat(options.targetFormat())) {
-            String endian = options.endian().trim().toLowerCase(Locale.ROOT);
-            if (endian.equals("little") || endian.equals("big") || endian.equals("cpu")) {
-                command.add("-endian=" + endian);
-            }
-        }
-        if (options.normalize()) {
-            command.add("-normalize");
-        }
-        if (encodingFlag != null && !encodingFlag.isBlank()) {
-            command.add(encodingFlag);
-        }
-
-        command.add(inputPath);
-        command.add(outputPath.toString());
-        return command;
-    }
-
-    private CompletableFuture<List<String>> runAudioConversionWithUnicodeFallback(
-            Path converterPath,
-            Path inputPath,
-            Path outputPath,
-            AudioConversionRequest options
-    ) {
-        if (!containsNonAscii(inputPath) && !containsNonAscii(outputPath)) {
-            List<String> command = buildAudioConvertCommand(converterPath, inputPath.toString(), outputPath, options);
-            return runExternal(command, false);
-        }
-
-        Path stagingDir = null;
-        try {
-            stagingDir = createAudioStagingDirectory();
-            Path stagedInputPath = inputPath;
-            if (containsNonAscii(inputPath)) {
-                String inputExt = extensionWithDot(inputPath.getFileName().toString());
-                stagedInputPath = stagingDir.resolve("input" + inputExt);
-                Files.copy(inputPath, stagedInputPath, StandardCopyOption.REPLACE_EXISTING);
-            }
-
-            String targetExt = options.targetFormat().toLowerCase(Locale.ROOT);
-            Path stagedOutputPath = stagingDir.resolve("output." + targetExt);
-            List<String> command = buildAudioConvertCommand(converterPath, stagedInputPath.toString(), stagedOutputPath, options);
-            Path finalStagingDir = stagingDir;
-            return runExternal(command, false)
-                    .thenApply(lines -> {
-                        try {
-                            Files.move(stagedOutputPath, outputPath, StandardCopyOption.REPLACE_EXISTING);
-                            return lines;
-                        } catch (IOException moveException) {
-                            throw new CompletionException(moveException);
-                        }
-                    })
-                    .whenComplete((ignored, throwable) -> FileHelper.deleteQuietly(finalStagingDir));
-        } catch (IOException ioException) {
-            FileHelper.deleteQuietly(stagingDir);
-            return CompletableFuture.failedFuture(ioException);
-        }
-    }
-
-    private CompletableFuture<List<String>> runAudioConversionWithAacBridge(
-            Path sndfileConverterPath,
-            Path faadPath,
-            Path faacPath,
-            Path inputPath,
-            Path outputPath,
-            AudioConversionRequest options
-    ) {
-        String sourceFormat = normalizedExtension(inputPath);
-        String targetFormat = options.targetFormat().toLowerCase(Locale.ROOT);
-        boolean sourceAacFamily = isAacFamilyFormat(sourceFormat);
-        boolean targetAacFamily = isAacFamilyFormat(targetFormat);
-        if (!sourceAacFamily && !targetAacFamily) {
-            return runAudioConversionWithUnicodeFallback(sndfileConverterPath, inputPath, outputPath, options);
-        }
-
-        Path stagingDir = null;
-        try {
-            stagingDir = createAudioStagingDirectory();
-            Path stagedInputPath = stagingDir.resolve("input" + extensionWithDot(inputPath.getFileName().toString()));
-            Files.copy(inputPath, stagedInputPath, StandardCopyOption.REPLACE_EXISTING);
-            Path stagedOutputPath = stagingDir.resolve("output." + targetFormat);
-
-            Path finalStagingDir = stagingDir;
-            return runAudioConversionWithAacBridgeInStaging(
-                    sndfileConverterPath,
-                    faadPath,
-                    faacPath,
-                    stagedInputPath,
-                    stagedOutputPath,
-                    options,
-                    finalStagingDir
-            ).thenApply(lines -> {
-                try {
-                    Files.move(stagedOutputPath, outputPath, StandardCopyOption.REPLACE_EXISTING);
-                    return lines;
-                } catch (IOException moveException) {
-                    throw new CompletionException(moveException);
-                }
-            }).whenComplete((ignored, throwable) -> FileHelper.deleteQuietly(finalStagingDir));
-        } catch (IOException ioException) {
-            FileHelper.deleteQuietly(stagingDir);
-            return CompletableFuture.failedFuture(ioException);
-        }
-    }
-
-    private CompletableFuture<List<String>> runAudioConversionWithAacBridgeInStaging(
-            Path sndfileConverterPath,
-            Path faadPath,
-            Path faacPath,
-            Path stagedInputPath,
-            Path stagedOutputPath,
-            AudioConversionRequest options,
-            Path stagingDir
-    ) {
-        String sourceFormat = normalizedExtension(stagedInputPath);
-        String targetFormat = options.targetFormat().toLowerCase(Locale.ROOT);
-        boolean sourceAacFamily = isAacFamilyFormat(sourceFormat);
-        boolean targetAacFamily = isAacFamilyFormat(targetFormat);
-
-        CompletableFuture<Path> inputForFinalStep = CompletableFuture.completedFuture(stagedInputPath);
-        if (sourceAacFamily) {
-            Path decodedWav = stagingDir.resolve("decoded.wav");
-            List<String> decodeCommand = List.of(
-                    faadPath.toString(),
-                    "-q",
-                    "-o",
-                    decodedWav.toString(),
-                    stagedInputPath.toString()
-            );
-            inputForFinalStep = runExternal(decodeCommand, false).thenApply(lines -> decodedWav);
-        }
-
-        if (!targetAacFamily) {
-            return inputForFinalStep.thenCompose(inputPath ->
-                    runExternal(buildAudioConvertCommand(sndfileConverterPath, inputPath.toString(), stagedOutputPath, options), false)
-            );
-        }
-
-        return inputForFinalStep.thenCompose(inputPath -> {
-            CompletableFuture<Path> wavForFaac = CompletableFuture.completedFuture(inputPath);
-            boolean inputAlreadyWav = "wav".equals(normalizedExtension(inputPath));
-            boolean requiresPreProcessing = options.normalize() || options.sampleRateOverride() != null || !inputAlreadyWav;
-            if (requiresPreProcessing) {
-                Path preparedWav = stagingDir.resolve("prepared.wav");
-                wavForFaac = runExternal(
-                        buildAudioPreprocessingToWavCommand(sndfileConverterPath, inputPath.toString(), preparedWav, options),
-                        false
-                ).thenApply(lines -> preparedWav);
-            }
-
-            return wavForFaac.thenCompose(wavInput ->
-                    runExternal(buildFaacEncodeCommand(faacPath, wavInput, stagedOutputPath), false)
-            );
-        });
-    }
-
-    private List<String> buildAudioPreprocessingToWavCommand(
-            Path converterPath,
-            String inputPath,
-            Path outputPath,
-            AudioConversionRequest options
-    ) {
-        List<String> command = new ArrayList<>();
-        command.add(converterPath.toString());
-        if (options.sampleRateOverride() != null) {
-            command.add("-override-sample-rate=" + options.sampleRateOverride());
-        }
-        if (options.normalize()) {
-            command.add("-normalize");
-        }
-        command.add("-pcm16");
-        command.add(inputPath);
-        command.add(outputPath.toString());
-        return command;
-    }
-
-    private List<String> buildFaacEncodeCommand(Path faacPath, Path wavInput, Path outputPath) {
-        List<String> command = new ArrayList<>();
-        command.add(faacPath.toString());
-        command.add("-o");
-        command.add(outputPath.toString());
-        command.add("--overwrite");
-        if ("aac".equals(normalizedExtension(outputPath))) {
-            command.add("-r");
-        }
-        command.add(wavInput.toString());
-        return command;
-    }
-
-    private String normalizedExtension(Path path) {
-        if (path == null || path.getFileName() == null) {
-            return "";
-        }
-        String fileName = path.getFileName().toString();
-        int dot = fileName.lastIndexOf('.');
-        if (dot < 0 || dot >= fileName.length() - 1) {
-            return "";
-        }
-        return fileName.substring(dot + 1).toLowerCase(Locale.ROOT);
-    }
-
-    private boolean isAacFamilyFormat(String extension) {
-        if (extension == null) {
-            return false;
-        }
-        String normalized = extension.trim().toLowerCase(Locale.ROOT);
-        return "aac".equals(normalized) || "m4a".equals(normalized);
-    }
-
-    private Path createAudioStagingDirectory() throws IOException {
-        List<Path> candidates = List.of(
-                AppTempDir.root(),
-                AppPaths.root()
-        );
-        for (Path candidate : candidates) {
-            if (candidate == null || containsNonAscii(candidate)) {
-                continue;
-            }
-            if (!Files.isDirectory(candidate)) {
-                continue;
-            }
-            return Files.createTempDirectory(candidate, "acommander-audio-");
-        }
-        return AppTempDir.createTempDirectory("acommander-audio-");
-    }
-
-    private boolean containsNonAscii(Path path) {
-        if (path == null) {
-            return false;
-        }
-        return containsNonAscii(path.toString());
-    }
-
     private boolean containsNonAscii(String text) {
         if (text == null) {
             return false;
@@ -3052,117 +2573,6 @@ public class Commander {
             }
         }
         return false;
-    }
-
-    private String extensionWithDot(String fileName) {
-        if (fileName == null || fileName.isBlank()) {
-            return "";
-        }
-        int dot = fileName.lastIndexOf('.');
-        if (dot < 0 || dot == fileName.length() - 1) {
-            return "";
-        }
-        return fileName.substring(dot);
-    }
-
-    private String defaultEncodingForTargetFormat(String targetFormat) {
-        String fmt = targetFormat == null ? "" : targetFormat.toLowerCase(Locale.ROOT);
-        return switch (fmt) {
-            case "flac", "wav", "aif", "au", "rf64", "w64", "raw", "caf" -> "-pcm16";
-            case "ogg", "oga" -> "-vorbis";
-            case "opus" -> "-opus";
-            default -> "";
-        };
-    }
-
-    private Integer normalizeSampleRateForOutput(Integer requestedSampleRate, boolean opusOutput) {
-        if (!opusOutput) {
-            return requestedSampleRate;
-        }
-        if (requestedSampleRate == null) {
-            return 48000;
-        }
-        if (isValidOpusSampleRate(requestedSampleRate)) {
-            return requestedSampleRate;
-        }
-        int normalized = nearestSupportedOpusSampleRate(requestedSampleRate);
-        logger.warn("Adjusted unsupported Opus sample rate {} to {}", requestedSampleRate, normalized);
-        return normalized;
-    }
-
-    private int nearestSupportedOpusSampleRate(int requested) {
-        int[] supported = {8000, 12000, 16000, 24000, 48000};
-        int nearest = supported[0];
-        int bestDistance = Math.abs(requested - nearest);
-        for (int candidate : supported) {
-            int distance = Math.abs(requested - candidate);
-            if (distance < bestDistance) {
-                bestDistance = distance;
-                nearest = candidate;
-            }
-        }
-        return nearest;
-    }
-
-    private boolean isValidOpusSampleRate(int sampleRate) {
-        return sampleRate == 8000
-                || sampleRate == 12000
-                || sampleRate == 16000
-                || sampleRate == 24000
-                || sampleRate == 48000;
-    }
-
-    private boolean isOpusOutput(String targetFormat, String encodingFlag) {
-        String fmt = targetFormat == null ? "" : targetFormat.toLowerCase(Locale.ROOT);
-        String codec = encodingFlag == null ? "" : encodingFlag.trim().toLowerCase(Locale.ROOT);
-        return "opus".equals(fmt) || "-opus".equals(codec);
-    }
-
-    private boolean isEndianAllowedForTargetFormat(String targetFormat) {
-        String fmt = targetFormat == null ? "" : targetFormat.toLowerCase(Locale.ROOT);
-        return switch (fmt) {
-            case "flac", "ogg", "oga", "opus", "mp3" -> false;
-            default -> true;
-        };
-    }
-
-    private Path buildAudioOutputPath(Path outputFolder, FileItem source, AudioConversionRequest options) {
-        String name = source.getName();
-        int dot = name.lastIndexOf('.');
-        String stem = dot > 0 ? name.substring(0, dot) : name;
-        String suffix = options.suffix() == null ? "" : options.suffix();
-        return outputFolder.resolve(stem + suffix + "." + options.targetFormat().toLowerCase(Locale.ROOT));
-    }
-
-    private Path resolveAudioOutputCollision(Path outputPath, String conflictPolicy) throws IOException {
-        if (!Files.exists(outputPath)) {
-            return outputPath;
-        }
-        String policy = conflictPolicy == null ? "overwrite" : conflictPolicy.trim().toLowerCase(Locale.ROOT);
-        if ("skip".equals(policy)) {
-            return null;
-        }
-        if ("auto-rename".equals(policy)) {
-            return nextAvailableFileName(outputPath);
-        }
-        Files.delete(outputPath);
-        return outputPath;
-    }
-
-    private Path nextAvailableFileName(Path originalPath) {
-        Path parent = originalPath.getParent();
-        String filename = originalPath.getFileName().toString();
-        int dot = filename.lastIndexOf('.');
-        String stem = dot > 0 ? filename.substring(0, dot) : filename;
-        String ext = dot > 0 ? filename.substring(dot) : "";
-
-        int counter = 1;
-        Path candidate = originalPath;
-        while (Files.exists(candidate)) {
-            candidate = parent.resolve(stem + " (" + counter + ")" + ext);
-            counter++;
-        }
-        return candidate;
     }
 
     public void analyzeFile() {
@@ -6127,16 +5537,6 @@ public class Commander {
         toastPopup.getContent().add(toastLabel);
     }
 
-    private enum ImageCompressionMode {
-        QUALITY,
-        LOSSLESS,
-        MAX_SIZE
-    }
-    private enum AudioCompressionProfile {
-        LOSSLESS,
-        LOSSY,
-        CUSTOM
-    }
     private enum ExecutableCompressionProfile {
         GOOD("-9"),
         VERY_GOOD("--brute"),
@@ -6152,36 +5552,6 @@ public class Commander {
             return flag;
         }
     }
-    private enum ImageResizeMode {
-        NONE,
-        WIDTH,
-        HEIGHT,
-        LONG_EDGE,
-        SHORT_EDGE
-    }
-    private record ImageConversionRequest(
-            String targetFormat,
-            ImageCompressionMode compressionMode,
-            Integer quality,
-            String maxSize,
-            boolean keepExif,
-            boolean keepDates,
-            ImageResizeMode resizeMode,
-            Integer resizeValue,
-            boolean noUpscale,
-            String suffix,
-            String overwritePolicy
-    ) {}
-    private record AudioConversionRequest(
-            String targetFormat,
-            AudioCompressionProfile compressionProfile,
-            String encodingFlag,
-            boolean normalize,
-            Integer sampleRateOverride,
-            String endian,
-            String suffix,
-            String conflictPolicy
-    ) {}
     private record FindInFilesOptions(
             String query,
             boolean caseInsensitive,

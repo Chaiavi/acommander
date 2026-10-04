@@ -174,8 +174,9 @@ Rechecked after Phase 3: every symbol below still exists in `Commander`. Bug fix
 - [x] 4.3 `buildChecksumCommand`, `buildAnalyzeFileCommand`, `buildCompareCommand`, `parseSplitSize` → `tools/`,
   each with a test of the argument list. Done as one `tools/BundledToolCommands` with the option types; a split size
   that overflows `long` is now rejected (it could wrap to a positive number).
-- [ ] 4.4 `AudioConversionService` (`runAudioConversion*`, staging, AAC bridge), `ImageConversionService`
+- [x] 4.4 `AudioConversionService` (`runAudioConversion*`, staging, AAC bridge), `ImageConversionService`
   (`buildImageConvertCommand` and the run). The option prompts (`promptImageConversionOptions`, …) stay for Phase 5.
+  The audio service runs tools through an injected function (`Commander.runExternal`), so its tests use a fake.
 - [ ] 4.5 Metadata remove runners (`runVideoMetadataDeleteCommand`, `runAudioMetadataDeleteCommand`, the exiv2
   lambda in `removeImageMetadata`) → `*MetadataSupport`. `listAtomicParsleyArtifacts` + cleanup is in both
   `Commander` and `VideoMetadataDialog`; keep one copy in `VideoMetadataSupport`.
