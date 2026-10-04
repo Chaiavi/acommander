@@ -6,6 +6,8 @@ import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.image.Image;
 import javafx.stage.Stage;
+import org.chaiware.acommander.helpers.AppTempDir;
+import org.chaiware.acommander.helpers.BackgroundTasks;
 
 import java.util.Objects;
 
@@ -33,6 +35,7 @@ public class Main extends Application {
             commander.filesPanesHelper.cleanup();  // Clean up archive sessions
         });
         commander.setupBindings();
+        BackgroundTasks.run(AppTempDir::deleteStaleRoots);
     }
 
     public static void main(String[] args) {

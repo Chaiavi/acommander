@@ -1,6 +1,7 @@
 package org.chaiware.acommander.vfs;
 
 import org.chaiware.acommander.commands.ExternalCommandListener;
+import org.chaiware.acommander.helpers.AppTempDir;
 import org.chaiware.acommander.helpers.ArchiveManager;
 import org.chaiware.acommander.model.ArchiveSession;
 import org.chaiware.acommander.model.FileItem;
@@ -494,7 +495,7 @@ public class FtpFileSystem implements VFileSystem {
             runCurl(command);
         } else if (targetFs instanceof FtpFileSystem targetFtpFs) {
             // Copy between FTP servers (or same server)
-            File tempFile = File.createTempFile("acommander_ftp_transfer", ".tmp");
+            File tempFile = AppTempDir.createTempFile("acommander_ftp_transfer", ".tmp").toFile();
             try {
                 // 1. Download to local temp
                 this.copyFile(sourceInternalPath, new LocalFileSystem(""), tempFile.getAbsolutePath());
@@ -515,7 +516,7 @@ public class FtpFileSystem implements VFileSystem {
             archiveFs.markModified();
         } else {
             // Generic target FS: download to temp and let targetFs handle it if it can
-            File tempFile = File.createTempFile("acommander_generic_transfer", ".tmp");
+            File tempFile = AppTempDir.createTempFile("acommander_generic_transfer", ".tmp").toFile();
             try {
                 this.copyFile(sourceInternalPath, new LocalFileSystem(""), tempFile.getAbsolutePath());
                 targetFs.copy(tempFile.getAbsolutePath(), targetFs, targetInternalPath);
@@ -618,7 +619,7 @@ public class FtpFileSystem implements VFileSystem {
         String ftpPath = sanitizePath(internalPath);
         logger.info("Creating empty FTP file: {}", ftpPath);
         // Create empty file locally and upload
-        File tempFile = File.createTempFile("acommander_empty", ".tmp");
+        File tempFile = AppTempDir.createTempFile("acommander_empty", ".tmp").toFile();
         try {
             List<String> command = createBaseCurlCommand();
             command.add("-T");
@@ -733,8 +734,7 @@ public class FtpFileSystem implements VFileSystem {
     @Override
     public VFileSystem enterVirtualFolder(FileItem item) throws IOException {
         // To enter an archive on FTP, we first download it to a temp file
-        File tempFile = File.createTempFile("acommander_ftp_vfs_", "_" + item.getName());
-        tempFile.deleteOnExit();
+        File tempFile = AppTempDir.createTempFile("acommander_ftp_vfs_", "_" + item.getName()).toFile();
         
         this.copy(getInternalPath(item), new LocalFileSystem(""), tempFile.getAbsolutePath());
         

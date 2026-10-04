@@ -3,6 +3,7 @@ package org.chaiware.acommander.commands;
 import javafx.application.Platform;
 import org.chaiware.acommander.config.ActionDefinition;
 import org.chaiware.acommander.config.AppRegistry;
+import org.chaiware.acommander.helpers.AppTempDir;
 import org.chaiware.acommander.helpers.FileHelper;
 import org.chaiware.acommander.helpers.FilesPanesHelper;
 import org.chaiware.acommander.model.FileItem;
@@ -78,8 +79,7 @@ public class CommandsAdvancedImpl extends ACommands {
                 fileToView = fileItem.getFile();
             } else {
                 // Download to temp
-                fileToView = File.createTempFile("acommander_view_", "_" + fileItem.getName());
-                fileToView.deleteOnExit();
+                fileToView = AppTempDir.createTempFile("acommander_view_", "_" + fileItem.getName()).toFile();
                 isTemp = true;
                 fs.copy(fs.getInternalPath(fileItem), new LocalFileSystem(""), fileToView.getAbsolutePath());
             }
@@ -118,8 +118,7 @@ public class CommandsAdvancedImpl extends ACommands {
                 fileToEdit = fileItem.getFile();
             } else {
                 // Download to temp
-                fileToEdit = File.createTempFile("acommander_edit_", "_" + fileItem.getName());
-                fileToEdit.deleteOnExit();
+                fileToEdit = AppTempDir.createTempFile("acommander_edit_", "_" + fileItem.getName()).toFile();
                 isTemp = true;
                 fs.copy(fs.getInternalPath(fileItem), new LocalFileSystem(""), fileToEdit.getAbsolutePath());
             }
@@ -563,8 +562,7 @@ public class CommandsAdvancedImpl extends ACommands {
                         log.warn("Skipping directory in remote VFS packing: {}. Recursive packing is not supported for remote systems yet.", item.getName());
                         continue;
                     }
-                    File tempFile = File.createTempFile("acommander_pack_", "_" + item.getName());
-                    tempFile.deleteOnExit();
+                    File tempFile = AppTempDir.createTempFile("acommander_pack_", "_" + item.getName()).toFile();
                     tempFiles.add(tempFile);
                     sourceFs.copy(sourceFs.getInternalPath(item), new LocalFileSystem(""), tempFile.getAbsolutePath());
                     localPathsToPack.add(tempFile.getAbsolutePath());
@@ -582,9 +580,8 @@ public class CommandsAdvancedImpl extends ACommands {
             if (targetFs instanceof LocalFileSystem) {
                 localArchivePath = archiveFilenameWithPath;
             } else {
-                File tempArchive = File.createTempFile("acommander_pack_target_", "_" + new File(archiveFilenameWithPath).getName());
+                File tempArchive = AppTempDir.createTempFile("acommander_pack_target_", "_" + new File(archiveFilenameWithPath).getName()).toFile();
                 tempArchive.delete(); // Ensure it doesn't exist yet so 7z creates it
-                tempArchive.deleteOnExit();
                 tempFiles.add(tempArchive);
                 localArchivePath = tempArchive.getAbsolutePath();
                 uploadRequired = true;
@@ -637,8 +634,7 @@ public class CommandsAdvancedImpl extends ACommands {
             if (sourceFs instanceof LocalFileSystem) {
                 archiveToUnpack = selectedItem.getFile();
             } else {
-                archiveToUnpack = File.createTempFile("acommander_unpack_", "_" + selectedItem.getName());
-                archiveToUnpack.deleteOnExit();
+                archiveToUnpack = AppTempDir.createTempFile("acommander_unpack_", "_" + selectedItem.getName()).toFile();
                 isTempArchive = true;
                 sourceFs.copy(sourceFs.getInternalPath(selectedItem), new LocalFileSystem(""), archiveToUnpack.getAbsolutePath());
             }
@@ -651,8 +647,7 @@ public class CommandsAdvancedImpl extends ACommands {
             if (targetFs instanceof LocalFileSystem) {
                 localDestPath = destinationPath;
             } else {
-                tempDestDir = Files.createTempDirectory("acommander_unpack_dest_").toFile();
-                tempDestDir.deleteOnExit();
+                tempDestDir = AppTempDir.createTempDirectory("acommander_unpack_dest_").toFile();
                 localDestPath = tempDestDir.getAbsolutePath();
                 uploadRequired = true;
             }
@@ -682,7 +677,7 @@ public class CommandsAdvancedImpl extends ACommands {
                             }
                         }
                         // Cleanup temp dir
-                        deleteRecursive(finalTempDestDir);
+                        FileHelper.deleteQuietly(finalTempDestDir.toPath());
                     }
                     if (finalIsTempArchive) {
                         finalArchiveToUnpack.delete();
@@ -714,18 +709,6 @@ public class CommandsAdvancedImpl extends ACommands {
         }
     }
 
-    private void deleteRecursive(File file) {
-        if (file.isDirectory()) {
-            File[] children = file.listFiles();
-            if (children != null) {
-                for (File child : children) {
-                    deleteRecursive(child);
-                }
-            }
-        }
-        file.delete();
-    }
-
     @Override
     protected void doExtractAll(FileItem selectedItem, String destinationPath) {
         // Similar to doUnpack, extractAll typically uses a different 7z flag ('x' instead of 'e')
@@ -740,8 +723,7 @@ public class CommandsAdvancedImpl extends ACommands {
             if (sourceFs instanceof LocalFileSystem) {
                 archiveToUnpack = selectedItem.getFile();
             } else {
-                archiveToUnpack = File.createTempFile("acommander_extract_", "_" + selectedItem.getName());
-                archiveToUnpack.deleteOnExit();
+                archiveToUnpack = AppTempDir.createTempFile("acommander_extract_", "_" + selectedItem.getName()).toFile();
                 isTempArchive = true;
                 sourceFs.copy(sourceFs.getInternalPath(selectedItem), new LocalFileSystem(""), archiveToUnpack.getAbsolutePath());
             }
@@ -753,8 +735,7 @@ public class CommandsAdvancedImpl extends ACommands {
             if (targetFs instanceof LocalFileSystem) {
                 localDestPath = destinationPath;
             } else {
-                tempDestDir = Files.createTempDirectory("acommander_extract_dest_").toFile();
-                tempDestDir.deleteOnExit();
+                tempDestDir = AppTempDir.createTempDirectory("acommander_extract_dest_").toFile();
                 localDestPath = tempDestDir.getAbsolutePath();
                 uploadRequired = true;
             }
@@ -782,7 +763,7 @@ public class CommandsAdvancedImpl extends ACommands {
                                 uploadRecursive(f, targetFs, destinationPath);
                             }
                         }
-                        deleteRecursive(finalTempDestDir);
+                        FileHelper.deleteQuietly(finalTempDestDir.toPath());
                     }
                     if (finalIsTempArchive) {
                         finalArchiveToUnpack.delete();
@@ -806,7 +787,7 @@ public class CommandsAdvancedImpl extends ACommands {
 
             // pdftk in this bundle is not Unicode-safe on Windows paths.
             // Always run merge from an ASCII temp work directory.
-            Path asciiWorkDir = Files.createTempDirectory("acommander_pdf_merge_work_");
+            Path asciiWorkDir = AppTempDir.createTempDirectory("acommander_pdf_merge_work_");
             List<Path> asciiInputPdfs = new ArrayList<>();
             List<File> tempFilesToCleanup = new ArrayList<>();
 
@@ -819,8 +800,7 @@ public class CommandsAdvancedImpl extends ACommands {
                 if (sourceFs instanceof LocalFileSystem) {
                     sourcePdf = item.getFile();
                 } else {
-                    sourcePdf = File.createTempFile("acommander_pdf_merge_src_", "_" + item.getName());
-                    sourcePdf.deleteOnExit();
+                    sourcePdf = AppTempDir.createTempFile("acommander_pdf_merge_src_", "_" + item.getName()).toFile();
                     tempFilesToCleanup.add(sourcePdf);
                     sourceFs.copy(sourceFs.getInternalPath(item), new LocalFileSystem(""), sourcePdf.getAbsolutePath());
                 }
@@ -898,8 +878,7 @@ public class CommandsAdvancedImpl extends ACommands {
             if (sourceFs instanceof LocalFileSystem) {
                 pdfToExtract = fileItem.getFile();
             } else {
-                pdfToExtract = File.createTempFile("acommander_pdf_extract_", "_" + fileItem.getName());
-                pdfToExtract.deleteOnExit();
+                pdfToExtract = AppTempDir.createTempFile("acommander_pdf_extract_", "_" + fileItem.getName()).toFile();
                 isTempPdf = true;
                 sourceFs.copy(sourceFs.getInternalPath(fileItem), new LocalFileSystem(""), pdfToExtract.getAbsolutePath());
             }
@@ -912,15 +891,14 @@ public class CommandsAdvancedImpl extends ACommands {
             if (targetFs instanceof LocalFileSystem) {
                 localDestPath = destinationPath;
             } else {
-                tempDestDir = Files.createTempDirectory("acommander_pdf_extract_dest_").toFile();
-                tempDestDir.deleteOnExit();
+                tempDestDir = AppTempDir.createTempDirectory("acommander_pdf_extract_dest_").toFile();
                 localDestPath = tempDestDir.getAbsolutePath();
                 uploadRequired = true;
             }
 
             // pdftk in this bundle is not Unicode-safe on Windows paths.
             // Always run extraction from an ASCII temp work directory.
-            Path extractionWorkDir = Files.createTempDirectory("acommander_pdf_extract_work_");
+            Path extractionWorkDir = AppTempDir.createTempDirectory("acommander_pdf_extract_work_");
             Path asciiInputPdf = extractionWorkDir.resolve("input.pdf");
             Files.copy(pdfToExtract.toPath(), asciiInputPdf, StandardCopyOption.REPLACE_EXISTING);
 
@@ -1001,12 +979,12 @@ public class CommandsAdvancedImpl extends ACommands {
                                 uploadRecursive(f, targetFs, destinationPath);
                             }
                         }
-                        deleteRecursive(finalTempDestDir);
+                        FileHelper.deleteQuietly(finalTempDestDir.toPath());
                     }
                     if (finalIsTempPdf) {
                         finalPdfToExtract.delete();
                     }
-                    deleteRecursive(finalExtractionWorkDir.toFile());
+                    FileHelper.deleteQuietly(finalExtractionWorkDir);
                     Platform.runLater(fileListsLoader::refreshFileListViews);
                 } catch (Exception e) {
                     log.error("Failed to upload/cleanup after PDF extraction", e);
@@ -1043,13 +1021,12 @@ public class CommandsAdvancedImpl extends ACommands {
         if (sourceFs instanceof LocalFileSystem) {
             pdfToCount = selectedItem.getFile();
         } else {
-            pdfToCount = File.createTempFile("acommander_pdf_count_", "_" + selectedItem.getName());
-            pdfToCount.deleteOnExit();
+            pdfToCount = AppTempDir.createTempFile("acommander_pdf_count_", "_" + selectedItem.getName()).toFile();
             sourceFs.copy(sourceFs.getInternalPath(selectedItem), new LocalFileSystem(""), pdfToCount.getAbsolutePath());
             isTempPdf = true;
         }
 
-        Path countWorkDir = Files.createTempDirectory("acommander_pdf_count_work_");
+        Path countWorkDir = AppTempDir.createTempDirectory("acommander_pdf_count_work_");
         try {
             Path asciiInputPdf = countWorkDir.resolve("input.pdf");
             Files.copy(pdfToCount.toPath(), asciiInputPdf, StandardCopyOption.REPLACE_EXISTING);
@@ -1059,7 +1036,7 @@ public class CommandsAdvancedImpl extends ACommands {
             if (isTempPdf) {
                 pdfToCount.delete();
             }
-            deleteRecursive(countWorkDir.toFile());
+            FileHelper.deleteQuietly(countWorkDir);
         }
     }
 

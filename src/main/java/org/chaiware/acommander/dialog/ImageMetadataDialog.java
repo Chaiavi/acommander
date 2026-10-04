@@ -9,6 +9,7 @@ import javafx.scene.layout.VBox;
 import javafx.stage.Modality;
 import javafx.stage.Window;
 import org.chaiware.acommander.Commander;
+import org.chaiware.acommander.helpers.AppTempDir;
 import org.chaiware.acommander.helpers.BackgroundTasks;
 import org.chaiware.acommander.tools.ProcessRunner;
 import org.slf4j.Logger;
@@ -709,8 +710,7 @@ public class ImageMetadataDialog {
                 }
 
                 // Create temporary command file for exiv2
-                tempCmdFile = java.io.File.createTempFile("exiv2_cmd_", ".txt");
-                tempCmdFile.deleteOnExit();
+                tempCmdFile = AppTempDir.createTempFile("exiv2_cmd_", ".txt").toFile();
                 
                 // Write commands to temp file
                 StringBuilder cmdContent = new StringBuilder();

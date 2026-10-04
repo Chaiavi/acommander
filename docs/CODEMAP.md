@@ -206,6 +206,7 @@ Other dialogs are built inline in `Commander` (`prompt*` methods).
 | `FileAttributesHelper` | Read/apply R/H/S/A attributes (NIO, `attrib` fallback). |
 | `FileHelper` | `isTextFile` sniffing; `folderSize` (skips unreadable entries); `deleteQuietly` (best-effort temp tree delete). |
 | `BackgroundTasks` | The one background executor (virtual threads): `run`, `supply`, `executor()`. Never use `CompletableFuture.runAsync` without it. |
+| `AppTempDir` | Every temp file/folder goes under `%TEMP%/acommander-<pid>`: `createTempFile`, `createTempDirectory`. Deleted on exit; `deleteStaleRoots` (run at startup by `Main`) removes roots of dead runs. |
 | `ImageConversionSupport`, `AudioConversionSupport` | Which files convert, target formats. |
 | `ImageMetadataSupport`, `VideoMetadataSupport`, `AudioMetadataSupport` | Which files the metadata editors accept. |
 | `ExecutableCompressionSupport` | Which files UPX accepts. |

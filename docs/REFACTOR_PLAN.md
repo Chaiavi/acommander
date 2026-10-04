@@ -67,8 +67,10 @@ server is available.
 - [x] 1.5 Every `Files.walk` / `Files.list` is closed. The three unclosed ones were all "delete this temp tree"
   (Commander audio staging, PDF merge work dir, `ArchiveSession.cleanup`); they are now one
   `FileHelper.deleteQuietly`. Deleted the unused `CommandsSimpleImpl.copyDirectory`.
-- [ ] 1.6 `AppTempDir` (`%TEMP%/acommander-<pid>`, deleted on exit, stale roots removed at startup) + per-operation
-  `TempWorkspace`. Replace ~20 `deleteOnExit`.
+- [x] 1.6 `helpers/AppTempDir`: every temp file/folder lives under `%TEMP%/acommander-<pid>`, deleted on exit; roots
+  of dead runs are deleted at startup. Replaced all 20 `deleteOnExit` (they never deleted non-empty folders, so
+  extracted archives and unpack dirs leaked into `%TEMP%` forever). `CommandsAdvancedImpl.deleteRecursive` became
+  `FileHelper.deleteQuietly`. Per-operation `TempWorkspace` dropped: the root already bounds every leak to one run.
 - [ ] 1.7 Create `ArchitectureRulesTest` (source-text scan like `CodeMapTest`): no `new ProcessBuilder` outside
   `ProcessRunner`; no `deleteOnExit`; no `newCachedThreadPool`.
 

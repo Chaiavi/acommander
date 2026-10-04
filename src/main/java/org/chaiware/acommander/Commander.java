@@ -3206,7 +3206,7 @@ public class Commander {
 
     private Path createAudioStagingDirectory() throws IOException {
         List<Path> candidates = List.of(
-                Paths.get(System.getProperty("java.io.tmpdir")),
+                AppTempDir.root(),
                 Paths.get(System.getProperty("user.dir"))
         );
         for (Path candidate : candidates) {
@@ -3218,7 +3218,7 @@ public class Commander {
             }
             return Files.createTempDirectory(candidate, "acommander-audio-");
         }
-        return Files.createTempDirectory("acommander-audio-");
+        return AppTempDir.createTempDirectory("acommander-audio-");
     }
 
     private boolean containsNonAscii(Path path) {
@@ -3518,7 +3518,7 @@ public class Commander {
                 extension = "." + extPart.toLowerCase(Locale.ROOT);
             }
         }
-        Path stagedFile = Files.createTempFile("acommander_file_analysis_", extension);
+        Path stagedFile = AppTempDir.createTempFile("acommander_file_analysis_", extension);
         Files.copy(Paths.get(selectedItem.getFullPath()), stagedFile, StandardCopyOption.REPLACE_EXISTING);
         logger.debug("Analyze File staged unicode path to temporary file: {}", stagedFile);
         return stagedFile;
@@ -4186,9 +4186,8 @@ public class Commander {
                     "    WScript.Sleep 1000" + System.lineSeparator() +
                     "Loop";
 
-                java.nio.file.Path vbsFile = java.nio.file.Files.createTempFile("properties_", ".vbs");
+                java.nio.file.Path vbsFile = AppTempDir.createTempFile("properties_", ".vbs");
                 java.nio.file.Files.writeString(vbsFile, vbsScript);
-                vbsFile.toFile().deleteOnExit();
 
                 // Use wscript (Windows Script Host) instead of cscript for GUI apps
                 List<String> command = List.of("wscript.exe", "//Nologo", vbsFile.toString(), filePath);

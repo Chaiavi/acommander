@@ -42,8 +42,7 @@ public class ArchiveManager {
         ArchiveMode mode = ArchiveMode.fromExtension(extension);
         
         // Create temp folder
-        Path tempFolder = Files.createTempDirectory("acommander_archive_");
-        tempFolder.toFile().deleteOnExit();
+        Path tempFolder = AppTempDir.createTempDirectory("acommander_archive_");
         
         // Extract entire archive to temp folder
         extractArchive(archivePath, tempFolder);
