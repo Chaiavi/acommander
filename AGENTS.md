@@ -60,6 +60,7 @@ When a task changed files, finish by committing and pushing to `origin/main` wit
 |---|---|
 | `AGENTS.md` (this file) | Always |
 | [docs/CODEMAP.md](docs/CODEMAP.md) | Before searching code: key→action flow, action id → `Commander` method → tool, every class in one line, `Commander` layout |
+| [docs/REFACTOR_PLAN.md](docs/REFACTOR_PLAN.md) | Phased refactor in progress: run its Phase Gate before starting a phase, tick steps as they land |
 | [ui-logic.instructions.md](.github/instructions/ui-logic.instructions.md) | Editing `Commander.java`, `dialog/**`, `palette/**` |
 | [ui-text.instructions.md](.github/instructions/ui-text.instructions.md) | Editing UI classes, `*.fxml`, `config/apps.json` |
 
