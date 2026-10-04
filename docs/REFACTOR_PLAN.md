@@ -414,3 +414,5 @@ Bugs noticed during the work, fixed in the phase named.
 20. Fixed (#159): PDF merge / extract failures were only logged; a merge into an FTP pane was saved locally.
 21. Fixed (#160): Search showed nothing when a subfolder was unreadable; Find in Files showed an error when nothing
     matched (ripgrep exits 1 / 2).
+22. Fixed (#161): F7 / Alt+F7 on an FTP subfolder sent `MKD /pub/pub/name`; at an archive root the item path
+    resolved against the drive root.

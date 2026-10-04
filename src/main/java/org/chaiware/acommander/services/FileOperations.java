@@ -216,14 +216,14 @@ public class FileOperations {
 
     public void mkdir(String parentDir, String newDirName) throws IOException {
         VFileSystem fs = panes.getFocusedFileSystem();
-        fs.makeDirectory(childPath(fs, parentDir, newDirName));
+        fs.makeDirectory(ClipboardTransfer.targetInternalPath(fs, parentDir, newDirName, true));
         panes.refreshFileListViews();
         log.debug("Created Directory: {}", newDirName);
     }
 
     public void mkFile(String parentDir, String newFileName) throws IOException {
         VFileSystem fs = panes.getFocusedFileSystem();
-        fs.makeFile(childPath(fs, parentDir, newFileName));
+        fs.makeFile(ClipboardTransfer.targetInternalPath(fs, parentDir, newFileName, false));
         panes.refreshFileListViews();
         log.debug("Created File: {}", newFileName);
     }
@@ -355,11 +355,6 @@ public class FileOperations {
         } catch (Exception e) {
             return false;
         }
-    }
-
-    private static String childPath(VFileSystem fs, String parentDir, String name) {
-        String parent = fs instanceof LocalFileSystem ? parentDir : fs.getInternalPath(new FileItem(new File(parentDir)));
-        return parent.endsWith(fs.getSeparator()) ? parent + name : parent + fs.getSeparator() + name;
     }
 
     private static File localCopy(VFileSystem fs, FileItem item, String prefix) throws IOException {

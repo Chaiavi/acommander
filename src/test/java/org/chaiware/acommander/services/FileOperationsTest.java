@@ -5,6 +5,8 @@ import org.chaiware.acommander.config.AppConfig;
 import org.chaiware.acommander.config.AppRegistry;
 import org.chaiware.acommander.helpers.FilesPanesHelper;
 import org.chaiware.acommander.model.FileItem;
+import org.chaiware.acommander.vfs.FtpConnectionOptions;
+import org.chaiware.acommander.vfs.FtpFileSystem;
 import org.chaiware.acommander.vfs.LocalFileSystem;
 import org.chaiware.acommander.vfs.VFileSystem;
 import org.junit.jupiter.api.BeforeEach;
@@ -13,6 +15,7 @@ import org.junit.jupiter.api.io.TempDir;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -81,6 +84,25 @@ class FileOperationsTest {
         assertThat(tempDir.resolve("created")).isDirectory();
         assertThat(tempDir.resolve("file.txt")).isRegularFile();
         verify(panes, times(2)).refreshFileListViews();
+    }
+
+    @Test
+    void mkdirOnFtpCreatesInTheCurrentSubfolder() throws Exception {
+        List<String> commands = new ArrayList<>();
+        FtpFileSystem ftp = new FtpFileSystem(FtpConnectionOptions.builder()
+                .host("ftp.example.com").port(21).username("u").password("mock").build()) {
+            @Override
+            public List<String> runCurl(List<String> command) {
+                commands.add(String.join(" ", command));
+                return List.of();
+            }
+        };
+        ftp.listContents("/pub");
+        when(panes.getFocusedFileSystem()).thenReturn(ftp);
+
+        operations.mkdir("/pub", "created");
+
+        assertThat(commands).anyMatch(command -> command.endsWith("MKD /pub/created"));
     }
 
     @Test
