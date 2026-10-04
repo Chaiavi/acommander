@@ -5,6 +5,7 @@ import javafx.scene.input.KeyEvent;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
 
+import java.nio.file.Path;
 import java.util.List;
 
 class AppRegistryShortcutMatchingTest {
@@ -68,6 +69,26 @@ class AppRegistryShortcutMatchingTest {
                 .get()
                 .extracting(ActionDefinition::getId)
                 .isEqualTo("altView");
+    }
+
+    @Test
+    void findByShortcutIgnoresCase() {
+        AppConfig config = new AppConfig();
+        config.setActions(List.of(action("splitLargeFile", "Alt+F11", "filePane")));
+
+        Assertions.assertThat(new AppRegistry(config).findByShortcut("ALT+f11"))
+                .get()
+                .extracting(ActionDefinition::getId)
+                .isEqualTo("splitLargeFile");
+    }
+
+    @Test
+    void everyBottomButtonKeyHasAnActionInAppsJson() throws Exception {
+        AppRegistry registry = new AppRegistry(new AppConfigLoader().load(Path.of("config", "apps.json")));
+
+        for (int key = 1; key <= 12; key++) {
+            Assertions.assertThat(registry.findByShortcut("F" + key)).as("F" + key).isPresent();
+        }
     }
 
     private static ActionDefinition action(String id, String shortcut, String context) {

@@ -47,6 +47,12 @@ public class AppRegistry {
                 .findFirst();
     }
 
+    public Optional<ActionDefinition> findByShortcut(String shortcut) {
+        return actions.stream()
+                .filter(action -> shortcut.equalsIgnoreCase(action.getShortcut()))
+                .findFirst();
+    }
+
     public Optional<ActionDefinition> matchShortcut(ActionScope scope, KeyEvent event) {
         boolean modifiedFunctionKey = event.getCode().isFunctionKey() && (event.isAltDown() || event.isShiftDown());
         for (ActionDefinition action : actionsForScope(scope)) {

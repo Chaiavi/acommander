@@ -91,55 +91,68 @@
                 <Button fx:id="externalStopButton" onAction="#stopExternalTasks" styleClass="external-stop-button" text="Stop" />
             </HBox>
             <HBox fx:id="functionBar" alignment="CENTER" prefHeight="40.0" spacing="1" styleClass="function-bar-row">
-                <Button fx:id="btnF1" maxWidth="Infinity" onAction="#help" prefHeight="32.0" styleClass="function-button" HBox.hgrow="ALWAYS">
+                <Button fx:id="btnF1" maxWidth="Infinity" prefHeight="32.0" styleClass="function-button" HBox.hgrow="ALWAYS">
+                    <tooltip><Tooltip text="Opens the help page; with Alt, opens the left path list."/></tooltip>
                     <HBox.margin>
                         <Insets left="5.0" />
                     </HBox.margin></Button>
-                <Button fx:id="btnF2" maxWidth="Infinity" onAction="#renameFile" prefHeight="32.0" styleClass="function-button" HBox.hgrow="ALWAYS">
+                <Button fx:id="btnF2" maxWidth="Infinity" prefHeight="32.0" styleClass="function-button" HBox.hgrow="ALWAYS">
+                    <tooltip><Tooltip text="Renames the selection; with Alt, opens the right path list."/></tooltip>
                     <HBox.margin>
                         <Insets left="5.0" />
                     </HBox.margin></Button>
-                <Button fx:id="btnF3" maxWidth="Infinity" onAction="#viewFile" prefHeight="32.0" styleClass="function-button" HBox.hgrow="ALWAYS">
+                <Button fx:id="btnF3" maxWidth="Infinity" prefHeight="32.0" styleClass="function-button" HBox.hgrow="ALWAYS">
+                    <tooltip><Tooltip text="Views the selected file, or shows the size of the selected folder."/></tooltip>
                     <HBox.margin>
                         <Insets left="5.0" />
                     </HBox.margin></Button>
-                <Button fx:id="btnF4" maxWidth="Infinity" onAction="#editFile" prefHeight="32.0" styleClass="function-button" HBox.hgrow="ALWAYS">
+                <Button fx:id="btnF4" maxWidth="Infinity" prefHeight="32.0" styleClass="function-button" HBox.hgrow="ALWAYS">
+                    <tooltip><Tooltip text="Opens the selected file in the text editor."/></tooltip>
                     <HBox.margin>
                         <Insets left="5.0" />
                     </HBox.margin></Button>
-                <Button fx:id="btnF5" maxWidth="Infinity" onAction="#handleF5Button" prefHeight="32.0" styleClass="function-button" HBox.hgrow="ALWAYS">
+                <Button fx:id="btnF5" maxWidth="Infinity" prefHeight="32.0" styleClass="function-button" HBox.hgrow="ALWAYS">
+                    <tooltip><Tooltip text="Copies the selection to the other pane; with Alt, converts the selected media files."/></tooltip>
                     <HBox.margin>
                         <Insets left="5.0" />
                     </HBox.margin></Button>
-                <Button fx:id="btnF6" maxWidth="Infinity" onAction="#handleF6Button" prefHeight="32.0" styleClass="function-button" HBox.hgrow="ALWAYS">
+                <Button fx:id="btnF6" maxWidth="Infinity" prefHeight="32.0" styleClass="function-button" HBox.hgrow="ALWAYS">
+                    <tooltip><Tooltip text="Moves the selection to the other pane; with Shift, renames it."/></tooltip>
                     <HBox.margin>
                         <Insets left="5.0" />
                     </HBox.margin></Button>
-                <Button fx:id="btnDup" maxWidth="Infinity" onAction="#duplicateFile" prefHeight="32.0" styleClass="function-button" HBox.hgrow="ALWAYS">
+                <Button fx:id="btnDup" maxWidth="Infinity" prefHeight="32.0" styleClass="function-button" HBox.hgrow="ALWAYS">
+                    <tooltip><Tooltip text="Duplicates the selection in the same folder."/></tooltip>
                     <HBox.margin>
                         <Insets left="5.0" />
                     </HBox.margin></Button>
-                <Button fx:id="btnF7" maxWidth="Infinity" onAction="#makeDirectory" prefHeight="32.0" styleClass="function-button" HBox.hgrow="ALWAYS">
+                <Button fx:id="btnF7" maxWidth="Infinity" prefHeight="32.0" styleClass="function-button" HBox.hgrow="ALWAYS">
+                    <tooltip><Tooltip text="Creates a folder here; with Alt, creates a file."/></tooltip>
                     <HBox.margin>
                         <Insets left="5.0" />
                     </HBox.margin></Button>
-                <Button fx:id="btnF8" maxWidth="Infinity" onAction="#deleteFile" prefHeight="32.0" styleClass="function-button" HBox.hgrow="ALWAYS">
+                <Button fx:id="btnF8" maxWidth="Infinity" prefHeight="32.0" styleClass="function-button" HBox.hgrow="ALWAYS">
+                    <tooltip><Tooltip text="Deletes the selection; with Shift, deletes and wipes it so it can't be recovered."/></tooltip>
                     <HBox.margin>
                         <Insets left="5.0" />
                     </HBox.margin></Button>
-                <Button fx:id="btnF9" maxWidth="Infinity" onAction="#terminalHere" prefHeight="32.0" styleClass="function-button" HBox.hgrow="ALWAYS">
+                <Button fx:id="btnF9" maxWidth="Infinity" prefHeight="32.0" styleClass="function-button" HBox.hgrow="ALWAYS">
+                    <tooltip><Tooltip text="Opens a terminal in this folder; with Alt, opens Explorer here."/></tooltip>
                     <HBox.margin>
                         <Insets left="5.0" />
                     </HBox.margin></Button>
-                <Button fx:id="btnF10" maxWidth="Infinity" onAction="#handleF10Button" prefHeight="32.0" styleClass="function-button" HBox.hgrow="ALWAYS">
+                <Button fx:id="btnF10" maxWidth="Infinity" prefHeight="32.0" styleClass="function-button" HBox.hgrow="ALWAYS">
+                    <tooltip><Tooltip text="Searches for files by name; with Alt, finds text inside files."/></tooltip>
                     <HBox.margin>
                         <Insets left="5.0" />
                     </HBox.margin></Button>
-                <Button fx:id="btnF11" maxWidth="Infinity" onAction="#pack" prefHeight="32.0" styleClass="function-button" HBox.hgrow="ALWAYS">
+                <Button fx:id="btnF11" maxWidth="Infinity" prefHeight="32.0" styleClass="function-button" HBox.hgrow="ALWAYS">
+                    <tooltip><Tooltip text="Packs the selection into a zip in the other pane; with Alt, splits a large file."/></tooltip>
                     <HBox.margin>
                         <Insets left="5.0" />
                     </HBox.margin></Button>
-                <Button fx:id="btnF12" maxWidth="Infinity" onAction="#unpackFile" prefHeight="32.0" styleClass="function-button" HBox.hgrow="ALWAYS">
+                <Button fx:id="btnF12" maxWidth="Infinity" prefHeight="32.0" styleClass="function-button" HBox.hgrow="ALWAYS">
+                    <tooltip><Tooltip text="Unpacks the selected archive to the other pane; with Alt, extracts almost any file type."/></tooltip>
                     <HBox.margin>
                         <Insets left="5.0" right="5.0" />
                     </HBox.margin></Button>

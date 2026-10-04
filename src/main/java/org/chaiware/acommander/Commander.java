@@ -131,22 +131,8 @@ public class Commander {
     private PauseTransition toastHideTransition;
     private ClipboardTransferState clipboardTransferState;
 
-    // Centralized mapping for function buttons (normal / alt / shift)
-    private static class ButtonActions {
-        final Runnable normal;
-        final Runnable alt;
-        final Runnable shift;
-        ButtonActions(Runnable normal, Runnable alt, Runnable shift) {
-            this.normal = normal;
-            this.alt = alt;
-            this.shift = shift;
-        }
-    }
-    private final Map<Button, ButtonActions> functionButtonActions = new HashMap<>();
-    // keep a reference to KeyBindingManager so synthesized events can be dispatched consistently
     private KeyBindingManager keyBindingManager;
-    // Tracks if the last activation was handled via mouse to avoid double-invocation
-    private final Map<Button, Boolean> lastHandledByMouse = new HashMap<>();
+    private javafx.scene.input.MouseEvent functionButtonClick;
 
     public ThemeMode getCurrentThemeMode() {
         return currentThemeMode;
@@ -200,132 +186,40 @@ public class Commander {
     }
 
 
+    /** Each bottom button runs the apps.json action bound to its key (Alt+/Shift+ while held) through ActionExecutor. */
     private void setupFunctionButtonActions() {
-        // Map buttons to their actions
-        functionButtonActions.put(btnF1, new ButtonActions(this::help, null, null));
-        functionButtonActions.put(btnF2, new ButtonActions(this::renameFile, null, null));
-        functionButtonActions.put(btnF3, new ButtonActions(this::viewFile, null, null));
-        functionButtonActions.put(btnF4, new ButtonActions(this::editFile, null, null));
-        functionButtonActions.put(btnF5, new ButtonActions(this::copyFile, this::convertMediaFile, null));
-        // F6: normal move, ALT duplicate, SHIFT rename
-        functionButtonActions.put(btnF6, new ButtonActions(this::moveFile, this::duplicateFile, this::renameFile));
-        // Duplicate button - performs duplicate (visible when ALT)
-        functionButtonActions.put(btnDup, new ButtonActions(this::duplicateFile, this::duplicateFile, null));
-        functionButtonActions.put(btnF7, new ButtonActions(this::makeDirectory, this::makeFile, null));
-        functionButtonActions.put(btnF8, new ButtonActions(this::deleteFile, null, this::deleteWipe));
-        functionButtonActions.put(btnF9, new ButtonActions(this::terminalHere, this::explorerHere, null));
-        functionButtonActions.put(btnF10, new ButtonActions(this::search, this::findInFiles, null));
-        functionButtonActions.put(btnF11, new ButtonActions(this::pack, this::splitLargeFile, null));
-        functionButtonActions.put(btnF12, new ButtonActions(this::unpackFile, this::extractAll, null));
-
-        // Attach unified handlers that respect current modifier state and visible label
-        for (Map.Entry<Button, ButtonActions> e : functionButtonActions.entrySet()) {
-            Button b = e.getKey();
-            ButtonActions actions = e.getValue();
-            if (b == null) continue;
-            // onAction is used for keyboard activation (space/enter) and uses activeModifiers state
-            b.setOnAction(evt -> {
-                try {
-                    // If mouse already handled this click, skip to avoid double-run
-                    if (Boolean.TRUE.equals(lastHandledByMouse.get(b))) {
-                        lastHandledByMouse.put(b, false);
-                        return;
-                    }
-
-                    Runnable action = resolveButtonAction(
-                            b,
-                            actions,
-                            activeModifiers.contains(KeyCode.ALT),
-                            activeModifiers.contains(KeyCode.SHIFT)
-                    );
-                    logger.debug(
-                            "Function button dispatch via onAction: button={}, text='{}', alt={}, shift={}, action={}",
-                            mapButtonToFunctionKey(b),
-                            b.getText(),
-                            activeModifiers.contains(KeyCode.ALT),
-                            activeModifiers.contains(KeyCode.SHIFT),
-                            action == actions.alt ? "alt" : action == actions.shift ? "shift" : action == actions.normal ? "normal" : "none"
-                    );
-                    if (action != null) {
-                        action.run();
-                    }
-                } catch (Exception ex) {
-                    throw new RuntimeException(ex);
+        Map<Button, String> keys = new LinkedHashMap<>();
+        keys.put(btnF1, "F1");
+        keys.put(btnF2, "F2");
+        keys.put(btnF3, "F3");
+        keys.put(btnF4, "F4");
+        keys.put(btnF5, "F5");
+        keys.put(btnF6, "F6");
+        keys.put(btnDup, "F6");
+        keys.put(btnF7, "F7");
+        keys.put(btnF8, "F8");
+        keys.put(btnF9, "F9");
+        keys.put(btnF10, "F10");
+        keys.put(btnF11, "F11");
+        keys.put(btnF12, "F12");
+        keys.forEach((button, key) -> {
+            // The release that fires the button has the real modifiers; the tracked key state can miss them.
+            button.addEventFilter(javafx.scene.input.MouseEvent.MOUSE_RELEASED, event -> {
+                if (button.isArmed()) {
+                    functionButtonClick = event;
                 }
             });
-
-            // Mouse click handler reads actual mouse modifiers (reliable when holding keys and clicking)
-            b.addEventHandler(javafx.scene.input.MouseEvent.MOUSE_CLICKED, me -> {
-                try {
-                    // Use actual mouse modifiers first; if neither modifier action is available, fall back to normal action.
-                    Runnable action = resolveButtonAction(b, actions, me.isAltDown(), me.isShiftDown());
-                    logger.debug(
-                            "Function button dispatch via mouse: button={}, text='{}', altDown={}, shiftDown={}, action={}",
-                            mapButtonToFunctionKey(b),
-                            b.getText(),
-                            me.isAltDown(),
-                            me.isShiftDown(),
-                            action == actions.alt ? "alt" : action == actions.shift ? "shift" : action == actions.normal ? "normal" : "none"
-                    );
-                    if (action != null) {
-                        action.run();
-                    } else {
-                        // Fallback: synthesize an ALT+Fx KeyEvent so existing key handling runs
-                        Scene scene = rootPane.getScene();
-                        if (scene != null) {
-                            KeyCode mapped = mapButtonToFunctionKey(b);
-                            if (mapped != null) {
-                                javafx.scene.input.KeyEvent press = new javafx.scene.input.KeyEvent(
-                                        javafx.scene.input.KeyEvent.KEY_PRESSED,
-                                        "",
-                                        "",
-                                        mapped,
-                                        false,
-                                        false,
-                                        true,
-                                        false
-                                );
-                                javafx.event.Event.fireEvent(scene, press);
-                            }
-                        }
-                    }
-                    // mark that mouse handled it so onAction doesn't run the same action again
-                    lastHandledByMouse.put(b, true);
-                    me.consume();
-                } catch (Exception ex) {
-                    throw new RuntimeException(ex);
-                }
+            button.setOnAction(event -> {
+                javafx.scene.input.MouseEvent click = functionButtonClick;
+                functionButtonClick = null;
+                boolean alt = button == btnDup || (click != null ? click.isAltDown() : activeModifiers.contains(KeyCode.ALT));
+                boolean shift = click != null ? click.isShiftDown() : activeModifiers.contains(KeyCode.SHIFT);
+                String shortcut = alt ? "Alt+" + key : shift ? "Shift+" + key : key;
+                appRegistry.findByShortcut(shortcut)
+                        .or(() -> appRegistry.findByShortcut(key))
+                        .ifPresent(actionExecutor::execute);
             });
-        }
-    }
-
-    private Runnable resolveButtonAction(Button button, ButtonActions actions, boolean altPressed, boolean shiftPressed) {
-        boolean hasVisibleLabel = button.getText() != null && !button.getText().isBlank();
-        if (altPressed && actions.alt != null && hasVisibleLabel) {
-            return actions.alt;
-        }
-        if (shiftPressed && actions.shift != null && hasVisibleLabel) {
-            return actions.shift;
-        }
-        return actions.normal;
-    }
-
-    private KeyCode mapButtonToFunctionKey(Button b) {
-        if (b == null) return null;
-        if (b == btnF1) return KeyCode.F1;
-        if (b == btnF2) return KeyCode.F2;
-        if (b == btnF3) return KeyCode.F3;
-        if (b == btnF4) return KeyCode.F4;
-        if (b == btnF5) return KeyCode.F5;
-        if (b == btnF6) return KeyCode.F6;
-        if (b == btnDup) return KeyCode.F6; // duplicate shown as ALT+F6
-        if (b == btnF7) return KeyCode.F7;
-        if (b == btnF8) return KeyCode.F8;
-        if (b == btnF9) return KeyCode.F9;
-        if (b == btnF10) return KeyCode.F10;
-        if (b == btnF11) return KeyCode.F11;
-        if (b == btnF12) return KeyCode.F12;
-        return null;
+        });
     }
 
     private void configureExternalProgressUi() {
@@ -1566,45 +1460,6 @@ public class Commander {
     }
 
     @FXML
-    public void handleF5Button() {
-        logger.debug("handleF5Button invoked. alt={}, buttonText='{}'", activeModifiers.contains(KeyCode.ALT), btnF5.getText());
-        if (activeModifiers.contains(KeyCode.ALT)) {
-            // Only perform convert if the button shows an action (non-empty label).
-            if (btnF5.getText() != null && !btnF5.getText().isBlank()) {
-                convertMediaFile();
-                return;
-            }
-        }
-        copyFile();
-    }
-
-    @FXML
-    public void handleF6Button() {
-        logger.debug(
-                "handleF6Button invoked. alt={}, shift={}, f6Text='{}', dupText='{}'",
-                activeModifiers.contains(KeyCode.ALT),
-                activeModifiers.contains(KeyCode.SHIFT),
-                btnF6.getText(),
-                btnDup.getText()
-        );
-        if (activeModifiers.contains(KeyCode.ALT)) {
-            // Only perform duplicate if the button shows an action (non-empty label).
-            if (btnDup.getText() != null && !btnDup.getText().isBlank()) {
-                duplicateFile();
-                return;
-            }
-        }
-        if (activeModifiers.contains(KeyCode.SHIFT) && !activeModifiers.contains(KeyCode.ALT)) {
-            // Only perform rename if the button shows a SHIFT label (non-empty)
-            if (btnF6.getText() != null && !btnF6.getText().isBlank()) {
-                renameFile();
-                return;
-            }
-        }
-        moveFile();
-    }
-
-    @FXML
     public void duplicateFile() {
         logger.info("Duplicate");
 
@@ -1954,18 +1809,6 @@ public class Commander {
                 error("Failed searching for: " + result.get(), e);
             }
         }
-    }
-
-    @FXML
-    public void handleF10Button() {
-        if (activeModifiers.contains(KeyCode.ALT)) {
-            // Only perform Find In Files if the button shows an action (non-empty label).
-            if (btnF10.getText() != null && !btnF10.getText().isBlank()) {
-                findInFiles();
-            }
-            return;
-        }
-        search();
     }
 
     public void findInFiles() {
