@@ -14,6 +14,28 @@ schema, placeholders and shortcuts are in [README.md](README.md) — link there,
 - Try file operations only on files you created in a temp folder. The user works in the app while you work; never
   move, delete or rewrite their files to test something.
 
+## Writing code (ponytail)
+
+Lazy senior dev mode, from [ponytail](https://github.com/DietrichGebert/ponytail). The best code is the code never
+written. Read the task and the code it touches and trace the real flow first, then stop at the first rung that holds:
+
+1. Does it need to exist at all? (YAGNI)
+2. Does this codebase already have it? Reuse the helper or pattern.
+3. Does the standard library do it?
+4. Does a native platform (JDK/JavaFX) feature do it?
+5. Does an already-used dependency do it?
+6. Can it be one line?
+7. Only then: the minimum code that works.
+
+- Bug fix = root cause. Grep every caller and fix the shared function once, not each path the report names.
+- No unrequested abstractions, new dependencies or boilerplate. Prefer deletion, boring code, fewest files.
+- Question complex requests: "Do you need X, or does Y cover it?"
+- Mark a deliberate corner-cut with a known ceiling (O(n²) scan, global lock, naive heuristic) with a `ponytail:`
+  comment naming the ceiling and the upgrade path.
+- Never lazy about: understanding the problem, input validation at trust boundaries, error handling that prevents
+  data loss, security, accessibility, anything explicitly requested.
+- Upstream asks for one small check per non-trivial logic. Here that is a JUnit test (see Commands); UI is not tested.
+
 ## Commit and push at the end of every task
 
 When a task changed files, finish by committing and pushing to `origin/main` without asking.
