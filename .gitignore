@@ -36,3 +36,4 @@ Thumbs.db
 /verify_changes.py
 /bin
 .claude/settings.local.json
+.classpath
