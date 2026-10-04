@@ -241,6 +241,7 @@ class ActionRegistryTest {
         imageConvert.setType("builtin");
         imageConvert.setContexts(List.of("commandPalette"));
         imageConvert.setSelection("any");
+        imageConvert.setFileTypes(List.of(ActionDefinition.FileType.CONVERTIBLE_IMAGE));
 
         ActionDefinition audioConvert = new ActionDefinition();
         audioConvert.setId("convertAudioFiles");
@@ -248,6 +249,7 @@ class ActionRegistryTest {
         audioConvert.setType("builtin");
         audioConvert.setContexts(List.of("commandPalette"));
         audioConvert.setSelection("any");
+        audioConvert.setFileTypes(List.of(ActionDefinition.FileType.CONVERTIBLE_AUDIO));
 
         AppConfig config = new AppConfig();
         config.setActions(List.of(imageConvert, audioConvert));
@@ -261,6 +263,7 @@ class ActionRegistryTest {
         compare.setType("builtin");
         compare.setContexts(List.of("commandPalette"));
         compare.setSelection("none");
+        compare.setRequires(List.of(ActionDefinition.Requirement.TEXT_FILE_IN_EACH_PANE));
 
         AppConfig config = new AppConfig();
         config.setActions(List.of(compare));
@@ -275,6 +278,7 @@ class ActionRegistryTest {
         paste.setType("builtin");
         paste.setContexts(List.of("commandPalette"));
         paste.setSelection("none");
+        paste.setRequires(List.of(ActionDefinition.Requirement.CLIPBOARD_HAS_FILES));
 
         AppConfig config = new AppConfig();
         config.setActions(List.of(paste));
@@ -288,6 +292,7 @@ class ActionRegistryTest {
         removeAudioMetadata.setType("builtin");
         removeAudioMetadata.setContexts(List.of("commandPalette"));
         removeAudioMetadata.setSelection("singleOrMultipleFiles");
+        removeAudioMetadata.setFileTypes(List.of(ActionDefinition.FileType.AUDIO_WITH_METADATA));
 
         AppConfig config = new AppConfig();
         config.setActions(List.of(removeAudioMetadata));
@@ -301,6 +306,7 @@ class ActionRegistryTest {
         removeVideoMetadata.setType("builtin");
         removeVideoMetadata.setContexts(List.of("commandPalette"));
         removeVideoMetadata.setSelection("singleOrMultipleFiles");
+        removeVideoMetadata.setFileTypes(List.of(ActionDefinition.FileType.VIDEO_WITH_METADATA));
 
         AppConfig config = new AppConfig();
         config.setActions(List.of(removeVideoMetadata));
@@ -314,6 +320,7 @@ class ActionRegistryTest {
         compressExecutable.setType("builtin");
         compressExecutable.setContexts(List.of("commandPalette"));
         compressExecutable.setSelection("singleOrMultipleFiles");
+        compressExecutable.setFileTypes(List.of(ActionDefinition.FileType.EXECUTABLE));
 
         AppConfig config = new AppConfig();
         config.setActions(List.of(compressExecutable));

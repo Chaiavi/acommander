@@ -4,8 +4,8 @@ import org.chaiware.acommander.Commander;
 import org.chaiware.acommander.config.ActionDefinition;
 import org.chaiware.acommander.config.AppRegistry;
 import org.chaiware.acommander.config.PromptDefinition;
-import org.chaiware.acommander.helpers.ActionMutator;
 import org.chaiware.acommander.tools.ToolCommandBuilder;
+import org.chaiware.acommander.vfs.FtpFileSystem;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -27,19 +27,12 @@ public class ActionExecutor {
         }
         logger.info("Executing action: {} (Type: {})", action.getId(), action.getType());
 
-        // Check if we're in a read-only location and this is a write action
-        // Use the builtin ID if available (for actions like renameShift -> rename)
-        String actionIdForCheck = action.getBuiltin() != null ? action.getBuiltin() : action.getId();
-        
-        // Check for FTP compatibility
-        if (commander.filesPanesHelper.getFocusedFileSystem() instanceof org.chaiware.acommander.vfs.FtpFileSystem) {
-            if (!isActionSupportedOnFtp(actionIdForCheck)) {
-                commander.showError(action.getLabel(), "The '" + action.getLabel() + "' action is not supported on FTP folders.");
-                return;
-            }
+        if (commander.filesPanesHelper.getFocusedFileSystem() instanceof FtpFileSystem && !action.isFtp()) {
+            commander.showError(action.getLabel(), "The '" + action.getLabel() + "' action is not supported on FTP folders.");
+            return;
         }
 
-        if (isReadOnlyWriteAttempt(actionIdForCheck)) {
+        if (writesToReadOnlyPane(action.getWrites())) {
             commander.showReadOnlyLocationWarning();
             return;
         }
@@ -52,80 +45,14 @@ public class ActionExecutor {
         }
     }
 
-    public boolean isActionSupportedOnFtp(String actionId) {
-        return switch (actionId) {
-            case "help", "settings", "rename", "view", "edit", "copy", "duplicate", "move", "mkdir", "mkfile",
-                 "delete", "refresh", "openCommandPalette", "leftPathCombo",
-                 "rightPathCombo", "setDarkMode", "setLightMode",
-                 "setRegularMode", "toggleDarkMode", "sortByName", "sortBySize", "sortByDate",
-                 "gotoBookmark", "removeBookmark", "ftpConnect", "ftpDisconnect",
-                 "selectAll", "unselectAll", "invertSelection", "selectByPattern",
-                 "copySelection", "cutSelection", "pasteSelection",
-                 "editImageMetadata", "reportBug" -> true;
-            default -> false;
+    private boolean writesToReadOnlyPane(ActionDefinition.WriteTarget writes) {
+        return switch (writes) {
+            case NONE -> false;
+            case SOURCE -> commander.filesPanesHelper.getFocusedFileSystem().isReadOnly();
+            case TARGET -> commander.filesPanesHelper.getUnfocusedFileSystem().isReadOnly();
+            case BOTH -> commander.filesPanesHelper.getFocusedFileSystem().isReadOnly()
+                    || commander.filesPanesHelper.getUnfocusedFileSystem().isReadOnly();
         };
-    }
-
-    /**
-     * Checks if we're in a read-only location and the action is a write action.
-     */
-    private boolean isReadOnlyWriteAttempt(String actionId) {
-        // Always-write actions are blocked if the current file system is read-only
-        if (ActionMutator.isAlwaysWriteAction(actionId)) {
-            return commander.filesPanesHelper.getFocusedFileSystem().isReadOnly();
-        }
-        
-        // Conditional write actions need special handling
-        if (ActionMutator.isConditionalWriteAction(actionId)) {
-            return isConditionalWriteBlocked(actionId);
-        }
-        
-        // Read-only actions are never blocked
-        return false;
-    }
-    
-    /**
-     * Checks if a conditional write action should be blocked.
-     * For rename/edit: blocked if focused pane is read-only
-     * For copy/pack/split: blocked if target pane is read-only
-     * For move: blocked if EITHER pane is read-only (move = copy + delete)
-     */
-    private boolean isConditionalWriteBlocked(String actionId) {
-        // Rename/edit modifies in place - check focused pane (source)
-        if ("rename".equals(actionId) || "multiRename".equals(actionId) || "edit".equals(actionId)
-                || "compressExecutable".equals(actionId)
-                || "editImageMetadata".equals(actionId)
-                || "removeImageMetadata".equals(actionId)
-                || "editVideoMetadata".equals(actionId)
-                || "removeVideoMetadata".equals(actionId)
-                || "editAudioMetadata".equals(actionId)
-                || "removeAudioMetadata".equals(actionId)) {
-            return commander.filesPanesHelper.getFocusedFileSystem().isReadOnly();
-        }
-        
-        // Copy target is the unfocused pane - source can be read-only (copy doesn't modify source)
-        // Pack/split/unpack/etc. are similar - they create a new file(s) in the target folder
-        if ("pasteSelection".equals(actionId)) {
-            return commander.filesPanesHelper.getFocusedFileSystem().isReadOnly();
-        }
-
-        if ("copy".equals(actionId) || "pack".equals(actionId) || "splitLargeFile".equals(actionId) ||
-            "unpack".equals(actionId) || "extractAll".equals(actionId) || 
-            "mergePdf".equals(actionId) || "extractPdfPages".equals(actionId) ||
-            "convertMediaFile".equals(actionId) || "convertGraphicsFiles".equals(actionId) ||
-            "convertAudioFiles".equals(actionId)) {
-            return commander.filesPanesHelper.getUnfocusedFileSystem().isReadOnly();
-        }
-        
-        // Move = copy + delete, so BOTH source and target must be writable
-        // Source (focused pane) must be writable (for delete)
-        // Target (unfocused pane) must be writable (for copy)
-        if ("move".equals(actionId)) {
-            return commander.filesPanesHelper.getFocusedFileSystem().isReadOnly() || 
-                   commander.filesPanesHelper.getUnfocusedFileSystem().isReadOnly();
-        }
-        
-        return false;
     }
 
     private void executeBuiltin(ActionDefinition action) {

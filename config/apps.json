@@ -2,6 +2,7 @@
   "actions": [
     {
       "id": "multiRename",
+      "writes": "source",
       "label": "Ant Renamer",
       "type": "external",
       "path": "apps/multi_rename/Renamer.exe",
@@ -15,6 +16,7 @@
     },
     {
       "id": "unlockDelete",
+      "writes": "source",
       "label": "ThisIsMyFile",
       "type": "external",
       "path": "apps/delete/unlock_delete/ThisIsMyFile.exe",
@@ -31,6 +33,7 @@
     },
     {
       "id": "help",
+      "ftp": true,
       "label": "Help",
       "shortcut": "F1",
       "aliases": ["manual", "docs"],
@@ -40,6 +43,7 @@
     },
     {
       "id": "settings",
+      "ftp": true,
       "label": "Settings",
       "aliases": ["preferences", "options", "settings"],
       "contexts": ["global", "commandPalette"],
@@ -48,6 +52,8 @@
     },
     {
       "id": "rename",
+      "ftp": true,
+      "writes": "source",
       "label": "Rename",
       "shortcut": "F2",
       "aliases": ["mvname"],
@@ -57,6 +63,8 @@
     },
     {
       "id": "renameShift",
+      "ftp": true,
+      "writes": "source",
       "label": "Rename",
       "shortcut": "Shift+F6",
       "contexts": ["filePane"],
@@ -66,6 +74,7 @@
     },
     {
       "id": "view",
+      "ftp": true,
       "label": "View",
       "shortcut": "F3",
       "aliases": ["preview"],
@@ -77,6 +86,8 @@
     },
     {
       "id": "edit",
+      "ftp": true,
+      "writes": "source",
       "label": "Edit",
       "shortcut": "F4",
       "aliases": ["notepad"],
@@ -88,6 +99,8 @@
     },
     {
       "id": "copy",
+      "ftp": true,
+      "writes": "target",
       "label": "Copy",
       "shortcut": "F5",
       "aliases": ["cp"],
@@ -100,6 +113,7 @@
     },
     {
       "id": "duplicate",
+      "ftp": true,
       "label": "Duplicate",
       "shortcut": "Alt+F6",
       "aliases": ["dup"],
@@ -111,6 +125,7 @@
     },
     {
       "id": "copySelection",
+      "ftp": true,
       "label": "Copy",
       "shortcut": "Ctrl+C",
       "aliases": ["clipboard copy"],
@@ -121,6 +136,7 @@
     },
     {
       "id": "cutSelection",
+      "ftp": true,
       "label": "Cut",
       "shortcut": "Ctrl+X",
       "aliases": ["clipboard cut"],
@@ -131,6 +147,9 @@
     },
     {
       "id": "pasteSelection",
+      "ftp": true,
+      "writes": "source",
+      "requires": ["clipboardHasFiles"],
       "label": "Paste",
       "shortcut": "Ctrl+V",
       "aliases": ["clipboard paste"],
@@ -147,6 +166,8 @@
     },
     {
       "id": "move",
+      "ftp": true,
+      "writes": "both",
       "label": "Move",
       "shortcut": "F6",
       "aliases": ["mv"],
@@ -159,6 +180,8 @@
     },
     {
       "id": "mkdir",
+      "ftp": true,
+      "writes": "source",
       "label": "Create Directory",
       "shortcut": "F7",
       "aliases": ["new folder", "md"],
@@ -168,6 +191,8 @@
     },
     {
       "id": "mkfile",
+      "ftp": true,
+      "writes": "source",
       "label": "Create File",
       "shortcut": "Alt+F7",
       "aliases": ["new file", "touch"],
@@ -177,6 +202,8 @@
     },
     {
       "id": "delete",
+      "ftp": true,
+      "writes": "source",
       "label": "Delete",
       "shortcut": "F8",
       "aliases": ["remove", "rm", "del"],
@@ -186,6 +213,8 @@
     },
     {
       "id": "deleteKey",
+      "ftp": true,
+      "writes": "source",
       "label": "Delete",
       "shortcut": "Delete",
       "contexts": ["filePane"],
@@ -195,6 +224,7 @@
     },
     {
       "id": "deleteWipe",
+      "writes": "source",
       "label": "Delete & Wipe",
       "shortcut": "Shift+F8",
       "contexts": ["filePane", "commandPalette"],
@@ -204,6 +234,7 @@
     },
     {
       "id": "deleteWipeKey",
+      "writes": "source",
       "label": "Delete & Wipe",
       "shortcut": "Shift+Delete",
       "contexts": ["filePane"],
@@ -258,6 +289,7 @@
     },
     {
       "id": "pack",
+      "writes": "target",
       "label": "Pack to Zip",
       "shortcut": "F11",
       "aliases": ["zip", "archive"],
@@ -270,6 +302,7 @@
     },
     {
       "id": "splitLargeFile",
+      "writes": "target",
       "label": "Split a Large File",
       "shortcut": "Alt+F11",
       "aliases": ["split file", "7z split", "split archive"],
@@ -279,6 +312,8 @@
     },
     {
       "id": "convertMediaFile",
+      "writes": "target",
+      "fileTypes": ["convertibleImage", "convertibleAudio"],
       "label": "Convert Media File",
       "shortcut": "Alt+F5",
       "aliases": ["convert media", "media convert", "transcode media"],
@@ -288,6 +323,8 @@
     },
     {
       "id": "convertGraphicsFiles",
+      "writes": "target",
+      "fileTypes": ["convertibleImage"],
       "label": "Convert Graphics Files",
       "aliases": ["convert image", "image convert", "convert graphics", "caesium"],
       "contexts": ["commandPalette"],
@@ -302,6 +339,8 @@
     },
     {
       "id": "convertAudioFiles",
+      "writes": "target",
+      "fileTypes": ["convertibleAudio"],
       "label": "Convert Audio Files",
       "aliases": ["convert audio", "audio convert", "sndfile", "transcode audio"],
       "contexts": ["commandPalette"],
@@ -357,6 +396,8 @@
     },
     {
       "id": "unpack",
+      "writes": "target",
+      "fileTypes": ["archive"],
       "label": "Unpack",
       "shortcut": "F12",
       "aliases": ["extract", "unzip"],
@@ -375,6 +416,8 @@
     },
     {
       "id": "extractAll",
+      "writes": "target",
+      "fileTypes": ["archive"],
       "label": "Extract Anything",
       "shortcut": "Alt+F12",
       "aliases": ["force extract"],
@@ -393,6 +436,8 @@
     },
     {
       "id": "mergePdf",
+      "writes": "target",
+      "fileTypes": ["pdf"],
       "label": "Merge PDF Files",
       "aliases": ["pdf merge"],
       "contexts": ["commandPalette"],
@@ -414,6 +459,8 @@
     },
     {
       "id": "extractPdfPages",
+      "writes": "target",
+      "fileTypes": ["pdf"],
       "label": "Extract PDF Pages",
       "aliases": ["pdf split"],
       "contexts": ["commandPalette"],
@@ -435,6 +482,7 @@
     },
     {
       "id": "compareFiles",
+      "requires": ["textFileInEachPane"],
       "label": "Compare Files",
       "aliases": ["diff files", "file compare", "examdiff"],
       "contexts": ["commandPalette"],
@@ -460,6 +508,7 @@
     },
     {
       "id": "changeAttributes",
+      "writes": "source",
       "label": "Change Attributes",
       "aliases": ["attributes", "attrib", "set attributes"],
       "contexts": ["filePane", "commandPalette"],
@@ -468,6 +517,9 @@
     },
     {
       "id": "editImageMetadata",
+      "ftp": true,
+      "writes": "source",
+      "fileTypes": ["imageWithMetadata"],
       "label": "Edit Image Metadata",
       "aliases": ["image metadata", "metadata editor", "exiv2", "edit exif", "exif editor"],
       "contexts": ["filePane", "commandPalette"],
@@ -482,6 +534,8 @@
     },
     {
       "id": "removeImageMetadata",
+      "writes": "source",
+      "fileTypes": ["imageWithMetadata"],
       "label": "Remove Image Metadata",
       "aliases": ["strip metadata", "remove exif", "strip exif", "delete metadata", "wipe metadata"],
       "contexts": ["filePane", "commandPalette"],
@@ -496,6 +550,8 @@
     },
     {
       "id": "editVideoMetadata",
+      "writes": "source",
+      "fileTypes": ["videoWithMetadata"],
       "label": "Edit Video Metadata",
       "aliases": ["video metadata", "atomicparsley", "edit mp4 metadata", "mp4 tags", "m4v tags", "3gp metadata"],
       "contexts": ["filePane", "commandPalette"],
@@ -510,6 +566,8 @@
     },
     {
       "id": "removeVideoMetadata",
+      "writes": "source",
+      "fileTypes": ["videoWithMetadata"],
       "label": "Remove Video Metadata",
       "aliases": ["strip video metadata", "wipe video metadata", "delete video tags", "remove mp4 metadata", "atomicparsley wipe"],
       "contexts": ["filePane", "commandPalette"],
@@ -524,6 +582,8 @@
     },
     {
       "id": "editAudioMetadata",
+      "writes": "source",
+      "fileTypes": ["audioWithMetadata"],
       "label": "Edit Audio Metadata",
       "aliases": ["audio metadata", "edit mp3 metadata", "id3", "mp3 tags", "id3 editor"],
       "contexts": ["filePane", "commandPalette"],
@@ -546,6 +606,8 @@
     },
     {
       "id": "removeAudioMetadata",
+      "writes": "source",
+      "fileTypes": ["audioWithMetadata"],
       "label": "Remove Audio Metadata",
       "aliases": ["strip audio metadata", "delete audio tags", "wipe audio metadata", "remove id3 tags"],
       "contexts": ["filePane", "commandPalette"],
@@ -568,6 +630,8 @@
     },
     {
       "id": "compressExecutable",
+      "writes": "source",
+      "fileTypes": ["executable"],
       "label": "Compress Executable",
       "aliases": ["compress exe", "upx", "upx compress", "pack exe"],
       "contexts": ["commandPalette"],
@@ -582,6 +646,7 @@
     },
     {
       "id": "refresh",
+      "ftp": true,
       "label": "Refresh Panels",
       "shortcut": "Ctrl+R",
       "aliases": ["reload"],
@@ -591,6 +656,7 @@
     },
     {
       "id": "selectAll",
+      "ftp": true,
       "label": "Select All",
       "shortcut": "Ctrl+A",
       "aliases": ["select all", "all"],
@@ -600,6 +666,7 @@
     },
     {
       "id": "unselectAll",
+      "ftp": true,
       "label": "Unselect All",
       "shortcut": "Ctrl+Shift+A",
       "aliases": ["clear selection", "deselect all", "none"],
@@ -609,6 +676,7 @@
     },
     {
       "id": "invertSelection",
+      "ftp": true,
       "label": "Invert Selection",
       "shortcut": "Ctrl+I",
       "aliases": ["invert", "reverse selection"],
@@ -618,6 +686,7 @@
     },
     {
       "id": "selectByPattern",
+      "ftp": true,
       "label": "Select by Pattern",
       "aliases": ["select pattern", "filter select", "mask select", "glob"],
       "contexts": ["filePane", "commandPalette"],
@@ -626,6 +695,7 @@
     },
     {
       "id": "toggleDarkMode",
+      "ftp": true,
       "label": "Toggle Dark Mode",
       "aliases": ["toggle theme", "switch theme"],
       "contexts": ["global", "commandPalette"],
@@ -634,6 +704,7 @@
     },
     {
       "id": "sortByName",
+      "ftp": true,
       "label": "Sort by Name",
       "aliases": ["sort name", "name sort"],
       "contexts": ["global", "commandPalette"],
@@ -642,6 +713,7 @@
     },
     {
       "id": "sortBySize",
+      "ftp": true,
       "label": "Sort by Size",
       "aliases": ["sort size", "size sort"],
       "contexts": ["global", "commandPalette"],
@@ -650,6 +722,7 @@
     },
     {
       "id": "sortByDate",
+      "ftp": true,
       "label": "Sort by Date",
       "aliases": ["sort date", "sort modified", "date sort"],
       "contexts": ["global", "commandPalette"],
@@ -666,6 +739,7 @@
     },
     {
       "id": "gotoBookmark",
+      "ftp": true,
       "label": "Goto Bookmark",
       "aliases": ["go to bookmark", "jump bookmark"],
       "contexts": ["global", "commandPalette"],
@@ -674,6 +748,7 @@
     },
     {
       "id": "removeBookmark",
+      "ftp": true,
       "label": "Remove Bookmark",
       "aliases": ["delete bookmark"],
       "contexts": ["global", "commandPalette"],
@@ -682,6 +757,7 @@
     },
     {
       "id": "openCommandPalette",
+      "ftp": true,
       "label": "Command Palette",
       "shortcut": "Ctrl+Shift+P",
       "contexts": ["global"],
@@ -691,6 +767,7 @@
     },
     {
       "id": "leftPathCombo",
+      "ftp": true,
       "label": "Left Path",
       "shortcut": "Alt+F1",
       "contexts": ["global"],
@@ -700,6 +777,7 @@
     },
     {
       "id": "rightPathCombo",
+      "ftp": true,
       "label": "Right Path",
       "shortcut": "Alt+F2",
       "contexts": ["global"],
@@ -718,6 +796,7 @@
     },
     {
       "id": "ftpConnect",
+      "ftp": true,
       "label": "Connect to FTP/FTPS/SFTP-SSH",
       "aliases": ["ftp", "remote", "connect"],
       "contexts": ["global", "commandPalette"],
@@ -726,6 +805,8 @@
     },
     {
       "id": "ftpDisconnect",
+      "ftp": true,
+      "requires": ["focusedPaneIsFtp"],
       "label": "Disconnect from FTP/FTPS/SFTP-SSH",
       "aliases": ["exit ftp", "quit ftp", "local", "disconnect"],
       "contexts": ["global", "commandPalette"],
@@ -750,6 +831,7 @@
     },
     {
       "id": "reportBug",
+      "ftp": true,
       "label": "Report Bug / Contact",
       "aliases": [
         "bug",
