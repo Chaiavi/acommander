@@ -35,7 +35,7 @@ F5/F6 to the other pane; Alt+F6; F7/Alt+F7; F8; F11 pack + F12 unpack; Enter an 
 Command Palette; theme toggle; one metadata edit on a copied jpg/mp3/mp4; checksum; compare files; FTP connect if a
 server is available.
 
-`Commander` line count: 7459 (start).
+`Commander` line count: 7459 (start), 7199 (after Phase 1).
 
 ## Phase 0 — Prep and Safety Net (no behaviour change)
 
