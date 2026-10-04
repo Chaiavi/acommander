@@ -18,15 +18,19 @@ schema, placeholders and shortcuts are in [README.md](README.md) — link there,
 
 When a task changed files, finish by committing and pushing to `origin/main` without asking.
 
-1. Code changes: `.\gradlew.bat build` must pass first. If it fails, fix it; don't commit a broken build.
-2. Commit only the files you changed, by path: `git commit -m "..." -- <file> <file>`. Other agent sessions may
-   have uncommitted work in the same tree; `git add -A` / `git commit -a` would sweep it in.
-3. Message: a short imperative subject (≤ 72 chars) saying what changed, e.g.
+1. User-visible change (action, shortcut, feature, bundled tool, behaviour; added, changed or removed) → update
+   [config/f1-help.html](config/f1-help.html) and [README.md](README.md) in the same commit. `DocsShortcutsTest`
+   fails the build if an `apps.json` shortcut is missing from either; features and descriptions are on you.
+2. Code changes: `.\gradlew.bat build` must pass first. If it fails, fix it; don't commit a broken build.
+3. Commit only the files you changed, by path: `git add <new files>` then `git commit -m "..." -- <file> <file>`
+   (a commit pathspec rejects untracked files). Other agent sessions may have uncommitted work in the same tree;
+   `git add -A` / `git commit -a` would sweep it in.
+4. Message: a short imperative subject (≤ 72 chars) saying what changed, e.g.
    `Add tooltip to Stop button; fix PDF page range parsing`. Add a body with `-m` bullets only if there are
    several unrelated changes.
-4. Never commit gitignored or runtime files (`config/acommander.properties`, `UniExtract.ini`, Eclipse files).
-5. If the push is rejected, `git pull --rebase` then push again. Never `--force`.
-6. Report the commit hash in the final reply.
+5. Never commit gitignored or runtime files (`config/acommander.properties`, `UniExtract.ini`, Eclipse files).
+6. If the push is rejected, `git pull --rebase` then push again. Never `--force`.
+7. Report the commit hash in the final reply.
 
 ## Where project knowledge lives
 
@@ -87,7 +91,7 @@ All actions and external tools live in `config/apps.json`; shortcuts are declare
      palette uses the same list).
   4. If it writes files, add the id to `ActionMutator` and, if needed, `ActionExecutor.isConditionalWriteBlocked()`.
   5. If it only fits certain file types, add the palette check in `ActionRegistry.isSelectionAllowedForBuiltin()`.
-  6. New shortcut → also update `config/f1-help.html` and the README shortcuts table (both manual).
+  6. New shortcut → also update `config/f1-help.html` and the README shortcuts table (`DocsShortcutsTest` checks).
   7. Add the row to the feature table in [docs/CODEMAP.md](docs/CODEMAP.md).
 
 ## Conventions

@@ -216,7 +216,10 @@ directories.
 | `F11`             | Pack to Zip      | | `Ctrl+Shift+P`           | Command Palette    |
 | `Alt+F11`         | Split Large File | | `Alt+F1` / `Alt+F2`      | Path Dropdown      |
 | `F12`             | Unpack           | | `Alt+Enter`              | Change Attributes  |
-| `Alt+F12`         | Extract Anything | |                          |                    |
+| `Alt+F12`         | Extract Anything | | `Alt+F6`                 | Duplicate          |
+| `Ctrl+C`          | Copy to Clipboard | | `Ctrl+X`                | Cut to Clipboard   |
+| `Ctrl+V`          | Paste            | | `Ctrl+A`                 | Select All         |
+| `Ctrl+Shift+A`    | Unselect All     | | `Ctrl+I`                 | Invert Selection   |
 
 > **Quick tips:** `Tab` switches active pane · `Enter` opens folder/file · `Backspace` goes to parent · `F3` on a folder calculates its size.
 
