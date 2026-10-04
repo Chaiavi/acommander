@@ -50,6 +50,7 @@ import org.chaiware.acommander.tools.BundledToolCommands.ChecksumOptions;
 import org.chaiware.acommander.tools.BundledToolCommands.CompareFilesOptions;
 import org.chaiware.acommander.tools.BundledToolCommands.SplitSize;
 import org.chaiware.acommander.tools.BundledToolCommands.WhiteSpaceCompareMode;
+import org.chaiware.acommander.tools.FilePropertiesLauncher;
 import org.chaiware.acommander.tools.ProcessRunner;
 import org.chaiware.acommander.vfs.FtpConnectionOptions;
 import org.chaiware.acommander.vfs.FtpFileSystem;
@@ -3188,62 +3189,7 @@ public class Commander {
             }
 
             logger.info("Opening properties for {}: {}", selectedItem.isDirectory() ? "folder" : "file", selectedFile.getAbsolutePath());
-
-            // Use PowerShell with Shell.Application to show file properties
-            // Launch detached so COM UI appears in user session
-            String filePath = selectedFile.getAbsolutePath();
-
-            try {
-                // Write a VBScript that shows file properties with proper error handling
-                String vbsScript =
-                    "Set shell = CreateObject(\"Shell.Application\")" + System.lineSeparator() +
-                    "Set fso = CreateObject(\"Scripting.FileSystemObject\")" + System.lineSeparator() +
-                    System.lineSeparator() +
-                    "filePath = WScript.Arguments(0)" + System.lineSeparator() +
-                    System.lineSeparator() +
-                    "' Exit codes" + System.lineSeparator() +
-                    "ERR_NOT_FOUND = 1" + System.lineSeparator() +
-                    "ERR_NAMESPACE = 2" + System.lineSeparator() +
-                    "ERR_ITEM = 3" + System.lineSeparator() +
-                    System.lineSeparator() +
-                    "If Not fso.FileExists(filePath) And Not fso.FolderExists(filePath) Then" + System.lineSeparator() +
-                    "    WScript.Quit ERR_NOT_FOUND" + System.lineSeparator() +
-                    "End If" + System.lineSeparator() +
-                    System.lineSeparator() +
-                    "parentPath = fso.GetParentFolderName(filePath)" + System.lineSeparator() +
-                    "itemName = fso.GetFileName(filePath)" + System.lineSeparator() +
-                    System.lineSeparator() +
-                    "Set folder = shell.Namespace(parentPath)" + System.lineSeparator() +
-                    "If folder Is Nothing Then" + System.lineSeparator() +
-                    "    WScript.Quit ERR_NAMESPACE" + System.lineSeparator() +
-                    "End If" + System.lineSeparator() +
-                    System.lineSeparator() +
-                    "Set item = folder.ParseName(itemName)" + System.lineSeparator() +
-                    "If item Is Nothing Then" + System.lineSeparator() +
-                    "    WScript.Quit ERR_ITEM" + System.lineSeparator() +
-                    "End If" + System.lineSeparator() +
-                    System.lineSeparator() +
-                    "item.InvokeVerb \"Properties\"" + System.lineSeparator() +
-                    System.lineSeparator() +
-                    "' Keep script alive so properties window stays open" + System.lineSeparator() +
-                    "Do" + System.lineSeparator() +
-                    "    WScript.Sleep 1000" + System.lineSeparator() +
-                    "Loop";
-
-                java.nio.file.Path vbsFile = AppTempDir.createTempFile("properties_", ".vbs");
-                java.nio.file.Files.writeString(vbsFile, vbsScript);
-
-                // Use wscript (Windows Script Host) instead of cscript for GUI apps
-                List<String> command = List.of("wscript.exe", "//Nologo", vbsFile.toString(), filePath);
-                logger.debug("Running command: {}", String.join(" ", command));
-                ProcessRunner.of(command).launch();
-
-                logger.info("File Properties dialog opened for: {}", filePath);
-            } catch (Exception ex) {
-                logger.error("Failed to open file properties", ex);
-                error("Failed opening file properties", ex);
-            }
-            return; // Done - dialog stays open
+            FilePropertiesLauncher.open(selectedFile.toPath());
         } catch (Exception ex) {
             error("Failed opening file properties", ex);
         }

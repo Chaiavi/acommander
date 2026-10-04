@@ -180,7 +180,7 @@ Rechecked after Phase 3: every symbol below still exists in `Commander`. Bug fix
 - [x] 4.5 Metadata remove runners (`runVideoMetadataDeleteCommand`, `runAudioMetadataDeleteCommand`, the exiv2
   lambda in `removeImageMetadata`) → `*MetadataSupport`. `listAtomicParsleyArtifacts` + cleanup is in both
   `Commander` and `VideoMetadataDialog`; keep one copy in `VideoMetadataSupport`.
-- [ ] 4.6 `FilePropertiesLauncher` (VBS, moved as-is; hardened in 10.7).
+- [x] 4.6 `FilePropertiesLauncher` (VBS, moved as-is; hardened in 10.7). In `tools/`; the script is a text block.
 - [x] 4.7 Report Bug (bug fix, #153): `submitBugReport` first runs curl (`BundledTool.CURL`) against the new-issue URL,
   ignores the HTTP code it asks for, and opens the browser only if curl exits 0. Offline or behind a proxy curl
   can't pass, Report Bug never opens. Fix: drop the curl call and open the browser directly (the copy-the-URL
@@ -290,7 +290,8 @@ by severity. File each issue in the same step as its fix (decision 7).
 - [ ] 10.6 FTP password at rest: DPAPI (`jna-platform` `Crypt32Util`); migrate plaintext on load and remove the old
   key; decrypt failure → ask for the password.
 - [ ] 10.7 File Properties VBS: a static script resource, path passed as an argument only, deleted after the dialog
-  closes.
+  closes. Also: the script sleeps forever to keep the dialog open, so every Alt+Enter leaves a `wscript.exe` running
+  until logoff; end it when the Properties window closes.
 - [x] 10.8 Bug report URL parameters are encoded (`BugReportUrl`, #144; labels are constants).
 - [ ] 10.9 `ArchitectureRulesTest` locks the above: no `"cmd.exe", "/c"` with a path, no `"-u"` for curl, no command
   logged or put in an exception message without `CommandLog.redact`.

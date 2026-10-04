@@ -85,7 +85,7 @@ Adding or renaming an action id? Check each of these:
 | `analyzeFile` | `analyzeFile` | `tools/BundledToolCommands.analyzeFile` | `file_analysis/file.exe` + `magic.mgc` |
 | `compareFiles` | `compareFiles`, `canCompareSelectedFiles`, `promptCompareFilesOptions` | `tools/BundledToolCommands.compareFiles` | `file_compare/ExamDiff.exe` |
 | `compareFolders` | `compareFolders`, `promptCompareFoldersOptions`, `applyFolderCompareStyle` | `services/FolderComparer` (SHA-256 optional) | — |
-| `fileProperties` (Alt+Enter) | `fileProperties` | temp `.vbs` via `wscript.exe` (Windows Properties dialog) | — |
+| `fileProperties` (Alt+Enter) | `fileProperties` | `tools/FilePropertiesLauncher` (temp `.vbs` via `wscript.exe`, Windows Properties dialog) | — |
 | `changeAttributes` | `changeAttributes`, `promptAttributes` | `helpers/FileAttributesHelper` | `attrib` |
 | `editImageMetadata` / `removeImageMetadata` | `editImageMetadata` / `removeImageMetadata` → `removeMetadata` (shared confirm + background run) | `dialog/ImageMetadataDialog`, `helpers/ImageMetadataSupport` | `image_metadata/exiv2.exe` |
 | `editVideoMetadata` / `removeVideoMetadata` | `editVideoMetadata` / `removeVideoMetadata` | `dialog/VideoMetadataDialog`, `helpers/VideoMetadataSupport` | `video_metadata/AtomicParsley.exe` |
@@ -250,6 +250,7 @@ Other dialogs are built inline in `Commander` (`prompt*` methods).
 | `ToolCommandBuilder` | Expands `${...}` placeholders in apps.json `args`; resolves `path` with `AppPaths`. |
 | `BundledTool` | Every tool under `apps/` the code runs directly (7z, curl, exiv2, rg, rhash, …) → `path()`. Tools of apps.json actions are listed there instead. `BundledToolTest` checks both lists are on disk. |
 | `BundledToolCommands` | Argument lists + option types for rhash (checksum), file (analyze), ExamDiff (compare files) and the 7-Zip split size. |
+| `FilePropertiesLauncher` | Opens the Windows Properties dialog of a path: writes a VBS script to the temp dir, runs it with `wscript.exe`. |
 | `ProcessRunner` | The one way to start a process: `run()` drains stdout/stderr (merged or apart) and returns `Result`; `launch()` for GUI tools; `trackIn` for the Stop button. |
 
 ### `vfs/` — pane file systems
