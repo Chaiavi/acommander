@@ -191,7 +191,8 @@ Rechecked after Phase 3: every symbol below still exists in `Commander`. Bug fix
   paste-target helpers F5 shares (`isSameFolder`, `targetInternalPath`, `duplicateName`).
 - [x] 4.9 `FileIcons` (`resolveIconSpec`, `IconSpec`, `is*Extension`). In `helpers/`; its extension sets join
   `FileTypes` in 6.1.
-- [ ] 4.10 `IncrementalFilter` (`filterByChar`, `applyIncrementalFilter`), pure prefix logic tested.
+- [x] 4.10 `IncrementalFilter` (`filterByChar`, `applyIncrementalFilter`), pure prefix logic tested. In `helpers/`,
+  one per pane; the list and selection updates stay in `Commander`.
 - [ ] 4.11 Theme: `applyTheme`, `ThemeMode` and `applyThemeToDialog` join `dialog/DialogTheme` (3.4) in one theme
   class, not a second one. `ThemeMode.from` gets a test (unknown / blank value → default).
 - [ ] 4.12 `ExternalProgressController`, the UI side of external runs: `buildExternalCommandListener` (progress,

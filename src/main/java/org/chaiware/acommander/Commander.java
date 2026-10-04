@@ -126,8 +126,8 @@ public class Commander {
     public final Set<KeyCode> activeModifiers = EnumSet.noneOf(KeyCode.class);
     private final AtomicInteger runningExternalCommands = new AtomicInteger(0);
     private volatile boolean restoreFileListFocusAfterSettingsEdit = false;
-    private final Map<FilesPanesHelper.FocusSide, String> incrementalCharFilters = new EnumMap<>(FilesPanesHelper.FocusSide.class);
-    private final Map<FilesPanesHelper.FocusSide, List<FileItem>> incrementalFilterBases = new EnumMap<>(FilesPanesHelper.FocusSide.class);
+    private final Map<FilesPanesHelper.FocusSide, IncrementalFilter> incrementalFilters = new EnumMap<>(Map.of(
+            LEFT, new IncrementalFilter(), RIGHT, new IncrementalFilter()));
     private final Map<FilesPanesHelper.FocusSide, Map<String, FolderComparer.Mark>> folderCompareMarks = new EnumMap<>(FilesPanesHelper.FocusSide.class);
     private Popup incrementalFilterPopup;
     private Label incrementalFilterPopupLabel;
@@ -4105,20 +4105,10 @@ public class Commander {
     public void filterByChar(char selectedChar) {
         FilesPanesHelper.FocusSide side = filesPanesHelper.getFocusedSide();
         ListView<FileItem> listView = side == LEFT ? leftFileList : rightFileList;
-        List<FileItem> currentItems = List.copyOf(listView.getItems());
-        String existingPrefix = incrementalCharFilters.getOrDefault(side, "");
-
-        List<FileItem> baseItems = incrementalFilterBases.get(side);
-        if (baseItems == null || !isSubset(currentItems, baseItems) || !matchesActiveFilter(currentItems, baseItems, existingPrefix)) {
-            baseItems = currentItems;
-            existingPrefix = "";
-        }
-
-        String nextPrefix = existingPrefix + Character.toLowerCase(selectedChar);
-        incrementalFilterBases.put(side, baseItems);
-        incrementalCharFilters.put(side, nextPrefix);
-        applyIncrementalFilter(side, nextPrefix);
-        showIncrementalFilterPopup(nextPrefix);
+        IncrementalFilter filter = incrementalFilters.get(side);
+        filter.type(selectedChar, List.copyOf(listView.getItems()));
+        showFilteredItems(listView, filter.visibleItems());
+        showIncrementalFilterPopup(filter.prefix());
     }
 
     public void clearCharFilter() {
@@ -4127,27 +4117,24 @@ public class Commander {
 
     public boolean backspaceCharFilter() {
         FilesPanesHelper.FocusSide side = filesPanesHelper.getFocusedSide();
-        String existingPrefix = incrementalCharFilters.getOrDefault(side, "");
-        if (existingPrefix.isEmpty()) {
+        IncrementalFilter filter = incrementalFilters.get(side);
+        if (!filter.isActive()) {
             return false;
         }
 
-        String updatedPrefix = existingPrefix.substring(0, existingPrefix.length() - 1);
-        if (updatedPrefix.isEmpty()) {
+        filter.backspace();
+        if (!filter.isActive()) {
             clearCharFilter(side);
-            hideIncrementalFilterPopup();
             return true;
         }
 
-        incrementalCharFilters.put(side, updatedPrefix);
-        applyIncrementalFilter(side, updatedPrefix);
-        showIncrementalFilterPopup(updatedPrefix);
+        showFilteredItems(side == LEFT ? leftFileList : rightFileList, filter.visibleItems());
+        showIncrementalFilterPopup(filter.prefix());
         return true;
     }
 
     private void clearCharFilter(FilesPanesHelper.FocusSide side) {
-        List<FileItem> baseItems = incrementalFilterBases.remove(side);
-        incrementalCharFilters.remove(side);
+        List<FileItem> baseItems = incrementalFilters.get(side).clear();
         hideIncrementalFilterPopup();
         if (baseItems == null) {
             return;
@@ -4165,14 +4152,8 @@ public class Commander {
         }
     }
 
-    private void applyIncrementalFilter(FilesPanesHelper.FocusSide side, String prefix) {
-        List<FileItem> baseItems = incrementalFilterBases.getOrDefault(side, List.of());
-        List<FileItem> filteredItems = baseItems.stream()
-                .filter(item -> "..".equals(item.getPresentableFilename())
-                        || item.getPresentableFilename().toLowerCase(Locale.ROOT).startsWith(prefix))
-                .toList();
-
-        ListView<FileItem> listView = side == LEFT ? leftFileList : rightFileList;
+    /** Shows the filtered items and selects the first real one (not ".."). */
+    private void showFilteredItems(ListView<FileItem> listView, List<FileItem> filteredItems) {
         listView.getItems().setAll(filteredItems);
         filteredItems.stream()
                 .filter(item -> !"..".equals(item.getPresentableFilename()))
@@ -4185,22 +4166,6 @@ public class Commander {
                             }
                         }
                 );
-    }
-
-    private boolean isSubset(List<FileItem> currentItems, List<FileItem> baseItems) {
-        return currentItems.stream().allMatch(baseItems::contains);
-    }
-
-    private boolean matchesActiveFilter(List<FileItem> currentItems, List<FileItem> baseItems, String prefix) {
-        if (prefix == null || prefix.isEmpty()) {
-            return currentItems.equals(baseItems);
-        }
-
-        List<FileItem> expectedItems = baseItems.stream()
-                .filter(item -> "..".equals(item.getPresentableFilename())
-                        || item.getPresentableFilename().toLowerCase(Locale.ROOT).startsWith(prefix))
-                .toList();
-        return currentItems.equals(expectedItems);
     }
 
     private void showIncrementalFilterPopup(String prefix) {

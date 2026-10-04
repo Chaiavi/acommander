@@ -109,7 +109,7 @@ Not actions, but often asked for:
 |---|---|
 | Enter on an item (open folder, archive, run exe/bat/ps1, open with default app) | `Commander.enterSelectedItem`, `handleArchiveEnter`, `openFileWithSystemDefault` |
 | Backspace / go up (local, archive, FTP root disconnects) | `FilePaneKeyHandlerImpl.goUpOneFolder`; inside an archive `Commander.goUpInArchive` → `FilesPanesHelper.goUpInArchive` / `exitArchive` |
-| Type-to-filter popup | `Commander.filterByChar`, `backspaceCharFilter`, `applyIncrementalFilter` |
+| Type-to-filter popup | `Commander.filterByChar`, `backspaceCharFilter`, `clearCharFilter`; logic in `helpers/IncrementalFilter` (one per pane) |
 | Pane list cells, icons, colours | `Commander.configListViewLookAndBehavior`, `helpers/FileIcons` |
 | Pane footer (counts / sizes) | `Commander.updatePaneSummary` |
 | Running-tool progress bar + Stop button | `Commander.buildExternalCommandListener`, `showExternalProgress`, `stopExternalTasks`; `runWithProgress` for background work behind the bar |
@@ -214,6 +214,7 @@ Other dialogs are built inline in `Commander` (`prompt*` methods).
 | `ExecutableCompressionSupport` | Which files UPX accepts. |
 | `BugReportUrl` | Report Bug: prefilled GitHub new-issue URL with title prefix and label per report type; cuts the body to keep the URL under 8,000 chars. |
 | `FileIcons` | Glyph + colour per pane item (folder, archive, PDF, text, image, audio, video, executable, other). |
+| `IncrementalFilter` | Type-to-filter state of one pane: typed prefix, the unfiltered list, the matching items; starts over when the pane changed. |
 | `ComboBoxSetup`, `FolderComboBoxCell` | Path combo: drives (with type/free space), Desktop/Documents/Downloads. |
 
 ### `keybinding/`
@@ -286,6 +287,6 @@ Under `src/test/java/org/chaiware/acommander/`, same package as the class tested
 `actions/` ActionMatcher, ActionPriorityEngine, ActionRegistry, BuiltinAction, ActionRulesSnapshot (FTP / read-only / palette
 rules per action vs `src/test/resources/action-rules-snapshot.txt`) · `commands/` CommandsAdvancedImpl, CommandsSimpleImpl,
 PackVfs, ReportFailure · `config/` ActionScope, AppConfigLoader, AppRegistryShortcutMatching · `helpers/` AppTempDir, AppVersion, ArchiveManager, AudioConversionSupport,
-BugReportUrl, FileAttributesHelper, FileHelper, FileIcons, FilesPanesHelperNaturalSort, ImageConversionSupport, SettingsStore, VideoMetadataSupport · `model/` ArchiveMode,
+BugReportUrl, FileAttributesHelper, FileHelper, FileIcons, FilesPanesHelperNaturalSort, IncrementalFilter, ImageConversionSupport, SettingsStore, VideoMetadataSupport · `model/` ArchiveMode,
 FileItem · `services/` AudioConversionService, ClipboardTransfer, FolderComparer, ImageConversionService · `tools/` BundledTool, BundledToolCommands, ToolCommandBuilder, ProcessRunner · `vfs/` FtpFileSystem · root: ArchitectureRules (process / background / temp-file / app-path / version / fire-and-forget rules), CommanderCopy, `CodeMapTest` (fails when a main
 class or an apps.json action is missing from this file).
