@@ -161,7 +161,7 @@ checksum, compare, convert, metadata).
 
 Rechecked after Phase 3: every symbol below still exists in `Commander`. Bug fixes first (4.0, 4.7), then moves.
 
-- [ ] 4.0 Pack from an archive pane (bug fix). `CommandsAdvancedImpl.doPack` copies each item of a non-local
+- [x] 4.0 Pack from an archive pane (bug fix, #152). `CommandsAdvancedImpl.doPack` copies each item of a non-local
   source to `AppTempDir.createTempFile("acommander_pack_", "_" + name)`, so the archive entries get the temp name
   (`acommander_pack_123_name`), and it skips folders with only a warn log. Pack is `ftp=no`, but an archive pane is
   not `LocalFileSystem`, so this runs whenever you pack from inside an archive. Fix: copy each item into one
@@ -317,4 +317,4 @@ Bugs noticed during the work, fixed in the phase named.
     edit silently when the upload fails.
 12. Fixed (#150): pack/unpack to an FTP or archive pane uploaded with `targetFs.copy(localPath, …)`.
 13. Fixed (#151): a malformed settings file crashes every start; Settings edits are overwritten by the next save.
-14. Phase 4.0: packing from inside an archive names the entries after their temp copies and drops folders.
+14. Fixed (#152): packing from inside an archive names the entries after their temp copies and drops folders.

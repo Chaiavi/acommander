@@ -501,19 +501,22 @@ public class CommandsAdvancedImpl extends ACommands {
         List<File> tempFiles = new ArrayList<>();
         List<String> localPathsToPack = new ArrayList<>();
 
-        // 1. Prepare source files (download if remote)
+        // 1. Non-local sources are copied out under their own names: the archive entries take the file names
+        Path stagingDir = null;
         for (FileItem item : validItems) {
             if (sourceFs instanceof LocalFileSystem) {
                 localPathsToPack.add(item.getFullPath());
             } else {
-                if (item.isDirectory()) {
-                    log.warn("Skipping directory in remote VFS packing: {}. Recursive packing is not supported for remote systems yet.", item.getName());
-                    continue;
+                if (stagingDir == null) {
+                    stagingDir = AppTempDir.createTempDirectory("acommander_pack_");
+                    tempFiles.add(stagingDir.toFile());
                 }
-                File tempFile = AppTempDir.createTempFile("acommander_pack_", "_" + item.getName()).toFile();
-                tempFiles.add(tempFile);
-                sourceFs.copy(sourceFs.getInternalPath(item), new LocalFileSystem(""), tempFile.getAbsolutePath());
-                localPathsToPack.add(tempFile.getAbsolutePath());
+                Path staged = stagingDir.resolve(item.getName()).normalize();
+                if (!stagingDir.equals(staged.getParent())) {
+                    throw new IOException("Can't pack an item with this name: " + item.getName());
+                }
+                sourceFs.copy(sourceFs.getInternalPath(item), new LocalFileSystem(""), staged.toString());
+                localPathsToPack.add(staged.toString());
             }
         }
 
@@ -557,7 +560,7 @@ public class CommandsAdvancedImpl extends ACommands {
                 }
             }
             for (File f : tempFiles) {
-                f.delete();
+                FileHelper.deleteQuietly(f.toPath());
             }
             Platform.runLater(fileListsLoader::refreshFileListViews);
         }), "Pack");

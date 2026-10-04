@@ -9,11 +9,13 @@ import org.chaiware.acommander.vfs.VFileSystem;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import org.mockito.ArgumentCaptor;
 
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.List;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -42,23 +44,34 @@ class PackVfsTest {
     }
 
     @Test
-    void doPack_skipsRemoteDirectories() throws Exception {
-        // Arrange
-        FileItem item1 = new FileItem(null, "dir1", 0, 0, true);
-        FileItem item2 = new FileItem(null, "file1.txt", 100, 0, false);
-        List<FileItem> items = List.of(item1, item2);
+    void doPack_stagesRemoteItemsUnderTheirOwnNames() throws Exception {
+        FileItem dir = new FileItem(null, "dir1", 0, 0, true);
+        FileItem file = new FileItem(null, "file1.txt", 100, 0, false);
+        when(sourceFs.getInternalPath(dir)).thenReturn("/dir1");
+        when(sourceFs.getInternalPath(file)).thenReturn("/file1.txt");
 
-        when(sourceFs.getInternalPath(item2)).thenReturn("/file1.txt");
-
-        Path archivePath = tempDir.resolve("test.zip");
-
-        // Act: no pack tool configured, so it stops after the downloads
-        assertThatThrownBy(() -> commands.pack(items, archivePath.toString()))
+        // No pack tool configured, so it stops after the downloads
+        assertThatThrownBy(() -> commands.pack(List.of(dir, file), tempDir.resolve("test.zip").toString()))
                 .hasMessageContaining("Missing action config: pack");
 
-        // Assert
-        // Should only copy the file, not the directory
-        verify(sourceFs, times(1)).copy(eq("/file1.txt"), any(LocalFileSystem.class), anyString());
-        verify(sourceFs, never()).copy(eq("/dir1"), any(), anyString());
+        ArgumentCaptor<String> dirTarget = ArgumentCaptor.forClass(String.class);
+        ArgumentCaptor<String> fileTarget = ArgumentCaptor.forClass(String.class);
+        verify(sourceFs).copy(eq("/dir1"), any(LocalFileSystem.class), dirTarget.capture());
+        verify(sourceFs).copy(eq("/file1.txt"), any(LocalFileSystem.class), fileTarget.capture());
+        Path stagedDir = Path.of(dirTarget.getValue());
+        Path stagedFile = Path.of(fileTarget.getValue());
+        assertThat(stagedDir.getFileName()).hasToString("dir1");
+        assertThat(stagedFile.getFileName()).hasToString("file1.txt");
+        assertThat(stagedDir.getParent()).isEqualTo(stagedFile.getParent());
+    }
+
+    @Test
+    void doPack_rejectsANameThatLeavesTheStagingFolder() throws Exception {
+        FileItem item = new FileItem(null, "../evil.txt", 0, 0, false);
+        when(sourceFs.getInternalPath(item)).thenReturn("/../evil.txt");
+
+        assertThatThrownBy(() -> commands.pack(List.of(item), tempDir.resolve("test.zip").toString()))
+                .hasMessageContaining("Can't pack an item with this name");
+        verify(sourceFs, never()).copy(anyString(), any(), anyString());
     }
 }
