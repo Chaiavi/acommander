@@ -6850,38 +6850,21 @@ public class Commander {
 
         logger.info("Opening bug report URL: {}", url);
 
-        String curlPath = BundledTool.CURL.path().toString();
-        List<String> command = List.of(
-                curlPath,
-                "-s",
-                "-o", "NUL",
-                "-w", "%{http_code}",
-                "-L",
-                url
-        );
+        try {
+            getDesktop().browse(java.net.URI.create(url));
+        } catch (Exception browseEx) {
+            logger.warn("Failed opening bug report URL in browser: {}", url, browseEx);
+            showError("Report Bug", "Could not open the browser automatically.\nCopy and open this URL:\n" + url);
+            return;
+        }
 
-        runExternal(command, false)
-                .thenRun(() -> Platform.runLater(() -> {
-                    try {
-                        getDesktop().browse(java.net.URI.create(url));
-                    } catch (Exception browseEx) {
-                        logger.warn("Failed opening bug report URL in browser: {}", url, browseEx);
-                        showError("Report Bug", "Could not open the browser automatically.\nCopy and open this URL:\n" + url);
-                        return;
-                    }
-
-                    Alert successAlert = new Alert(Alert.AlertType.INFORMATION);
-                    successAlert.setTitle("Report Submitted");
-                    successAlert.setHeaderText(null);
-                    successAlert.setContentText("Thank you for your feedback! The issue form has been opened in your browser.");
-                    successAlert.getButtonTypes().setAll(ButtonType.OK);
-                    applyThemeToDialog(successAlert);
-                    successAlert.showAndWait();
-                }))
-                .exceptionally(throwable -> {
-                    Platform.runLater(() -> showError("Report Bug", "Failed to validate the GitHub issue URL: " + throwable.getMessage()));
-                    return null;
-                });
+        Alert successAlert = new Alert(Alert.AlertType.INFORMATION);
+        successAlert.setTitle("Report Submitted");
+        successAlert.setHeaderText(null);
+        successAlert.setContentText("Thank you for your feedback! The issue form has been opened in your browser.");
+        successAlert.getButtonTypes().setAll(ButtonType.OK);
+        applyThemeToDialog(successAlert);
+        successAlert.showAndWait();
     }
 
     private void applyTheme(Scene scene, ThemeMode themeMode, boolean persist) {

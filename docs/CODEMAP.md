@@ -100,7 +100,7 @@ Adding or renaming an action id? Check each of these:
 | `openHostsFile` | `openHostsFile` | elevated `edit` action via PowerShell `Start-Process -Verb RunAs` | `edit/Notepad4.exe` |
 | `syncToOtherPane` | `syncToOtherPane` | — | — |
 | `leftPathCombo` / `rightPathCombo` (Alt+F1/F2) | `leftPathComboBox.show()` | `helpers/ComboBoxSetup`, `FolderComboBoxCell` | — |
-| `reportBug` | `reportBug`, `submitBugReport` | `helpers/BugReportUrl` (prefilled issue URL + label) | `remote_connectivity/curl.exe` |
+| `reportBug` | `reportBug`, `submitBugReport` | `helpers/BugReportUrl` (prefilled issue URL + label) | browser |
 | `openCommandPalette` | `openCommandPalette` | `palette/CommandPaletteController` | — |
 
 Not actions, but often asked for:
@@ -212,7 +212,7 @@ Other dialogs are built inline in `Commander` (`prompt*` methods).
 | `ImageConversionSupport`, `AudioConversionSupport` | Which files convert, target formats. |
 | `ImageMetadataSupport`, `VideoMetadataSupport`, `AudioMetadataSupport` | Which files the metadata editors accept. |
 | `ExecutableCompressionSupport` | Which files UPX accepts. |
-| `BugReportUrl` | Report Bug: prefilled GitHub new-issue URL with title prefix and label per report type. |
+| `BugReportUrl` | Report Bug: prefilled GitHub new-issue URL with title prefix and label per report type; cuts the body to keep the URL under 8,000 chars. |
 | `ComboBoxSetup`, `FolderComboBoxCell` | Path combo: drives (with type/free space), Desktop/Documents/Downloads. |
 
 ### `keybinding/`

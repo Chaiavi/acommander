@@ -178,7 +178,7 @@ Rechecked after Phase 3: every symbol below still exists in `Commander`. Bug fix
   lambda in `removeImageMetadata`) → `*MetadataSupport`. `listAtomicParsleyArtifacts` + cleanup is in both
   `Commander` and `VideoMetadataDialog`; keep one copy in `VideoMetadataSupport`.
 - [ ] 4.6 `FilePropertiesLauncher` (VBS, moved as-is; hardened in 10.7).
-- [ ] 4.7 Report Bug (bug fix): `submitBugReport` first runs curl (`BundledTool.CURL`) against the new-issue URL,
+- [x] 4.7 Report Bug (bug fix, #153): `submitBugReport` first runs curl (`BundledTool.CURL`) against the new-issue URL,
   ignores the HTTP code it asks for, and opens the browser only if curl exits 0. Offline or behind a proxy curl
   can't pass, Report Bug never opens. Fix: drop the curl call and open the browser directly (the copy-the-URL
   fallback stays). What a check could have caught is a URL GitHub rejects as too long, so `BugReportUrl` caps the
@@ -309,7 +309,7 @@ Bugs noticed during the work, fixed in the phase named.
    enabling it is a feature, not a refactor.
 5. Fixed (#146): mouse clicks on the F-key buttons call `Commander` directly and skip both gates.
 6. Fixed (#149): bug reports say version 4.0 (`APP_VERSION`) while the build is 4.5.
-7. Phase 4.7: Report Bug's unchecked curl request blocks the browser when curl can't connect.
+7. Fixed (#153): Report Bug's unchecked curl request blocks the browser when curl can't connect.
 8. Fixed (#148): a failure to open or close an archive is logged but never shown.
 9. Phase 10.1 (security, so last by the user's rule): failing FTP commands log the password.
 10. Fixed (#147): a failed repack deletes the user's edits inside the archive (data loss).
