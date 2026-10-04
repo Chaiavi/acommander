@@ -189,7 +189,8 @@ Rechecked after Phase 3: every symbol below still exists in `Commander`. Bug fix
   under the cap.
 - [x] 4.8 `ClipboardTransfer` (`ClipboardEntry`, `ClipboardTransferState`, copy/cut/paste). In `services/`, with the
   paste-target helpers F5 shares (`isSameFolder`, `targetInternalPath`, `duplicateName`).
-- [ ] 4.9 `FileIcons` (`resolveIconSpec`, `IconSpec`, `is*Extension`).
+- [x] 4.9 `FileIcons` (`resolveIconSpec`, `IconSpec`, `is*Extension`). In `helpers/`; its extension sets join
+  `FileTypes` in 6.1.
 - [ ] 4.10 `IncrementalFilter` (`filterByChar`, `applyIncrementalFilter`), pure prefix logic tested.
 - [ ] 4.11 Theme: `applyTheme`, `ThemeMode` and `applyThemeToDialog` join `dialog/DialogTheme` (3.4) in one theme
   class, not a second one. `ThemeMode.from` gets a test (unknown / blank value → default).

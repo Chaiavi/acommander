@@ -752,7 +752,7 @@ public class Commander {
                 if (empty || item == null) {
                     setGraphic(null);
                 } else {
-                    IconSpec iconSpec = resolveIconSpec(item);
+                    FileIcons.Icon iconSpec = FileIcons.of(item);
                     iconLabel.setText(iconSpec.glyph());
                     iconLabel.setStyle("-fx-text-fill: " + iconSpec.textColor() + ";");
                     nameLabel.setText(item.getPresentableFilename());
@@ -794,89 +794,6 @@ public class Commander {
             case RIGHT_ONLY -> cell.getStyleClass().add("compare-right-only");
             case DIFFERENT -> cell.getStyleClass().add("compare-different");
         }
-    }
-
-    private record IconSpec(String glyph, String textColor) {}
-
-    private IconSpec resolveIconSpec(FileItem item) {
-        if ("..".equals(item.getPresentableFilename())) {
-            return new IconSpec("↩", "#E0E0E0");
-        }
-        if (item.isDirectory()) {
-            return new IconSpec("📁", "#FFD54F");
-        }
-
-        String name = item.getName();
-        String extension = "";
-        int lastDot = name.lastIndexOf('.');
-        if (lastDot >= 0 && lastDot < name.length() - 1) {
-            extension = name.substring(lastDot + 1).toLowerCase(Locale.ROOT);
-        }
-
-        if (isArchiveExtension(extension)) {
-            return new IconSpec("📦", "#FFB74D");
-        }
-        if ("pdf".equals(extension)) {
-            return new IconSpec("📕", "#EF9A9A");
-        }
-        if (isTextExtension(extension)) {
-            return new IconSpec("📄", "#C8E6C9");
-        }
-        if (isImageExtension(extension)) {
-            return new IconSpec("🖼", "#B2EBF2");
-        }
-        if (isAudioExtension(extension)) {
-            return new IconSpec("🎵", "#FFE0B2");
-        }
-        if (isVideoExtension(extension)) {
-            return new IconSpec("🎬", "#F8BBD0");
-        }
-        if (isExecutableExtension(extension)) {
-            return new IconSpec("⚙", "#CFD8DC");
-        }
-
-        return new IconSpec("📃", "#E0E0E0");
-    }
-
-    private boolean isArchiveExtension(String extension) {
-        // Use ArchiveMode for comprehensive list of supported archive formats
-        return ArchiveMode.isReadWriteExtension(extension) || ArchiveMode.isReadOnlyExtension(extension);
-    }
-
-    private boolean isTextExtension(String extension) {
-        return switch (extension) {
-            case "txt", "md", "log", "json", "xml", "yml", "yaml", "csv", "ini", "conf", "properties",
-                 "gradle", "kts", "java", "kt", "js", "ts", "html", "css" -> true;
-            default -> false;
-        };
-    }
-
-    private boolean isImageExtension(String extension) {
-        return switch (extension) {
-            case "png", "jpg", "jpeg", "gif", "bmp", "svg", "webp", "ico" -> true;
-            default -> false;
-        };
-    }
-
-    private boolean isAudioExtension(String extension) {
-        return switch (extension) {
-            case "mp3", "wav", "flac", "aac", "ogg", "opus", "m4a" -> true;
-            default -> false;
-        };
-    }
-
-    private boolean isVideoExtension(String extension) {
-        return switch (extension) {
-            case "mp4", "mkv", "avi", "mov", "wmv", "webm", "m4v" -> true;
-            default -> false;
-        };
-    }
-
-    private boolean isExecutableExtension(String extension) {
-        return switch (extension) {
-            case "exe", "msi", "bat", "cmd", "ps1", "sh" -> true;
-            default -> false;
-        };
     }
 
     private void configFileListsFocus() {
@@ -1000,7 +917,7 @@ public class Commander {
                         () -> filesPanesHelper.enterArchive(focusedSide, selectedItem.getFullPath()),
                         this::focusCurrentFileList,
                         "Failed to enter archive: " + selectedItem.getName());
-            } else if (isExecutableExtension(extension)) {
+            } else if (FileIcons.isExecutableExtension(extension)) {
                 try {
                     List<String> command = switch (extension) {
                         case "bat", "cmd" -> List.of("cmd.exe", "/c", selectedItem.getFullPath());

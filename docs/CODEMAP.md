@@ -110,7 +110,7 @@ Not actions, but often asked for:
 | Enter on an item (open folder, archive, run exe/bat/ps1, open with default app) | `Commander.enterSelectedItem`, `handleArchiveEnter`, `openFileWithSystemDefault` |
 | Backspace / go up (local, archive, FTP root disconnects) | `FilePaneKeyHandlerImpl.goUpOneFolder`; inside an archive `Commander.goUpInArchive` → `FilesPanesHelper.goUpInArchive` / `exitArchive` |
 | Type-to-filter popup | `Commander.filterByChar`, `backspaceCharFilter`, `applyIncrementalFilter` |
-| Pane list cells, icons, colours | `Commander.configListViewLookAndBehavior`, `resolveIconSpec`, `is*Extension` |
+| Pane list cells, icons, colours | `Commander.configListViewLookAndBehavior`, `helpers/FileIcons` |
 | Pane footer (counts / sizes) | `Commander.updatePaneSummary` |
 | Running-tool progress bar + Stop button | `Commander.buildExternalCommandListener`, `showExternalProgress`, `stopExternalTasks`; `runWithProgress` for background work behind the bar |
 | Error / info / toast | `Commander.showError`, `showInfo`, `showToast` |
@@ -128,7 +128,7 @@ Not actions, but often asked for:
 4. Key bindings + palette: `setupBindings`, `determineCurrentContext`, `openCommandPalette` … `selectPreviousCommandPaletteAction`.
 5. Theme: `initializeTheme`, `toggleDarkMode` (apply logic at file end: `applyTheme`).
 6. Config/properties: `loadConfigFile`, `loadAppRegistry`, `saveConfigFile`, `persistCurrentPaths`.
-7. List look and icons: `configMouseDoubleClick`, `configListViewLookAndBehavior`, `resolveIconSpec`, pane summary.
+7. List look and icons: `configMouseDoubleClick`, `configListViewLookAndBehavior` (icons from `FileIcons`), pane summary.
 8. Navigation: `enterSelectedItem`, archive enter/exit, `openFileWithSystemDefault`.
 9. F-key file operations: `help` → `renameFile` → `viewFile` → `editFile` → `copyFile` → `duplicateFile` → `moveFile`
    → `makeDirectory` → `makeFile` → `deleteFile` → `deleteWipe` → `terminalHere` → `explorerHere` → `search`
@@ -213,6 +213,7 @@ Other dialogs are built inline in `Commander` (`prompt*` methods).
 | `ImageMetadataSupport`, `VideoMetadataSupport`, `AudioMetadataSupport` | Which files the metadata editors accept; `remove(file)` strips all metadata (exiv2 / AtomicParsley / id3). `VideoMetadataSupport` also deletes the temp files AtomicParsley leaves (used by its dialog too). |
 | `ExecutableCompressionSupport` | Which files UPX accepts. |
 | `BugReportUrl` | Report Bug: prefilled GitHub new-issue URL with title prefix and label per report type; cuts the body to keep the URL under 8,000 chars. |
+| `FileIcons` | Glyph + colour per pane item (folder, archive, PDF, text, image, audio, video, executable, other). |
 | `ComboBoxSetup`, `FolderComboBoxCell` | Path combo: drives (with type/free space), Desktop/Documents/Downloads. |
 
 ### `keybinding/`
@@ -285,6 +286,6 @@ Under `src/test/java/org/chaiware/acommander/`, same package as the class tested
 `actions/` ActionMatcher, ActionPriorityEngine, ActionRegistry, BuiltinAction, ActionRulesSnapshot (FTP / read-only / palette
 rules per action vs `src/test/resources/action-rules-snapshot.txt`) · `commands/` CommandsAdvancedImpl, CommandsSimpleImpl,
 PackVfs, ReportFailure · `config/` ActionScope, AppConfigLoader, AppRegistryShortcutMatching · `helpers/` AppTempDir, AppVersion, ArchiveManager, AudioConversionSupport,
-BugReportUrl, FileAttributesHelper, FileHelper, FilesPanesHelperNaturalSort, ImageConversionSupport, SettingsStore, VideoMetadataSupport · `model/` ArchiveMode,
+BugReportUrl, FileAttributesHelper, FileHelper, FileIcons, FilesPanesHelperNaturalSort, ImageConversionSupport, SettingsStore, VideoMetadataSupport · `model/` ArchiveMode,
 FileItem · `services/` AudioConversionService, ClipboardTransfer, FolderComparer, ImageConversionService · `tools/` BundledTool, BundledToolCommands, ToolCommandBuilder, ProcessRunner · `vfs/` FtpFileSystem · root: ArchitectureRules (process / background / temp-file / app-path / version / fire-and-forget rules), CommanderCopy, `CodeMapTest` (fails when a main
 class or an apps.json action is missing from this file).
