@@ -102,7 +102,7 @@ Adding or renaming an action id? Check each of these:
 | `openHostsFile` | `openHostsFile` | elevated `edit` action via PowerShell `Start-Process -Verb RunAs` | `edit/Notepad4.exe` |
 | `syncToOtherPane` | `syncToOtherPane` | — | — |
 | `leftPathCombo` / `rightPathCombo` (Alt+F1/F2) | `leftPathComboBox.show()` | `helpers/ComboBoxSetup`, `FolderComboBoxCell` | — |
-| `reportBug` | `reportBug`, `submitBugReport` | opens a GitHub issue URL | `remote_connectivity/curl.exe` |
+| `reportBug` | `reportBug`, `submitBugReport` | `helpers/BugReportUrl` (prefilled issue URL + label) | `remote_connectivity/curl.exe` |
 | `openCommandPalette` | `openCommandPalette` | `palette/CommandPaletteController` | — |
 
 Not actions, but often asked for:
@@ -210,6 +210,7 @@ Other dialogs are built inline in `Commander` (`prompt*` methods).
 | `ImageConversionSupport`, `AudioConversionSupport` | Which files convert, target formats. |
 | `ImageMetadataSupport`, `VideoMetadataSupport`, `AudioMetadataSupport` | Which files the metadata editors accept. |
 | `ExecutableCompressionSupport` | Which files UPX accepts. |
+| `BugReportUrl` | Report Bug: prefilled GitHub new-issue URL with title prefix and label per report type. |
 | `ComboBoxSetup`, `FolderComboBoxCell` | Path combo: drives (with type/free space), Desktop/Documents/Downloads. |
 
 ### `keybinding/`
@@ -271,6 +272,6 @@ Under `src/test/java/org/chaiware/acommander/`, same package as the class tested
 `actions/` ActionMatcher, ActionPriorityEngine, ActionRegistry, ActionRulesSnapshot (FTP / read-only / palette
 rules per action vs `src/test/resources/action-rules-snapshot.txt`) · `commands/` CommandsAdvancedImpl, CommandsSimpleImpl,
 PackVfs · `config/` ActionScope, AppConfigLoader, AppRegistryShortcutMatching · `helpers/` AudioConversionSupport,
-FileAttributesHelper, FileHelper, FilesPanesHelperNaturalSort, ImageConversionSupport · `model/` ArchiveMode,
+BugReportUrl, FileAttributesHelper, FileHelper, FilesPanesHelperNaturalSort, ImageConversionSupport · `model/` ArchiveMode,
 FileItem · `tools/` ToolCommandBuilder, ProcessRunner · `vfs/` FtpFileSystem · root: CommanderCopy, `CodeMapTest` (fails when a main
 class or an apps.json action is missing from this file).

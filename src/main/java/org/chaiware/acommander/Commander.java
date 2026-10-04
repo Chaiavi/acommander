@@ -7105,20 +7105,7 @@ public class Commander {
     }
 
     private void submitBugReport(BugReportData data) {
-        String typePrefix = switch (data.type()) {
-            case "Feature Request" -> "Feature: ";
-            case "Question" -> "Question: ";
-            case "Other" -> "Other: ";
-            default -> "Bug: ";
-        };
-
-        String bodyText = "Steps to reproduce:\n" + safeText(data.steps())
-                + "\n\nExpected:\n" + safeText(data.expected())
-                + "\n\nActual:\n" + safeText(data.actual())
-                + "\n\nApp version: " + safeText(data.version());
-
-        String url = "https://github.com/Chaiavi/acommander/issues/new?title="
-                + encodeUrl(typePrefix + safeText(data.title())) + "&body=" + encodeUrl(bodyText);
+        String url = BugReportUrl.build(data.type(), data.title(), data.steps(), data.expected(), data.actual(), data.version());
 
         logger.info("Opening bug report URL: {}", url);
 
@@ -7154,24 +7141,6 @@ public class Commander {
                     Platform.runLater(() -> showError("Report Bug", "Failed to validate the GitHub issue URL: " + throwable.getMessage()));
                     return null;
                 });
-    }
-
-    private String safeText(String text) {
-        return text == null ? "" : text;
-    }
-
-    private String encodeUrl(String text) {
-        if (text == null || text.isEmpty()) {
-            return "";
-        }
-        try {
-            return java.net.URLEncoder.encode(text, java.nio.charset.StandardCharsets.UTF_8.name())
-                    .replace("+", "%20");
-        } catch (java.io.UnsupportedEncodingException e) {
-            return text.replace(" ", "%20")
-                    .replace("\n", "%0A")
-                    .replace("\r", "%0D");
-        }
     }
 
     private void applyTheme(Scene scene, ThemeMode themeMode, boolean persist) {

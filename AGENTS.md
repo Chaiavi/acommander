@@ -52,7 +52,11 @@ When a task changed files, finish by committing and pushing to `origin/main` wit
    several unrelated changes.
 5. Never commit gitignored or runtime files (`config/acommander.properties`, `UniExtract.ini`, Eclipse files).
 6. If the push is rejected, `git pull --rebase` then push again. Never `--force`.
-7. Report the commit hash in the final reply.
+7. Bug fix or user-visible feature → link a GitHub issue (`gh`, repo `Chaiavi/acommander`). Search first:
+   `gh issue list --search "<words>"`. No match → `gh issue create --label bug|enhancement --milestone
+   "v5.0 Perfect NC Clone"`, title = the symptom or feature, body = root cause and fix. Put `(fixes #n)` in the
+   commit subject so the push to `main` closes it. Refactors, docs-only and agent-file changes get no issue.
+8. Report the commit hash (and issue number) in the final reply.
 
 ## Where project knowledge lives
 
