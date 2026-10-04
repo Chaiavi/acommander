@@ -120,7 +120,7 @@ Not actions, but often asked for:
 
 ## 4. `Commander.java` Layout (top to bottom)
 
-~7.4k lines. Sections in file order; search the first method name to land there.
+~5.4k lines. Sections in file order; search the first method name to land there.
 
 1. Fields, `@FXML` controls, `initialize`, `setupFunctionButtonActions`.
 2. External-tool progress: `buildExternalCommandListener`, `stopExternalTasks` (UI in `ExternalProgressController`).
@@ -289,5 +289,5 @@ Under `src/test/java/org/chaiware/acommander/`, same package as the class tested
 rules per action vs `src/test/resources/action-rules-snapshot.txt`) · `commands/` CommandsAdvancedImpl, CommandsSimpleImpl,
 PackVfs, ReportFailure · `config/` ActionScope, AppConfigLoader, AppRegistryShortcutMatching · `dialog/` DialogTheme · `helpers/` AppTempDir, AppVersion, ArchiveManager, AudioConversionSupport,
 BugReportUrl, ExternalProgressController, FileAttributesHelper, FileHelper, FileIcons, FilesPanesHelperNaturalSort, IncrementalFilter, ImageConversionSupport, SettingsStore, VideoMetadataSupport · `model/` ArchiveMode,
-FileItem · `services/` AudioConversionService, ClipboardTransfer, FolderComparer, ImageConversionService · `tools/` BundledTool, BundledToolCommands, ToolCommandBuilder, ProcessRunner · `vfs/` FtpFileSystem · root: ArchitectureRules (process / background / temp-file / app-path / version / fire-and-forget rules), CommanderCopy, `CodeMapTest` (fails when a main
+FileItem · `services/` AudioConversionService, ClipboardTransfer, FolderComparer, ImageConversionService · `tools/` BundledTool, BundledToolCommands, ToolCommandBuilder, ProcessRunner · `vfs/` FtpFileSystem · root: ArchitectureRules (process / background / temp-file / app-path / version / fire-and-forget / no file walking or hashing in `Commander` rules), CommanderCopy, `CodeMapTest` (fails when a main
 class or an apps.json action is missing from this file).

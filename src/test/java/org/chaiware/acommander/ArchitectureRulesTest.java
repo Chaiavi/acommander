@@ -57,6 +57,14 @@ class ArchitectureRulesTest {
                 .isEmpty();
     }
 
+    @Test
+    void commanderLeavesFileTreesHashesAndSettingsToTestableClasses() {
+        Path commander = MAIN.resolve(Path.of("org", "chaiware", "acommander", "Commander.java"));
+        assertThat(matchingLines(commander, Pattern.compile("Files\\.(walk|list)\\(|MessageDigest|\\bProperties\\s+\\w+\\s*[;=]|new Properties\\(")).toList())
+                .as("walk folders, hash files and read settings outside Commander (services/, helpers/), where a test can reach them")
+                .isEmpty();
+    }
+
     private static List<String> violations(String regex, String allowedFileName) throws IOException {
         Pattern pattern = Pattern.compile(regex);
         List<Path> sources;

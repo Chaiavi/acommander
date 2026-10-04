@@ -95,15 +95,17 @@ lessons about this repo in the files above, not in memory.
 ## Architecture
 
 - Entry point is `Launcher` (calls `Application.launch(Main.class)`), not `Main` — needed for the non-modular JavaFX jar.
-- `Commander` (~7.4k lines) is the FXML controller for `Commander.fxml` and holds most UI behaviour. Prefer putting new
-  logic in `helpers/`, `commands/` or `tools/` and calling it from `Commander`, so it can be unit-tested.
+- `Commander` (~5.4k lines) is the FXML controller for `Commander.fxml` and holds most UI behaviour. Prefer putting new
+  logic in `services/` (feature logic), `helpers/`, `commands/` or `tools/` and calling it from `Commander`, so it can
+  be unit-tested.
 - Read [docs/CODEMAP.md](docs/CODEMAP.md) to find code instead of reading `Commander`. When you add, move, rename or
   delete a class, action, bundled tool or `Commander` feature method, update the map in the same change.
 - `config/apps.json` and `config/f1-help.html` are read from `user.dir`, not the classpath. `shadowJar` copies
   `config/` and `apps/` into `build/libs/`.
 - Packages: `actions/` dispatch + matching, `config/` apps.json loading (`AppRegistry`, `AppConfigLoader`),
   `keybinding/` key handlers, `palette/` Command Palette, `tools/ToolCommandBuilder` placeholder expansion,
-  `vfs/` local/FTP/archive file systems, `dialog/` metadata dialogs.
+  `vfs/` local/FTP/archive file systems, `dialog/` metadata dialogs + `DialogTheme`, `services/` feature logic moved
+  out of `Commander` (no JavaFX).
 
 ## Adding an action
 
@@ -133,6 +135,11 @@ All actions and external tools live in `config/apps.json`; shortcuts are declare
   `helpers/AppPaths`. `ArchitectureRulesTest` fails on `"user.dir"` or an `"apps/` literal anywhere else.
 - A tool run nobody waits on goes through `ACommands.reportFailure` (or `Commander.runExternalReported`), or its
   failure is only logged. `ArchitectureRulesTest` fails on a bare `runExecutable(...);` / `runExternal(...);`.
+- A service that runs tools takes the runner as a `Function<List<String>, CompletableFuture<List<String>>>`
+  (`Commander` passes `command -> runExternal(command, false)`, which drives the progress bar and Stop), so its test
+  passes a fake that records the commands (`AudioConversionServiceTest`).
+- `Commander` doesn't walk folders, hash files or read settings itself; `ArchitectureRulesTest` fails on
+  `Files.walk/list`, `MessageDigest` or a `Properties` variable there.
 - New storage types implement `VFileSystem` and are wired through `VfsManager`.
 - Metadata editing: `*MetadataSupport` runs the external tool, `*MetadataDialog` collects input; refresh the pane after.
 - Admin elevation: PowerShell `Start-Process -Verb RunAs`.

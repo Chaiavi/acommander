@@ -42,7 +42,8 @@ F5/F6 to the other pane; Alt+F6; F7/Alt+F7; F8; F11 pack + F12 unpack; Enter an 
 Command Palette; theme toggle; one metadata edit on a copied jpg/mp3/mp4; checksum; compare files; FTP connect if a
 server is available.
 
-`Commander` line count: 7459 (start), 7199 (after Phase 1), 7038 (after Phase 2), 6929 (after Phase 3).
+`Commander` line count: 7459 (start), 7199 (after Phase 1), 7038 (after Phase 2), 6929 (after Phase 3), 5380 (after
+Phase 4).
 
 ## Phase 0 — Prep and Safety Net (no behaviour change)
 
@@ -202,7 +203,7 @@ Rechecked after Phase 3: every symbol below still exists in `Commander`. Bug fix
   the count, show/hide and the background `run` moved; the listener stays in `Commander` (it reloads settings and
   shows dialogs) and feeds the controller. FTP connect now counts like any other task instead of forcing the bar
   shut.
-- [ ] 4.13 `ArchitectureRulesTest`: `Commander` has no `Files.walk` / `Files.list` / `MessageDigest` (all leave with
+- [x] 4.13 `ArchitectureRulesTest`: `Commander` has no `Files.walk` / `Files.list` / `MessageDigest` (all leave with
   4.1) and no `java.util.Properties` (already true since 3.2). `new ProcessBuilder` is banned everywhere by 1.7,
   tool paths by 3.1.
 
@@ -220,7 +221,7 @@ type-to-filter, theme toggle, Stop button on a long copy, a failing tool still s
   missing tooltips and Title Case labels (`ui-text.instructions.md`).
 - [ ] 5.3 Options records (`SplitSize`, `ChecksumOptions`, `CompareFilesOptions`, `ImageConversionRequest`, …)
   top-level next to their service.
-- [ ] 5.4 Target: `Commander` under 4,000 lines (6,929 after Phase 3; Phase 4 moves ~1,200, Phase 5 ~1,700). The
+- [ ] 5.4 Target: `Commander` under 4,000 lines (5,380 after Phase 4, which moved ~1,550; Phase 5 moves ~1,700). The
   rest is feature handlers (read selection → validate → run), which Phase 7's services shrink further.
 
 Smoke items: open every moved dialog once; Enter confirms, Escape cancels, dark theme applies, tooltips show.
