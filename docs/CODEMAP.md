@@ -84,7 +84,7 @@ Adding or renaming an action id? Check each of these:
 | `checksumFile` / `checksumFolderContents` | `checksumFile` / `checksumFolderContents`, `buildChecksumCommand` | — | `checksum/rhash.exe` |
 | `analyzeFile` | `analyzeFile`, `buildAnalyzeFileCommand` | — | `file_analysis/file.exe` + `magic.mgc` |
 | `compareFiles` | `compareFiles`, `canCompareSelectedFiles`, `buildCompareCommand` | — | `file_compare/ExamDiff.exe` |
-| `compareFolders` | `compareFolders`, `compareFolderTrees`, `applyFolderCompareStyle` | in-Java SHA-256 compare | — |
+| `compareFolders` | `compareFolders`, `promptCompareFoldersOptions`, `applyFolderCompareStyle` | `services/FolderComparer` (SHA-256 optional) | — |
 | `fileProperties` (Alt+Enter) | `fileProperties` | temp `.vbs` via `wscript.exe` (Windows Properties dialog) | — |
 | `changeAttributes` | `changeAttributes`, `promptAttributes` | `helpers/FileAttributesHelper` | `attrib` |
 | `editImageMetadata` / `removeImageMetadata` | `editImageMetadata` / `removeImageMetadata` → `removeMetadata` (shared confirm + background run) | `dialog/ImageMetadataDialog`, `helpers/ImageMetadataSupport` | `image_metadata/exiv2.exe` |
@@ -135,7 +135,7 @@ Not actions, but often asked for:
    → `findInFiles` → `pack` → `splitLargeFile`.
 10. Conversion: `convertGraphicsFiles` (image), `convertMediaFile`, `convertAudioFiles` (audio, long).
 11. `analyzeFile`, `checksumFile`, `checksumFolderContents`, `unpackFile`, `extractAll`, PDFs.
-12. Compare: `compareFiles`, `compareFolders` + folder-tree helpers.
+12. Compare: `compareFiles`, `compareFolders` (logic in `services/FolderComparer`).
 13. `fileProperties`, `changeAttributes`, image/video/audio metadata edit + remove, `compressExecutable`.
 14. `syncToOtherPane`, bookmarks, selection, `ftpDisconnect`, `openHostsFile`, `ftpConnect`.
 15. Type-to-filter popup, prompts (`getUserFeedback`, `promptUser`, `promptBookmarkSelection`).
@@ -237,6 +237,11 @@ Other dialogs are built inline in `Commander` (`prompt*` methods).
 |---|---|
 | `CommandPaletteController` | Controller for `CommandPalette.fxml` (included in `Commander.fxml`). |
 
+### `services/` — feature logic moved out of `Commander` (no JavaFX)
+| File | Role |
+|---|---|
+| `FolderComparer` | Compare Folders: only-left / only-right / different (size, date, SHA-256) marks per top-level item; `key(path)` looks a pane item up. |
+
 ### `tools/`
 | File | Role |
 |---|---|
@@ -276,5 +281,5 @@ Under `src/test/java/org/chaiware/acommander/`, same package as the class tested
 rules per action vs `src/test/resources/action-rules-snapshot.txt`) · `commands/` CommandsAdvancedImpl, CommandsSimpleImpl,
 PackVfs, ReportFailure · `config/` ActionScope, AppConfigLoader, AppRegistryShortcutMatching · `helpers/` AppTempDir, AppVersion, ArchiveManager, AudioConversionSupport,
 BugReportUrl, FileAttributesHelper, FileHelper, FilesPanesHelperNaturalSort, ImageConversionSupport, SettingsStore · `model/` ArchiveMode,
-FileItem · `tools/` BundledTool, ToolCommandBuilder, ProcessRunner · `vfs/` FtpFileSystem · root: ArchitectureRules (process / background / temp-file / app-path / version / fire-and-forget rules), CommanderCopy, `CodeMapTest` (fails when a main
+FileItem · `services/` FolderComparer · `tools/` BundledTool, ToolCommandBuilder, ProcessRunner · `vfs/` FtpFileSystem · root: ArchitectureRules (process / background / temp-file / app-path / version / fire-and-forget rules), CommanderCopy, `CodeMapTest` (fails when a main
 class or an apps.json action is missing from this file).

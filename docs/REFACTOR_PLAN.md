@@ -167,8 +167,9 @@ Rechecked after Phase 3: every symbol below still exists in `Commander`. Bug fix
   not `LocalFileSystem`, so this runs whenever you pack from inside an archive. Fix: copy each item into one
   `AppTempDir.createTempDirectory` under its own name (`VFileSystem.copy` already handles folders) and pack those.
   Test with a mocked source `VFileSystem`: the paths handed to 7-Zip end in the original names, folders included.
-- [ ] 4.1 `FolderComparer`: `compareFolderTrees`, `collectFolderEntries`, `checksumSha256`, `FolderEntry` /
+- [x] 4.1 `FolderComparer`: `compareFolderTrees`, `collectFolderEntries`, `checksumSha256`, `FolderEntry` /
   `FolderCompareResult` / `FolderCompareMark`. Test: only-left / only-right / different by size, date, checksum.
+  Done as `services/FolderComparer` (first class in `services/`, decision 5); the never-hit checksum cache dropped.
 - [x] 4.2 Merged into 3.2 (bookmark storage); the bookmark picker moves with the dialogs in Phase 5.
 - [ ] 4.3 `buildChecksumCommand`, `buildAnalyzeFileCommand`, `buildCompareCommand`, `parseSplitSize` → `tools/`,
   each with a test of the argument list.

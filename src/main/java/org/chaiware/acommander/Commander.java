@@ -36,6 +36,7 @@ import org.chaiware.acommander.model.ArchiveSession;
 import org.chaiware.acommander.model.FileItem;
 import org.chaiware.acommander.model.Folder;
 import org.chaiware.acommander.palette.CommandPaletteController;
+import org.chaiware.acommander.services.FolderComparer;
 import org.chaiware.acommander.tools.BundledTool;
 import org.chaiware.acommander.tools.ProcessRunner;
 import org.chaiware.acommander.vfs.FtpConnectionOptions;
@@ -49,9 +50,6 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
-import java.security.DigestInputStream;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.util.*;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
@@ -116,7 +114,7 @@ public class Commander {
     private volatile boolean restoreFileListFocusAfterSettingsEdit = false;
     private final Map<FilesPanesHelper.FocusSide, String> incrementalCharFilters = new EnumMap<>(FilesPanesHelper.FocusSide.class);
     private final Map<FilesPanesHelper.FocusSide, List<FileItem>> incrementalFilterBases = new EnumMap<>(FilesPanesHelper.FocusSide.class);
-    private final Map<FilesPanesHelper.FocusSide, Map<String, FolderCompareMark>> folderCompareMarks = new EnumMap<>(FilesPanesHelper.FocusSide.class);
+    private final Map<FilesPanesHelper.FocusSide, Map<String, FolderComparer.Mark>> folderCompareMarks = new EnumMap<>(FilesPanesHelper.FocusSide.class);
     private Popup incrementalFilterPopup;
     private Label incrementalFilterPopupLabel;
     private Popup toastPopup;
@@ -763,17 +761,17 @@ public class Commander {
         if (item == null || "..".equals(item.getPresentableFilename())) {
             return;
         }
-        Map<String, FolderCompareMark> marks = folderCompareMarks.get(side);
+        Map<String, FolderComparer.Mark> marks = folderCompareMarks.get(side);
         if (marks == null || marks.isEmpty()) {
             return;
         }
         String key;
         try {
-            key = normalizePathKey(item.getFile().toPath());
+            key = FolderComparer.key(item.getFile().toPath());
         } catch (InvalidPathException | SecurityException e) {
             return;
         }
-        FolderCompareMark mark = marks.get(key);
+        FolderComparer.Mark mark = marks.get(key);
         if (mark == null) {
             return;
         }
@@ -3677,13 +3675,13 @@ public class Commander {
             return;
         }
 
-        Optional<CompareFoldersOptions> options = promptCompareFoldersOptions(leftRoot, rightRoot);
+        Optional<FolderComparer.Options> options = promptCompareFoldersOptions(leftRoot, rightRoot);
         if (options.isEmpty()) {
             return;
         }
 
         runWithProgress("Comparing folders",
-                () -> compareFolderTrees(leftRoot, rightRoot, options.get()),
+                () -> FolderComparer.compare(leftRoot, rightRoot, options.get()),
                 result -> {
                     folderCompareMarks.put(LEFT, new HashMap<>(result.leftMarks()));
                     folderCompareMarks.put(RIGHT, new HashMap<>(result.rightMarks()));
@@ -3699,8 +3697,8 @@ public class Commander {
                 "Failed comparing folders");
     }
 
-    private Optional<CompareFoldersOptions> promptCompareFoldersOptions(Path leftRoot, Path rightRoot) {
-        Dialog<CompareFoldersOptions> dialog = new Dialog<>();
+    private Optional<FolderComparer.Options> promptCompareFoldersOptions(Path leftRoot, Path rightRoot) {
+        Dialog<FolderComparer.Options> dialog = new Dialog<>();
         dialog.setTitle("Compare Folders");
         dialog.setHeaderText(null);
 
@@ -3747,7 +3745,7 @@ public class Commander {
             if (button != compareType) {
                 return null;
             }
-            return new CompareFoldersOptions(
+            return new FolderComparer.Options(
                     compareByDate.isSelected(),
                     checksum.isSelected(),
                     recursive.isSelected(),
@@ -3755,172 +3753,6 @@ public class Commander {
             );
         });
         return dialog.showAndWait();
-    }
-
-    private FolderCompareResult compareFolderTrees(Path leftRoot, Path rightRoot, CompareFoldersOptions options) throws IOException {
-        Map<String, FolderEntry> leftEntries = collectFolderEntries(leftRoot, options);
-        Map<String, FolderEntry> rightEntries = collectFolderEntries(rightRoot, options);
-
-        Set<String> allKeys = new TreeSet<>();
-        allKeys.addAll(leftEntries.keySet());
-        allKeys.addAll(rightEntries.keySet());
-
-        Map<String, FolderCompareMark> leftMarks = new HashMap<>();
-        Map<String, FolderCompareMark> rightMarks = new HashMap<>();
-        int onlyLeft = 0;
-        int onlyRight = 0;
-        int different = 0;
-        Map<String, String> checksumCache = new HashMap<>();
-
-        for (String key : allKeys) {
-            FolderEntry left = leftEntries.get(key);
-            FolderEntry right = rightEntries.get(key);
-
-            if (left == null) {
-                onlyRight++;
-                mark(rightMarks, right.topLevelPath(), FolderCompareMark.RIGHT_ONLY);
-                continue;
-            }
-            if (right == null) {
-                onlyLeft++;
-                mark(leftMarks, left.topLevelPath(), FolderCompareMark.LEFT_ONLY);
-                continue;
-            }
-            if (left.directory() != right.directory()) {
-                different++;
-                mark(leftMarks, left.topLevelPath(), FolderCompareMark.DIFFERENT);
-                mark(rightMarks, right.topLevelPath(), FolderCompareMark.DIFFERENT);
-                continue;
-            }
-            if (left.directory()) {
-                continue;
-            }
-            if (left.size() != right.size()) {
-                different++;
-                mark(leftMarks, left.topLevelPath(), FolderCompareMark.DIFFERENT);
-                mark(rightMarks, right.topLevelPath(), FolderCompareMark.DIFFERENT);
-                continue;
-            }
-            if (options.compareByDate() && left.modifiedMillis() != right.modifiedMillis()) {
-                different++;
-                mark(leftMarks, left.topLevelPath(), FolderCompareMark.DIFFERENT);
-                mark(rightMarks, right.topLevelPath(), FolderCompareMark.DIFFERENT);
-                continue;
-            }
-            if (options.checksum()) {
-                String leftChecksum = getOrComputeChecksum(checksumCache, left.absolutePath());
-                String rightChecksum = getOrComputeChecksum(checksumCache, right.absolutePath());
-                if (!Objects.equals(leftChecksum, rightChecksum)) {
-                    different++;
-                    mark(leftMarks, left.topLevelPath(), FolderCompareMark.DIFFERENT);
-                    mark(rightMarks, right.topLevelPath(), FolderCompareMark.DIFFERENT);
-                }
-            }
-        }
-
-        return new FolderCompareResult(leftMarks, rightMarks, onlyLeft, onlyRight, different);
-    }
-
-    private Map<String, FolderEntry> collectFolderEntries(Path root, CompareFoldersOptions options) throws IOException {
-        Map<String, FolderEntry> entries = new HashMap<>();
-        if (!options.recursive()) {
-            try (var stream = Files.list(root)) {
-                stream.forEach(path -> addFolderEntry(entries, root, path, options));
-            }
-            return entries;
-        }
-        try (var stream = Files.walk(root)) {
-            stream
-                    .filter(path -> !path.equals(root))
-                    .forEach(path -> addFolderEntry(entries, root, path, options));
-        }
-        return entries;
-    }
-
-    private void addFolderEntry(Map<String, FolderEntry> entries, Path root, Path path, CompareFoldersOptions options) {
-        String relative = root.relativize(path).toString().replace('\\', '/');
-        String key = options.caseSensitiveNames() ? relative : relative.toLowerCase(Locale.ROOT);
-        String topLevelName = extractTopLevelName(relative);
-        boolean directory = Files.isDirectory(path);
-        long size = 0L;
-        long modified = 0L;
-        if (!directory) {
-            try {
-                size = Files.size(path);
-            } catch (IOException ignored) {
-                size = 0L;
-            }
-        }
-        try {
-            modified = Files.getLastModifiedTime(path).toMillis();
-        } catch (IOException ignored) {
-            modified = 0L;
-        }
-        entries.putIfAbsent(
-                key,
-                new FolderEntry(path.toAbsolutePath().normalize(), root.resolve(topLevelName).toAbsolutePath().normalize(), directory, size, modified)
-        );
-    }
-
-    private String extractTopLevelName(String relativePath) {
-        int slash = relativePath.indexOf('/');
-        if (slash < 0) {
-            return relativePath;
-        }
-        return relativePath.substring(0, slash);
-    }
-
-    private String getOrComputeChecksum(Map<String, String> cache, Path file) throws IOException {
-        String cacheKey = normalizePathKey(file);
-        String existing = cache.get(cacheKey);
-        if (existing != null) {
-            return existing;
-        }
-        String computed = checksumSha256(file);
-        cache.put(cacheKey, computed);
-        return computed;
-    }
-
-    private String checksumSha256(Path file) throws IOException {
-        MessageDigest digest;
-        try {
-            digest = MessageDigest.getInstance("SHA-256");
-        } catch (NoSuchAlgorithmException ex) {
-            throw new IllegalStateException("SHA-256 algorithm is not available", ex);
-        }
-        try (DigestInputStream dis = new DigestInputStream(Files.newInputStream(file), digest)) {
-            byte[] buffer = new byte[8192];
-            while (dis.read(buffer) != -1) {
-                // consume stream
-            }
-        }
-        byte[] hash = digest.digest();
-        StringBuilder sb = new StringBuilder(hash.length * 2);
-        for (byte b : hash) {
-            sb.append(String.format("%02x", b));
-        }
-        return sb.toString();
-    }
-
-    private void mark(Map<String, FolderCompareMark> marks, Path topLevelPath, FolderCompareMark mark) {
-        if (topLevelPath == null) {
-            return;
-        }
-        String key = normalizePathKey(topLevelPath);
-        FolderCompareMark existing = marks.get(key);
-        if (existing == FolderCompareMark.DIFFERENT || existing == mark) {
-            return;
-        }
-        if ((existing == FolderCompareMark.LEFT_ONLY && mark == FolderCompareMark.RIGHT_ONLY)
-                || (existing == FolderCompareMark.RIGHT_ONLY && mark == FolderCompareMark.LEFT_ONLY)) {
-            marks.put(key, FolderCompareMark.DIFFERENT);
-            return;
-        }
-        marks.put(key, mark);
-    }
-
-    private String normalizePathKey(Path path) {
-        return path.toAbsolutePath().normalize().toString().toLowerCase(Locale.ROOT);
     }
 
     private void clearFolderCompareHighlights(boolean refresh) {
@@ -6456,31 +6288,6 @@ public class Commander {
             boolean ignoreCase,
             WhiteSpaceCompareMode whitespaceMode,
             boolean differencesOnly
-    ) {}
-    private enum FolderCompareMark {
-        LEFT_ONLY,
-        RIGHT_ONLY,
-        DIFFERENT
-    }
-    private record CompareFoldersOptions(
-            boolean compareByDate,
-            boolean checksum,
-            boolean recursive,
-            boolean caseSensitiveNames
-    ) {}
-    private record FolderEntry(
-            Path absolutePath,
-            Path topLevelPath,
-            boolean directory,
-            long size,
-            long modifiedMillis
-    ) {}
-    private record FolderCompareResult(
-            Map<String, FolderCompareMark> leftMarks,
-            Map<String, FolderCompareMark> rightMarks,
-            int onlyLeftCount,
-            int onlyRightCount,
-            int differentCount
     ) {}
     private enum ImageCompressionMode {
         QUALITY,
