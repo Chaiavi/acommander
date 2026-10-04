@@ -43,7 +43,7 @@ server is available.
 - [x] 0.2 `ActionRulesSnapshotTest` + `src/test/resources/action-rules-snapshot.txt`: for every `apps.json` action,
   today's FTP gate, read-only gate (source / target / both / none) and palette enablement for sample selections.
   Locks behaviour for Phase 2.
-- [ ] 0.3 `ArchitectureRulesTest`: source-text scan like `CodeMapTest`. Later phases add rules.
+- [x] 0.3 Dropped: an empty `ArchitectureRulesTest` checks nothing. Created in 1.7 with its first rules.
 
 ## Phase 1 — Processes, Threads, Temp Files (real bugs)
 
@@ -59,8 +59,8 @@ server is available.
   `CommandsAdvancedImpl`, `CommandsSimpleImpl`, `ArchiveSession`).
 - [ ] 1.6 `AppTempDir` (`%TEMP%/acommander-<pid>`, deleted on exit, stale roots removed at startup) + per-operation
   `TempWorkspace`. Replace ~20 `deleteOnExit`.
-- [ ] 1.7 `ArchitectureRulesTest`: no `new ProcessBuilder` outside `ProcessRunner`; no `deleteOnExit`; no
-  `newCachedThreadPool`.
+- [ ] 1.7 Create `ArchitectureRulesTest` (source-text scan like `CodeMapTest`): no `new ProcessBuilder` outside
+  `ProcessRunner`; no `deleteOnExit`; no `newCachedThreadPool`.
 
 ## Phase 2 — Action Rules in apps.json (depends on 0)
 
