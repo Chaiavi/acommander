@@ -171,8 +171,9 @@ Rechecked after Phase 3: every symbol below still exists in `Commander`. Bug fix
   `FolderCompareResult` / `FolderCompareMark`. Test: only-left / only-right / different by size, date, checksum.
   Done as `services/FolderComparer` (first class in `services/`, decision 5); the never-hit checksum cache dropped.
 - [x] 4.2 Merged into 3.2 (bookmark storage); the bookmark picker moves with the dialogs in Phase 5.
-- [ ] 4.3 `buildChecksumCommand`, `buildAnalyzeFileCommand`, `buildCompareCommand`, `parseSplitSize` → `tools/`,
-  each with a test of the argument list.
+- [x] 4.3 `buildChecksumCommand`, `buildAnalyzeFileCommand`, `buildCompareCommand`, `parseSplitSize` → `tools/`,
+  each with a test of the argument list. Done as one `tools/BundledToolCommands` with the option types; a split size
+  that overflows `long` is now rejected (it could wrap to a positive number).
 - [ ] 4.4 `AudioConversionService` (`runAudioConversion*`, staging, AAC bridge), `ImageConversionService`
   (`buildImageConvertCommand` and the run). The option prompts (`promptImageConversionOptions`, …) stay for Phase 5.
 - [ ] 4.5 Metadata remove runners (`runVideoMetadataDeleteCommand`, `runAudioMetadataDeleteCommand`, the exiv2

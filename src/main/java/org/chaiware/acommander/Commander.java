@@ -38,6 +38,11 @@ import org.chaiware.acommander.model.Folder;
 import org.chaiware.acommander.palette.CommandPaletteController;
 import org.chaiware.acommander.services.FolderComparer;
 import org.chaiware.acommander.tools.BundledTool;
+import org.chaiware.acommander.tools.BundledToolCommands;
+import org.chaiware.acommander.tools.BundledToolCommands.ChecksumOptions;
+import org.chaiware.acommander.tools.BundledToolCommands.CompareFilesOptions;
+import org.chaiware.acommander.tools.BundledToolCommands.SplitSize;
+import org.chaiware.acommander.tools.BundledToolCommands.WhiteSpaceCompareMode;
 import org.chaiware.acommander.tools.ProcessRunner;
 import org.chaiware.acommander.vfs.FtpConnectionOptions;
 import org.chaiware.acommander.vfs.FtpFileSystem;
@@ -3194,7 +3199,7 @@ public class Commander {
         }
 
         Path magicPath = BundledTool.FILE_MAGIC.path();
-        List<String> command = buildAnalyzeFileCommand(fileToolPath, magicPath, selectedItem.getFullPath());
+        List<String> command = BundledToolCommands.analyzeFile(fileToolPath, magicPath, selectedItem.getFullPath());
         logger.debug("Analyze File command: {}", command);
 
         runExternal(command, false)
@@ -3238,20 +3243,6 @@ public class Commander {
                 });
     }
 
-    private List<String> buildAnalyzeFileCommand(Path fileToolPath, Path magicPath, String targetPath) {
-        List<String> command = new ArrayList<>();
-        command.add(fileToolPath.toString());
-        command.add("-b");
-        command.add("-k");
-        command.add("-z");
-        if (Files.isRegularFile(magicPath)) {
-            command.add("-m");
-            command.add(magicPath.toString());
-        }
-        command.add(targetPath);
-        return command;
-    }
-
     private void runAnalyzeFileFallbackForNonAsciiPath(
             FileItem selectedItem,
             Path fileToolPath,
@@ -3273,7 +3264,7 @@ public class Commander {
         }
 
         Path finalStagedFile = stagedFile;
-        List<String> fallbackCommand = buildAnalyzeFileCommand(fileToolPath, magicPath, finalStagedFile.toString());
+        List<String> fallbackCommand = BundledToolCommands.analyzeFile(fileToolPath, magicPath, finalStagedFile.toString());
         logger.debug("Analyze File fallback command: {}", fallbackCommand);
         runExternal(fallbackCommand, false)
                 .thenAccept(fallbackOutput -> {
@@ -3410,7 +3401,7 @@ public class Commander {
             return;
         }
 
-        List<String> command = buildChecksumCommand(rhashPath, selectedItem.getFullPath(), options.get(), false);
+        List<String> command = BundledToolCommands.checksum(rhashPath, selectedItem.getFullPath(), options.get(), false);
         runExternal(command, false)
                 .thenAccept(output -> Platform.runLater(() -> {
                     String checksumValue = options.get().includeFileNames()
@@ -3468,7 +3459,7 @@ public class Commander {
             return;
         }
 
-        List<String> command = buildChecksumCommand(rhashPath, selectedItem.getFullPath(), options.get(), true);
+        List<String> command = BundledToolCommands.checksum(rhashPath, selectedItem.getFullPath(), options.get(), true);
         runExternal(command, false)
                 .thenAccept(output -> Platform.runLater(() -> {
                     String resultText = String.join(System.lineSeparator(), output).trim();
@@ -3655,7 +3646,7 @@ public class Commander {
             return;
         }
 
-        List<String> command = buildCompareCommand(examDiffPath, leftSelected, rightSelected, options.get());
+        List<String> command = BundledToolCommands.compareFiles(examDiffPath, leftSelected.getFullPath(), rightSelected.getFullPath(), options.get());
         runExternal(command, false, Set.of(27))
                 .whenComplete((output, throwable) -> Platform.runLater(() -> {
                     if (throwable != null) {
@@ -5390,7 +5381,7 @@ public class Commander {
         Button splitButton = (Button) dialog.getDialogPane().lookupButton(splitType);
         final SplitSize[] parsed = new SplitSize[1];
         Runnable validate = () -> {
-            parsed[0] = parseSplitSize(sizeField.getText());
+            parsed[0] = BundledToolCommands.parseSplitSize(sizeField.getText());
             if (!parsed[0].valid()) {
                 validationLabel.setText(parsed[0].message());
                 splitButton.setDisable(true);
@@ -5632,52 +5623,6 @@ public class Commander {
         return dialog.showAndWait();
     }
 
-    private List<String> buildCompareCommand(String examDiffPath, FileItem leftFile, FileItem rightFile, CompareFilesOptions options) {
-        List<String> command = new ArrayList<>();
-        command.add(examDiffPath);
-        command.add(leftFile.getFullPath());
-        command.add(rightFile.getFullPath());
-        command.add(options.ignoreCase() ? "/i" : "/!i");
-        command.add("/t");
-        command.add(options.differencesOnly() ? "/d" : "/!d");
-
-        switch (options.whitespaceMode()) {
-            case ALL -> {
-                command.add("/w");
-                command.add("/!b");
-                command.add("/!l");
-                command.add("/!e");
-            }
-            case AMOUNT -> {
-                command.add("/!w");
-                command.add("/b");
-                command.add("/!l");
-                command.add("/!e");
-            }
-            case LEADING -> {
-                command.add("/!w");
-                command.add("/!b");
-                command.add("/l");
-                command.add("/!e");
-            }
-            case TRAILING -> {
-                command.add("/!w");
-                command.add("/!b");
-                command.add("/!l");
-                command.add("/e");
-            }
-            case NONE -> {
-                command.add("/!w");
-                command.add("/!b");
-                command.add("/!l");
-                command.add("/!e");
-            }
-        }
-
-        command.add("/n");
-        return command;
-    }
-
     private FileItem getSingleSelectedFile(ListView<FileItem> listView) {
         if (listView == null || listView.getSelectionModel() == null) {
             return null;
@@ -5724,61 +5669,6 @@ public class Commander {
         }
     }
 
-    private SplitSize parseSplitSize(String rawInput) {
-        String input = rawInput == null ? "" : rawInput.trim().toLowerCase(Locale.ROOT);
-        if (input.isEmpty()) {
-            return new SplitSize(false, 0L, "", "Please enter a split size.");
-        }
-
-        String unit = "";
-        String digits = input;
-        if (input.endsWith("kb")) {
-            unit = "k";
-            digits = input.substring(0, input.length() - 2);
-        } else if (input.endsWith("mb")) {
-            unit = "m";
-            digits = input.substring(0, input.length() - 2);
-        } else if (input.endsWith("gb")) {
-            unit = "g";
-            digits = input.substring(0, input.length() - 2);
-        } else if (input.endsWith("k") || input.endsWith("m") || input.endsWith("g") || input.endsWith("b")) {
-            unit = input.substring(input.length() - 1);
-            digits = input.substring(0, input.length() - 1);
-        }
-
-        if (digits.isBlank() || !digits.chars().allMatch(Character::isDigit)) {
-            return new SplitSize(false, 0L, "", "Use a positive size like 16m, 64k, 1g, or 16777216.");
-        }
-
-        long amount;
-        try {
-            amount = Long.parseLong(digits);
-        } catch (NumberFormatException ex) {
-            return new SplitSize(false, 0L, "", "Split size is too large.");
-        }
-        if (amount <= 0) {
-            return new SplitSize(false, 0L, "", "Split size must be greater than zero.");
-        }
-
-        long bytes;
-        switch (unit) {
-            case "", "b" -> bytes = amount;
-            case "k" -> bytes = amount * 1024L;
-            case "m" -> bytes = amount * 1024L * 1024L;
-            case "g" -> bytes = amount * 1024L * 1024L * 1024L;
-            default -> {
-                return new SplitSize(false, 0L, "", "Unsupported unit. Use k, m, g, or bytes.");
-            }
-        }
-
-        if (bytes <= 0) {
-            return new SplitSize(false, 0L, "", "Split size is too large.");
-        }
-
-        String sevenZipArg = amount + unit;
-        return new SplitSize(true, bytes, sevenZipArg, "");
-    }
-
     private String buildSplitArchiveName(String sourceFilename) {
         int dotIndex = sourceFilename.lastIndexOf('.');
         if (dotIndex > 0) {
@@ -5801,27 +5691,6 @@ public class Commander {
         }
         double gb = mb / 1024.0;
         return String.format(Locale.ROOT, "%.2f GB", gb);
-    }
-
-    private List<String> buildChecksumCommand(Path rhashPath, String targetPath, ChecksumOptions options, boolean recursive) {
-        List<String> command = new ArrayList<>();
-        command.add(rhashPath.toString());
-        command.add(options.algorithmFlag());
-        if (recursive) {
-            command.add("--recursive");
-        }
-        if (options.base32()) {
-            command.add("--base32");
-        } else if (options.base64()) {
-            command.add("--base64");
-        } else {
-            command.add("--hex");
-        }
-        if (!options.includeFileNames()) {
-            command.add("--simple");
-        }
-        command.add(targetPath);
-        return command;
     }
 
     private Optional<ChecksumOptions> promptChecksumOptions(String titleText, String selectedName, boolean includeNamesByDefault) {
@@ -6258,37 +6127,6 @@ public class Commander {
         toastPopup.getContent().add(toastLabel);
     }
 
-    private record SplitSize(boolean valid, long bytes, String sevenZipArg, String message) {}
-    private record ChecksumOptions(
-            String algorithmFlag,
-            String algorithmLabel,
-            boolean base32,
-            boolean base64,
-            boolean includeFileNames
-    ) {}
-    private enum WhiteSpaceCompareMode {
-        NONE("Do not ignore whitespace"),
-        ALL("Ignore all whitespace"),
-        AMOUNT("Ignore changes in amount of whitespace"),
-        LEADING("Ignore leading whitespace"),
-        TRAILING("Ignore trailing whitespace");
-
-        private final String label;
-
-        WhiteSpaceCompareMode(String label) {
-            this.label = label;
-        }
-
-        @Override
-        public String toString() {
-            return label;
-        }
-    }
-    private record CompareFilesOptions(
-            boolean ignoreCase,
-            WhiteSpaceCompareMode whitespaceMode,
-            boolean differencesOnly
-    ) {}
     private enum ImageCompressionMode {
         QUALITY,
         LOSSLESS,

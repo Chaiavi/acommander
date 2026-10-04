@@ -74,16 +74,16 @@ Adding or renaming an action id? Check each of these:
 | `search` (F10, Ctrl+F) | `search` | `CommandsSimpleImpl.searchFiles` (PowerShell `Get-ChildItem`) | — |
 | `findInFiles` (Alt+F10) | `findInFiles`, `runFindInFiles`, `showFileResultsDialog` | `FindInFilesOptions` record | `search_in_files/rg.exe` |
 | `pack` (F11) | `pack` | `CommandsAdvancedImpl.doPack` | `pack_unpack/7zG.exe` |
-| `splitLargeFile` (Alt+F11) | `splitLargeFile`, `promptSplitSize`, `parseSplitSize` | — | `extract_all/UniExtract/bin/x64/7z.exe` |
+| `splitLargeFile` (Alt+F11) | `splitLargeFile`, `promptSplitSize` | `tools/BundledToolCommands.parseSplitSize` | `extract_all/UniExtract/bin/x64/7z.exe` |
 | `unpack` (F12) | `unpackFile` | `CommandsAdvancedImpl.doUnpack` → `unpackWith` | `pack_unpack/7zG.exe` |
 | `extractAll` (Alt+F12) | `extractAll` | `doExtractAll` → `unpackWith` | `extract_all/UniExtract/UniExtract.exe` |
 | `mergePdf` / `extractPdfPages` | `mergePDFFiles` / `extractPDFPages`, `promptPdfExtractOptions` | `doMergePDFs` / `doExtractPDFPages`, `PdfExtractOptions` | `pdf/pdftk.exe` |
 | `convertMediaFile` (Alt+F5) | `convertMediaFile` → image or audio below | `ImageConversionSupport`, `AudioConversionSupport` | — |
 | `convertGraphicsFiles` | `convertGraphicsFiles`, `promptImageConversionOptions` | `ImageConversionSupport` | `image_convert/caesiumclt.exe` |
 | `convertAudioFiles` | `convertAudioFiles`, `promptAudioConversionOptions`, `audioEncodingOptionsFor` | `AudioConversionSupport` | `sound_convert/sndfile-convert.exe`, `faac.exe`, `faad.exe` |
-| `checksumFile` / `checksumFolderContents` | `checksumFile` / `checksumFolderContents`, `buildChecksumCommand` | — | `checksum/rhash.exe` |
-| `analyzeFile` | `analyzeFile`, `buildAnalyzeFileCommand` | — | `file_analysis/file.exe` + `magic.mgc` |
-| `compareFiles` | `compareFiles`, `canCompareSelectedFiles`, `buildCompareCommand` | — | `file_compare/ExamDiff.exe` |
+| `checksumFile` / `checksumFolderContents` | `checksumFile` / `checksumFolderContents`, `promptChecksumOptions` | `tools/BundledToolCommands.checksum` | `checksum/rhash.exe` |
+| `analyzeFile` | `analyzeFile` | `tools/BundledToolCommands.analyzeFile` | `file_analysis/file.exe` + `magic.mgc` |
+| `compareFiles` | `compareFiles`, `canCompareSelectedFiles`, `promptCompareFilesOptions` | `tools/BundledToolCommands.compareFiles` | `file_compare/ExamDiff.exe` |
 | `compareFolders` | `compareFolders`, `promptCompareFoldersOptions`, `applyFolderCompareStyle` | `services/FolderComparer` (SHA-256 optional) | — |
 | `fileProperties` (Alt+Enter) | `fileProperties` | temp `.vbs` via `wscript.exe` (Windows Properties dialog) | — |
 | `changeAttributes` | `changeAttributes`, `promptAttributes` | `helpers/FileAttributesHelper` | `attrib` |
@@ -247,6 +247,7 @@ Other dialogs are built inline in `Commander` (`prompt*` methods).
 |---|---|
 | `ToolCommandBuilder` | Expands `${...}` placeholders in apps.json `args`; resolves `path` with `AppPaths`. |
 | `BundledTool` | Every tool under `apps/` the code runs directly (7z, curl, exiv2, rg, rhash, …) → `path()`. Tools of apps.json actions are listed there instead. `BundledToolTest` checks both lists are on disk. |
+| `BundledToolCommands` | Argument lists + option types for rhash (checksum), file (analyze), ExamDiff (compare files) and the 7-Zip split size. |
 | `ProcessRunner` | The one way to start a process: `run()` drains stdout/stderr (merged or apart) and returns `Result`; `launch()` for GUI tools; `trackIn` for the Stop button. |
 
 ### `vfs/` — pane file systems
@@ -281,5 +282,5 @@ Under `src/test/java/org/chaiware/acommander/`, same package as the class tested
 rules per action vs `src/test/resources/action-rules-snapshot.txt`) · `commands/` CommandsAdvancedImpl, CommandsSimpleImpl,
 PackVfs, ReportFailure · `config/` ActionScope, AppConfigLoader, AppRegistryShortcutMatching · `helpers/` AppTempDir, AppVersion, ArchiveManager, AudioConversionSupport,
 BugReportUrl, FileAttributesHelper, FileHelper, FilesPanesHelperNaturalSort, ImageConversionSupport, SettingsStore · `model/` ArchiveMode,
-FileItem · `services/` FolderComparer · `tools/` BundledTool, ToolCommandBuilder, ProcessRunner · `vfs/` FtpFileSystem · root: ArchitectureRules (process / background / temp-file / app-path / version / fire-and-forget rules), CommanderCopy, `CodeMapTest` (fails when a main
+FileItem · `services/` FolderComparer · `tools/` BundledTool, BundledToolCommands, ToolCommandBuilder, ProcessRunner · `vfs/` FtpFileSystem · root: ArchitectureRules (process / background / temp-file / app-path / version / fire-and-forget rules), CommanderCopy, `CodeMapTest` (fails when a main
 class or an apps.json action is missing from this file).
