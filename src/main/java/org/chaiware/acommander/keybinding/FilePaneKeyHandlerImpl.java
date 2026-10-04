@@ -109,8 +109,7 @@ public class FilePaneKeyHandlerImpl implements IKeyHandler {
 
         // Check if we're in an archive
         if (commander.filesPanesHelper.isInArchive(side)) {
-            // Use archive-aware navigation (works like ".." entry)
-            commander.filesPanesHelper.goUpInArchive(side);
+            commander.goUpInArchive();
         } else {
             // Regular folder navigation
             String currentPath = commander.filesPanesHelper.getFocusedPath();

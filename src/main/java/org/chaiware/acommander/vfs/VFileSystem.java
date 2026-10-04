@@ -76,11 +76,6 @@ public interface VFileSystem {
     VFileSystem enterVirtualFolder(FileItem item) throws IOException;
 
     /**
-     * Finalizes any pending changes (e.g., repacking an archive).
-     */
-    void repack() throws IOException;
-
-    /**
      * Cleans up resources.
      */
     void close() throws IOException;

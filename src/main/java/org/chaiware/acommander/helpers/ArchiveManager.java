@@ -10,6 +10,8 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -21,6 +23,7 @@ import java.util.List;
 public class ArchiveManager {
     private static final Logger logger = LoggerFactory.getLogger(ArchiveManager.class);
     private static final String SEVEN_Z_PATH = Paths.get(System.getProperty("user.dir"), "apps", "extract_all", "UniExtract", "bin", "x64", "7z.exe").toString();
+    private static final DateTimeFormatter RECOVERY_STAMP = DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss");
     
     /**
      * Opens an archive and creates a session.
@@ -54,25 +57,54 @@ public class ArchiveManager {
     }
     
     /**
-     * Closes an archive session.
-     * For read-write archives with changes, repacks the archive.
-     * Cleans up the temp folder.
-     * 
-     * @param session The session to close
-     * @throws IOException If repacking fails
+     * Closes an archive session: repacks a changed read-write archive, then deletes the extracted folder.
+     * If the repack fails, the edited files are copied out first and the exception says where.
      */
     public void closeArchive(ArchiveSession session) throws IOException {
         logger.info("Closing archive session: {}", session.getArchivePath());
-        
-        try {
-            // For read-write archives with changes, repack the archive
-            if (session.getMode() == ArchiveMode.READ_WRITE && session.isNeedsRepack()) {
+        Path tempFolder = session.getTempFolder();
+        if (session.getMode() == ArchiveMode.READ_WRITE && session.isNeedsRepack()) {
+            try {
                 repackArchive(session);
+            } catch (IOException repackError) {
+                Path archive = Paths.get(session.getArchivePath());
+                Path recovered;
+                try {
+                    recovered = recoverEdits(tempFolder, archive, LocalDateTime.now().format(RECOVERY_STAMP));
+                } catch (IOException recoveryError) {
+                    repackError.addSuppressed(recoveryError);
+                    throw new IOException("Changes could not be saved into " + archive.getFileName()
+                            + " and could not be copied out. Copy them from " + tempFolder
+                            + " before closing ACommander.", repackError);
+                }
+                FileHelper.deleteQuietly(tempFolder);
+                throw new IOException("Changes could not be saved into " + archive.getFileName()
+                        + ". Your edited files were copied to " + recovered, repackError);
             }
-        } finally {
-            // Always clean up temp folder
-            FileHelper.deleteQuietly(session.getTempFolder());
         }
+        FileHelper.deleteQuietly(tempFolder);
+    }
+
+    /** Copies the edited files next to the archive (or to the home folder) as {@code <archive>.recovered-<stamp>}. */
+    static Path recoverEdits(Path tempFolder, Path archive, String stamp) throws IOException {
+        String name = archive.getFileName() + ".recovered-" + stamp;
+        List<Path> targets = new ArrayList<>();
+        if (archive.getParent() != null) {
+            targets.add(archive.getParent().resolve(name));
+        }
+        targets.add(Paths.get(System.getProperty("user.home")).resolve(name));
+        IOException lastError = null;
+        for (Path target : targets) {
+            try {
+                FileHelper.copyTree(tempFolder, target);
+                logger.warn("Repack failed; edited files copied to {}", target);
+                return target;
+            } catch (IOException e) {
+                lastError = e;
+                FileHelper.deleteQuietly(target);
+            }
+        }
+        throw lastError;
     }
     
     /**

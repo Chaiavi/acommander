@@ -14,6 +14,7 @@ import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.SimpleFileVisitor;
+import java.nio.file.StandardCopyOption;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.Comparator;
 import java.util.concurrent.atomic.AtomicLong;
@@ -119,6 +120,20 @@ public class FileHelper {
             }
         });
         return total.get();
+    }
+
+    /** Copies a folder tree into {@code target}; existing files there are not overwritten. */
+    public static void copyTree(Path source, Path target) throws IOException {
+        try (Stream<Path> walk = Files.walk(source)) {
+            for (Path path : (Iterable<Path>) walk::iterator) {
+                Path destination = target.resolve(source.relativize(path));
+                if (Files.isDirectory(path)) {
+                    Files.createDirectories(destination);
+                } else {
+                    Files.copy(path, destination, StandardCopyOption.COPY_ATTRIBUTES);
+                }
+            }
+        }
     }
 
     /** Best-effort delete of a temp/staging folder tree; entries that can't be deleted are left and logged. */

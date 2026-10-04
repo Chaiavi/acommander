@@ -116,14 +116,15 @@ Rechecked after Phase 2. Dropped the `UiFeedback` and `CommanderContext` interfa
   left/right folder, theme, `last_selection_pattern`, bookmarks and FTP connections (absorbs the old 4.2). Password
   stays plaintext until 10.6. Test on a temp dir: round trip, and an interrupted save keeps the old file.
 - [ ] 3.3 Errors and data loss the user never sees (bug fixes; one issue each):
-  1. **Data loss on repack failure.** `ArchiveManager.closeArchive` deletes the extracted folder in `finally`, even
-     when the repack fails, and `FilesPanesHelper.exitArchive` only logs the error. Edits made inside the archive are
-     silently lost. Fix: on repack failure move the extracted folder next to the archive as
-     `<archive>.recovered-<yyyyMMdd-HHmmss>` (outside `AppTempDir`, which is wiped on exit), and tell the user
-     where it is. Same path on app exit (`FilesPanesHelper.cleanup`). Test: the recovery move keeps every file.
-  2. **Archive open/close/navigate failures are only logged.** `FilesPanesHelper.enterArchive`, `exitArchive`,
-     `enterArchiveSubdirectory`, `goUpInArchive` catch `IOException` and log. Let them throw; their callers already
-     run inside `runWithProgress`, which shows the error.
+  1. Done (#147). **Data loss on repack failure.** `ArchiveManager.closeArchive` deleted the extracted folder in
+     `finally`, even when the repack failed, and every caller only logged. Now the edits are copied to
+     `<archive>.recovered-<yyyyMMdd-HHmmss>` next to the archive (home folder as fallback) and the error names it;
+     `VfsManager.closeFileSystem` and `FilesPanesHelper.cleanup` stop swallowing, and `Main` shows exit-time
+     failures. Deleted the never-called `VFileSystem.repack`.
+  2. Done (#148). **Archive open/close/navigate failures were only logged.** `enterArchive`, `exitArchive`,
+     `goUpInArchive` now throw into `runWithProgress`. `exitArchive` shows the parent folder itself (before the
+     repack), so the two "leave archive, show parent" copies in `Commander` and `goUpInArchive` are gone. Backspace
+     inside an archive now runs through `Commander.goUpInArchive` (it repacked on the UI thread before).
   3. Review the 7 `throw new RuntimeException(e)` and 10 `catch (... ignored)`; fix the ones that hide a
      user-facing failure, leave the rest.
 - [ ] 3.4 Metadata dialogs take the owner `Window` + theme instead of `Commander` (they use only `rootPane` and

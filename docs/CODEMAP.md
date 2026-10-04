@@ -108,7 +108,7 @@ Not actions, but often asked for:
 | Behaviour | Where |
 |---|---|
 | Enter on an item (open folder, archive, run exe/bat/ps1, open with default app) | `Commander.enterSelectedItem`, `handleArchiveEnter`, `openFileWithSystemDefault` |
-| Backspace / go up (local, archive, FTP root disconnects) | `FilePaneKeyHandlerImpl.goUpOneFolder` |
+| Backspace / go up (local, archive, FTP root disconnects) | `FilePaneKeyHandlerImpl.goUpOneFolder`; inside an archive `Commander.goUpInArchive` → `FilesPanesHelper.goUpInArchive` / `exitArchive` |
 | Type-to-filter popup | `Commander.filterByChar`, `backspaceCharFilter`, `applyIncrementalFilter` |
 | Pane list cells, icons, colours | `Commander.configListViewLookAndBehavior`, `resolveIconSpec`, `is*Extension` |
 | Pane footer (counts / sizes) | `Commander.updatePaneSummary` |
@@ -199,10 +199,10 @@ Other dialogs are built inline in `Commander` (`prompt*` methods).
 | File | Role |
 |---|---|
 | `FilesPanesHelper` | Two panes: focus side, current `VFileSystem` per side, path, listing, sorting (`compareNaturalNames`), selection, archive enter/exit. Inner `ArchiveFolder`, `ArchiveParentItem`, `FilePane`. |
-| `ArchiveManager` | Opens an archive by extracting to a temp folder (`7z.exe`), repacks on close if modified. |
+| `ArchiveManager` | Opens an archive by extracting to a temp folder (`7z.exe`), repacks on close if modified. A failed repack copies the edits to `<archive>.recovered-<stamp>` and throws a message naming it. |
 | `ArchiveService` | `isSupportedArchiveExtension` — extensions 7-Zip can unpack (enables unpack/extractAll). |
 | `FileAttributesHelper` | Read/apply R/H/S/A attributes (NIO, `attrib` fallback). |
-| `FileHelper` | `isTextFile` sniffing; `folderSize` (skips unreadable entries); `deleteQuietly` (best-effort temp tree delete). |
+| `FileHelper` | `isTextFile` sniffing; `folderSize` (skips unreadable entries); `copyTree`; `deleteQuietly` (best-effort temp tree delete). |
 | `BackgroundTasks` | The one background executor (virtual threads): `run`, `supply`. Never use `CompletableFuture.runAsync` without it. |
 | `AppTempDir` | Every temp file/folder goes under `%TEMP%/acommander-<pid>`: `createTempFile`, `createTempDirectory`. Deleted on exit; `deleteStaleRoots` (run at startup by `Main`) removes roots of dead runs. |
 | `ImageConversionSupport`, `AudioConversionSupport` | Which files convert, target formats. |
@@ -242,7 +242,7 @@ Other dialogs are built inline in `Commander` (`prompt*` methods).
 ### `vfs/` — pane file systems
 | File | Role |
 |---|---|
-| `VFileSystem` | Interface: list, copy/move across FS, delete, rename, mkdir, virtual folders, repack. |
+| `VFileSystem` | Interface: list, copy/move across FS, delete, rename, mkdir, virtual folders, `close` (an archive repacks there). |
 | `VfsManager` | Creates local/FTP FS; enters archives (`enterVirtualFolder`). |
 | `LocalFileSystem` | Disk. Archive files are virtual folders. |
 | `ArchiveFileSystem` | Inside an archive's temp folder; marks modified for repack. |
@@ -269,7 +269,7 @@ Under `src/test/java/org/chaiware/acommander/`, same package as the class tested
 
 `actions/` ActionMatcher, ActionPriorityEngine, ActionRegistry, BuiltinAction, ActionRulesSnapshot (FTP / read-only / palette
 rules per action vs `src/test/resources/action-rules-snapshot.txt`) · `commands/` CommandsAdvancedImpl, CommandsSimpleImpl,
-PackVfs · `config/` ActionScope, AppConfigLoader, AppRegistryShortcutMatching · `helpers/` AppTempDir, AudioConversionSupport,
+PackVfs · `config/` ActionScope, AppConfigLoader, AppRegistryShortcutMatching · `helpers/` AppTempDir, ArchiveManager, AudioConversionSupport,
 BugReportUrl, FileAttributesHelper, FileHelper, FilesPanesHelperNaturalSort, ImageConversionSupport · `model/` ArchiveMode,
 FileItem · `tools/` ToolCommandBuilder, ProcessRunner · `vfs/` FtpFileSystem · root: ArchitectureRules (process / background / temp-file rules), CommanderCopy, `CodeMapTest` (fails when a main
 class or an apps.json action is missing from this file).

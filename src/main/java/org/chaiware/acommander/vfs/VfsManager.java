@@ -46,17 +46,11 @@ public class VfsManager {
         return null;
     }
 
-    /**
-     * Cleans up an archive file system.
-     */
-    public void closeFileSystem(VFileSystem fs) {
+    /** Closes a file system; for an archive this repacks it, and a failure says where the edits were saved. */
+    public void closeFileSystem(VFileSystem fs) throws IOException {
         if (fs != null) {
             logger.debug("Closing file system: {}", fs.getIdentifier());
-            try {
-                fs.close();
-            } catch (IOException e) {
-                logger.error("Failed to close file system: {}", fs.getIdentifier(), e);
-            }
+            fs.close();
         }
     }
 }

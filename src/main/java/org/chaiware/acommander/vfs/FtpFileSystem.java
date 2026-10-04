@@ -744,9 +744,6 @@ public class FtpFileSystem implements VFileSystem {
     }
 
     @Override
-    public void repack() throws IOException {}
-
-    @Override
     public void close() throws IOException {}
 
     @Override

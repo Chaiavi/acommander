@@ -186,11 +186,6 @@ public class LocalFileSystem implements VFileSystem {
     }
 
     @Override
-    public void repack() throws IOException {
-        // No-op for local FS
-    }
-
-    @Override
     public void close() throws IOException {
         // No-op for local FS
     }

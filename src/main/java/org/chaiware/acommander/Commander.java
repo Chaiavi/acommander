@@ -56,7 +56,6 @@ import java.util.*;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
-import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 import java.util.regex.Pattern;
@@ -479,7 +478,7 @@ public class Commander {
                 filesPanesHelper.setFileSystem(side, filesPanesHelper.getVfsManager().createLocalFileSystem(""), path);
             } catch (IOException e) {
                 logger.error("Failed to switch back to local file system for path: {}", path, e);
-                showError("Navigation Error", "Could not switch to local path: " + path);
+                showError("Navigation Error", "Could not switch to local path: " + path + "\n\n" + e.getMessage());
                 return;
             }
         }
@@ -1025,14 +1024,7 @@ public class Commander {
         FilesPanesHelper.FocusSide focusedSide = filesPanesHelper.getFocusedSide();
 
         if ("..".equals(selectedItem.getPresentableFilename())) {
-            if (selectedItem instanceof FilesPanesHelper.ArchiveParentItem api && api.isArchiveRoot()) {
-                exitArchiveAndShowParent(focusedSide, api.getSession());
-            } else {
-                runWithProgress("VFS: Navigating up",
-                        () -> filesPanesHelper.goUpInArchive(focusedSide),
-                        this::focusCurrentFileList,
-                        "Failed to navigate up in archive");
-            }
+            goUpInArchive();
         } else if (selectedItem.isDirectory()) {
             runWithProgress("VFS: Entering " + selectedItem.getName(),
                     () -> filesPanesHelper.enterArchiveSubdirectory(focusedSide, selectedItem.getName()),
@@ -1075,27 +1067,25 @@ public class Commander {
         }
     }
     
-    /**
-     * Exits the archive and shows the parent folder of the archive file.
-     */
-    private void exitArchiveAndShowParent(FilesPanesHelper.FocusSide focusedSide, ArchiveSession session) {
-        String archivePath = session.getArchivePath();
-        runWithProgress("VFS: Closing archive",
-                () -> filesPanesHelper.exitArchive(focusedSide),
-                () -> {
-                    File archiveFile = new File(archivePath);
-                    File parentFolder = archiveFile.getParentFile();
-                    if (parentFolder != null) {
-                        filesPanesHelper.setFileListPath(focusedSide, parentFolder.getAbsolutePath(), archiveFile.getName());
-                        logger.info("Exited archive, showing parent folder: {}", parentFolder.getAbsolutePath());
-                    }
-                },
-                "Failed to exit archive: " + archivePath);
+    /** Goes up one level inside an archive; at its root, leaves it (repacking if it changed). */
+    public void goUpInArchive() {
+        FilesPanesHelper.FocusSide side = filesPanesHelper.getFocusedSide();
+        runWithProgress("VFS: Navigating up",
+                () -> filesPanesHelper.goUpInArchive(side),
+                this::focusCurrentFileList,
+                "Failed to leave the archive folder");
     }
 
     /** Runs {@code work} on the background executor behind the progress bar; {@code onSuccess} then runs on the FX thread. */
-    private void runWithProgress(String label, Runnable work, Runnable onSuccess, String failureMessage) {
-        runWithProgress(label, Executors.callable(work), ignored -> onSuccess.run(), failureMessage);
+    private void runWithProgress(String label, Work work, Runnable onSuccess, String failureMessage) {
+        runWithProgress(label, () -> {
+            work.run();
+            return null;
+        }, ignored -> onSuccess.run(), failureMessage);
+    }
+
+    private interface Work {
+        void run() throws Exception;
     }
 
     /** Like the Runnable form, but hands {@code work}'s result to {@code onSuccess}. Failures are logged and shown. */
@@ -4735,6 +4725,7 @@ public class Commander {
             }
         } catch (IOException e) {
             logger.error("Failed to sync panes", e);
+            showError("Same Folder on Other Panel", e.getMessage());
         }
         Platform.runLater(() -> filesPanesHelper.getFileList(true).requestFocus());
     }

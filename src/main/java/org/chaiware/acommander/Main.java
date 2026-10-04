@@ -9,6 +9,7 @@ import javafx.stage.Stage;
 import org.chaiware.acommander.helpers.AppTempDir;
 import org.chaiware.acommander.helpers.BackgroundTasks;
 
+import java.io.IOException;
 import java.util.Objects;
 
 public class Main extends Application {
@@ -32,7 +33,11 @@ public class Main extends Application {
         stage.show();
         stage.setOnCloseRequest(event -> {
             commander.persistCurrentPaths();
-            commander.filesPanesHelper.cleanup();  // Clean up archive sessions
+            try {
+                commander.filesPanesHelper.cleanup();
+            } catch (IOException e) {
+                commander.showError("Archive Not Saved", e.getMessage());
+            }
         });
         commander.setupBindings();
         BackgroundTasks.run(AppTempDir::deleteStaleRoots);

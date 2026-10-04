@@ -229,16 +229,6 @@ public class ArchiveFileSystem implements VFileSystem {
     }
 
     @Override
-    public void repack() throws IOException {
-        if (needsRepack()) {
-            archiveManager.closeArchive(session);
-            // After repacking, the session is closed and temp folder deleted.
-            // If we want to keep using it, we might need to re-open or change how closeArchive works.
-            // For now, let's assume repack happens on exit or when explicitly requested.
-        }
-    }
-
-    @Override
     public void close() throws IOException {
         archiveManager.closeArchive(session);
     }
