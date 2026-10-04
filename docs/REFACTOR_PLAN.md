@@ -234,10 +234,12 @@ Smoke items: open every moved dialog once; Enter confirms, Escape cancels, dark 
 Rechecked after Phase 5. Bug fix first (6.0). 6.1 shrank: the real duplication is the "extension of a name" code,
 not the sets. 6.3 now runs before 6.2, so the base class is judged on what is left.
 
-- [ ] 6.0 Duplicate inside an archive hangs the app (bug fix, Found Along the Way 18). `Commander.fileExists` treats
+- [x] 6.0 Duplicate inside an archive hangs the app (bug fix, #157). `Commander.fileExists` treats
   `ArchiveFileSystem.listContents(path) != null` as "exists"; that call never returns null (it always adds `..`), so
   `ClipboardTransfer.duplicateName` loops forever on the FX thread. Fix: list the target folder once and test the
-  name against it, for every file system; delete `fileExists`. Test: `duplicateName` with a taken-set ends.
+  name against it, for every file system; delete `fileExists`. Test: `duplicateName` with a taken-set ends. Done:
+  `ClipboardTransfer.duplicateName(name, fs, folder)` checks the disk for local and archive panes (an archive pane's
+  folder is its extracted temp folder) and one listing for FTP; `paste` lost its namer parameter.
 - [ ] 6.1 Changed. One `FileItem.extension()` (lower case, `""` when none) replaces ~16 copies of the
   `lastIndexOf('.')` code: `normalizedExtension` in the 5 `*Support` classes and `ActionPriorityEngine`,
   `getFileExtension` in `Commander` and `ArchiveManager`, `ACommands.isArchive/isPdf`, `ActionRegistry` (pdf),
@@ -364,5 +366,5 @@ Bugs noticed during the work, fixed in the phase named.
     replaced a saved custom port with the protocol default, and accepted any port.
 16. Fixed (#155): Select by Pattern threw on an invalid regex or a blank pattern with regex on.
 17. Fixed (#156): file sizes failed to parse in comma-decimal locales (`Double.parseDouble` of a formatted size).
-18. Phase 6.0: Duplicate inside an archive loops forever on the FX thread (`Commander.fileExists` is always true
+18. Fixed (#157): Duplicate inside an archive loops forever on the FX thread (`Commander.fileExists` is always true
     for an archive).

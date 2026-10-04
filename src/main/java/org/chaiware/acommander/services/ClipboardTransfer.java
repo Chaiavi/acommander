@@ -9,12 +9,14 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
+import java.io.IOException;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 import java.util.function.Predicate;
-import java.util.function.UnaryOperator;
+import java.util.stream.Collectors;
 
 /** Copy / cut / paste of pane items between folders on any file system (local, archive, FTP). */
 public final class ClipboardTransfer {
@@ -33,16 +35,16 @@ public final class ClipboardTransfer {
     }
 
     /**
-     * Pastes every entry into {@code targetFolder} (a cut moves). A copy into its own source folder gets the names
-     * {@code duplicateNamer} picks. Blocking; a failed item is logged and listed, the rest still run.
+     * Pastes every entry into {@code targetFolder} (a cut moves). A copy into its own source folder gets a
+     * {@link #duplicateName}. Blocking; a failed item is logged and listed, the rest still run.
      */
-    public static PasteResult paste(State state, VFileSystem targetFs, String targetFolder, UnaryOperator<String> duplicateNamer) {
+    public static PasteResult paste(State state, VFileSystem targetFs, String targetFolder) {
         boolean duplicate = !state.cut() && isSameFolder(state.sourceFs(), targetFs, state.sourceFolder(), targetFolder);
         List<Entry> pasted = new ArrayList<>();
         List<Entry> failed = new ArrayList<>();
         for (Entry entry : state.entries()) {
             try {
-                String targetName = duplicate ? duplicateNamer.apply(entry.name()) : entry.name();
+                String targetName = duplicate ? duplicateName(entry.name(), targetFs, targetFolder) : entry.name();
                 String targetPath = targetInternalPath(targetFs, targetFolder, targetName, entry.directory());
                 if (state.cut()) {
                     state.sourceFs().move(entry.sourceInternalPath(), targetFs, targetPath);
@@ -68,6 +70,15 @@ public final class ClipboardTransfer {
             candidate = name + "_copy_" + counter + extension;
         }
         return candidate;
+    }
+
+    /** A free {@link #duplicateName} in {@code folder}: an FTP path on FTP, else a folder on disk (archives too). */
+    public static String duplicateName(String originalName, VFileSystem fs, String folder) throws IOException {
+        if (fs instanceof FtpFileSystem) {
+            Set<String> taken = fs.listContents(folder).stream().map(FileItem::getName).collect(Collectors.toSet());
+            return duplicateName(originalName, taken::contains);
+        }
+        return duplicateName(originalName, name -> new File(folder, name).exists());
     }
 
     public static boolean isSameFolder(VFileSystem sourceFs, VFileSystem targetFs, String sourceFolder, String targetFolder) {

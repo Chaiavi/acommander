@@ -64,7 +64,7 @@ Adding or renaming an action id? Check each of these:
 | `edit` (F4) | `editFile` | `CommandsAdvancedImpl.doEdit` | `edit/Notepad4.exe` |
 | `copy` (F5) | `copyFile`, `handleF5Button` | `CommandsAdvancedImpl.copyBatch` / VFS `copy` | `copy/fcp.exe` (FastCopy) |
 | `move` (F6) | `moveFile`, `handleF6Button` | `CommandsAdvancedImpl.moveBatch` | `copy/fcp.exe` |
-| `duplicate` (Alt+F6) | `duplicateFile`, `generateDuplicateName` | VFS `copy` | — |
+| `duplicate` (Alt+F6) | `duplicateFile` | `ClipboardTransfer.duplicateName`, VFS `copy` | — |
 | `copySelection` / `cutSelection` / `pasteSelection` | `copySelectionToClipboard`, `cutSelectionToClipboard`, `pasteClipboardSelection` | `services/ClipboardTransfer` (state, paste loop, duplicate names, target paths) | — |
 | `mkdir` (F7) / `mkfile` (Alt+F7) | `makeDirectory` / `makeFile` | VFS `makeDirectory` / `makeFile` | — |
 | `delete` (F8, Del) | `deleteFile` | `CommandsAdvancedImpl.doDelete` / VFS `delete` | — |

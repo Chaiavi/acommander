@@ -1,9 +1,13 @@
 package org.chaiware.acommander.services;
 
 import org.chaiware.acommander.helpers.FilesPanesHelper;
+import org.chaiware.acommander.model.FileItem;
+import org.chaiware.acommander.vfs.ArchiveFileSystem;
+import org.chaiware.acommander.vfs.FtpFileSystem;
 import org.chaiware.acommander.vfs.LocalFileSystem;
 import org.chaiware.acommander.vfs.VFileSystem;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 import org.junit.jupiter.api.io.TempDir;
 
 import java.io.IOException;
@@ -31,6 +35,23 @@ class ClipboardTransferTest {
     }
 
     @Test
+    @Timeout(5)
+    void duplicateNameInAnArchiveChecksTheExtractedFolder() throws IOException {
+        Files.writeString(dir.resolve("a_copy.txt"), "x");
+        ArchiveFileSystem archive = mock(ArchiveFileSystem.class);
+
+        assertThat(ClipboardTransfer.duplicateName("a.txt", archive, dir.toString())).isEqualTo("a_copy_2.txt");
+    }
+
+    @Test
+    void duplicateNameOnFtpChecksTheFolderListing() throws IOException {
+        FtpFileSystem ftp = mock(FtpFileSystem.class);
+        when(ftp.listContents("/pub")).thenReturn(List.of(new FileItem(null, "a_copy.txt", 1, 0, false)));
+
+        assertThat(ClipboardTransfer.duplicateName("a.txt", ftp, "/pub")).isEqualTo("a_copy_2.txt");
+    }
+
+    @Test
     void localFoldersCompareIgnoringCaseAndTrailingSeparator() {
         LocalFileSystem local = new LocalFileSystem(dir.toString());
         assertThat(ClipboardTransfer.isSameFolder(local, local, dir.toString() + "\\", dir.toString().toUpperCase())).isTrue();
@@ -45,7 +66,7 @@ class ClipboardTransferTest {
                 List.of(new ClipboardTransfer.Entry("a.txt", false, dir.resolve("a.txt").toString())),
                 false, FilesPanesHelper.FocusSide.LEFT, local, dir.toString());
 
-        ClipboardTransfer.PasteResult result = ClipboardTransfer.paste(state, local, dir.toString(), name -> "a_copy.txt");
+        ClipboardTransfer.PasteResult result = ClipboardTransfer.paste(state, local, dir.toString());
 
         assertThat(result.pasted()).extracting(ClipboardTransfer.Entry::name).containsExactly("a_copy.txt");
         assertThat(dir.resolve("a_copy.txt")).hasContent("x");
@@ -61,7 +82,7 @@ class ClipboardTransferTest {
                         new ClipboardTransfer.Entry("bad.txt", false, "/bad.txt")),
                 true, FilesPanesHelper.FocusSide.RIGHT, source, "/");
 
-        ClipboardTransfer.PasteResult result = ClipboardTransfer.paste(state, target, dir.toString(), name -> "unused");
+        ClipboardTransfer.PasteResult result = ClipboardTransfer.paste(state, target, dir.toString());
 
         verify(source).move(eq("/good.txt"), eq(target), eq(dir.resolve("good.txt").toString()));
         verify(source, never()).copy(anyString(), any(), anyString());

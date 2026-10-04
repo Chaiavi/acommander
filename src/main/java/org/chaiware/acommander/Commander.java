@@ -1153,7 +1153,7 @@ public class Commander {
                         try {
                             List<ClipboardTransfer.Entry> pastedSelections = new ArrayList<>();
                             for (FileItem selectedItem : selectedItems) {
-                                String duplicateName = generateDuplicateName(selectedItem.getName(), targetFolderSnapshot, targetFs);
+                                String duplicateName = ClipboardTransfer.duplicateName(selectedItem.getName(), targetFs, targetFolderSnapshot);
                                 String sourceInternalPath = fs.getInternalPath(selectedItem);
                                 String targetInternalPath = ClipboardTransfer.targetInternalPath(targetFs, targetFolderSnapshot, duplicateName, selectedItem.isDirectory());
                                 fs.copy(sourceInternalPath, targetFs, targetInternalPath);
@@ -1171,7 +1171,7 @@ public class Commander {
                     });
                 } else {
                     for (FileItem selectedItem : selectedItems) {
-                        String duplicateName = generateDuplicateName(selectedItem.getName(), targetFolderSnapshot, targetFs);
+                        String duplicateName = ClipboardTransfer.duplicateName(selectedItem.getName(), targetFs, targetFolderSnapshot);
                         String sourceInternalPath = fs.getInternalPath(selectedItem);
                         String targetInternalPath = ClipboardTransfer.targetInternalPath(targetFs, targetFolderSnapshot, duplicateName, selectedItem.isDirectory());
                         fs.copy(sourceInternalPath, targetFs, targetInternalPath);
@@ -1251,7 +1251,7 @@ public class Commander {
                 BackgroundTasks.run(() -> {
                     try {
                         for (FileItem selectedItem : selectedItems) {
-                            String duplicateName = generateDuplicateName(selectedItem.getName(), targetFolder, fs);
+                            String duplicateName = ClipboardTransfer.duplicateName(selectedItem.getName(), fs, targetFolder);
                             String sourceInternalPath = fs.getInternalPath(selectedItem);
                             // FTP uses forward slashes
                             int lastSeparator = Math.max(sourceInternalPath.lastIndexOf('/'), sourceInternalPath.lastIndexOf('\\'));
@@ -1267,7 +1267,7 @@ public class Commander {
             } else {
                 // Use simple VFileSystem copy for local files
                 for (FileItem selectedItem : selectedItems) {
-                    String duplicateName = generateDuplicateName(selectedItem.getName(), targetFolder, fs);
+                    String duplicateName = ClipboardTransfer.duplicateName(selectedItem.getName(), fs, targetFolder);
                     String sourceInternalPath = fs.getInternalPath(selectedItem);
                     // Local filesystem uses backslashes - use Path for robustness
                     java.nio.file.Path sourcePath = java.nio.file.Paths.get(sourceInternalPath);
@@ -1278,31 +1278,6 @@ public class Commander {
             }
         } catch (Exception e) {
             error("Failed Duplicating file", e);
-        }
-    }
-
-    /**
-     * Generates a unique duplicate filename by appending "_copy" and optional counter.
-     * E.g., "file.txt" -> "file_copy.txt", "file_copy.txt" -> "file_copy_2.txt"
-     */
-    private String generateDuplicateName(String originalName, String targetFolder, VFileSystem fs) {
-        return ClipboardTransfer.duplicateName(originalName, name -> fileExists(targetFolder + "\\" + name, fs));
-    }
-
-    private boolean fileExists(String fullPath, VFileSystem fs) {
-        try {
-            if (fs instanceof FtpFileSystem) {
-                // For FTP, check using the internal path
-                String internalPath = fullPath.substring(filesPanesHelper.getFocusedPath().length() + 1);
-                return ((FtpFileSystem) fs).listContents(internalPath) != null;
-            } else if (fs instanceof org.chaiware.acommander.vfs.ArchiveFileSystem) {
-                String internalPath = fullPath.substring(filesPanesHelper.getFocusedPath().length() + 1);
-                return ((org.chaiware.acommander.vfs.ArchiveFileSystem) fs).listContents(internalPath) != null;
-            } else {
-                return new File(fullPath).exists();
-            }
-        } catch (Exception e) {
-            return false;
         }
     }
 
@@ -3354,8 +3329,7 @@ public class Commander {
 
         ClipboardTransfer.State state = clipboardTransferState;
         BackgroundTasks.run(() -> {
-            ClipboardTransfer.PasteResult result = ClipboardTransfer.paste(state, targetFs, targetFolder,
-                    name -> generateDuplicateName(name, targetFolder, targetFs));
+            ClipboardTransfer.PasteResult result = ClipboardTransfer.paste(state, targetFs, targetFolder);
 
             Platform.runLater(() -> {
                 filesPanesHelper.refreshFileListViews();
