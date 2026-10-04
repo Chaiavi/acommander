@@ -184,6 +184,9 @@ tasks.named('startScripts') {
 
 tasks.named('test') {
     useJUnitPlatform()
+    // Tests read these directly; without them a docs- or apps.json-only edit leaves `test` up-to-date (a false green).
+    inputs.files('config/apps.json', 'config/f1-help.html', 'README.md', 'docs/CODEMAP.md')
+    inputs.dir('src/main/java')
     testLogging {
         events 'passed', 'failed', 'skipped'
         exceptionFormat 'full'

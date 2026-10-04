@@ -112,14 +112,16 @@ All actions and external tools live in `config/apps.json`; shortcuts are declare
 
 - External tool, no Java: `type: "external"`, `path` to an exe under `apps/`, placeholders in `args`.
 - Builtin:
-  1. Add to `config/apps.json` with `type: "builtin"` and `contexts`.
-  2. Add a case in `ActionExecutor.executeBuiltin()` calling a new method in `Commander`.
-  3. To work on FTP panes, add the id to `ActionExecutor.isActionSupportedOnFtp()` — unlisted ids are rejected (the
-     palette uses the same list).
-  4. If it writes files, add the id to `ActionMutator` and, if needed, `ActionExecutor.isConditionalWriteBlocked()`.
-  5. If it only fits certain file types, add the palette check in `ActionRegistry.isSelectionAllowedForBuiltin()`.
-  6. New shortcut → also update `config/f1-help.html` and the README shortcuts table (`DocsShortcutsTest` checks).
-  7. Add the row to the feature table in [docs/CODEMAP.md](docs/CODEMAP.md).
+  1. Add to `config/apps.json` with `type: "builtin"` and `contexts`, plus its rules: `ftp: true` if it works on FTP
+     panes, `writes` if it writes files, `fileTypes` / `requires` if the palette should offer it only sometimes
+     (README "Fields" table).
+  2. Add a `BuiltinAction` constant and its case in `ActionExecutor.handler()` calling a new method in `Commander`
+     (the switch won't compile without it; `BuiltinActionTest` checks apps.json ↔ enum).
+  3. Run the build: `ActionRulesSnapshotTest` fails and writes `build/action-rules-snapshot.actual.txt`. Check the new
+     line, then copy the file over `src/test/resources/action-rules-snapshot.txt`.
+  4. New shortcut → also update `config/f1-help.html` and the README shortcuts table (`DocsShortcutsTest` checks).
+     A shortcut on F1–F12 (with or without Alt/Shift) also drives that bottom button.
+  5. Add the row to the feature table in [docs/CODEMAP.md](docs/CODEMAP.md).
 
 ## Conventions
 
@@ -140,6 +142,11 @@ All actions and external tools live in `config/apps.json`; shortcuts are declare
   `build.gradle`; never commit them.
 - `config/acommander.properties` is per-user runtime state (gitignored). Never commit it.
 - Root `*.bat`, `run_build.py`, `verify_changes.py`, `bin/` are gitignored local leftovers; ignore them.
+- Build fails with `:processResources` "Failed to clean up stale outputs": a running app (`gradlew run`) locks
+  `build/resources`. Stop the `org.chaiware.acommander.Launcher` java process, build, then start the app again.
+  Killing the terminal that ran `gradlew run` does not stop the app's java process.
+- `gh` "not recognized" in an older terminal: it was installed later. Reload PATH:
+  `$env:Path = [Environment]::GetEnvironmentVariable('Path','Machine') + ';' + [Environment]::GetEnvironmentVariable('Path','User')`.
 - A file you must commit already has another session's uncommitted edits (`git diff <file>` shows hunks you didn't
   write): `git commit -- <file>` would take theirs too. Stage only yours: `cmd /c "git show HEAD:<file> > %TEMP%\x"`
   (cmd keeps the bytes; PowerShell `>` re-encodes), make your edit in both `%TEMP%\x` and the working file, then

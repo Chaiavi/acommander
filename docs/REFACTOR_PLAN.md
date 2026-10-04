@@ -35,7 +35,7 @@ F5/F6 to the other pane; Alt+F6; F7/Alt+F7; F8; F11 pack + F12 unpack; Enter an 
 Command Palette; theme toggle; one metadata edit on a copied jpg/mp3/mp4; checksum; compare files; FTP connect if a
 server is available.
 
-`Commander` line count: 7459 (start), 7199 (after Phase 1).
+`Commander` line count: 7459 (start), 7199 (after Phase 1), 7038 (after Phase 2).
 
 ## Phase 0 — Prep and Safety Net (no behaviour change)
 
@@ -87,9 +87,11 @@ server is available.
 - [x] 2.4 `BuiltinAction` enum + exhaustive switch in `ActionExecutor.handler` (kept there, not in `Commander`).
   `BuiltinActionTest` checks apps.json ↔ enum both ways. Dropped the unreachable `setDarkMode` / `setLightMode` /
   `setRegularMode` builtins; `syncOtherPane` renamed to its action id.
-- [ ] 2.5 F-key mouse buttons go through `ActionExecutor` (fixes: mouse clicks skip FTP and read-only gates). Labels
-  and actions from `apps.json` shortcuts.
-- [ ] 2.6 Docs: CODEMAP §2, README "Fields" table, AGENTS "Adding an action".
+- [x] 2.5 F-key buttons run the apps.json action for their key through `ActionExecutor` (#146): mouse clicks now
+  get the FTP / read-only gates, the first click no longer runs twice, Alt+click F1/F2 opens the path lists the
+  label promises. Dropped `handleF5/F6/F10Button` and the FXML `onAction`s; added the missing tooltips. Labels stay
+  hard-coded in `updateBottomButtons` (deriving them from apps.json labels would change the visible text).
+- [x] 2.6 Docs: CODEMAP §1-2, README "Fields" table, AGENTS "Adding an action".
 
 ## Phase 3 — Shared Infrastructure (depends on 1, 2)
 
@@ -178,4 +180,4 @@ Bugs noticed during the work, fixed in the phase named.
    The dialog runs `exiv2` on a local path, so it should be `ftp=no`.
 4. Kept: `syncToOtherPane` stays blocked on FTP. Its FTP branch is unfinished (a page of open questions in comments);
    enabling it is a feature, not a refactor.
-5. Phase 2 (step 2.5): mouse clicks on the F-key buttons call `Commander` directly and skip both gates.
+5. Fixed (#146): mouse clicks on the F-key buttons call `Commander` directly and skip both gates.

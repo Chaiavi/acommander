@@ -27,9 +27,10 @@ key press on Scene
   → commands (ACommands → CommandsAdvancedImpl) or a helper/*Support class, or a bundled exe directly
 ```
 
-Mouse on the bottom F-key buttons: `Commander.setupFunctionButtonActions()` maps each button to normal/Alt/Shift
-`Runnable`s directly (it does not go through `apps.json`). `Commander.updateBottomButtons()` relabels them while a
-modifier is held.
+Mouse on the bottom F-key buttons: `Commander.setupFunctionButtonActions()` looks up the apps.json action whose
+`shortcut` is the button's key (`Alt+`/`Shift+` while held, else the plain key) via `AppRegistry.findByShortcut` and
+runs it through `ActionExecutor.execute()`, so the same gates apply. `Commander.updateBottomButtons()` relabels the
+buttons while a modifier is held (labels are still hard-coded there).
 
 Command Palette (`Ctrl+Shift+P`): `palette/CommandPaletteController` lists `ActionRegistry.all()` (actions whose
 `contexts` include `commandPalette`), ranks with `ActionMatcher.rank()` + `ActionPriorityEngine.priority()`
@@ -47,7 +48,7 @@ Adding or renaming an action id? Check each of these:
 | `actions/BuiltinAction` + `ActionExecutor.handler()` | builtin id → `Commander` method (a missing case does not compile) |
 | `ActionRegistry.toAppAction()` | Dynamic palette labels (`fileProperties`, `duplicate`) |
 | `FilePaneKeyHandlerImpl.handle()` | F3 on a folder runs `calculateDirSpace` instead of `view` |
-| `Commander.setupFunctionButtonActions()` | Bottom F-key buttons (mouse) |
+| `Commander.updateBottomButtons()` | Bottom F-key button labels (actions come from apps.json shortcuts) |
 | `config/f1-help.html`, `README.md` shortcuts table | Manual docs for shortcuts |
 
 ## 3. Feature → Code

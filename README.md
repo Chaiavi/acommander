@@ -292,6 +292,10 @@ Every action is **data-driven**. Add, remove, or reconfigure tools without touch
 | `args`         | —        | Argument array                                     |
 | `refreshAfter` | —        | Refresh panes after execution                      |
 | `prompt`       | —        | Prompt config for external actions                 |
+| `ftp`          | —        | `true` = allowed on FTP panes (default: rejected)  |
+| `writes`       | —        | Pane it writes to: `none` (default) · `source` (focused) · `target` (other) · `both`; blocked when that pane is a read-only archive |
+| `fileTypes`    | —        | Palette offers it only when all selected items are one of: `convertibleImage` · `convertibleAudio` · `imageWithMetadata` · `videoWithMetadata` · `audioWithMetadata` · `executable` · `archive` · `pdf` |
+| `requires`     | —        | Extra palette conditions: `clipboardHasFiles` · `focusedPaneIsFtp` · `textFileInEachPane` |
 
 ### Placeholders in `args`
 
