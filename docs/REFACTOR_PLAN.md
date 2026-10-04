@@ -95,77 +95,113 @@ server is available.
 
 ## Phase 3 — Shared Infrastructure (depends on 1, 2)
 
-- [ ] 3.1 `AppPaths` + `ToolLocator` + `tools` map in `apps.json`; replace ~17 `Paths.get(user.dir, "apps", ...)`.
-  Test: every tool/action path exists on disk.
-- [ ] 3.2 `SettingsStore` over `acommander.properties`: typed access, atomic save.
-- [ ] 3.3 `UiFeedback` interface; replace swallowed / rethrown exceptions in UI handlers.
-- [ ] 3.4 `CommanderContext` narrow interface for actions, palette, key handlers. Delete `ActionContext`. Make
-  `Commander` fields private. `ActionExecutor` Mockito tests.
-- [ ] 3.5 App version from the jar manifest; delete `APP_VERSION = "4.0"` (build says 4.5).
+Rechecked after Phase 2. Dropped the `UiFeedback` and `CommanderContext` interfaces: services can throw and let
+`Commander` show the error, and a narrow context can't cover `ActionExecutor.handler` (~60 `Commander` methods) or
+`FilePaneKeyHandlerImpl` (12).
+
+- [ ] 3.1 `AppPaths` + `ToolLocator` + `tools` map in `apps.json`. Replace the ~20 hard-coded tool paths: 14
+  `Paths.get(user.dir, "apps", ...)` in `Commander`, the relative `"apps/..."` exe paths (Commander metadata removers +
+  `EXIV2_PATH` / `ID3_PATH` / `ATOMIC_PARSLEY_PATH` in the dialogs), `ArchiveManager.SEVEN_Z_PATH`,
+  `FtpFileSystem.curlPath`, `ACommands.APP_PATH`. Test: every tool and action path exists on disk.
+- [ ] 3.2 `SettingsStore` over `acommander.properties`: typed access + atomic save for left/right folder, theme,
+  `last_selection_pattern`, bookmarks and FTP connections (absorbs the old 4.2). Password stays plaintext until 10.5.
+- [ ] 3.3 Errors that never reach the user: archive enter/exit failures are only logged inside
+  `FilesPanesHelper.enterArchive` / `exitArchive` (let them reach `runWithProgress`, which shows them); the 7
+  `throw new RuntimeException(e)` and 10 `catch (... ignored)` get real handling where they hide a user-facing
+  failure.
+- [ ] 3.4 Metadata dialogs take the owner `Window` + theme instead of `Commander` (they use only `rootPane` and
+  `getCurrentThemeMode`). `ActionContext` and the public fields stay: changing them is churn with no payoff, and
+  `ActionRulesSnapshotTest` already covers `ActionExecutor` with a mocked `Commander`.
+- [ ] 3.5 App version from the jar manifest; delete `APP_VERSION = "4.0"`. Bug fix: the Report Bug dialog shows and
+  sends 4.0 while the build is 4.5.
 
 ## Phase 4 — Move Logic out of Commander (depends on 3; one commit + tests per item)
 
-- [ ] 4.1 `FolderComparer`
-- [ ] 4.2 `BookmarkService`
-- [ ] 4.3 Checksum / analyze / compare / split command builders → `tools/`
-- [ ] 4.4 `AudioConversionService`, `ImageConversionService`
+- [ ] 4.1 `FolderComparer`: `compareFolderTrees`, `collectFolderEntries`, `checksumSha256`, `FolderEntry` /
+  `FolderCompareResult` / `FolderCompareMark`.
+- [x] 4.2 Merged into 3.2 (bookmark storage); the bookmark picker moves with the dialogs in Phase 5.
+- [ ] 4.3 `buildChecksumCommand`, `buildAnalyzeFileCommand`, `buildCompareCommand`, `parseSplitSize` → `tools/`
+- [ ] 4.4 `AudioConversionService` (`runAudioConversion*`, staging, AAC bridge), `ImageConversionService`
 - [ ] 4.5 Metadata remove runners (`runVideoMetadataDeleteCommand`, `runAudioMetadataDeleteCommand`, the exiv2
   lambda in `removeImageMetadata`) → `*MetadataSupport`. Merge the AtomicParsley artifact cleanup that is duplicated
   in `Commander` and `VideoMetadataDialog`.
 - [ ] 4.6 `FilePropertiesLauncher` (VBS, moved as-is)
-- [ ] 4.7 `BugReportService` (moved as-is)
-- [ ] 4.8 `ClipboardTransfer`
-- [ ] 4.9 `FileIcons`
-- [ ] 4.10 `IncrementalFilter`
-- [ ] 4.11 `ThemeManager`
-- [ ] 4.12 `ExternalProgressController`
-- [ ] 4.13 `ArchitectureRulesTest`: `Commander` has no `ProcessBuilder`, `Files.walk`, `Properties`, `MessageDigest`.
+- [ ] 4.7 Report Bug: URL building is done (`helpers/BugReportUrl`, #144). Left: `submitBugReport` runs curl to
+  "validate" the URL but never reads the HTTP code it asks for; drop the call and just open the browser.
+- [ ] 4.8 `ClipboardTransfer` (`ClipboardEntry`, `ClipboardTransferState`, copy/cut/paste)
+- [ ] 4.9 `FileIcons` (`resolveIconSpec`, `IconSpec`, `is*Extension`)
+- [ ] 4.10 `IncrementalFilter` (`filterByChar`, `applyIncrementalFilter`)
+- [ ] 4.11 `ThemeManager` (`applyTheme`, `ThemeMode`, `applyThemeToDialog`)
+- [ ] 4.12 `ExternalProgressController` (`buildExternalCommandListener`, `show/hideOrUpdateExternalProgress`,
+  `stopExternalTasks`, `runWithProgress`)
+- [ ] 4.13 `ArchitectureRulesTest`: `Commander` has no `Files.walk` / `Files.list`, `Properties` access,
+  `MessageDigest` or `"apps` tool path. (`new ProcessBuilder` is already banned everywhere by 1.7.)
 
 ## Phase 5 — Move Dialogs out of Commander (depends on 4)
 
 - [ ] 5.1 `dialog/OptionsDialog` helper: layout, OK/Cancel, validation, Enter/Escape, theme, owner.
-- [ ] 5.2 One class per prompt returning `Optional<Options>` (conversion, checksum, compare, split, PDF, attributes,
-  UPX, FTP connect, bookmarks, text prompt, find results, select by pattern).
-- [ ] 5.3 Options records top-level next to their service.
-- [ ] 5.4 Target: `Commander` < 2,500 lines.
+- [ ] 5.2 One class per dialog, ~1,640 lines today: FTP connect (inline in `ftpConnect`, 209), image conversion (190),
+  audio conversion (175), PDF extract (131), bookmark picker (120), UPX (115), report bug (91), checksum options +
+  checksum result, find-in-files options + file results, compare files, compare folders, split size, attributes,
+  text prompt (`getUserFeedback` / `promptUser`), select by pattern.
+- [ ] 5.3 Options records (`SplitSize`, `ChecksumOptions`, `CompareFilesOptions`, `ImageConversionRequest`, …)
+  top-level next to their service.
+- [ ] 5.4 Target: `Commander` under 4,000 lines (7038 now; Phases 4-5 move ~3,000). The rest is feature handlers
+  (read selection → validate → run), which Phase 7's services shrink further. Was 2,500, which the sizing doesn't
+  support.
 
 ## Phase 6 — Metadata Dialogs and File Types (depends on 1, 3)
 
-- [ ] 6.1 `FileTypes` replaces the 7 extension-check classes.
-- [ ] 6.2 `MetadataDialogBase`; image / audio / video become adapters.
+- [ ] 6.1 `FileTypes` owns the extension sets now spread over `ImageConversionSupport`, `AudioConversionSupport`,
+  `Image/Video/AudioMetadataSupport`, `ExecutableCompressionSupport`, `ArchiveService`, `ACommands.isArchive/isPdf`
+  and `Commander.getFileExtension/normalizedExtension`. `ActionRegistry.areAllOfType` moves there. Target-format
+  lists stay with the conversion services (4.4).
+- [ ] 6.2 `MetadataDialogBase`; image (1,189 lines) / audio (544) / video (477) become adapters.
 - [ ] 6.3 Output parsers as pure functions with tests.
 
 ## Phase 7 — Commands Layer (depends on 1, 3)
 
-- [ ] 7.1 Replace `ACommands` / `CommandsAdvancedImpl` / `CommandsSimpleImpl` with `CopyMoveService`,
-  `DeleteService`, `ArchiveOps`, `PdfService`, `ShellService`, `ViewEditService`.
+- [ ] 7.1 Replace `ACommands` / `CommandsAdvancedImpl` (1,248) / `CommandsSimpleImpl` with `CopyMoveService`,
+  `DeleteService`, `ArchiveOps`, `PdfService`, `ShellService`, `ViewEditService`. `doUnpack` and `doExtractAll` are
+  copies of each other; merge them.
 - [ ] 7.2 `ExternalToolRunner` (run, listener, stop).
-- [ ] 7.3 Delete the "Not implemented yet" stubs; move tests with the code.
+- [ ] 7.3 Delete the "Not implemented yet" stubs; move tests with the code (`CommanderCopyTest` builds a
+  `CommandsSimpleImpl`).
 - [ ] 7.4 `LocalFileSystem.copyDirectory` and `ArchiveFileSystem.copyDirectory` are the same method; keep one.
 
 ## Phase 8 — FilesPanesHelper Split (depends on 7)
 
-- [ ] 8.1 `PaneSorter`, `ArchiveNavigator`, selection helpers.
+- [ ] 8.1 `PaneSorter` (`SortState`, `SortColumn`, `compareNaturalNames`), `ArchiveNavigator`, selection helpers.
 - [ ] 8.2 Top-level `FilePane`, `ArchiveFolder`, `ArchiveParentItem`.
 
 ## Phase 9 — File → Path (depends on 8)
 
-- [ ] 9.1 Decide how FTP remote paths are represented (`Path` would mangle `/`).
-- [ ] 9.2 `FileItem` holds the new type; temporary `getFile()`; migrate `vfs/`, services, `Commander`; delete
-  `getFile()`.
+- [x] 9.1 Decided by the code: FTP items already have `file == null` (name only, path from the pane), so `FileItem`
+  can hold a nullable `Path` for local and archive items.
+- [ ] 9.2 `FileItem` holds `Path`; temporary `getFile()`; migrate the ~30 `getFile()` call sites (`vfs/`, services,
+  `Commander`); delete `getFile()`.
 
 ## Phase 10 — Security (last)
 
 Gate: re-grep every shell-out; list any new ones added by earlier phases.
 
-- [ ] 10.1 Open files and `.bat` with `Desktop.open` / ShellExecute, not `cmd /c`. Test with `a&b %PATH%.bat`.
-- [ ] 10.2 PowerShell sites: user values as arguments, never inside `-Command` text.
+- [ ] 10.1 Open files and `.bat`/`.cmd` with `Desktop.open` / ShellExecute: `enterSelectedItem` runs
+  `cmd.exe /c <path>`, `openFileWithSystemDefault` falls back to `cmd.exe /c start "" "<path>"`. Test with
+  `a&b %PATH%.bat` in a temp folder.
+- [ ] 10.2 PowerShell sites take user values as arguments, never inside `-Command` text.
+  `CommandsSimpleImpl.openTerminal` puts the folder in `-Command "cd '<path>'"` without escaping `'`, so a folder
+  named `a';calc;'` runs calc. Also `searchFiles` (escapes `'`, still string-built) and `openHostsFile`
+  (`Start-Process` string from apps.json). `ComboBoxSetup`'s script has no user input.
 - [ ] 10.3 FTP credentials to curl via `--config -` on stdin, not `-u`. Guard remote names starting with `-`.
-- [ ] 10.4 FTP downloads reject server names with `..`, `/`, `\`, `:`.
+- [ ] 10.4 FTP names from the server: temp files are safe (`Files.createTempFile` rejects separators in the suffix);
+  the risk is FTP → local copy / move / paste, which joins the server's name onto the target folder. Reject names
+  with `..`, `/`, `\`, `:`.
 - [ ] 10.5 FTP password at rest: DPAPI; migrate plaintext on load; decrypt failure → ask.
-- [ ] 10.6 No passwords or credential-bearing command lines in logs.
+- [ ] 10.6 Passwords in logs — a live leak: `FtpFileSystem.runCurl` passes the curl command (with `-u user:pass`) to
+  the `ExternalCommandListener`, and `Commander`'s listener logs `String.join(" ", command)` whenever a command
+  fails. Any failing FTP call writes the password to `logs/`.
 - [ ] 10.7 File Properties VBS: static resource, path as argument, deleted after run.
-- [ ] 10.8 Bug report: every URL parameter encoded.
+- [x] 10.8 Bug report URL parameters are encoded (`BugReportUrl`, #144; labels are constants).
 - [ ] 10.9 `ArchitectureRulesTest` locks the above.
 
 ## Found Along the Way
@@ -181,3 +217,7 @@ Bugs noticed during the work, fixed in the phase named.
 4. Kept: `syncToOtherPane` stays blocked on FTP. Its FTP branch is unfinished (a page of open questions in comments);
    enabling it is a feature, not a refactor.
 5. Fixed (#146): mouse clicks on the F-key buttons call `Commander` directly and skip both gates.
+6. Phase 3.5: bug reports say version 4.0 (`APP_VERSION`) while the build is 4.5.
+7. Phase 4.7: Report Bug runs a curl request it never checks.
+8. Phase 3.3: a failure to open or close an archive is logged but never shown.
+9. Phase 10.6 (security, so last by the user's rule): failing FTP commands log the password.
