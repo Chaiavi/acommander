@@ -79,8 +79,8 @@ Adding or renaming an action id? Check each of these:
 | `extractAll` (Alt+F12) | `extractAll` | `doExtractAll` → `unpackWith` | `extract_all/UniExtract/UniExtract.exe` |
 | `mergePdf` / `extractPdfPages` | `mergePDFFiles` / `extractPDFPages` | `dialog/PdfExtractDialog`, `doMergePDFs` / `doExtractPDFPages`, `PdfExtractOptions` | `pdf/pdftk.exe` |
 | `convertMediaFile` (Alt+F5) | `convertMediaFile` → image or audio below | `ImageConversionSupport`, `AudioConversionSupport` | — |
-| `convertGraphicsFiles` | `convertGraphicsFiles`, `promptImageConversionOptions` | `services/ImageConversionService` (command, output lookup), `ImageConversionSupport` | `image_convert/caesiumclt.exe` |
-| `convertAudioFiles` | `convertAudioFiles`, `promptAudioConversionOptions` | `services/AudioConversionService` (commands, AAC bridge, ASCII staging), `AudioConversionSupport` | `sound_convert/sndfile-convert.exe`, `faac.exe`, `faad.exe` |
+| `convertGraphicsFiles` | `convertGraphicsFiles` | `dialog/ImageConversionDialog`, `services/ImageConversionService` (command, output lookup), `ImageConversionSupport` | `image_convert/caesiumclt.exe` |
+| `convertAudioFiles` | `convertAudioFiles` | `dialog/AudioConversionDialog`, `services/AudioConversionService` (commands, AAC bridge, ASCII staging), `AudioConversionSupport` | `sound_convert/sndfile-convert.exe`, `faac.exe`, `faad.exe` |
 | `checksumFile` / `checksumFolderContents` | `checksumFile` / `checksumFolderContents` | `dialog/ChecksumOptionsDialog`, `ChecksumResultDialog`; `tools/BundledToolCommands.checksum`, `checksumDigest`, `checksumOutputPath` | `checksum/rhash.exe` |
 | `analyzeFile` | `analyzeFile` | `tools/BundledToolCommands.analyzeFile` | `file_analysis/file.exe` + `magic.mgc` |
 | `compareFiles` | `compareFiles`, `canCompareSelectedFiles` | `dialog/CompareFilesDialog`, `tools/BundledToolCommands.compareFiles` | `file_compare/ExamDiff.exe` |
@@ -90,7 +90,7 @@ Adding or renaming an action id? Check each of these:
 | `editImageMetadata` / `removeImageMetadata` | `editImageMetadata` / `removeImageMetadata` → `removeMetadata` (shared confirm + background run) | `dialog/ImageMetadataDialog`, `helpers/ImageMetadataSupport` | `image_metadata/exiv2.exe` |
 | `editVideoMetadata` / `removeVideoMetadata` | `editVideoMetadata` / `removeVideoMetadata` | `dialog/VideoMetadataDialog`, `helpers/VideoMetadataSupport` | `video_metadata/AtomicParsley.exe` |
 | `editAudioMetadata` / `removeAudioMetadata` | `editAudioMetadata` / `removeAudioMetadata` | `dialog/AudioMetadataDialog`, `helpers/AudioMetadataSupport` | `audio_metadata/id3.exe` |
-| `compressExecutable` | `compressExecutable`, `promptExecutableCompressionOptions` | `helpers/ExecutableCompressionSupport` | `exe_compress/upx.exe` |
+| `compressExecutable` | `compressExecutable` | `dialog/ExecutableCompressionDialog`, `helpers/ExecutableCompressionSupport` (`UpxAction`, `upxCommand`, `percentChange`) | `exe_compress/upx.exe` |
 | `refresh` (Ctrl+R) | — | `FilesPanesHelper.refreshFileListViews` | — |
 | `selectAll` / `unselectAll` / `invertSelection` / `selectByPattern` | same names | `dialog/SelectByPatternDialog`, `FilesPanesHelper.selectAllItems` … `selectByPattern` | — |
 | `sortByName` / `sortBySize` / `sortByDate` | same names, `onSortHeaderClicked` | `FilesPanesHelper.setSort`, `compareNaturalNames` | — |
@@ -201,6 +201,8 @@ Not actions, but often asked for:
 | `FindInFilesDialog` / `FoundFilesDialog` | Find in Files options; the found files list (Enter / double-click goes to one). |
 | `BookmarkPickerDialog` | Pick a bookmark by name (Go / Remove). |
 | `ReportBugDialog` | Bug report form → prefilled GitHub issue URL. |
+| `ImageConversionDialog` / `AudioConversionDialog` | Conversion options → `ImageConversionRequest` / `AudioConversionRequest`. |
+| `ExecutableCompressionDialog` | UPX compress level or decompress → `UpxAction`. |
 | `ImageMetadataDialog` | EXIF/IPTC/XMP editor via `exiv2.exe`. |
 | `VideoMetadataDialog` | MP4-family tags via `AtomicParsley.exe`. |
 | `AudioMetadataDialog` | ID3 tags via `id3.exe`. |
@@ -223,7 +225,7 @@ Other dialogs are built inline in `Commander` (`prompt*` methods).
 | `AppVersion` | Running version from `app-version.properties`, which the build fills from `appVersion` in `build.gradle`. |
 | `ImageConversionSupport`, `AudioConversionSupport` | Which files convert, target formats. |
 | `ImageMetadataSupport`, `VideoMetadataSupport`, `AudioMetadataSupport` | Which files the metadata editors accept; `remove(file)` strips all metadata (exiv2 / AtomicParsley / id3). `VideoMetadataSupport` also deletes the temp files AtomicParsley leaves (used by its dialog too). |
-| `ExecutableCompressionSupport` | Which files UPX accepts. |
+| `ExecutableCompressionSupport` | Which files UPX accepts; `UpxAction` (level or decompress → flag), `upxCommand`, `percentChange`. |
 | `BugReportUrl` | Report Bug: prefilled GitHub new-issue URL with title prefix and label per report type; cuts the body to keep the URL under 8,000 chars. |
 | `FileIcons` | Glyph + colour per pane item (folder, archive, PDF, text, image, audio, video, executable, other). |
 | `IncrementalFilter` | Type-to-filter state of one pane: typed prefix, the unfiltered list, the matching items; starts over when the pane changed. |

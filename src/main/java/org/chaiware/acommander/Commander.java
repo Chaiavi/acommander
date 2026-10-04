@@ -1687,7 +1687,14 @@ public class Commander {
             return;
         }
 
-        Optional<ImageConversionRequest> request = promptImageConversionOptions(selectedItems);
+        List<String> targetFormats = ImageConversionSupport.targetFormatsForSelection(selectedItems);
+        if (targetFormats.isEmpty()) {
+            showError("Convert Graphics Files", "No supported target formats were found for the selected files.");
+            requestFocusedFileListFocus();
+            return;
+        }
+        Optional<ImageConversionRequest> request = ImageConversionDialog.show(dialogOwner(), currentThemeMode.styleClass,
+                selectedItems.size(), filesPanesHelper.getUnfocusedPath(), targetFormats);
         if (request.isEmpty()) {
             requestFocusedFileListFocus();
             return;
@@ -1715,215 +1722,6 @@ public class Commander {
                     });
                     return null;
                 });
-    }
-
-    private Optional<ImageConversionRequest> promptImageConversionOptions(List<FileItem> selectedItems) {
-        List<String> targetFormats = ImageConversionSupport.targetFormatsForSelection(selectedItems);
-        if (targetFormats.isEmpty()) {
-            showError("Convert Graphics Files", "No supported target formats were found for the selected files.");
-            return Optional.empty();
-        }
-
-        Dialog<ImageConversionRequest> dialog = new Dialog<>();
-        dialog.setTitle("Convert Graphics Files");
-        dialog.setHeaderText(null);
-
-        ButtonType convertType = new ButtonType("Convert", ButtonBar.ButtonData.OK_DONE);
-        dialog.getDialogPane().getButtonTypes().addAll(convertType, ButtonType.CANCEL);
-
-        Label title = new Label("Convert Graphics Files");
-        title.setStyle("-fx-font-size: 16px; -fx-font-weight: bold;");
-        Label subtitle = new Label("Selected files: " + selectedItems.size() + " | Output folder: " + filesPanesHelper.getUnfocusedPath());
-
-        ToggleGroup formatGroup = new ToggleGroup();
-        VBox formatsBox = new VBox(8);
-        for (String format : targetFormats) {
-            RadioButton formatRadio = new RadioButton(format.toUpperCase(Locale.ROOT));
-            formatRadio.setUserData(format);
-            formatRadio.setToggleGroup(formatGroup);
-            formatsBox.getChildren().add(formatRadio);
-        }
-        if (formatGroup.getToggles().getFirst() instanceof RadioButton first) {
-            first.setSelected(true);
-        }
-
-        ToggleGroup compressionModeGroup = new ToggleGroup();
-        RadioButton losslessMode = new RadioButton("Lossless");
-        RadioButton qualityMode = new RadioButton("Lossy");
-        RadioButton targetSizeMode = new RadioButton("Target max output size");
-        losslessMode.setUserData(ImageCompressionMode.LOSSLESS);
-        qualityMode.setUserData(ImageCompressionMode.QUALITY);
-        targetSizeMode.setUserData(ImageCompressionMode.MAX_SIZE);
-        losslessMode.setToggleGroup(compressionModeGroup);
-        qualityMode.setToggleGroup(compressionModeGroup);
-        targetSizeMode.setToggleGroup(compressionModeGroup);
-        losslessMode.setSelected(true);
-
-        Slider qualitySlider = new Slider(0, 100, 80);
-        qualitySlider.setShowTickLabels(true);
-        qualitySlider.setShowTickMarks(true);
-        qualitySlider.setMajorTickUnit(20);
-        qualitySlider.setMinorTickCount(4);
-        qualitySlider.setBlockIncrement(1);
-        Label qualityValue = new Label("80");
-        qualitySlider.valueProperty().addListener((obs, oldValue, newValue) -> qualityValue.setText(String.valueOf(newValue.intValue())));
-        HBox qualityRow = new HBox(10, new Label("Quality:"), qualitySlider, qualityValue);
-        HBox.setHgrow(qualitySlider, Priority.ALWAYS);
-
-        TextField maxSizeField = new TextField();
-        maxSizeField.setPromptText("Examples: 150KB, 1MB, 0.5MB");
-        maxSizeField.setDisable(true);
-
-        CheckBox keepExif = new CheckBox("Keep EXIF metadata");
-        CheckBox keepDates = new CheckBox("Keep original file dates");
-
-        ComboBox<ImageResizeMode> resizeMode = new ComboBox<>();
-        resizeMode.getItems().addAll(ImageResizeMode.NONE, ImageResizeMode.WIDTH, ImageResizeMode.HEIGHT, ImageResizeMode.LONG_EDGE, ImageResizeMode.SHORT_EDGE);
-        resizeMode.getSelectionModel().select(ImageResizeMode.NONE);
-        TextField resizeValueField = new TextField();
-        resizeValueField.setPromptText("Pixels");
-        resizeValueField.setDisable(true);
-        CheckBox noUpscale = new CheckBox("Do not upscale resized images");
-        noUpscale.setDisable(true);
-
-        TextField suffixField = new TextField("_converted");
-        suffixField.setPromptText("Filename suffix");
-
-        ComboBox<String> overwritePolicy = new ComboBox<>();
-        overwritePolicy.getItems().addAll("Always", "Never", "Bigger");
-        overwritePolicy.getSelectionModel().select("Always");
-
-        Runnable syncByMode = () -> {
-            ImageCompressionMode mode = selectedCompressionMode(compressionModeGroup);
-            maxSizeField.setDisable(mode != ImageCompressionMode.MAX_SIZE);
-            qualitySlider.setDisable(mode != ImageCompressionMode.QUALITY);
-        };
-        Runnable syncByResizeMode = () -> {
-            boolean resizeEnabled = resizeMode.getSelectionModel().getSelectedItem() != ImageResizeMode.NONE;
-            resizeValueField.setDisable(!resizeEnabled);
-            noUpscale.setDisable(!resizeEnabled);
-        };
-        compressionModeGroup.selectedToggleProperty().addListener((obs, oldValue, newValue) -> syncByMode.run());
-        resizeMode.getSelectionModel().selectedItemProperty().addListener((obs, oldValue, newValue) -> syncByResizeMode.run());
-        syncByMode.run();
-        syncByResizeMode.run();
-
-        Label validationLabel = new Label();
-        Button convertButton = (Button) dialog.getDialogPane().lookupButton(convertType);
-        convertButton.setDefaultButton(true);
-        dialog.getDialogPane().addEventFilter(KeyEvent.KEY_PRESSED, event -> {
-            if (event.getCode() == KeyCode.ENTER && !convertButton.isDisabled()) {
-                convertButton.fire();
-                event.consume();
-            }
-        });
-        Runnable validate = () -> {
-            ImageCompressionMode mode = selectedCompressionMode(compressionModeGroup);
-            if (mode == ImageCompressionMode.MAX_SIZE && (maxSizeField.getText() == null || maxSizeField.getText().trim().isEmpty())) {
-                validationLabel.setText("Max size is required for target-size mode.");
-                convertButton.setDisable(true);
-                return;
-            }
-            ImageResizeMode resize = resizeMode.getSelectionModel().getSelectedItem();
-            if (resize != null && resize != ImageResizeMode.NONE) {
-                Integer resizeValue = parsePositiveOrNull(resizeValueField.getText());
-                if (resizeValue == null) {
-                    validationLabel.setText("Resize value must be a positive number.");
-                    convertButton.setDisable(true);
-                    return;
-                }
-            }
-            validationLabel.setText("");
-            convertButton.setDisable(formatGroup.getSelectedToggle() == null);
-        };
-        maxSizeField.textProperty().addListener((obs, oldValue, newValue) -> validate.run());
-        resizeValueField.textProperty().addListener((obs, oldValue, newValue) -> validate.run());
-        formatGroup.selectedToggleProperty().addListener((obs, oldValue, newValue) -> validate.run());
-        compressionModeGroup.selectedToggleProperty().addListener((obs, oldValue, newValue) -> validate.run());
-        resizeMode.getSelectionModel().selectedItemProperty().addListener((obs, oldValue, newValue) -> validate.run());
-        validate.run();
-
-        VBox content = new VBox(
-                10,
-                title,
-                subtitle,
-                new Separator(),
-                new Label("Convert to format:"),
-                formatsBox,
-                new Separator(),
-                new Label("Compression mode:"),
-                losslessMode,
-                qualityMode,
-                qualityRow,
-                targetSizeMode,
-                maxSizeField,
-                new Separator(),
-                new Label("Resize (optional):"),
-                new HBox(10, new Label("Mode:"), resizeMode),
-                new HBox(10, new Label("Value:"), resizeValueField),
-                noUpscale,
-                new Separator(),
-                new Label("Options:"),
-                keepExif,
-                keepDates,
-                new Label("Filename suffix:"),
-                suffixField,
-                new Label("Overwrite policy:"),
-                overwritePolicy,
-                validationLabel
-        );
-        content.setPadding(new Insets(12));
-        dialog.getDialogPane().setContent(content);
-        dialog.getDialogPane().setPrefSize(620, 760);
-        applyThemeToDialog(dialog);
-
-        dialog.setResultConverter(buttonType -> {
-            if (buttonType != convertType || formatGroup.getSelectedToggle() == null) {
-                return null;
-            }
-            String targetFormat = String.valueOf(formatGroup.getSelectedToggle().getUserData());
-            ImageCompressionMode compressionMode = selectedCompressionMode(compressionModeGroup);
-            Integer quality = compressionMode == ImageCompressionMode.QUALITY ? (int) Math.round(qualitySlider.getValue()) : null;
-            String maxSize = compressionMode == ImageCompressionMode.MAX_SIZE ? maxSizeField.getText().trim() : null;
-            ImageResizeMode resize = resizeMode.getSelectionModel().getSelectedItem();
-            Integer resizeValue = resize == null || resize == ImageResizeMode.NONE
-                    ? null
-                    : parsePositiveOrNull(resizeValueField.getText());
-            return new ImageConversionRequest(
-                    targetFormat,
-                    compressionMode,
-                    quality,
-                    maxSize,
-                    keepExif.isSelected(),
-                    keepDates.isSelected(),
-                    resize == null ? ImageResizeMode.NONE : resize,
-                    resizeValue,
-                    noUpscale.isSelected(),
-                    suffixField.getText() == null ? "" : suffixField.getText().trim(),
-                    overwritePolicy.getSelectionModel().getSelectedItem()
-                );
-        });
-
-        return dialog.showAndWait();
-    }
-
-    private ImageCompressionMode selectedCompressionMode(ToggleGroup group) {
-        if (group == null || group.getSelectedToggle() == null || group.getSelectedToggle().getUserData() == null) {
-            return ImageCompressionMode.QUALITY;
-        }
-        return (ImageCompressionMode) group.getSelectedToggle().getUserData();
-    }
-
-    private Integer parsePositiveOrNull(String raw) {
-        if (raw == null || raw.trim().isEmpty()) {
-            return null;
-        }
-        try {
-            int value = Integer.parseInt(raw.trim());
-            return value > 0 ? value : null;
-        } catch (NumberFormatException ex) {
-            return null;
-        }
     }
 
     private void focusConvertedFileInOtherPane(
@@ -1963,7 +1761,14 @@ public class Commander {
             return;
         }
 
-        Optional<AudioConversionRequest> request = promptAudioConversionOptions(selectedItems);
+        List<String> targetFormats = AudioConversionSupport.targetFormatsForSelection(selectedItems);
+        if (targetFormats.isEmpty()) {
+            showError("Convert Audio Files", "No supported target formats were found for the selected files.");
+            requestFocusedFileListFocus();
+            return;
+        }
+        Optional<AudioConversionRequest> request = AudioConversionDialog.show(dialogOwner(), currentThemeMode.styleClass,
+                selectedItems.size(), filesPanesHelper.getUnfocusedPath(), targetFormats);
         if (request.isEmpty()) {
             requestFocusedFileListFocus();
             return;
@@ -1996,189 +1801,6 @@ public class Commander {
                     });
                     return null;
                 });
-    }
-
-    private Optional<AudioConversionRequest> promptAudioConversionOptions(List<FileItem> selectedItems) {
-        List<String> targetFormats = AudioConversionSupport.targetFormatsForSelection(selectedItems);
-        if (targetFormats.isEmpty()) {
-            showError("Convert Audio Files", "No supported target formats were found for the selected files.");
-            return Optional.empty();
-        }
-
-        Dialog<AudioConversionRequest> dialog = new Dialog<>();
-        dialog.setTitle("Convert Audio Files");
-        dialog.setHeaderText(null);
-
-        ButtonType convertType = new ButtonType("Convert", ButtonBar.ButtonData.OK_DONE);
-        dialog.getDialogPane().getButtonTypes().addAll(convertType, ButtonType.CANCEL);
-
-        Label title = new Label("Convert Audio Files");
-        title.setStyle("-fx-font-size: 16px; -fx-font-weight: bold;");
-        Label subtitle = new Label("Selected files: " + selectedItems.size() + " | Output folder: " + filesPanesHelper.getUnfocusedPath());
-
-        ToggleGroup formatGroup = new ToggleGroup();
-        VBox formatsBox = new VBox(8);
-        for (String format : targetFormats) {
-            RadioButton formatRadio = new RadioButton(format.toUpperCase(Locale.ROOT));
-            formatRadio.setUserData(format);
-            formatRadio.setToggleGroup(formatGroup);
-            formatsBox.getChildren().add(formatRadio);
-        }
-        if (formatGroup.getToggles().getFirst() instanceof RadioButton first) {
-            first.setSelected(true);
-        }
-
-        ToggleGroup profileGroup = new ToggleGroup();
-        RadioButton lossless = new RadioButton("Lossless");
-        RadioButton lossy = new RadioButton("Lossy");
-        RadioButton custom = new RadioButton("Custom encoding");
-        lossless.setUserData(AudioCompressionProfile.LOSSLESS);
-        lossy.setUserData(AudioCompressionProfile.LOSSY);
-        custom.setUserData(AudioCompressionProfile.CUSTOM);
-        lossless.setToggleGroup(profileGroup);
-        lossy.setToggleGroup(profileGroup);
-        custom.setToggleGroup(profileGroup);
-        lossless.setSelected(true);
-
-        ComboBox<String> encodingCombo = new ComboBox<>();
-        encodingCombo.setPrefWidth(260);
-        Map<String, String> encodingChoices = new LinkedHashMap<>();
-
-        CheckBox normalize = new CheckBox("Normalize output audio");
-        CheckBox overrideSampleRate = new CheckBox("Override sample rate (Hz)");
-        TextField sampleRateField = new TextField("44100");
-        sampleRateField.setDisable(true);
-
-        ComboBox<String> endianCombo = new ComboBox<>();
-        endianCombo.getItems().addAll("Auto", "CPU", "Little", "Big");
-        endianCombo.getSelectionModel().select("Auto");
-
-        TextField suffixField = new TextField("_converted");
-        suffixField.setPromptText("Filename suffix");
-
-        ComboBox<String> conflictPolicy = new ComboBox<>();
-        conflictPolicy.getItems().addAll("Overwrite", "Skip", "Auto-rename");
-        conflictPolicy.getSelectionModel().select("Overwrite");
-
-        Runnable syncEncodingChoices = () -> {
-            String targetFormat = formatGroup.getSelectedToggle() == null
-                    ? null
-                    : String.valueOf(formatGroup.getSelectedToggle().getUserData());
-            AudioCompressionProfile profile = selectedAudioCompressionProfile(profileGroup);
-            encodingChoices.clear();
-            encodingChoices.putAll(AudioConversionService.encodingOptionsFor(targetFormat, profile));
-            encodingCombo.getItems().setAll(encodingChoices.keySet());
-            if (!encodingCombo.getItems().isEmpty()) {
-                encodingCombo.getSelectionModel().selectFirst();
-            }
-            encodingCombo.setDisable(profile != AudioCompressionProfile.CUSTOM);
-        };
-
-        overrideSampleRate.selectedProperty().addListener((obs, oldValue, newValue) -> sampleRateField.setDisable(!newValue));
-        formatGroup.selectedToggleProperty().addListener((obs, oldValue, newValue) -> syncEncodingChoices.run());
-        profileGroup.selectedToggleProperty().addListener((obs, oldValue, newValue) -> syncEncodingChoices.run());
-        syncEncodingChoices.run();
-
-        Button convertButton = (Button) dialog.getDialogPane().lookupButton(convertType);
-        convertButton.setDefaultButton(true);
-        dialog.getDialogPane().addEventFilter(KeyEvent.KEY_PRESSED, event -> {
-            if (event.getCode() == KeyCode.ENTER && !convertButton.isDisabled()) {
-                convertButton.fire();
-                event.consume();
-            }
-        });
-        Label validationLabel = new Label();
-        Runnable validate = () -> {
-            if (formatGroup.getSelectedToggle() == null) {
-                convertButton.setDisable(true);
-                validationLabel.setText("Choose a target format.");
-                return;
-            }
-            Integer sampleRate = overrideSampleRate.isSelected() ? parsePositiveOrNull(sampleRateField.getText()) : null;
-            if (overrideSampleRate.isSelected() && sampleRate == null) {
-                convertButton.setDisable(true);
-                validationLabel.setText("Sample rate must be a positive number.");
-                return;
-            }
-            if (encodingCombo.getSelectionModel().getSelectedItem() == null) {
-                convertButton.setDisable(true);
-                validationLabel.setText("Choose an encoding option.");
-                return;
-            }
-            String targetFormat = String.valueOf(formatGroup.getSelectedToggle().getUserData());
-            String selectedEncodingLabel = encodingCombo.getSelectionModel().getSelectedItem();
-            String selectedEncodingFlag = selectedEncodingLabel == null ? "" : encodingChoices.getOrDefault(selectedEncodingLabel, "");
-            if (sampleRate != null && AudioConversionService.isOpus(targetFormat, selectedEncodingFlag)
-                    && !AudioConversionService.isOpusSampleRate(sampleRate)) {
-                convertButton.setDisable(true);
-                validationLabel.setText("Opus sample rate must be one of: 8000, 12000, 16000, 24000, 48000.");
-                return;
-            }
-            convertButton.setDisable(false);
-            validationLabel.setText("");
-        };
-        sampleRateField.textProperty().addListener((obs, oldValue, newValue) -> validate.run());
-        formatGroup.selectedToggleProperty().addListener((obs, oldValue, newValue) -> validate.run());
-        profileGroup.selectedToggleProperty().addListener((obs, oldValue, newValue) -> validate.run());
-        encodingCombo.getSelectionModel().selectedItemProperty().addListener((obs, oldValue, newValue) -> validate.run());
-        validate.run();
-
-        VBox content = new VBox(
-                10,
-                title,
-                subtitle,
-                new Separator(),
-                new Label("Convert to format:"),
-                formatsBox,
-                new Separator(),
-                new Label("Compression profile:"),
-                lossless,
-                lossy,
-                custom,
-                new HBox(10, new Label("Encoding:"), encodingCombo),
-                new Separator(),
-                new Label("Options:"),
-                normalize,
-                new HBox(10, overrideSampleRate, sampleRateField),
-                new HBox(10, new Label("Endian:"), endianCombo),
-                new Label("Filename suffix:"),
-                suffixField,
-                new Label("If output file exists:"),
-                conflictPolicy,
-                validationLabel
-        );
-        content.setPadding(new Insets(12));
-        dialog.getDialogPane().setContent(content);
-        dialog.getDialogPane().setPrefSize(620, 680);
-        applyThemeToDialog(dialog);
-
-        dialog.setResultConverter(buttonType -> {
-            if (buttonType != convertType || formatGroup.getSelectedToggle() == null) {
-                return null;
-            }
-            String selectedEncodingLabel = encodingCombo.getSelectionModel().getSelectedItem();
-            String targetFormat = String.valueOf(formatGroup.getSelectedToggle().getUserData());
-            Integer sampleRate = overrideSampleRate.isSelected() ? parsePositiveOrNull(sampleRateField.getText()) : null;
-            return new AudioConversionRequest(
-                    targetFormat,
-                    selectedAudioCompressionProfile(profileGroup),
-                    selectedEncodingLabel == null ? "" : encodingChoices.getOrDefault(selectedEncodingLabel, ""),
-                    normalize.isSelected(),
-                    sampleRate,
-                    endianCombo.getSelectionModel().getSelectedItem(),
-                    suffixField.getText() == null ? "" : suffixField.getText().trim(),
-                    conflictPolicy.getSelectionModel().getSelectedItem()
-            );
-        });
-
-        return dialog.showAndWait();
-    }
-
-    private AudioCompressionProfile selectedAudioCompressionProfile(ToggleGroup group) {
-        if (group == null || group.getSelectedToggle() == null || group.getSelectedToggle().getUserData() == null) {
-            return AudioCompressionProfile.LOSSLESS;
-        }
-        return (AudioCompressionProfile) group.getSelectedToggle().getUserData();
     }
 
     private boolean containsNonAscii(String text) {
@@ -3030,11 +2652,11 @@ public class Commander {
                 return;
             }
 
-            Optional<ExecutableCompressionRequest> request = promptExecutableCompressionOptions(selectedItems);
-            if (request.isEmpty()) {
+            Optional<ExecutableCompressionSupport.UpxAction> action = ExecutableCompressionDialog.show(dialogOwner(),
+                    currentThemeMode.styleClass, selectedItems);
+            if (action.isEmpty()) {
                 return;
             }
-            ExecutableCompressionRequest compressionRequest = request.get();
 
             Path upxPath = BundledTool.UPX.path();
             if (!Files.exists(upxPath)) {
@@ -3043,7 +2665,7 @@ public class Commander {
             }
 
             long sizeBefore = files.stream().mapToLong(File::length).sum();
-            List<String> command = buildExecutableCompressionCommand(upxPath, compressionRequest, files);
+            List<String> command = ExecutableCompressionSupport.upxCommand(upxPath, action.get(), files);
 
             runExternal(command, true)
                     .thenAccept(output -> Platform.runLater(() -> showExecutableCompressionResult(files, sizeBefore)))
@@ -3056,158 +2678,11 @@ public class Commander {
         }
     }
 
-    private Optional<ExecutableCompressionRequest> promptExecutableCompressionOptions(List<FileItem> selectedItems) {
-        Dialog<ExecutableCompressionRequest> dialog = new Dialog<>();
-        dialog.setTitle("Compress Executable");
-        dialog.setHeaderText(null);
-
-        ButtonType compressType = new ButtonType("Compress", ButtonBar.ButtonData.OK_DONE);
-        dialog.getDialogPane().getButtonTypes().addAll(compressType, ButtonType.CANCEL);
-
-        Label title = new Label("Compress Executable");
-        title.setStyle("-fx-font-size: 16px; -fx-font-weight: bold;");
-
-        FileItem firstItem = selectedItems.getFirst();
-        String subtitleText = selectedItems.size() == 1
-                ? "Selected file: " + firstItem.getName()
-                : "Selected files: " + selectedItems.size();
-        Label subtitle = new Label(subtitleText);
-        subtitle.setWrapText(true);
-
-        ToggleGroup modeGroup = new ToggleGroup();
-        RadioButton compressMode = new RadioButton("Compress");
-        RadioButton decompressMode = new RadioButton("Decompress");
-        compressMode.setUserData(ExecutableCompressionMode.COMPRESS);
-        decompressMode.setUserData(ExecutableCompressionMode.DECOMPRESS);
-        compressMode.setToggleGroup(modeGroup);
-        decompressMode.setToggleGroup(modeGroup);
-        compressMode.setSelected(true);
-
-        GridPane metadataGrid = new GridPane();
-        metadataGrid.setHgap(12);
-        metadataGrid.setVgap(6);
-        ColumnConstraints labelCol = new ColumnConstraints();
-        labelCol.setMinWidth(90);
-        ColumnConstraints valueCol = new ColumnConstraints();
-        valueCol.setHgrow(Priority.ALWAYS);
-        metadataGrid.getColumnConstraints().addAll(labelCol, valueCol);
-
-        long sizeBytes = selectedItems.stream()
-                .mapToLong(FileItem::getSizeInBytes)
-                .sum();
-        String sizeText = sizeBytes > 0 ? humanSize(sizeBytes) : "Unknown";
-        addMetadataRow(metadataGrid, 0, "Path:", firstItem.getFullPath());
-        addMetadataRow(metadataGrid, 1, "Size:", sizeText);
-        addMetadataRow(metadataGrid, 2, "Modified:", firstItem.getDate());
-        if (selectedItems.size() > 1) {
-            addMetadataRow(metadataGrid, 3, "Selection:", selectedItems.size() + " files");
-        }
-
-        ToggleGroup compressionGroup = new ToggleGroup();
-        RadioButton good = new RadioButton("Good compression (-9)");
-        RadioButton veryGood = new RadioButton("Very good compression (slow, --brute)");
-        RadioButton best = new RadioButton("Best compression (slowest, --ultra-brute)");
-
-        good.setToggleGroup(compressionGroup);
-        veryGood.setToggleGroup(compressionGroup);
-        best.setToggleGroup(compressionGroup);
-
-        good.setUserData(ExecutableCompressionProfile.GOOD);
-        veryGood.setUserData(ExecutableCompressionProfile.VERY_GOOD);
-        best.setUserData(ExecutableCompressionProfile.BEST);
-        good.setSelected(true);
-
-        Runnable syncCompressionControls = () -> {
-            ExecutableCompressionMode mode = selectedExecutableCompressionMode(modeGroup);
-            boolean enable = mode == ExecutableCompressionMode.COMPRESS;
-            good.setDisable(!enable);
-            veryGood.setDisable(!enable);
-            best.setDisable(!enable);
-        };
-        modeGroup.selectedToggleProperty().addListener((obs, oldValue, newValue) -> syncCompressionControls.run());
-        syncCompressionControls.run();
-
-        VBox content = new VBox(
-                10,
-                title,
-                subtitle,
-                new Separator(),
-                new Label("Mode:"),
-                compressMode,
-                decompressMode,
-                new Separator(),
-                new Label("File metadata:"),
-                metadataGrid,
-                new Separator(),
-                new Label("Compression level:"),
-                good,
-                veryGood,
-                best
-        );
-        content.setPadding(new Insets(12));
-        dialog.getDialogPane().setContent(content);
-        dialog.getDialogPane().setPrefSize(620, 420);
-        applyThemeToDialog(dialog);
-
-        Button compressButton = (Button) dialog.getDialogPane().lookupButton(compressType);
-        compressButton.setDefaultButton(true);
-        dialog.getDialogPane().addEventFilter(KeyEvent.KEY_PRESSED, event -> {
-            if (event.getCode() == KeyCode.ENTER && !compressButton.isDisabled()) {
-                compressButton.fire();
-                event.consume();
-            }
-        });
-        dialog.setOnShown(event -> good.requestFocus());
-
-        dialog.setResultConverter(buttonType -> {
-            if (buttonType != compressType) {
-                return null;
-            }
-            ExecutableCompressionMode mode = selectedExecutableCompressionMode(modeGroup);
-            ExecutableCompressionProfile profile = selectedCompressionProfile(compressionGroup);
-            return new ExecutableCompressionRequest(mode, profile);
-        });
-
-        return dialog.showAndWait();
-    }
-
-    private ExecutableCompressionMode selectedExecutableCompressionMode(ToggleGroup group) {
-        if (group == null || group.getSelectedToggle() == null || group.getSelectedToggle().getUserData() == null) {
-            return ExecutableCompressionMode.COMPRESS;
-        }
-        return (ExecutableCompressionMode) group.getSelectedToggle().getUserData();
-    }
-
-    private ExecutableCompressionProfile selectedCompressionProfile(ToggleGroup group) {
-        if (group == null || group.getSelectedToggle() == null || group.getSelectedToggle().getUserData() == null) {
-            return ExecutableCompressionProfile.GOOD;
-        }
-        Object value = group.getSelectedToggle().getUserData();
-        if (value instanceof ExecutableCompressionProfile profile) {
-            return profile;
-        }
-        return ExecutableCompressionProfile.GOOD;
-    }
-
-    private List<String> buildExecutableCompressionCommand(Path upxPath, ExecutableCompressionRequest request, List<File> files) {
-        List<String> command = new ArrayList<>();
-        command.add(upxPath.toString());
-        if (request.mode() == ExecutableCompressionMode.DECOMPRESS) {
-            command.add("-d");
-        } else {
-            command.add(request.profile().flag());
-        }
-        for (File file : files) {
-            command.add(file.getAbsolutePath());
-        }
-        return command;
-    }
-
     private void showExecutableCompressionResult(List<File> files, long sizeBefore) {
         long sizeAfter = files == null ? 0 : files.stream().mapToLong(File::length).sum();
         String beforeText = sizeBefore > 0 ? humanSize(sizeBefore) : "Unknown";
         String afterText = sizeAfter > 0 ? humanSize(sizeAfter) : "Unknown";
-        String percentText = formatPercentChange(sizeBefore, sizeAfter);
+        String percentText = ExecutableCompressionSupport.percentChange(sizeBefore, sizeAfter);
         int count = files == null ? 0 : files.size();
         String message = "Files: " + count
                 + System.lineSeparator()
@@ -3219,32 +2694,6 @@ public class Commander {
         showInfo("Executable Compression Result", message);
     }
 
-    private String formatPercentChange(long sizeBefore, long sizeAfter) {
-        if (sizeBefore <= 0) {
-            return "N/A";
-        }
-        double delta = ((double) sizeAfter - (double) sizeBefore) / (double) sizeBefore * 100.0;
-        return String.format(Locale.ROOT, "%.2f%%", delta);
-    }
-
-    private enum ExecutableCompressionMode {
-        COMPRESS,
-        DECOMPRESS
-    }
-
-    private record ExecutableCompressionRequest(
-            ExecutableCompressionMode mode,
-            ExecutableCompressionProfile profile
-    ) {
-    }
-
-    private void addMetadataRow(GridPane grid, int row, String labelText, String valueText) {
-        Label label = new Label(labelText);
-        Label value = new Label(valueText == null ? "" : valueText);
-        value.setWrapText(true);
-        grid.add(label, 0, row);
-        grid.add(value, 1, row);
-    }
 
     private void handleExecutableCompressionFailure(List<File> files, List<String> command, Throwable throwable) {
         Throwable root = unwrapCompletionException(throwable);
@@ -4162,22 +3611,6 @@ public class Commander {
                         "-fx-font-size: 12px;"
         );
         toastPopup.getContent().add(toastLabel);
-    }
-
-    private enum ExecutableCompressionProfile {
-        GOOD("-9"),
-        VERY_GOOD("--brute"),
-        BEST("--ultra-brute");
-
-        private final String flag;
-
-        ExecutableCompressionProfile(String flag) {
-            this.flag = flag;
-        }
-
-        public String flag() {
-            return flag;
-        }
     }
 
     /** Alerts of an error and logs it */
