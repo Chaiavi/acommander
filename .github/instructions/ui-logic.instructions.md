@@ -1,0 +1,21 @@
+---
+description: "Use when editing JavaFX UI classes: Commander.java (main FXML controller), dialog/** or palette/**. Keeps business logic out of UI classes so it can be unit-tested."
+applyTo:
+  - "src/main/java/org/chaiware/acommander/Commander.java"
+  - "src/main/java/org/chaiware/acommander/dialog/**"
+  - "src/main/java/org/chaiware/acommander/palette/**"
+---
+# Keep Logic Out of JavaFX UI Classes
+
+Tests can't start the JavaFX toolkit, so logic left in a UI class is untestable. `Commander` alone is ~7.5k lines.
+
+- Keep in UI classes only: reading UI state (selection, focused pane, field values), showing dialogs,
+  `Platform.runLater`, refreshing panes.
+- Put decisions, parsing, validation, filtering and argument building in a class under `helpers/`, `commands/` or
+  `tools/`, taking plain inputs (`List<FileItem>`, `Path`, `String`) — no JavaFX types.
+- Pattern to copy: [ImageConversionSupport](../../src/main/java/org/chaiware/acommander/helpers/ImageConversionSupport.java)
+  is a `final` class with static methods. `Commander` calls `ImageConversionSupport.areAllConvertibleImages(selected)`.
+- Add a test for the new class next to the existing ones, e.g.
+  [ImageConversionSupportTest](../../src/test/java/org/chaiware/acommander/helpers/ImageConversionSupportTest.java).
+- When you change an existing method, move the logic you touch out of the UI class. Don't refactor code you aren't
+  changing.
