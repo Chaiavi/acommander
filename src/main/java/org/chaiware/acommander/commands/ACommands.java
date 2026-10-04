@@ -4,12 +4,11 @@ import javafx.application.Platform;
 import org.chaiware.acommander.helpers.ArchiveService;
 import org.chaiware.acommander.helpers.FilesPanesHelper;
 import org.chaiware.acommander.model.FileItem;
+import org.chaiware.acommander.tools.ProcessRunner;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -236,24 +235,11 @@ public abstract class ACommands {
         return CompletableFuture.supplyAsync(() -> {
             int exitCode = -1;
             Throwable failure = null;
-            Process process = null;
-            List<String> output = List.of();
             try {
-                ProcessBuilder pb = new ProcessBuilder(params);
-                pb.redirectErrorStream(true); // merges stderr into stdout
-                log.debug("Running: {}", String.join(" ", pb.command()));
-                process = pb.start();
-                runningProcesses.add(process);
-
-                output = new ArrayList<>();
-                try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
-                    String line;
-                    while ((line = reader.readLine()) != null) {
-                        output.add(line);
-                    }
-                }
-
-                exitCode = process.waitFor();
+                log.debug("Running: {}", String.join(" ", commandSnapshot));
+                ProcessRunner.Result result = ProcessRunner.of(params).mergeStderr().trackIn(runningProcesses).run();
+                List<String> output = result.stdout();
+                exitCode = result.exitCode();
                 log.debug("Process completed with exit code: {}", exitCode);
                 if (!acceptedExitCodes.contains(exitCode)) {
                     String toolOutput = summarizeOutput(output);
@@ -286,9 +272,6 @@ public abstract class ACommands {
                 log.error("Error running external process. command={}", formatCommand(commandSnapshot), e);
                 throw new RuntimeException(e);
             } finally {
-                if (process != null) {
-                    runningProcesses.remove(process);
-                }
                 notifyCommandFinished(commandSnapshot, exitCode, failure);
             }
         });

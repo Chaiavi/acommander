@@ -10,14 +10,12 @@ import javafx.scene.layout.VBox;
 import javafx.stage.Modality;
 import javafx.stage.Window;
 import org.chaiware.acommander.Commander;
+import org.chaiware.acommander.tools.ProcessRunner;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
-import java.io.InputStreamReader;
-import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
@@ -353,28 +351,8 @@ public class VideoMetadataDialog {
     }
 
     private ProcessResult runCommand(List<String> command) throws IOException, InterruptedException {
-        ProcessBuilder pb = new ProcessBuilder(command);
-        pb.directory(new File(System.getProperty("user.dir")));
-        Process process = pb.start();
-
-        StringBuilder stdout = new StringBuilder();
-        try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream(), StandardCharsets.UTF_8))) {
-            String line;
-            while ((line = reader.readLine()) != null) {
-                stdout.append(line).append('\n');
-            }
-        }
-
-        StringBuilder stderr = new StringBuilder();
-        try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getErrorStream(), StandardCharsets.UTF_8))) {
-            String line;
-            while ((line = reader.readLine()) != null) {
-                stderr.append(line).append('\n');
-            }
-        }
-
-        int exitCode = process.waitFor();
-        return new ProcessResult(exitCode, stdout.toString(), stderr.toString());
+        ProcessRunner.Result run = ProcessRunner.of(command).directory(new File(System.getProperty("user.dir"))).run();
+        return new ProcessResult(run.exitCode(), run.stdoutText(), run.stderrText());
     }
 
     private void setControlsDisabled(boolean disabled) {

@@ -10,13 +10,12 @@ import javafx.scene.layout.VBox;
 import javafx.stage.Modality;
 import javafx.stage.Window;
 import org.chaiware.acommander.Commander;
+import org.chaiware.acommander.tools.ProcessRunner;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.nio.charset.Charset;
 import java.nio.charset.CharsetEncoder;
 import java.util.*;
@@ -331,35 +330,21 @@ public class AudioMetadataDialog {
 
     private ProcessResult runCommand(List<String> command) throws IOException, InterruptedException {
         logger.info("Executing id3 command: {}", formatCommand(command));
-        ProcessBuilder pb = new ProcessBuilder(command);
-        pb.directory(new File(System.getProperty("user.dir")));
-        Process process = pb.start();
-
-        StringBuilder stdout = new StringBuilder();
-        try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream(), id3IoCharset))) {
-            String line;
-            while ((line = reader.readLine()) != null) {
-                stdout.append(line).append('\n');
-            }
-        }
-
-        StringBuilder stderr = new StringBuilder();
-        try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getErrorStream(), id3IoCharset))) {
-            String line;
-            while ((line = reader.readLine()) != null) {
-                stderr.append(line).append('\n');
-            }
-        }
-
-        int exit = process.waitFor();
+        ProcessRunner.Result run = ProcessRunner.of(command)
+                .directory(new File(System.getProperty("user.dir")))
+                .charset(id3IoCharset)
+                .run();
+        String stdout = run.stdoutText();
+        String stderr = run.stderrText();
+        int exit = run.exitCode();
         logger.info("id3 command completed with exit code {}", exit);
         if (!stderr.isEmpty()) {
-            logger.warn("id3 stderr: {}", truncateForLog(stderr.toString()));
+            logger.warn("id3 stderr: {}", truncateForLog(stderr));
         }
         if (exit != 0 && !stdout.isEmpty()) {
-            logger.warn("id3 stdout (on failure): {}", truncateForLog(stdout.toString()));
+            logger.warn("id3 stdout (on failure): {}", truncateForLog(stdout));
         }
-        return new ProcessResult(exit, stdout.toString(), stderr.toString());
+        return new ProcessResult(exit, stdout, stderr);
     }
 
     private void setControlsDisabled(boolean disabled) {

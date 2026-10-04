@@ -5,14 +5,12 @@ import javafx.util.StringConverter;
 import org.chaiware.acommander.model.Drive;
 import org.chaiware.acommander.model.Folder;
 import org.chaiware.acommander.model.WindowsFolder;
+import org.chaiware.acommander.tools.ProcessRunner;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.swing.filechooser.FileSystemView;
-import java.io.BufferedReader;
 import java.io.File;
-import java.io.InputStreamReader;
-import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
@@ -175,29 +173,25 @@ public class ComboBoxSetup {
                 "}";
 
         try {
-            Process process = new ProcessBuilder("powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", psScript)
-                    .redirectErrorStream(true)
-                    .start();
-            try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream(), StandardCharsets.UTF_8))) {
-                String line;
-                while ((line = reader.readLine()) != null) {
-                    String trimmed = line.trim();
-                    if (trimmed.isEmpty()) {
-                        continue;
-                    }
-                    String[] parts = trimmed.split("\\|", 2);
-                    if (parts.length == 2) {
-                        String letter = parts[0].trim().toUpperCase(Locale.ROOT);
-                        String type = parts[1].trim();
-                        if (!letter.isEmpty() && !type.isEmpty()) {
-                            result.put(letter, type);
-                        }
+            ProcessRunner.Result run = ProcessRunner.of("powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", psScript)
+                    .mergeStderr()
+                    .run();
+            for (String line : run.stdout()) {
+                String trimmed = line.trim();
+                if (trimmed.isEmpty()) {
+                    continue;
+                }
+                String[] parts = trimmed.split("\\|", 2);
+                if (parts.length == 2) {
+                    String letter = parts[0].trim().toUpperCase(Locale.ROOT);
+                    String type = parts[1].trim();
+                    if (!letter.isEmpty() && !type.isEmpty()) {
+                        result.put(letter, type);
                     }
                 }
             }
-            int exitCode = process.waitFor();
-            if (exitCode != 0) {
-                logger.debug("PowerShell drive type detection exited with code {}", exitCode);
+            if (run.exitCode() != 0) {
+                logger.debug("PowerShell drive type detection exited with code {}", run.exitCode());
             }
         } catch (Exception ex) {
             logger.debug("PowerShell drive type detection failed", ex);

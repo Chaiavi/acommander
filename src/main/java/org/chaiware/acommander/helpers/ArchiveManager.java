@@ -2,13 +2,11 @@ package org.chaiware.acommander.helpers;
 
 import org.chaiware.acommander.model.ArchiveMode;
 import org.chaiware.acommander.model.ArchiveSession;
+import org.chaiware.acommander.tools.ProcessRunner;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStreamReader;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -155,21 +153,10 @@ public class ArchiveManager {
     private void execute7zCommand(List<String> command, String operation) throws IOException {
         logger.debug("Running 7z {}: {}", operation, String.join(" ", command));
         
-        ProcessBuilder pb = new ProcessBuilder(command);
-        pb.redirectErrorStream(true);
-        
         try {
-            Process process = pb.start();
-            
-            // Capture output for debugging
-            try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream(), StandardCharsets.UTF_8))) {
-                String line;
-                while ((line = reader.readLine()) != null) {
-                    logger.trace("7z: {}", line);
-                }
-            }
-            
-            int exitCode = process.waitFor();
+            ProcessRunner.Result result = ProcessRunner.of(command).mergeStderr().run();
+            result.stdout().forEach(line -> logger.trace("7z: {}", line));
+            int exitCode = result.exitCode();
             if (exitCode != 0) {
                 throw new IOException("7z " + operation + " failed with exit code " + exitCode);
             }

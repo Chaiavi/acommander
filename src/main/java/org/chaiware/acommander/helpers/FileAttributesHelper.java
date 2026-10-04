@@ -1,5 +1,6 @@
 package org.chaiware.acommander.helpers;
 
+import org.chaiware.acommander.tools.ProcessRunner;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -73,11 +74,7 @@ public class FileAttributesHelper {
 
         logger.debug("Running command: {}", String.join(" ", command));
 
-        ProcessBuilder pb = new ProcessBuilder(command);
-        pb.redirectErrorStream(true);
-        Process process = pb.start();
-        int exit = process.waitFor();
-        return exit == 0;
+        return ProcessRunner.of(command).mergeStderr().run().succeeded();
     }
 
     private void applyAttr(AttributeSetter setter, boolean value) throws IOException {

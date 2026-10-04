@@ -52,9 +52,11 @@ server is available.
   needs them (Phase 10 adds stdin for curl).
 - [ ] 1.2 `BackgroundTasks`: one app executor (virtual threads), shut down in `Main` on close. Replaces
   `CompletableFuture.runAsync` without an executor and `newCachedThreadPool` in the three metadata dialogs.
-- [ ] 1.3 Move every `ProcessBuilder` site to `ProcessRunner` (Commander, `ACommands.runExecutable`, 3 dialogs,
-  `ArchiveManager`, `ComboBoxSetup`, `FileAttributesHelper`, `FtpFileSystem` x2). Args stay identical. Fixes the
-  `waitFor`-without-drain deadlock and the relative `"apps/..."` exe paths in the metadata delete runners.
+- [x] 1.3 Every `ProcessBuilder` site now uses `ProcessRunner` (Commander, `ACommands.runExecutable`, 3 dialogs,
+  `ArchiveManager`, `ComboBoxSetup`, `FileAttributesHelper`, `FtpFileSystem` x2). Args identical. Fixed: metadata
+  delete runners and `attrib` waited without draining output; the dialogs read stdout then stderr (hangs on a full
+  stderr pipe); image extract/insert left buttons disabled on early exits. The relative `"apps/..."` exe paths work
+  (child resolves against the app's cwd = `user.dir`); `ToolLocator` (3.1) still unifies them.
 - [ ] 1.4 Off the FX thread: `calculateDirSpace`, `compareFolders` entry collection, metadata remove runners.
 - [ ] 1.5 Close every `Files.walk` / `Files.list` (Commander `calculateDirSpace` + audio staging,
   `CommandsAdvancedImpl`, `CommandsSimpleImpl`, `ArchiveSession`).

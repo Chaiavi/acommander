@@ -4,13 +4,12 @@ import org.chaiware.acommander.commands.ExternalCommandListener;
 import org.chaiware.acommander.helpers.ArchiveManager;
 import org.chaiware.acommander.model.ArchiveSession;
 import org.chaiware.acommander.model.FileItem;
+import org.chaiware.acommander.tools.ProcessRunner;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -96,12 +95,7 @@ public class FtpFileSystem implements VFileSystem {
             command.add(options.getFullUrl("/"));
             command.add("--list-only");
             
-            ProcessBuilder pb = new ProcessBuilder(command);
-            pb.redirectErrorStream(true);
-            Process process = pb.start();
-            
-            int exitCode = process.waitFor();
-            return exitCode == 0;
+            return ProcessRunner.of(command).mergeStderr().run().succeeded();
         } catch (Exception e) {
             logger.debug("Connection test failed for {}: {}", options.getUrl(), e.getMessage());
             return false;
@@ -310,17 +304,10 @@ public class FtpFileSystem implements VFileSystem {
         int exitCode = -1;
         List<String> output = new ArrayList<>();
         try {
-            ProcessBuilder pb = new ProcessBuilder(command);
-            pb.redirectErrorStream(true);
-            Process process = pb.start();
-            try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
-                String line;
-                while ((line = reader.readLine()) != null) {
-                    output.add(line);
-                }
-            }
             try {
-                exitCode = process.waitFor();
+                ProcessRunner.Result result = ProcessRunner.of(command).mergeStderr().run();
+                output = result.stdout();
+                exitCode = result.exitCode();
                 if (exitCode != 0) {
                     logger.error("curl failed with exit code {}. Output: {}", exitCode, String.join("\n", output));
                     throw new IOException("FTP operation failed: " + getCurlErrorMessage(exitCode, output));

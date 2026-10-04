@@ -35,6 +35,7 @@ import org.chaiware.acommander.model.ArchiveSession;
 import org.chaiware.acommander.model.FileItem;
 import org.chaiware.acommander.model.Folder;
 import org.chaiware.acommander.palette.CommandPaletteController;
+import org.chaiware.acommander.tools.ProcessRunner;
 import org.chaiware.acommander.vfs.FtpConnectionOptions;
 import org.chaiware.acommander.vfs.FtpFileSystem;
 import org.chaiware.acommander.vfs.LocalFileSystem;
@@ -1225,7 +1226,7 @@ public class Commander {
 
         try {
             // Shell fallback that uses the current Windows file association.
-            new ProcessBuilder("cmd.exe", "/c", "start", "", "\"" + fullPath + "\"").start();
+            ProcessRunner.of("cmd.exe", "/c", "start", "", "\"" + fullPath + "\"").launch();
             return;
         } catch (IOException shellEx) {
             logger.warn("Windows shell fallback failed for {}, trying Open With dialog", selectedItem.getName(), shellEx);
@@ -1233,7 +1234,7 @@ public class Commander {
 
         try {
             // Last resort: prompt the user to choose an application.
-            new ProcessBuilder("rundll32.exe", "shell32.dll,OpenAs_RunDLL", fullPath).start();
+            ProcessRunner.of("rundll32.exe", "shell32.dll,OpenAs_RunDLL", fullPath).launch();
         } catch (IOException openAsEx) {
             if (fromArchive) {
                 logger.error("Failed opening file in archive: {}", selectedItem.getName(), openAsEx);
@@ -1306,8 +1307,7 @@ public class Commander {
             File helpFile = Paths.get(System.getProperty("user.dir"), "config", "f1-help.html").toFile();
             // Open help file using the internal UniversalViewer
             String viewerPath = Paths.get(System.getProperty("user.dir"), "apps", "view", "UniversalViewer", "Viewer.exe").toString();
-            ProcessBuilder pb = new ProcessBuilder(viewerPath, helpFile.getAbsolutePath());
-            pb.start();
+            ProcessRunner.of(viewerPath, helpFile.getAbsolutePath()).launch();
         } catch (Exception ex) {
             error("Failed Viewing help file", ex);
         }
@@ -4271,9 +4271,9 @@ public class Commander {
                 vbsFile.toFile().deleteOnExit();
 
                 // Use wscript (Windows Script Host) instead of cscript for GUI apps
-                ProcessBuilder pb = new ProcessBuilder("wscript.exe", "//Nologo", vbsFile.toString(), filePath);
-                logger.debug("Running command: {}", String.join(" ", pb.command()));
-                pb.start();
+                List<String> command = List.of("wscript.exe", "//Nologo", vbsFile.toString(), filePath);
+                logger.debug("Running command: {}", String.join(" ", command));
+                ProcessRunner.of(command).launch();
 
                 logger.info("File Properties dialog opened for: {}", filePath);
             } catch (Exception ex) {
@@ -4414,19 +4414,12 @@ public class Commander {
                     command.add("a");  // 'a' means all metadata
                     command.add(file.getAbsolutePath());
 
-                    ProcessBuilder pb = new ProcessBuilder(command);
-                    Process process = pb.start();
-                    try {
-                        int exitCode = process.waitFor();
-
-                        if (exitCode == 0) {
-                            logger.info("Successfully removed metadata from: " + file.getAbsolutePath());
-                            successCount++;
-                        } else {
-                            logger.warn("Failed to remove metadata from: " + file.getAbsolutePath() + " (exit code: " + exitCode + ")");
-                        }
-                    } finally {
-                        process.destroy();
+                    int exitCode = ProcessRunner.of(command).mergeStderr().run().exitCode();
+                    if (exitCode == 0) {
+                        logger.info("Successfully removed metadata from: " + file.getAbsolutePath());
+                        successCount++;
+                    } else {
+                        logger.warn("Failed to remove metadata from: " + file.getAbsolutePath() + " (exit code: " + exitCode + ")");
                     }
                 } catch (Exception ex) {
                     logger.warn("Error removing metadata from: " + file.getAbsolutePath(), ex);
@@ -4570,18 +4563,12 @@ public class Commander {
         command.add("--overWrite");
 
         try {
-            ProcessBuilder pb = new ProcessBuilder(command);
-            Process process = pb.start();
-            try {
-                int exitCode = process.waitFor();
-                if (exitCode != 0) {
-                    logger.warn("Video metadata delete command failed (exit={}): {}", exitCode, file.getAbsolutePath());
-                    return false;
-                }
-                return true;
-            } finally {
-                process.destroy();
+            int exitCode = ProcessRunner.of(command).mergeStderr().run().exitCode();
+            if (exitCode != 0) {
+                logger.warn("Video metadata delete command failed (exit={}): {}", exitCode, file.getAbsolutePath());
+                return false;
             }
+            return true;
         } catch (Exception ex) {
             logger.warn("Video metadata delete command threw error: {}", file.getAbsolutePath(), ex);
             return false;
@@ -4757,19 +4744,13 @@ public class Commander {
         command.add(file.getAbsolutePath());
 
         try {
-            ProcessBuilder pb = new ProcessBuilder(command);
-            Process process = pb.start();
-            try {
-                int exitCode = process.waitFor();
-                if (exitCode != 0) {
-                    logger.warn("Audio metadata delete command failed (flag={}, exit={}): {}",
-                            tagVersionFlag, exitCode, file.getAbsolutePath());
-                    return false;
-                }
-                return true;
-            } finally {
-                process.destroy();
+            int exitCode = ProcessRunner.of(command).mergeStderr().run().exitCode();
+            if (exitCode != 0) {
+                logger.warn("Audio metadata delete command failed (flag={}, exit={}): {}",
+                        tagVersionFlag, exitCode, file.getAbsolutePath());
+                return false;
             }
+            return true;
         } catch (Exception ex) {
             logger.warn("Audio metadata delete command threw error (flag={}): {}",
                     tagVersionFlag, file.getAbsolutePath(), ex);
@@ -5318,9 +5299,8 @@ public class Commander {
             String args = editAction.getArgs().stream().reduce((a, b) -> a + " " + b).orElse("");
             args = args.replace("${selectedFile}", hostsPath);
 
-            ProcessBuilder pb = new ProcessBuilder("powershell", "-NoProfile", "-Command",
-                    "Start-Process -FilePath '" + editorPath + "' -ArgumentList '" + args + "' -Verb RunAs");
-            pb.start();
+            ProcessRunner.of("powershell", "-NoProfile", "-Command",
+                    "Start-Process -FilePath '" + editorPath + "' -ArgumentList '" + args + "' -Verb RunAs").launch();
         } catch (Exception e) {
             logger.error("Failed to open hosts file", e);
             showError("Error", "Failed to open hosts file: " + e.getMessage());

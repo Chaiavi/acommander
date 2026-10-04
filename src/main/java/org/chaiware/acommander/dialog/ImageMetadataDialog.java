@@ -9,13 +9,12 @@ import javafx.scene.layout.VBox;
 import javafx.stage.Modality;
 import javafx.stage.Window;
 import org.chaiware.acommander.Commander;
+import org.chaiware.acommander.tools.ProcessRunner;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
@@ -453,42 +452,26 @@ public class ImageMetadataDialog {
 
         logger.info("Executing exiv2 command: {}", String.join(" ", command));
         
-        ProcessBuilder pb = new ProcessBuilder(command);
-        pb.directory(new File(System.getProperty("user.dir")));
-
-        Process process;
+        ProcessRunner.Result run;
         try {
-            process = pb.start();
-            logger.info("exiv2 process started successfully");
+            run = ProcessRunner.of(command).directory(new File(System.getProperty("user.dir"))).run();
         } catch (IOException e) {
-            logger.error("Failed to start exiv2 process", e);
+            logger.error("Failed to run exiv2 process", e);
             return "ERROR: Failed to start exiv2.exe\n" + e.getMessage() +
                    "\n\nThis may indicate the executable is corrupted or incompatible.";
         }
 
-        StringBuilder output = new StringBuilder();
-        try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream(), StandardCharsets.UTF_8))) {
-            String line;
-            while ((line = reader.readLine()) != null) {
-                output.append(line).append("\n");
-            }
-        }
+        String output = run.stdoutText();
         logger.debug("exiv2 stdout: {} bytes", output.length());
-        logger.info("exiv2 raw output:\n{}", output.toString());
+        logger.info("exiv2 raw output:\n{}", output);
 
-        StringBuilder error = new StringBuilder();
-        try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getErrorStream(), StandardCharsets.UTF_8))) {
-            String line;
-            while ((line = reader.readLine()) != null) {
-                error.append(line).append("\n");
-            }
-        }
+        String error = run.stderrText();
         logger.debug("exiv2 stderr: {} bytes", error.length());
-        if (error.length() > 0) {
-            logger.warn("exiv2 stderr: {}", error.toString());
+        if (!error.isEmpty()) {
+            logger.warn("exiv2 stderr: {}", error);
         }
 
-        int exitCode = process.waitFor();
+        int exitCode = run.exitCode();
         logger.info("exiv2 exit code: {}", exitCode);
 
         if (exitCode != 0) {
@@ -759,21 +742,18 @@ public class ImageMetadataDialog {
 
                 logger.info("Applying metadata changes using command file");
 
-                ProcessBuilder pb = new ProcessBuilder(command);
-                pb.directory(new File(System.getProperty("user.dir")));
-
-                Process process;
+                ProcessRunner.Result run;
                 try {
-                    process = pb.start();
+                    run = ProcessRunner.of(command).directory(new File(System.getProperty("user.dir"))).run();
                 } catch (IOException e) {
                     Platform.runLater(() -> showError(
-                        "Failed to start exiv2.exe: " + e.getMessage(),
+                        "Failed to run exiv2.exe: " + e.getMessage(),
                         "Execution Error",
                         "The exiv2 executable may be missing or corrupted."));
                     return;
                 }
 
-                int exitCode = process.waitFor();
+                int exitCode = run.exitCode();
 
                 if (exitCode == 0) {
                     metadataModified = true;
@@ -783,18 +763,9 @@ public class ImageMetadataDialog {
                         loadMetadata(); // Reload to show updated values
                     });
                 } else {
-                    StringBuilder errorOutput = new StringBuilder();
-                    try (BufferedReader reader = new BufferedReader(
-                            new InputStreamReader(process.getErrorStream(), StandardCharsets.UTF_8))) {
-                        String line;
-                        while ((line = reader.readLine()) != null) {
-                            errorOutput.append(line).append("\n");
-                        }
-                    } catch (IOException e) {
-                        errorOutput.append("Failed to read error: ").append(e.getMessage());
-                    }
+                    String errorOutput = run.stderrText();
 
-                    String errorMsg = errorOutput.length() > 0 ? errorOutput.toString() : "Exit code: " + exitCode;
+                    String errorMsg = errorOutput.length() > 0 ? errorOutput : "Exit code: " + exitCode;
                     logger.error("Failed to apply metadata changes: {}", errorMsg);
 
                     Platform.runLater(() -> showError(
@@ -846,21 +817,18 @@ public class ImageMetadataDialog {
                 command.add("X");
                 command.add("\"" + imageFile.getAbsolutePath() + "\"");
 
-                ProcessBuilder pb = new ProcessBuilder(command);
-                pb.directory(new File(System.getProperty("user.dir")));
-                
-                Process process;
+                ProcessRunner.Result run;
                 try {
-                    process = pb.start();
+                    run = ProcessRunner.of(command).directory(new File(System.getProperty("user.dir"))).run();
                 } catch (IOException e) {
                     Platform.runLater(() -> showError(
-                        "Failed to start exiv2.exe: " + e.getMessage(),
+                        "Failed to run exiv2.exe: " + e.getMessage(),
                         "Execution Error",
                         "The exiv2 executable may be missing or corrupted."));
                     return;
                 }
                 
-                int exitCode = process.waitFor();
+                int exitCode = run.exitCode();
 
                 Platform.runLater(() -> {
                     if (exitCode == 0) {
@@ -871,37 +839,21 @@ public class ImageMetadataDialog {
                                 "Sidecar file created:\n" + sidecarPath +
                                 "\n\nThis XMP file contains all metadata from the image.");
                     } else {
-                        StringBuilder errorOutput = new StringBuilder();
-                        try {
-                            try (BufferedReader reader = new BufferedReader(
-                                    new InputStreamReader(process.getErrorStream(), StandardCharsets.UTF_8))) {
-                                String line;
-                                while ((line = reader.readLine()) != null) {
-                                    errorOutput.append(line).append("\n");
-                                }
-                            }
-                        } catch (IOException e) {
-                            errorOutput.append("Failed to read error output: ").append(e.getMessage());
-                        }
-                        String errorMsg = errorOutput.length() > 0 ? errorOutput.toString() : "Exit code: " + exitCode;
+                        String errorOutput = run.stderrText();
+                        String errorMsg = errorOutput.length() > 0 ? errorOutput : "Exit code: " + exitCode;
                         showError("Failed to extract metadata",
                                 "Extraction Failed",
                                 "exiv2 returned an error:\n\n" + errorMsg);
                     }
-                    setButtonsDisabled(false);
                 });
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
-                Platform.runLater(() -> {
-                    showError("Operation was interrupted", "Interrupted", null);
-                    setButtonsDisabled(false);
-                });
+                Platform.runLater(() -> showError("Operation was interrupted", "Interrupted", null));
             } catch (Exception e) {
                 logger.error("Failed to extract metadata", e);
-                Platform.runLater(() -> {
-                    showError("Error: " + e.getMessage(), "Unexpected Error", null);
-                    setButtonsDisabled(false);
-                });
+                Platform.runLater(() -> showError("Error: " + e.getMessage(), "Unexpected Error", null));
+            } finally {
+                Platform.runLater(() -> setButtonsDisabled(false));
             }
         }, executor);
     }
@@ -946,21 +898,18 @@ public class ImageMetadataDialog {
                 command.add("X");
                 command.add("\"" + imageFile.getAbsolutePath() + "\"");
 
-                ProcessBuilder pb = new ProcessBuilder(command);
-                pb.directory(new File(System.getProperty("user.dir")));
-                
-                Process process;
+                ProcessRunner.Result run;
                 try {
-                    process = pb.start();
+                    run = ProcessRunner.of(command).directory(new File(System.getProperty("user.dir"))).run();
                 } catch (IOException e) {
                     Platform.runLater(() -> showError(
-                        "Failed to start exiv2.exe: " + e.getMessage(),
+                        "Failed to run exiv2.exe: " + e.getMessage(),
                         "Execution Error",
                         "The exiv2 executable may be missing or corrupted."));
                     return;
                 }
                 
-                int exitCode = process.waitFor();
+                int exitCode = run.exitCode();
 
                 Platform.runLater(() -> {
                     if (exitCode == 0) {
@@ -968,19 +917,8 @@ public class ImageMetadataDialog {
                         setStatus("Metadata inserted successfully");
                         loadMetadata();
                     } else {
-                        StringBuilder errorOutput = new StringBuilder();
-                        try {
-                            try (BufferedReader reader = new BufferedReader(
-                                    new InputStreamReader(process.getErrorStream(), StandardCharsets.UTF_8))) {
-                                String line;
-                                while ((line = reader.readLine()) != null) {
-                                    errorOutput.append(line).append("\n");
-                                }
-                            }
-                        } catch (IOException e) {
-                            errorOutput.append("Failed to read error output: ").append(e.getMessage());
-                        }
-                        String errorMsg = errorOutput.length() > 0 ? errorOutput.toString() : "Exit code: " + exitCode;
+                        String errorOutput = run.stderrText();
+                        String errorMsg = errorOutput.length() > 0 ? errorOutput : "Exit code: " + exitCode;
                         showError("Failed to insert metadata",
                                 "Insertion Failed",
                                 "exiv2 returned an error:\n\n" + errorMsg +
@@ -988,20 +926,15 @@ public class ImageMetadataDialog {
                                 "  - Invalid or corrupted XMP sidecar file\n" +
                                 "  - Metadata format incompatible with image");
                     }
-                    setButtonsDisabled(false);
                 });
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
-                Platform.runLater(() -> {
-                    showError("Operation was interrupted", "Interrupted", null);
-                    setButtonsDisabled(false);
-                });
+                Platform.runLater(() -> showError("Operation was interrupted", "Interrupted", null));
             } catch (Exception e) {
                 logger.error("Failed to insert metadata", e);
-                Platform.runLater(() -> {
-                    showError("Error: " + e.getMessage(), "Unexpected Error", null);
-                    setButtonsDisabled(false);
-                });
+                Platform.runLater(() -> showError("Error: " + e.getMessage(), "Unexpected Error", null));
+            } finally {
+                Platform.runLater(() -> setButtonsDisabled(false));
             }
         }, executor);
     }
