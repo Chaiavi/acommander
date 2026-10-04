@@ -64,8 +64,9 @@ server is available.
   `calculateDirSpace` (new `FileHelper.folderSize`, which skips unreadable subfolders instead of failing),
   `compareFolders`, and the three metadata removes (merged into `Commander.removeMetadata`; the image one now gets
   the theme too).
-- [ ] 1.5 Close every `Files.walk` / `Files.list` (Commander `calculateDirSpace` + audio staging,
-  `CommandsAdvancedImpl`, `CommandsSimpleImpl`, `ArchiveSession`).
+- [x] 1.5 Every `Files.walk` / `Files.list` is closed. The three unclosed ones were all "delete this temp tree"
+  (Commander audio staging, PDF merge work dir, `ArchiveSession.cleanup`); they are now one
+  `FileHelper.deleteQuietly`. Deleted the unused `CommandsSimpleImpl.copyDirectory`.
 - [ ] 1.6 `AppTempDir` (`%TEMP%/acommander-<pid>`, deleted on exit, stale roots removed at startup) + per-operation
   `TempWorkspace`. Replace ~20 `deleteOnExit`.
 - [ ] 1.7 Create `ArchitectureRulesTest` (source-text scan like `CodeMapTest`): no `new ProcessBuilder` outside
@@ -131,6 +132,7 @@ server is available.
   `DeleteService`, `ArchiveOps`, `PdfService`, `ShellService`, `ViewEditService`.
 - [ ] 7.2 `ExternalToolRunner` (run, listener, stop).
 - [ ] 7.3 Delete the "Not implemented yet" stubs; move tests with the code.
+- [ ] 7.4 `LocalFileSystem.copyDirectory` and `ArchiveFileSystem.copyDirectory` are the same method; keep one.
 
 ## Phase 8 — FilesPanesHelper Split (depends on 7)
 

@@ -104,25 +104,4 @@ public class ArchiveSession {
         }
         return archiveName + "://" + entryPath;
     }
-    
-    /**
-     * Cleans up the temp folder when the session is closed.
-     */
-    public void cleanup() {
-        if (tempFolder != null && tempFolder.toFile().exists()) {
-            try {
-                java.nio.file.Files.walk(tempFolder)
-                    .sorted(java.util.Comparator.reverseOrder())
-                    .forEach(path -> {
-                        try {
-                            java.nio.file.Files.delete(path);
-                        } catch (java.io.IOException e) {
-                            // Ignore cleanup errors
-                        }
-                    });
-            } catch (java.io.IOException e) {
-                // Ignore cleanup errors
-            }
-        }
-    }
 }

@@ -3047,11 +3047,9 @@ public class Commander {
                             throw new CompletionException(moveException);
                         }
                     })
-                    .whenComplete((ignored, throwable) -> cleanupAudioStagingDirectory(finalStagingDir));
+                    .whenComplete((ignored, throwable) -> FileHelper.deleteQuietly(finalStagingDir));
         } catch (IOException ioException) {
-            if (stagingDir != null) {
-                cleanupAudioStagingDirectory(stagingDir);
-            }
+            FileHelper.deleteQuietly(stagingDir);
             return CompletableFuture.failedFuture(ioException);
         }
     }
@@ -3095,11 +3093,9 @@ public class Commander {
                 } catch (IOException moveException) {
                     throw new CompletionException(moveException);
                 }
-            }).whenComplete((ignored, throwable) -> cleanupAudioStagingDirectory(finalStagingDir));
+            }).whenComplete((ignored, throwable) -> FileHelper.deleteQuietly(finalStagingDir));
         } catch (IOException ioException) {
-            if (stagingDir != null) {
-                cleanupAudioStagingDirectory(stagingDir);
-            }
+            FileHelper.deleteQuietly(stagingDir);
             return CompletableFuture.failedFuture(ioException);
         }
     }
@@ -3223,25 +3219,6 @@ public class Commander {
             return Files.createTempDirectory(candidate, "acommander-audio-");
         }
         return Files.createTempDirectory("acommander-audio-");
-    }
-
-    private void cleanupAudioStagingDirectory(Path stagingDir) {
-        if (stagingDir == null) {
-            return;
-        }
-        try {
-            Files.walk(stagingDir)
-                    .sorted(Comparator.reverseOrder())
-                    .forEach(path -> {
-                        try {
-                            Files.deleteIfExists(path);
-                        } catch (IOException deleteException) {
-                            logger.debug("Failed to delete staging path: {}", path, deleteException);
-                        }
-                    });
-        } catch (IOException walkException) {
-            logger.debug("Failed to enumerate staging directory for cleanup: {}", stagingDir, walkException);
-        }
     }
 
     private boolean containsNonAscii(Path path) {

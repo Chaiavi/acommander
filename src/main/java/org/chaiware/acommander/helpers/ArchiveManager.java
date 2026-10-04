@@ -72,7 +72,7 @@ public class ArchiveManager {
             }
         } finally {
             // Always clean up temp folder
-            session.cleanup();
+            FileHelper.deleteQuietly(session.getTempFolder());
         }
     }
     

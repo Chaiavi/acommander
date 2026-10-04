@@ -78,4 +78,15 @@ class FileHelperTest {
 
         assertEquals(42, FileHelper.folderSize(tempDir));
     }
+
+    @Test
+    void deleteQuietly_removesWholeTree() throws IOException {
+        Path root = Files.createDirectory(tempDir.resolve("root"));
+        Path sub = Files.createDirectory(root.resolve("sub"));
+        Files.writeString(sub.resolve("f.txt"), "x");
+
+        FileHelper.deleteQuietly(root);
+
+        assertFalse(Files.exists(root));
+    }
 }

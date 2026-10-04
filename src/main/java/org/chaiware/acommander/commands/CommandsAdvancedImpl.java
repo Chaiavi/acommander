@@ -3,6 +3,7 @@ package org.chaiware.acommander.commands;
 import javafx.application.Platform;
 import org.chaiware.acommander.config.ActionDefinition;
 import org.chaiware.acommander.config.AppRegistry;
+import org.chaiware.acommander.helpers.FileHelper;
 import org.chaiware.acommander.helpers.FilesPanesHelper;
 import org.chaiware.acommander.model.FileItem;
 import org.chaiware.acommander.tools.ToolCommandBuilder;
@@ -874,16 +875,7 @@ public class CommandsAdvancedImpl extends ACommands {
     }
 
     private void cleanupMergeTempFiles(Path asciiWorkDir, List<File> tempFilesToCleanup) {
-        if (asciiWorkDir != null) {
-            try {
-                Files.walk(asciiWorkDir)
-                        .sorted(Comparator.reverseOrder())
-                        .map(Path::toFile)
-                        .forEach(File::delete);
-            } catch (IOException e) {
-                log.debug("Failed to cleanup PDF merge work directory", e);
-            }
-        }
+        FileHelper.deleteQuietly(asciiWorkDir);
         if (tempFilesToCleanup != null) {
             for (File tempFile : tempFilesToCleanup) {
                 if (tempFile != null) {

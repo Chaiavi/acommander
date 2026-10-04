@@ -11,9 +11,6 @@ import org.chaiware.acommander.vfs.VFileSystem;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.StandardCopyOption;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
@@ -111,22 +108,6 @@ public class CommandsSimpleImpl extends ACommands {
         
         fileListsLoader.refreshFileListViews();
         log.debug("Moved: {} to {}", sourceFile.getName(), targetFolder);
-    }
-
-    private void copyDirectory(Path sourceDir, Path targetDir) throws IOException {
-        Files.walk(sourceDir).forEach(path -> {
-            try {
-                Path relative = sourceDir.relativize(path);
-                Path target = targetDir.resolve(relative);
-                if (Files.isDirectory(path)) {
-                    Files.createDirectories(target);
-                } else {
-                    Files.copy(path, target, StandardCopyOption.REPLACE_EXISTING);
-                }
-            } catch (IOException ex) {
-                throw new RuntimeException(ex);
-            }
-        });
     }
 
     @Override

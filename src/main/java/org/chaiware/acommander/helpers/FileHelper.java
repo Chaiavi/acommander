@@ -9,12 +9,15 @@ import org.slf4j.LoggerFactory;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
+import java.util.Comparator;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.stream.Stream;
 
 public class FileHelper {
     private static final Logger logger = LoggerFactory.getLogger(FileHelper.class);
@@ -116,5 +119,23 @@ public class FileHelper {
             }
         });
         return total.get();
+    }
+
+    /** Best-effort delete of a temp/staging folder tree; entries that can't be deleted are left and logged. */
+    public static void deleteQuietly(Path root) {
+        if (root == null || !Files.exists(root)) {
+            return;
+        }
+        try (Stream<Path> walk = Files.walk(root)) {
+            walk.sorted(Comparator.reverseOrder()).forEach(path -> {
+                try {
+                    Files.deleteIfExists(path);
+                } catch (IOException e) {
+                    logger.debug("Failed to delete {}", path, e);
+                }
+            });
+        } catch (IOException | UncheckedIOException e) {
+            logger.debug("Failed to walk {} for cleanup", root, e);
+        }
     }
 }

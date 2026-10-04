@@ -204,7 +204,7 @@ Other dialogs are built inline in `Commander` (`prompt*` methods).
 | `ArchiveService` | `isSupportedArchiveExtension` — extensions 7-Zip can unpack (enables unpack/extractAll). |
 | `ActionMutator` | Action id sets: always-write, conditional-write, read-only. |
 | `FileAttributesHelper` | Read/apply R/H/S/A attributes (NIO, `attrib` fallback). |
-| `FileHelper` | `isTextFile` sniffing; `folderSize` (skips unreadable entries). |
+| `FileHelper` | `isTextFile` sniffing; `folderSize` (skips unreadable entries); `deleteQuietly` (best-effort temp tree delete). |
 | `BackgroundTasks` | The one background executor (virtual threads): `run`, `supply`, `executor()`. Never use `CompletableFuture.runAsync` without it. |
 | `ImageConversionSupport`, `AudioConversionSupport` | Which files convert, target formats. |
 | `ImageMetadataSupport`, `VideoMetadataSupport`, `AudioMetadataSupport` | Which files the metadata editors accept. |
