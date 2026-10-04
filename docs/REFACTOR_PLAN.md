@@ -40,8 +40,9 @@ server is available.
 ## Phase 0 — Prep and Safety Net (no behaviour change)
 
 - [x] 0.1 This file.
-- [ ] 0.2 `ActionRulesSnapshotTest`: for every `apps.json` action, record today's FTP gate, read-only gate (source /
-  target / both / none) and palette enablement for sample selections. Locks behaviour for Phase 2.
+- [x] 0.2 `ActionRulesSnapshotTest` + `src/test/resources/action-rules-snapshot.txt`: for every `apps.json` action,
+  today's FTP gate, read-only gate (source / target / both / none) and palette enablement for sample selections.
+  Locks behaviour for Phase 2.
 - [ ] 0.3 `ArchitectureRulesTest`: source-text scan like `CodeMapTest`. Later phases add rules.
 
 ## Phase 1 — Processes, Threads, Temp Files (real bugs)
@@ -148,3 +149,13 @@ Gate: re-grep every shell-out; list any new ones added by earlier phases.
 ## Found Along the Way
 
 Bugs noticed during the work, fixed in the phase named.
+
+1. Phase 2: `duplicate` is not blocked on a read-only archive (`writes=none`); it writes into the focused folder,
+   so it should be `source`.
+2. Phase 2: `wipeDelete` (external SDelete) is not blocked on a read-only archive; should be `source` like
+   `deleteWipe`.
+3. Phase 2: `editImageMetadata` is allowed on FTP but `removeImageMetadata` and the audio/video editors are not.
+   The dialog runs `exiv2` on a local path, so it should be `ftp=no`.
+4. Phase 2: `syncToOtherPane` is blocked on FTP only because the FTP list checks builtin `syncOtherPane`, which is
+   missing from it. Decide on purpose.
+5. Phase 2 (step 2.5): mouse clicks on the F-key buttons call `Commander` directly and skip both gates.

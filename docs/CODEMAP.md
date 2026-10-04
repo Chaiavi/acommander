@@ -265,7 +265,8 @@ Other dialogs are built inline in `Commander` (`prompt*` methods).
 
 Under `src/test/java/org/chaiware/acommander/`, same package as the class tested:
 
-`actions/` ActionMatcher, ActionPriorityEngine, ActionRegistry · `commands/` CommandsAdvancedImpl, CommandsSimpleImpl,
+`actions/` ActionMatcher, ActionPriorityEngine, ActionRegistry, ActionRulesSnapshot (FTP / read-only / palette
+rules per action vs `src/test/resources/action-rules-snapshot.txt`) · `commands/` CommandsAdvancedImpl, CommandsSimpleImpl,
 PackVfs · `config/` ActionScope, AppConfigLoader, AppRegistryShortcutMatching · `helpers/` AudioConversionSupport,
 FileAttributesHelper, FileHelper, FilesPanesHelperNaturalSort, ImageConversionSupport · `model/` ArchiveMode,
 FileItem · `tools/` ToolCommandBuilder · `vfs/` FtpFileSystem · root: CommanderCopy, `CodeMapTest` (fails when a main
