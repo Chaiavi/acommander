@@ -95,7 +95,7 @@ lessons about this repo in the files above, not in memory.
 ## Architecture
 
 - Entry point is `Launcher` (calls `Application.launch(Main.class)`), not `Main` — needed for the non-modular JavaFX jar.
-- `Commander` (~5.4k lines) is the FXML controller for `Commander.fxml` and holds most UI behaviour. Prefer putting new
+- `Commander` (~3.6k lines) is the FXML controller for `Commander.fxml` and holds most UI behaviour. Prefer putting new
   logic in `services/` (feature logic), `helpers/`, `commands/` or `tools/` and calling it from `Commander`, so it can
   be unit-tested.
 - Read [docs/CODEMAP.md](docs/CODEMAP.md) to find code instead of reading `Commander`. When you add, move, rename or
@@ -104,8 +104,8 @@ lessons about this repo in the files above, not in memory.
   `config/` and `apps/` into `build/libs/`.
 - Packages: `actions/` dispatch + matching, `config/` apps.json loading (`AppRegistry`, `AppConfigLoader`),
   `keybinding/` key handlers, `palette/` Command Palette, `tools/ToolCommandBuilder` placeholder expansion,
-  `vfs/` local/FTP/archive file systems, `dialog/` metadata dialogs + `DialogTheme`, `services/` feature logic moved
-  out of `Commander` (no JavaFX).
+  `vfs/` local/FTP/archive file systems, `dialog/` every dialog (`OptionsDialog` shell) + `DialogTheme`, `services/`
+  feature logic moved out of `Commander` (no JavaFX).
 
 ## Adding an action
 

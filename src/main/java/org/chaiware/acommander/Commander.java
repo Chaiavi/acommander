@@ -12,11 +12,9 @@ import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.input.Clipboard;
-import javafx.scene.input.ClipboardContent;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.*;
-import javafx.stage.Modality;
 import javafx.stage.Popup;
 import javafx.stage.Window;
 import javafx.util.Duration;
@@ -39,19 +37,15 @@ import org.chaiware.acommander.model.Folder;
 import org.chaiware.acommander.palette.CommandPaletteController;
 import org.chaiware.acommander.services.FolderComparer;
 import org.chaiware.acommander.services.AudioConversionService;
-import org.chaiware.acommander.services.AudioConversionService.AudioCompressionProfile;
 import org.chaiware.acommander.services.AudioConversionService.AudioConversionRequest;
 import org.chaiware.acommander.services.ClipboardTransfer;
 import org.chaiware.acommander.services.ImageConversionService;
-import org.chaiware.acommander.services.ImageConversionService.ImageCompressionMode;
 import org.chaiware.acommander.services.ImageConversionService.ImageConversionRequest;
-import org.chaiware.acommander.services.ImageConversionService.ImageResizeMode;
 import org.chaiware.acommander.tools.BundledTool;
 import org.chaiware.acommander.tools.BundledToolCommands;
 import org.chaiware.acommander.tools.BundledToolCommands.ChecksumOptions;
 import org.chaiware.acommander.tools.BundledToolCommands.CompareFilesOptions;
 import org.chaiware.acommander.tools.BundledToolCommands.FindInFilesOptions;
-import org.chaiware.acommander.tools.BundledToolCommands.WhiteSpaceCompareMode;
 import org.chaiware.acommander.tools.FilePropertiesLauncher;
 import org.chaiware.acommander.tools.ProcessRunner;
 import org.chaiware.acommander.vfs.FtpConnectionOptions;
@@ -63,14 +57,12 @@ import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
 import java.util.*;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.function.Consumer;
-import java.util.regex.Pattern;
 
 import static java.awt.Desktop.getDesktop;
 import static org.chaiware.acommander.helpers.FilesPanesHelper.FocusSide.LEFT;
@@ -2946,162 +2938,19 @@ public class Commander {
     }
 
     public void ftpConnect() {
-        Dialog<FtpConnectionOptions> dialog = new Dialog<>();
-        dialog.setTitle("FTP/FTPS/SFTP-SSH Connection");
-        dialog.setHeaderText("Enter FTP/FTPS/SFTP-SSH Connection Details");
-        applyThemeToDialog(dialog);
-
-        ButtonType connectButtonType = new ButtonType("Connect", ButtonBar.ButtonData.OK_DONE);
-        dialog.getDialogPane().getButtonTypes().addAll(connectButtonType, ButtonType.CANCEL);
-
-        GridPane grid = new GridPane();
-        grid.setHgap(10);
-        grid.setVgap(10);
-        grid.setPadding(new Insets(20, 150, 10, 10));
-
-        TextField hostField = new TextField();
-        hostField.setPromptText("Host");
-        TextField portField = new TextField();
-        portField.setPromptText("Port");
-        TextField userField = new TextField();
-        userField.setPromptText("Username");
-        PasswordField passField = new PasswordField();
-        passField.setPromptText("Password");
-        TextField nameField = new TextField();
-        nameField.setPromptText("Connection Name (optional)");
-        CheckBox saveCheckBox = new CheckBox("Save for next time");
-        saveCheckBox.setSelected(true);
-
-        ComboBox<String> savedConnectionsCombo = new ComboBox<>();
-        savedConnectionsCombo.getItems().addAll(ftpConnections.keySet());
-        savedConnectionsCombo.setPromptText("Saved Connections");
-        savedConnectionsCombo.setMaxWidth(Double.MAX_VALUE);
-
-        Button removeSavedButton = new Button("Remove");
-        removeSavedButton.setDisable(true);
-
-        // Protocol selection
-        ComboBox<String> protocolCombo = new ComboBox<>();
-        protocolCombo.getItems().addAll("Auto-discover", "FTP", "FTPS", "SFTP/SSH");
-        protocolCombo.setValue("Auto-discover");
-        protocolCombo.setMaxWidth(Double.MAX_VALUE);
-
-        // Update port when protocol changes
-        protocolCombo.valueProperty().addListener((obs, oldVal, newVal) -> {
-            if ("SFTP/SSH".equals(newVal)) {
-                portField.setText("22");
-            } else if ("FTPS".equals(newVal) || "FTP".equals(newVal)) {
-                portField.setText("21");
-            } else if ("Auto-discover".equals(newVal)) {
-                portField.clear(); // Port will be discovered
-            }
-        });
-
-        savedConnectionsCombo.setOnAction(e -> {
-            String selectedConn = savedConnectionsCombo.getSelectionModel().getSelectedItem();
-            if (selectedConn != null && ftpConnections.containsKey(selectedConn)) {
-                FtpConnectionOptions opt = ftpConnections.get(selectedConn);
-                hostField.setText(opt.getHost());
-                portField.setText(String.valueOf(opt.getPort()));
-                userField.setText(opt.getUsername());
-                passField.setText(opt.getPassword());
-                nameField.setText(opt.getName());
-                saveCheckBox.setSelected(true);
-                removeSavedButton.setDisable(false);
-                // Map protocol enum to display name
-                if (opt.getProtocol() == FtpConnectionOptions.Protocol.SFTP) {
-                    protocolCombo.setValue("SFTP/SSH");
-                } else {
-                    protocolCombo.setValue(opt.getProtocol().name());
-                }
-            } else {
-                removeSavedButton.setDisable(true);
-            }
-        });
-
-        removeSavedButton.setOnAction(e -> {
-            String selectedConn = savedConnectionsCombo.getSelectionModel().getSelectedItem();
-            if (selectedConn != null) {
-                ftpConnections.remove(selectedConn);
-                savedConnectionsCombo.getItems().remove(selectedConn);
-                savedConnectionsCombo.getSelectionModel().clearSelection();
-                saveSettings();
-                removeSavedButton.setDisable(true);
-            }
-        });
-
-        grid.add(new Label("Saved:"), 0, 0);
-        HBox savedBox = new HBox(10);
-        savedBox.getChildren().addAll(savedConnectionsCombo, removeSavedButton);
-        grid.add(savedBox, 1, 0);
-        grid.add(new Label("Host:"), 0, 1);
-        grid.add(hostField, 1, 1);
-        grid.add(new Label("Port:"), 0, 2);
-        grid.add(portField, 1, 2);
-        grid.add(new Label("Username:"), 0, 3);
-        grid.add(userField, 1, 3);
-        grid.add(new Label("Password:"), 0, 4);
-        grid.add(passField, 1, 4);
-        grid.add(new Label("Protocol:"), 0, 5);
-        grid.add(protocolCombo, 1, 5);
-        grid.add(new Label("Name:"), 0, 6);
-        grid.add(nameField, 1, 6);
-        grid.add(saveCheckBox, 1, 7);
-
-        dialog.getDialogPane().setContent(grid);
-
-        Platform.runLater(hostField::requestFocus);
-
-        dialog.setResultConverter(dialogButton -> {
-            if (dialogButton == connectButtonType) {
-                int port = 21;
-                try {
-                    port = Integer.parseInt(portField.getText());
-                } catch (NumberFormatException ignored) {}
-
-                String name = nameField.getText().trim();
-                if (name.isEmpty()) {
-                    name = hostField.getText();
-                }
-
-                String selectedProtocol = protocolCombo.getValue();
-                boolean autoDiscover = "Auto-discover".equals(selectedProtocol);
-                
-                // Map display names to protocol enum values
-                FtpConnectionOptions.Protocol protocol;
-                if (autoDiscover) {
-                    protocol = FtpConnectionOptions.Protocol.FTP;
-                } else if ("SFTP/SSH".equals(selectedProtocol)) {
-                    protocol = FtpConnectionOptions.Protocol.SFTP;
-                } else {
-                    protocol = FtpConnectionOptions.Protocol.valueOf(selectedProtocol);
-                }
-
-                FtpConnectionOptions options = FtpConnectionOptions.builder()
-                        .host(hostField.getText())
-                        .port(port)
-                        .username(userField.getText())
-                        .password(passField.getText())
-                        .name(name)
-                        .protocol(protocol)
-                        .autoDiscover(autoDiscover)
-                        .build();
-
-                // Only save immediately if NOT auto-discover (auto-discover saves after discovery)
-                if (saveCheckBox.isSelected() && !autoDiscover) {
-                    ftpConnections.put(name, options);
+        Optional<FtpConnectDialog.Result> result = FtpConnectDialog.show(dialogOwner(), currentThemeMode.styleClass,
+                ftpConnections, name -> {
+                    ftpConnections.remove(name);
                     saveSettings();
-                }
-                return options;
+                });
+        result.ifPresent(choice -> {
+            FtpConnectionOptions options = choice.options();
+            boolean shouldSave = choice.save();
+            // Auto-discover saves after discovery, with the protocol it found.
+            if (shouldSave && !options.isAutoDiscover()) {
+                ftpConnections.put(options.getName(), options);
+                saveSettings();
             }
-            return null;
-        });
-
-        // Capture save state before dialog closes
-        final boolean shouldSave = saveCheckBox.isSelected();
-
-        Optional<FtpConnectionOptions> result = dialog.showAndWait();
-        result.ifPresent(options -> {
             logger.info("Attempting to connect to FTP: {} ({}:{}), Protocol: {}",
                 options.getName(), options.getHost(), options.getPort(),
                 options.isAutoDiscover() ? "Auto" : options.getProtocol());
@@ -3758,13 +3607,7 @@ public class Commander {
             return;
         }
 
-        Alert successAlert = new Alert(Alert.AlertType.INFORMATION);
-        successAlert.setTitle("Report Submitted");
-        successAlert.setHeaderText(null);
-        successAlert.setContentText("Thank you for your feedback! The issue form has been opened in your browser.");
-        successAlert.getButtonTypes().setAll(ButtonType.OK);
-        applyThemeToDialog(successAlert);
-        successAlert.showAndWait();
+        showInfo("Report Submitted", "Thank you for your feedback! The issue form has been opened in your browser.");
     }
 
     private void applyTheme(Scene scene, ThemeMode themeMode, boolean persist) {

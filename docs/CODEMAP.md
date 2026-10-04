@@ -96,7 +96,7 @@ Adding or renaming an action id? Check each of these:
 | `sortByName` / `sortBySize` / `sortByDate` | same names, `onSortHeaderClicked` | `FilesPanesHelper.setSort`, `compareNaturalNames` | — |
 | `toggleDarkMode` | same name, `applyTheme` | `dialog/DialogTheme` (`ThemeMode`, `apply(scene)`) | `styles/app-theme.css` |
 | `bookmarkThisPath` / `gotoBookmark` / `removeBookmark` | `bookmarkCurrentPath` / `gotoBookmark` / `removeBookmark`, `pickBookmark` | `dialog/BookmarkPickerDialog`; stored as `bookmark.*` properties | — |
-| `ftpConnect` / `ftpDisconnect` | `ftpConnect` / `ftpDisconnect` | `vfs/FtpFileSystem`, `FtpConnectionOptions` | `remote_connectivity/curl.exe` |
+| `ftpConnect` / `ftpDisconnect` | `ftpConnect` / `ftpDisconnect` | `dialog/FtpConnectDialog`, `vfs/FtpFileSystem`, `FtpConnectionOptions` | `remote_connectivity/curl.exe` |
 | `openHostsFile` | `openHostsFile` | elevated `edit` action via PowerShell `Start-Process -Verb RunAs` | `edit/Notepad4.exe` |
 | `syncToOtherPane` | `syncToOtherPane` | — | — |
 | `leftPathCombo` / `rightPathCombo` (Alt+F1/F2) | `leftPathComboBox.show()` | `helpers/ComboBoxSetup`, `FolderComboBoxCell` | — |
@@ -120,7 +120,7 @@ Not actions, but often asked for:
 
 ## 4. `Commander.java` Layout (top to bottom)
 
-~5.4k lines. Sections in file order; search the first method name to land there.
+~3.6k lines. Sections in file order; search the first method name to land there. Dialogs live in `dialog/`.
 
 1. Fields, `@FXML` controls, `initialize`, `setupFunctionButtonActions`.
 2. External-tool progress: `buildExternalCommandListener`, `stopExternalTasks` (UI in `ExternalProgressController`).
@@ -138,12 +138,10 @@ Not actions, but often asked for:
 12. Compare: `compareFiles`, `compareFolders` (logic in `services/FolderComparer`).
 13. `fileProperties`, `changeAttributes`, image/video/audio metadata edit + remove, `compressExecutable`.
 14. `syncToOtherPane`, bookmarks, selection, `ftpDisconnect`, `openHostsFile`, `ftpConnect`.
-15. Type-to-filter popup, prompts (`getUserFeedback`, `promptUser`, `promptBookmarkSelection`).
-16. `runExternal`, option dialogs (`promptSplitSize`, `promptPdfExtractOptions`, `promptCompareFilesOptions`,
-    `promptChecksumOptions`), `showError`, `showInfo`.
+15. Type-to-filter popup, prompts (`getUserFeedback`, `promptUser`, `pickBookmark`).
+16. `runExternal`, `showError`, `showInfo`.
 17. Clipboard copy/cut/paste, toast.
-18. Private records and enums (options for each dialog), `promptAttributes`, `updateBottomButtons`,
-    read-only archive checks, `reportBug`, `applyTheme`.
+18. `updateBottomButtons`, read-only archive checks, `reportBug`, `applyTheme`, `dialogOwner`.
 
 ## 5. Every Class
 
@@ -203,12 +201,14 @@ Not actions, but often asked for:
 | `ReportBugDialog` | Bug report form → prefilled GitHub issue URL. |
 | `ImageConversionDialog` / `AudioConversionDialog` | Conversion options → `ImageConversionRequest` / `AudioConversionRequest`. |
 | `ExecutableCompressionDialog` | UPX compress level or decompress → `UpxAction`. |
+| `FtpConnectDialog` | Host, port, user, protocol, saved connections → `FtpConnectionOptions` + save flag. |
 | `ImageMetadataDialog` | EXIF/IPTC/XMP editor via `exiv2.exe`. |
 | `VideoMetadataDialog` | MP4-family tags via `AtomicParsley.exe`. |
 | `AudioMetadataDialog` | ID3 tags via `id3.exe`. |
 | `DialogTheme` | The dark/light theme: `ThemeMode` (settings value ↔ style class), `apply(scene, mode)` on the window root, `apply(dialog, owner, themeClass)` for dialogs (theme class + the owner's stylesheets). The metadata dialogs take owner + theme class, not `Commander`. |
 
-Other dialogs are built inline in `Commander` (`prompt*` methods).
+`Commander` shows a dialog with `XxxDialog.show(dialogOwner(), currentThemeMode.styleClass, …)` and acts on the
+`Optional` result. Plain errors and notices use `Commander.showError` / `showInfo`.
 
 ### `helpers/`
 | File | Role |

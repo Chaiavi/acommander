@@ -43,7 +43,7 @@ Command Palette; theme toggle; one metadata edit on a copied jpg/mp3/mp4; checks
 server is available.
 
 `Commander` line count: 7459 (start), 7199 (after Phase 1), 7038 (after Phase 2), 6929 (after Phase 3), 5380 (after
-Phase 4).
+Phase 4), 3632 (after Phase 5).
 
 ## Phase 0 — Prep and Safety Net (no behaviour change)
 
@@ -214,15 +214,18 @@ type-to-filter, theme toggle, Stop button on a long copy, a failing tool still s
 ## Phase 5 — Move Dialogs out of Commander (depends on 4)
 
 - [x] 5.1 `dialog/OptionsDialog` helper: layout, OK/Cancel, validation, Enter/Escape, theme, owner.
-- [ ] 5.2 One class per dialog, ~1,640 lines today: FTP connect (inline in `ftpConnect`, 209), image conversion (190),
+- [x] 5.2 One class per dialog, ~1,640 lines today: FTP connect (inline in `ftpConnect`, 209), image conversion (190),
   audio conversion (175), PDF extract (131), bookmark picker (120), UPX (115), report bug (91), checksum options +
   checksum result, find-in-files options + file results, compare files, compare folders, split size, attributes,
   text prompt (`getUserFeedback` / `promptUser`), select by pattern. Moving a dialog counts as editing it: add the
-  missing tooltips and Title Case labels (`ui-text.instructions.md`).
-- [ ] 5.3 Options records (`SplitSize`, `ChecksumOptions`, `CompareFilesOptions`, `ImageConversionRequest`, …)
-  top-level next to their service.
-- [ ] 5.4 Target: `Commander` under 4,000 lines (5,380 after Phase 4, which moved ~1,550; Phase 5 moves ~1,700). The
-  rest is feature handlers (read selection → validate → run), which Phase 7's services shrink further.
+  missing tooltips and Title Case labels (`ui-text.instructions.md`). Done: 19 classes in `dialog/`; the logic they
+  held went to `BundledToolCommands` (checksum digest/path, ripgrep command/results) and
+  `ExecutableCompressionSupport` (`UpxAction`, command, percent), with tests.
+- [x] 5.3 Changed: no private records are left in `Commander`. The options types are public nested types of the
+  class that consumes them (`BundledToolCommands.ChecksumOptions`, `ImageConversionService.ImageConversionRequest`,
+  `ExecutableCompressionSupport.UpxAction`, …). Splitting each into its own file adds files and no behaviour.
+- [x] 5.4 Target: `Commander` under 4,000 lines (5,380 after Phase 4, which moved ~1,550; Phase 5 moves ~1,700). The
+  rest is feature handlers (read selection → validate → run), which Phase 7's services shrink further. Done: 3,632.
 
 Smoke items: open every moved dialog once; Enter confirms, Escape cancels, dark theme applies, tooltips show.
 
