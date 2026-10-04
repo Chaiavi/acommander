@@ -13,8 +13,10 @@ import java.util.stream.Collectors;
 public class ActionRegistry {
     private final List<AppAction> actions;
     private final ActionPriorityEngine priorityEngine = new ActionPriorityEngine();
+    private final ActionExecutor executor;
 
     public ActionRegistry(AppRegistry appRegistry, ActionExecutor executor) {
+        this.executor = executor;
         actions = appRegistry.actionsForScope(ActionScope.COMMAND_PALETTE).stream()
                 .map(action -> toAppAction(action, executor))
                 .collect(Collectors.toList());
@@ -134,18 +136,8 @@ public class ActionRegistry {
     private boolean isSelectionAllowedForBuiltin(String builtin, ActionContext ctx) {
         if (ctx != null && ctx.commander() != null && ctx.commander().filesPanesHelper != null) {
             var fs = ctx.commander().filesPanesHelper.getFocusedFileSystem();
-            if (fs instanceof org.chaiware.acommander.vfs.FtpFileSystem) {
-                // List of supported FTP actions
-                boolean supported = switch (builtin) {
-                    case "help", "settings", "rename", "view", "edit", "copy", "duplicate", "move", "mkdir", "mkfile",
-                         "delete", "refresh", "openCommandPalette", "leftPathCombo",
-                         "rightPathCombo", "setDarkMode", "setLightMode",
-                         "setRegularMode", "toggleDarkMode", "sortByName", "sortBySize", "sortByDate",
-                         "gotoBookmark", "removeBookmark", "ftpConnect", "ftpDisconnect",
-                         "copySelection", "cutSelection", "pasteSelection" -> true;
-                    default -> false;
-                };
-                if (!supported) return false;
+            if (fs instanceof org.chaiware.acommander.vfs.FtpFileSystem && !executor.isActionSupportedOnFtp(builtin)) {
+                return false;
             }
         }
 

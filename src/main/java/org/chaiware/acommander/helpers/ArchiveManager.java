@@ -150,29 +150,6 @@ public class ArchiveManager {
     }
     
     /**
-     * Deletes an entry from an archive.
-     * Used for cleaning up old filenames after rename operations.
-     * 
-     * @param archivePath Path to the archive file
-     * @param entryPath Path inside the archive to delete
-     * @throws IOException If the deletion fails
-     */
-    public void deleteEntryFromArchive(String archivePath, String entryPath) throws IOException {
-        logger.debug("Deleting entry: {} from archive: {}", entryPath, archivePath);
-        
-        List<String> command = new ArrayList<>();
-        command.add(SEVEN_Z_PATH);
-        command.add("d");  // Delete entries from archive
-        command.add("-y");  // Assume Yes on all queries
-        command.add(archivePath);
-        command.add(entryPath);
-        
-        execute7zCommand(command, "delete");
-        
-        logger.debug("Successfully deleted entry from archive: {}", entryPath);
-    }
-    
-    /**
      * Executes a 7z command and throws IOException on failure.
      */
     private void execute7zCommand(List<String> command, String operation) throws IOException {
@@ -213,12 +190,5 @@ public class ArchiveManager {
             return fileName.substring(lastDot + 1).toLowerCase();
         }
         return "";
-    }
-    
-    /**
-     * Gets the path to the 7z executable.
-     */
-    public static String get7zPath() {
-        return SEVEN_Z_PATH;
     }
 }

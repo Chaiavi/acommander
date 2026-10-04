@@ -338,7 +338,8 @@ Every action is **data-driven**. Add, remove, or reconfigure tools without touch
 ```
 acommander/
 ├── apps/                    Bundled external tools
-├── config/                  apps.json, user properties, F1 help markdown
+├── config/                  apps.json, user properties, F1 help page (f1-help.html)
+├── docs/                    CODEMAP.md — where each feature lives in the code
 ├── src/
 │   ├── main/
 │   │   ├── java/            Application source

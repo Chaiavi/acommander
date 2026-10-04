@@ -272,7 +272,7 @@ public class CommandsSimpleImpl extends ACommands {
         List<String> command = List.of(
                 "powershell",
                 "-Command",
-                "Get-ChildItem -Path '" + sourcePath + "' -Recurse -File | Where-Object { $_.Name -like '" + filenameWildcard + "' } | Select-Object -ExpandProperty FullName"
+                "Get-ChildItem -Path '" + sourcePath.replace("'", "''") + "' -Recurse -File | Where-Object { $_.Name -like '" + filenameWildcard.replace("'", "''") + "' } | Select-Object -ExpandProperty FullName"
         );
 
         runExecutable(command, true)
