@@ -5,12 +5,19 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /** Argument lists for the bundled tools that {@code Commander} runs directly (rhash, file, ExamDiff, 7-Zip split). */
 public final class BundledToolCommands {
 
     public record ChecksumOptions(String algorithmFlag, String algorithmLabel, boolean base32, boolean base64,
-                                  boolean includeFileNames) {}
+                                  boolean includeFileNames) {
+        /** {@code label} is an rhash algorithm name such as MD5 or SHA256; the flag is {@code --md5}, {@code --sha256}. */
+        public static ChecksumOptions of(String label, boolean base32, boolean base64, boolean includeFileNames) {
+            return new ChecksumOptions("--" + label.toLowerCase(Locale.ROOT), label, base32, base64, includeFileNames);
+        }
+    }
 
     public enum WhiteSpaceCompareMode {
         NONE("Do not ignore whitespace", ""),
@@ -58,6 +65,35 @@ public final class BundledToolCommands {
         }
         command.add(targetPath);
         return command;
+    }
+
+    /** The first hash on rhash's output (skipping its own error lines), or all of the output if none is found. */
+    public static String checksumDigest(List<String> outputLines) {
+        if (outputLines == null) {
+            return "";
+        }
+        Pattern valuePrefix = Pattern.compile("^\\s*([A-Za-z0-9+/=]+)");
+        for (String line : outputLines) {
+            if (line == null || line.isBlank()) {
+                continue;
+            }
+            String lower = line.trim().toLowerCase(Locale.ROOT);
+            if (lower.startsWith("rhash:") || lower.contains("error")) {
+                continue;
+            }
+            Matcher matcher = valuePrefix.matcher(line);
+            if (matcher.find() && matcher.group(1).trim().length() >= 8) {
+                return matcher.group(1).trim();
+            }
+        }
+        return String.join(System.lineSeparator(), outputLines).trim();
+    }
+
+    /** Where "Save Value As File" writes: {@code a.txt.sha256} for a file, {@code photos.SHA256SUMS} for a folder. */
+    public static Path checksumOutputPath(Path outputDirectory, String targetName, String algorithmLabel, boolean folderMode) {
+        return outputDirectory.resolve(folderMode
+                ? targetName + "." + algorithmLabel.toUpperCase(Locale.ROOT) + "SUMS"
+                : targetName + "." + algorithmLabel.toLowerCase(Locale.ROOT));
     }
 
     public static List<String> analyzeFile(Path fileToolPath, Path magicPath, String targetPath) {

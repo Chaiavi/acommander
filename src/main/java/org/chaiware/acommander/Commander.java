@@ -2572,7 +2572,8 @@ public class Commander {
             return;
         }
 
-        Optional<ChecksumOptions> options = promptChecksumOptions("Checksum File", selectedItem.getName(), false);
+        Optional<ChecksumOptions> options = ChecksumOptionsDialog.show(dialogOwner(), currentThemeMode.styleClass,
+                "Checksum File", selectedItem.getName(), false);
         if (options.isEmpty()) {
             requestFocusedFileListFocus();
             return;
@@ -2590,18 +2591,15 @@ public class Commander {
                 .thenAccept(output -> Platform.runLater(() -> {
                     String checksumValue = options.get().includeFileNames()
                             ? String.join(System.lineSeparator(), output)
-                            : extractDigestValue(output);
+                            : BundledToolCommands.checksumDigest(output);
                     if (checksumValue == null || checksumValue.isBlank()) {
                         showError("Checksum File", "No checksum value was returned by rhash.");
                     } else {
-                        showChecksumResultDialog(
-                                "Checksum File",
-                                selectedItem.getName(),
-                                options.get().algorithmLabel(),
-                                checksumValue,
-                                selectedItem.getFile().getParentFile().toPath(),
-                                false
-                        );
+                        String algorithm = options.get().algorithmLabel();
+                        ChecksumResultDialog.show(dialogOwner(), currentThemeMode.styleClass, "Checksum File",
+                                selectedItem.getName(), algorithm, checksumValue,
+                                BundledToolCommands.checksumOutputPath(selectedItem.getFile().getParentFile().toPath(),
+                                        selectedItem.getName(), algorithm, false));
                     }
                     requestFocusedFileListFocus();
                 }))
@@ -2630,7 +2628,8 @@ public class Commander {
             return;
         }
 
-        Optional<ChecksumOptions> options = promptChecksumOptions("Checksum Folder Contents", selectedItem.getName(), true);
+        Optional<ChecksumOptions> options = ChecksumOptionsDialog.show(dialogOwner(), currentThemeMode.styleClass,
+                "Checksum Folder Contents", selectedItem.getName(), true);
         if (options.isEmpty()) {
             requestFocusedFileListFocus();
             return;
@@ -2650,14 +2649,11 @@ public class Commander {
                     if (resultText.isBlank()) {
                         showError("Checksum Folder Contents", "No checksum values were returned by rhash.");
                     } else {
-                        showChecksumResultDialog(
-                                "Checksum Folder Contents",
-                                selectedItem.getName(),
-                                options.get().algorithmLabel(),
-                                resultText,
-                                selectedItem.getFile().toPath(),
-                                true
-                        );
+                        String algorithm = options.get().algorithmLabel();
+                        ChecksumResultDialog.show(dialogOwner(), currentThemeMode.styleClass, "Checksum Folder Contents",
+                                selectedItem.getName(), algorithm, resultText,
+                                BundledToolCommands.checksumOutputPath(selectedItem.getFile().toPath(),
+                                        selectedItem.getName(), algorithm, true));
                     }
                     requestFocusedFileListFocus();
                 }))
@@ -2767,7 +2763,8 @@ public class Commander {
                     }
 
                     try {
-                        Optional<PdfExtractOptions> options = promptPdfExtractOptions(firstSelected, totalPages);
+                        Optional<PdfExtractOptions> options = PdfExtractDialog.show(dialogOwner(),
+                                currentThemeMode.styleClass, firstSelected.getName(), totalPages);
                         if (options.isEmpty()) {
                             logger.info("User cancelled PDF extraction options dialog");
                             return;
@@ -2817,7 +2814,8 @@ public class Commander {
             return;
         }
 
-        Optional<CompareFilesOptions> options = promptCompareFilesOptions(leftSelected, rightSelected);
+        Optional<CompareFilesOptions> options = CompareFilesDialog.show(dialogOwner(), currentThemeMode.styleClass,
+                leftSelected, rightSelected);
         if (options.isEmpty()) {
             restoreFocusToFile(lastSelectedSide, lastSelectedFile);
             return;
@@ -2920,7 +2918,9 @@ public class Commander {
                 return;
             }
 
-            Optional<FileAttributesHelper.AttributeChangeRequest> request = promptAttributes(selectedItems);
+            Optional<FileAttributesHelper.AttributeChangeRequest> request = AttributesDialog.show(dialogOwner(),
+                    currentThemeMode.styleClass, selectedItems.size(),
+                    attributesHelper.readExistingAttributes(selectedItems.getFirst().getFile().toPath()));
             if (request.isEmpty()) {
                 return;
             }
@@ -3588,67 +3588,14 @@ public class Commander {
     }
 
     public void selectByPattern() {
-        selectByPatternWithDialog();
+        SelectByPatternDialog.show(dialogOwner(), currentThemeMode.styleClass, settings.lastSelectionPattern())
+                .ifPresent(res -> {
+                    settings.setLastSelectionPattern(res.pattern());
+                    saveSettings();
+                    filesPanesHelper.selectByPattern(res.pattern(), res.useRegex());
+                    updatePaneSummary(filesPanesHelper.getFocusedSide());
+                });
     }
-
-    private void selectByPatternWithDialog() {
-        Dialog<SelectPatternResult> dialog = new Dialog<>();
-        dialog.setTitle("Select by Pattern");
-        dialog.setHeaderText("Select files matching a pattern");
-        applyThemeToDialog(dialog);
-
-        dialog.getDialogPane().getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
-
-        GridPane grid = new GridPane();
-        grid.setHgap(10);
-        grid.setVgap(10);
-        grid.setPadding(new Insets(20, 10, 10, 10));
-
-        Label patternLabel = new Label("Pattern:");
-        TextField patternField = new TextField();
-        patternField.setText(getLastUsedPattern());
-        patternField.setPromptText("*.java, file_??.txt, *.log");
-        
-        CheckBox regexCheckBox = new CheckBox("Regular expression");
-        regexCheckBox.setSelected(false);
-
-        grid.add(patternLabel, 0, 0);
-        grid.add(patternField, 1, 0);
-        grid.add(regexCheckBox, 1, 1);
-
-        dialog.getDialogPane().setContent(grid);
-
-        Platform.runLater(patternField::requestFocus);
-
-        dialog.setResultConverter(dialogButton -> {
-            if (dialogButton == ButtonType.OK) {
-                String pattern = patternField.getText().trim();
-                if (pattern.isEmpty()) {
-                    pattern = "*.*";
-                }
-                saveLastUsedPattern(pattern);
-                return new SelectPatternResult(pattern, regexCheckBox.isSelected());
-            }
-            return null;
-        });
-
-        Optional<SelectPatternResult> result = dialog.showAndWait();
-        result.ifPresent(res -> {
-            filesPanesHelper.selectByPattern(res.pattern(), res.useRegex());
-            updatePaneSummary(filesPanesHelper.getFocusedSide());
-        });
-    }
-
-    private String getLastUsedPattern() {
-        return settings.lastSelectionPattern();
-    }
-
-    private void saveLastUsedPattern(String pattern) {
-        settings.setLastSelectionPattern(pattern);
-        saveSettings();
-    }
-
-    private record SelectPatternResult(String pattern, boolean useRegex) {}
 
     public void ftpDisconnect() {
         FilesPanesHelper.FocusSide side = filesPanesHelper.getFocusedSide();
@@ -4045,36 +3992,8 @@ public class Commander {
     }
 
     private Optional<String> getUserFeedback(String defaultValue, String title, String question, int selectionEndExclusive) {
-        TextInputDialog dialog = new TextInputDialog(defaultValue);
-        dialog.setHeaderText("");
-        dialog.setTitle(title);
-        dialog.setContentText(question);
-        dialog.getEditor().setPrefWidth(300);
-        dialog.getEditor().addEventFilter(KeyEvent.KEY_PRESSED, event -> {
-            if (event.isAltDown() || event.isControlDown() || event.isMetaDown() || event.isShiftDown()) {
-                return;
-            }
-            if (event.getCode() == KeyCode.LEFT) {
-                dialog.getEditor().backward();
-                event.consume();
-            } else if (event.getCode() == KeyCode.RIGHT) {
-                dialog.getEditor().forward();
-                event.consume();
-            }
-        });
-        dialog.setOnShown(event -> {
-            Platform.runLater(() -> {
-                TextField editor = dialog.getEditor();
-                String text = editor.getText();
-                int textLength = text == null ? 0 : text.length();
-                int selectionEnd = Math.max(0, Math.min(selectionEndExclusive, textLength));
-                editor.requestFocus();
-                editor.selectRange(0, selectionEnd);
-            });
-        });
-        applyThemeToDialog(dialog);
-
-        return dialog.showAndWait();
+        return TextPromptDialog.show(dialogOwner(), currentThemeMode.styleClass, defaultValue, title, question,
+                selectionEndExclusive);
     }
 
     private int getRenameSelectionEnd(FileItem selectedItem) {
@@ -4282,213 +4201,6 @@ public class Commander {
         return commands.runExternal(command, refreshAfter, acceptedNonZeroExitCodes);
     }
 
-    private Optional<PdfExtractOptions> promptPdfExtractOptions(FileItem selectedItem, int totalPages) {
-        Dialog<PdfExtractOptions> dialog = new Dialog<>();
-        dialog.setTitle("Extract PDF Pages");
-        dialog.setHeaderText(null);
-
-        ButtonType extractType = new ButtonType("Extract", ButtonBar.ButtonData.OK_DONE);
-        dialog.getDialogPane().getButtonTypes().addAll(extractType, ButtonType.CANCEL);
-
-        Label title = new Label("Extract PDF Pages");
-        title.setStyle("-fx-font-size: 16px; -fx-font-weight: bold;");
-        Label details = new Label("File: " + selectedItem.getName());
-        details.setWrapText(true);
-        Label totalPagesLabel = new Label("Total pages: " + totalPages);
-        totalPagesLabel.setStyle("-fx-font-weight: bold;");
-
-        RadioButton allPages = new RadioButton("All pages (one page per PDF)");
-        RadioButton specificPages = new RadioButton("Specific pages (one page per PDF)");
-        RadioButton pagesPerPdf = new RadioButton("Pages per PDF (chunk into multiple PDFs)");
-
-        ToggleGroup modeGroup = new ToggleGroup();
-        allPages.setToggleGroup(modeGroup);
-        specificPages.setToggleGroup(modeGroup);
-        pagesPerPdf.setToggleGroup(modeGroup);
-        allPages.setSelected(true);
-
-        TextField pageSpecField = new TextField();
-        pageSpecField.setPromptText("Examples: 10-30, 1,4,7, 1:3");
-
-        TextField pagesPerPdfField = new TextField("100");
-        pagesPerPdfField.setPromptText("Example: 100");
-
-        Label hint = new Label("Use expressions like 1-4, 1,4,7, 1:3, page10-30, pages 10-30.");
-        hint.setStyle("-fx-opacity: 0.75;");
-        Label validationLabel = new Label();
-        validationLabel.setWrapText(true);
-
-        VBox content = new VBox(
-                10,
-                title,
-                details,
-                totalPagesLabel,
-                new Separator(),
-                allPages,
-                specificPages,
-                pageSpecField,
-                pagesPerPdf,
-                pagesPerPdfField,
-                hint,
-                validationLabel
-        );
-        content.setPadding(new Insets(12));
-        dialog.getDialogPane().setContent(content);
-        applyThemeToDialog(dialog);
-
-        Button extractButton = (Button) dialog.getDialogPane().lookupButton(extractType);
-        Runnable syncInputState = () -> {
-            boolean isSpecific = specificPages.isSelected();
-            boolean isChunk = pagesPerPdf.isSelected();
-            pageSpecField.setDisable(!isSpecific);
-            pagesPerPdfField.setDisable(!isChunk);
-
-            if (allPages.isSelected()) {
-                validationLabel.setText("All pages will be extracted into one-page PDF files.");
-                extractButton.setDisable(false);
-                return;
-            }
-
-            if (isSpecific) {
-                String spec = pageSpecField.getText() == null ? "" : pageSpecField.getText().trim();
-                if (spec.isEmpty()) {
-                    validationLabel.setText("Enter a page expression (for example: 1,4,7 or 10-30).");
-                    extractButton.setDisable(true);
-                    return;
-                }
-                if (!Pattern.compile("(?i)^[0-9a-z\\s,:-]+$").matcher(spec).matches()) {
-                    validationLabel.setText("Page expression format is invalid.");
-                    extractButton.setDisable(true);
-                    return;
-                }
-                validationLabel.setText("Only selected pages will be extracted.");
-                extractButton.setDisable(false);
-                return;
-            }
-
-            String value = pagesPerPdfField.getText() == null ? "" : pagesPerPdfField.getText().trim();
-            try {
-                int pages = Integer.parseInt(value);
-                if (pages <= 0) {
-                    validationLabel.setText("Pages per PDF must be a positive number.");
-                    extractButton.setDisable(true);
-                    return;
-                }
-                validationLabel.setText("Output will be split into PDFs of " + pages + " page(s) each.");
-                extractButton.setDisable(false);
-            } catch (NumberFormatException ex) {
-                validationLabel.setText("Pages per PDF must be a valid integer.");
-                extractButton.setDisable(true);
-            }
-        };
-
-        modeGroup.selectedToggleProperty().addListener((obs, oldValue, newValue) -> syncInputState.run());
-        pageSpecField.textProperty().addListener((obs, oldValue, newValue) -> syncInputState.run());
-        pagesPerPdfField.textProperty().addListener((obs, oldValue, newValue) -> syncInputState.run());
-        syncInputState.run();
-
-        dialog.setResultConverter(buttonType -> {
-            if (buttonType != extractType) {
-                return null;
-            }
-            if (allPages.isSelected()) {
-                return PdfExtractOptions.extractAll();
-            }
-            if (specificPages.isSelected()) {
-                return new PdfExtractOptions(
-                        PdfExtractOptions.Mode.SPECIFIC_PAGES_SINGLE,
-                        pageSpecField.getText() == null ? "" : pageSpecField.getText().trim(),
-                        null,
-                        null
-                );
-            }
-            return new PdfExtractOptions(
-                    PdfExtractOptions.Mode.PAGES_PER_PDF,
-                    null,
-                    Integer.parseInt(pagesPerPdfField.getText().trim()),
-                    null
-            );
-        });
-
-        return dialog.showAndWait();
-    }
-
-    private Optional<CompareFilesOptions> promptCompareFilesOptions(FileItem leftFile, FileItem rightFile) {
-        Dialog<CompareFilesOptions> dialog = new Dialog<>();
-        dialog.setTitle("Compare Files");
-        dialog.setHeaderText(null);
-
-        ButtonType compareType = new ButtonType("Compare", ButtonBar.ButtonData.OK_DONE);
-        dialog.getDialogPane().getButtonTypes().addAll(compareType, ButtonType.CANCEL);
-
-        Label title = new Label("Compare Files");
-        title.setStyle("-fx-font-size: 16px; -fx-font-weight: bold;");
-        Label subtitle = new Label("Left: " + leftFile.getName() + " | Right: " + rightFile.getName());
-        subtitle.setWrapText(true);
-
-        Label leftPath = new Label("Left file: " + leftFile.getFullPath());
-        leftPath.setWrapText(true);
-        Label rightPath = new Label("Right file: " + rightFile.getFullPath());
-        rightPath.setWrapText(true);
-
-        CheckBox ignoreCase = new CheckBox("Ignore case");
-        ComboBox<WhiteSpaceCompareMode> whitespaceMode = new ComboBox<>();
-        whitespaceMode.getItems().addAll(
-                WhiteSpaceCompareMode.NONE,
-                WhiteSpaceCompareMode.ALL,
-                WhiteSpaceCompareMode.AMOUNT,
-                WhiteSpaceCompareMode.LEADING,
-                WhiteSpaceCompareMode.TRAILING
-        );
-        whitespaceMode.getSelectionModel().select(WhiteSpaceCompareMode.NONE);
-        whitespaceMode.setPrefWidth(340);
-
-        CheckBox differencesOnly = new CheckBox("Show differences only");
-
-        VBox content = new VBox(
-                10,
-                title,
-                subtitle,
-                new Separator(),
-                leftPath,
-                rightPath,
-                new Separator(),
-                ignoreCase,
-                new HBox(10, new Label("Whitespace handling:"), whitespaceMode),
-                differencesOnly
-        );
-        content.setPadding(new Insets(12));
-        dialog.getDialogPane().setContent(content);
-        dialog.getDialogPane().setPrefSize(680, 340);
-        applyThemeToDialog(dialog);
-        Button compareButton = (Button) dialog.getDialogPane().lookupButton(compareType);
-        dialog.getDialogPane().addEventFilter(KeyEvent.KEY_PRESSED, event -> {
-            if (event.getCode() != KeyCode.ENTER) {
-                return;
-            }
-            if (compareButton != null && !compareButton.isDisabled()) {
-                compareButton.fire();
-            }
-            event.consume();
-        });
-
-        dialog.setResultConverter(button -> {
-            if (button != compareType) {
-                return null;
-            }
-            WhiteSpaceCompareMode selectedWhitespace = whitespaceMode.getSelectionModel().getSelectedItem();
-            if (selectedWhitespace == null) {
-                selectedWhitespace = WhiteSpaceCompareMode.NONE;
-            }
-            return new CompareFilesOptions(
-                    ignoreCase.isSelected(),
-                    selectedWhitespace,
-                    differencesOnly.isSelected()
-            );
-        });
-        return dialog.showAndWait();
-    }
-
     private FileItem getSingleSelectedFile(ListView<FileItem> listView) {
         if (listView == null || listView.getSelectionModel() == null) {
             return null;
@@ -4541,177 +4253,6 @@ public class Commander {
             return sourceFilename.substring(0, dotIndex) + ".7z";
         }
         return sourceFilename + ".7z";
-    }
-
-    private Optional<ChecksumOptions> promptChecksumOptions(String titleText, String selectedName, boolean includeNamesByDefault) {
-        Dialog<ChecksumOptions> dialog = new Dialog<>();
-        dialog.setTitle(titleText);
-        dialog.setHeaderText(null);
-
-        ButtonType computeType = new ButtonType("Compute", ButtonBar.ButtonData.OK_DONE);
-        dialog.getDialogPane().getButtonTypes().addAll(computeType, ButtonType.CANCEL);
-
-        Label title = new Label(titleText);
-        title.setStyle("-fx-font-size: 16px; -fx-font-weight: bold;");
-        Label subtitle = new Label("Selected item: " + selectedName);
-
-        ToggleGroup hashToggle = new ToggleGroup();
-        RadioButton md5 = new RadioButton("MD5");
-        RadioButton sha1 = new RadioButton("SHA1");
-        RadioButton sha256 = new RadioButton("SHA256");
-        RadioButton sha512 = new RadioButton("SHA512");
-        RadioButton crc32 = new RadioButton("CRC32");
-        md5.setToggleGroup(hashToggle);
-        sha1.setToggleGroup(hashToggle);
-        sha256.setToggleGroup(hashToggle);
-        sha512.setToggleGroup(hashToggle);
-        crc32.setToggleGroup(hashToggle);
-        sha256.setSelected(true);
-
-        GridPane hashGrid = new GridPane();
-        hashGrid.setHgap(16);
-        hashGrid.setVgap(8);
-        hashGrid.add(md5, 0, 0);
-        hashGrid.add(sha1, 1, 0);
-        hashGrid.add(sha256, 0, 1);
-        hashGrid.add(sha512, 1, 1);
-        hashGrid.add(crc32, 0, 2);
-
-        CheckBox outputBase32 = new CheckBox("Output as Base32");
-        CheckBox outputBase64 = new CheckBox("Output as Base64");
-        CheckBox includeFileNames = new CheckBox("Include file names in output");
-        includeFileNames.setSelected(includeNamesByDefault);
-
-        outputBase32.selectedProperty().addListener((obs, oldValue, selected) -> {
-            if (selected) {
-                outputBase64.setSelected(false);
-            }
-        });
-        outputBase64.selectedProperty().addListener((obs, oldValue, selected) -> {
-            if (selected) {
-                outputBase32.setSelected(false);
-            }
-        });
-
-        VBox content = new VBox(
-                12,
-                title,
-                subtitle,
-                new Separator(),
-                new Label("Checksum type (choose one):"),
-                hashGrid,
-                new Separator(),
-                new Label("Options:"),
-                outputBase32,
-                outputBase64,
-                includeFileNames
-        );
-        content.setPadding(new Insets(12));
-        dialog.getDialogPane().setContent(content);
-        applyThemeToDialog(dialog);
-
-        dialog.setResultConverter(buttonType -> {
-            if (buttonType != computeType) {
-                return null;
-            }
-            Toggle selected = hashToggle.getSelectedToggle();
-            if (!(selected instanceof RadioButton selectedButton)) {
-                return null;
-            }
-
-            return switch (selectedButton.getText()) {
-                case "MD5" -> new ChecksumOptions("--md5", "MD5", outputBase32.isSelected(), outputBase64.isSelected(), includeFileNames.isSelected());
-                case "SHA1" -> new ChecksumOptions("--sha1", "SHA1", outputBase32.isSelected(), outputBase64.isSelected(), includeFileNames.isSelected());
-                case "SHA512" -> new ChecksumOptions("--sha512", "SHA512", outputBase32.isSelected(), outputBase64.isSelected(), includeFileNames.isSelected());
-                case "CRC32" -> new ChecksumOptions("--crc32", "CRC32", outputBase32.isSelected(), outputBase64.isSelected(), includeFileNames.isSelected());
-                default -> new ChecksumOptions("--sha256", "SHA256", outputBase32.isSelected(), outputBase64.isSelected(), includeFileNames.isSelected());
-            };
-        });
-        return dialog.showAndWait();
-    }
-
-    private String extractDigestValue(List<String> outputLines) {
-        if (outputLines == null) {
-            return "";
-        }
-        Pattern valuePrefix = Pattern.compile("^\\s*([A-Za-z0-9+/=]+)");
-        for (String line : outputLines) {
-            if (line == null || line.isBlank()) {
-                continue;
-            }
-            String trimmed = line.trim();
-            if (trimmed.toLowerCase(Locale.ROOT).startsWith("rhash:") || trimmed.toLowerCase(Locale.ROOT).contains("error")) {
-                continue;
-            }
-            var matcher = valuePrefix.matcher(line);
-            if (matcher.find()) {
-                String candidate = matcher.group(1).trim();
-                if (candidate.length() >= 8) {
-                    return candidate;
-                }
-            }
-        }
-        return String.join(System.lineSeparator(), outputLines).trim();
-    }
-
-    private void showChecksumResultDialog(
-            String titleText,
-            String targetName,
-            String algorithmLabel,
-            String checksumValue,
-            Path outputDirectory,
-            boolean folderMode
-    ) {
-        Dialog<Void> dialog = new Dialog<>();
-        dialog.setTitle(titleText);
-        dialog.setHeaderText(null);
-
-        ButtonType closeType = new ButtonType("Close", ButtonBar.ButtonData.OK_DONE);
-        dialog.getDialogPane().getButtonTypes().add(closeType);
-
-        Label title = new Label(titleText);
-        title.setStyle("-fx-font-size: 16px; -fx-font-weight: bold;");
-        Label details = new Label("Item: " + targetName + " | Type: " + algorithmLabel);
-
-        TextArea checksumArea = new TextArea(checksumValue);
-        checksumArea.setEditable(false);
-        checksumArea.setWrapText(false);
-        checksumArea.setPrefRowCount(Math.max(4, Math.min(16, checksumValue.lines().toArray().length + 1)));
-
-        Button copyButton = new Button("Copy Value");
-        copyButton.setOnAction(event -> {
-            ClipboardContent content = new ClipboardContent();
-            content.putString(checksumArea.getText());
-            Clipboard.getSystemClipboard().setContent(content);
-        });
-
-        Button saveAsButton = new Button("Save Value As File");
-        saveAsButton.setOnAction(event -> {
-            Path savePath = buildChecksumOutputPath(outputDirectory, targetName, algorithmLabel, folderMode);
-            try {
-                Files.createDirectories(savePath.getParent());
-                Files.writeString(savePath, checksumArea.getText(), StandardCharsets.UTF_8);
-                showInfo(titleText, "Saved checksum value as:\n" + savePath);
-            } catch (Exception ex) {
-                showError(titleText, "Failed saving checksum file: " + ex.getMessage());
-            }
-        });
-
-        HBox actions = new HBox(8, copyButton, saveAsButton);
-        VBox content = new VBox(10, title, details, checksumArea, actions);
-        content.setPadding(new Insets(12));
-        dialog.getDialogPane().setContent(content);
-        dialog.getDialogPane().setPrefSize(760, 420);
-        applyThemeToDialog(dialog);
-        dialog.showAndWait();
-    }
-
-    private Path buildChecksumOutputPath(Path outputDirectory, String targetName, String algorithmLabel, boolean folderMode) {
-        String algorithmLower = algorithmLabel.toLowerCase(Locale.ROOT);
-        String fileName = folderMode
-                ? targetName + "." + algorithmLabel.toUpperCase(Locale.ROOT) + "SUMS"
-                : targetName + "." + algorithmLower;
-        return outputDirectory.resolve(fileName);
     }
 
     public void showError(String title, String message) {
@@ -4910,70 +4451,6 @@ public class Commander {
             String extension,
             boolean includeHiddenAndIgnored
     ) {}
-
-    private Optional<FileAttributesHelper.AttributeChangeRequest> promptAttributes(List<FileItem> selectedItems) {
-        Dialog<FileAttributesHelper.AttributeChangeRequest> dialog = new Dialog<>();
-        dialog.setTitle("Change Attributes");
-        dialog.setHeaderText(null);
-        boolean darkTheme = currentThemeMode == ThemeMode.DARK;
-
-        ButtonType applyType = new ButtonType("Ok", ButtonBar.ButtonData.OK_DONE);
-        dialog.getDialogPane().getButtonTypes().addAll(applyType, ButtonType.CANCEL);
-
-        Label title = new Label("Change Attributes");
-        title.setStyle("-fx-font-size: 16px; -fx-font-weight: bold;");
-        Label subtitle = new Label("Selected items: " + selectedItems.size() + " | Checked = set, unchecked = clear");
-        subtitle.setStyle("-fx-text-fill: " + (darkTheme ? "#A9B7CF" : "#666666") + ";");
-
-        CheckBox readOnly = new CheckBox("Read-only");
-        CheckBox hidden = new CheckBox("Hidden");
-        CheckBox system = new CheckBox("System");
-        CheckBox archive = new CheckBox("Archive");
-        readOnly.setStyle("-fx-font-size: 13px;");
-        hidden.setStyle("-fx-font-size: 13px;");
-        system.setStyle("-fx-font-size: 13px;");
-        archive.setStyle("-fx-font-size: 13px;");
-
-        FileItem firstSelected = selectedItems.getFirst();
-        FileAttributesHelper.ExistingAttributes current =
-                attributesHelper.readExistingAttributes(firstSelected.getFile().toPath());
-        readOnly.setSelected(current.readOnly());
-        hidden.setSelected(current.hidden());
-        system.setSelected(current.system());
-        archive.setSelected(current.archive());
-
-        GridPane grid = new GridPane();
-        grid.setHgap(16);
-        grid.setVgap(10);
-        grid.add(readOnly, 0, 0);
-        grid.add(hidden, 1, 0);
-        grid.add(system, 0, 1);
-        grid.add(archive, 1, 1);
-
-        VBox content = new VBox(12, title, subtitle, new Separator(), grid);
-        content.setPadding(new Insets(14));
-        content.setStyle(
-                darkTheme
-                        ? "-fx-background-color: #2a3443; -fx-background-radius: 8; -fx-border-color: #6f89aa; -fx-border-radius: 8; -fx-text-fill: #f3f7ff;"
-                        : "-fx-background-color: white; -fx-background-radius: 8; -fx-border-color: #d5d9e0; -fx-border-radius: 8;"
-        );
-        dialog.getDialogPane().setContent(content);
-        dialog.getDialogPane().setStyle(darkTheme ? "-fx-background-color: #1f2733;" : "-fx-background-color: #f3f5f8;");
-
-        dialog.setResultConverter(button -> {
-            if (button == applyType) {
-                return new FileAttributesHelper.AttributeChangeRequest(
-                        readOnly.isSelected(),
-                        hidden.isSelected(),
-                        system.isSelected(),
-                        archive.isSelected()
-                );
-            }
-            return null;
-        });
-        applyThemeToDialog(dialog);
-        return dialog.showAndWait();
-    }
 
     /** Alerts of an error and logs it */
     private void error(String error, Exception ex) {

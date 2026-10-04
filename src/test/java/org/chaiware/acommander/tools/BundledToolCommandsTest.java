@@ -30,6 +30,27 @@ class BundledToolCommandsTest {
     }
 
     @Test
+    void checksumOptionsDeriveTheRhashFlagFromTheLabel() {
+        assertThat(ChecksumOptions.of("CRC32", false, true, false))
+                .isEqualTo(new ChecksumOptions("--crc32", "CRC32", false, true, false));
+    }
+
+    @Test
+    void checksumDigestSkipsRhashErrorsAndShortTokens() {
+        assertThat(BundledToolCommands.checksumDigest(java.util.List.of("rhash: warning", "ok", "  d41d8cd98f00b204  a.txt")))
+                .isEqualTo("d41d8cd98f00b204");
+        assertThat(BundledToolCommands.checksumDigest(java.util.List.of("ok"))).isEqualTo("ok");
+        assertThat(BundledToolCommands.checksumDigest(null)).isEmpty();
+    }
+
+    @Test
+    void checksumOutputPathNamesFilesAndFolderSums() {
+        Path dir = Path.of("out");
+        assertThat(BundledToolCommands.checksumOutputPath(dir, "a.txt", "SHA256", false)).isEqualTo(dir.resolve("a.txt.sha256"));
+        assertThat(BundledToolCommands.checksumOutputPath(dir, "photos", "md5", true)).isEqualTo(dir.resolve("photos.MD5SUMS"));
+    }
+
+    @Test
     void analyzeFileUsesTheMagicFileOnlyWhenItExists(@TempDir Path dir) throws IOException {
         Path magic = dir.resolve("magic.mgc");
         assertThat(BundledToolCommands.analyzeFile(Path.of("file.exe"), magic, "x.bin"))

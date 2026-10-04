@@ -77,22 +77,22 @@ Adding or renaming an action id? Check each of these:
 | `splitLargeFile` (Alt+F11) | `splitLargeFile` | `dialog/SplitSizeDialog`, `tools/BundledToolCommands.parseSplitSize` | `extract_all/UniExtract/bin/x64/7z.exe` |
 | `unpack` (F12) | `unpackFile` | `CommandsAdvancedImpl.doUnpack` → `unpackWith` | `pack_unpack/7zG.exe` |
 | `extractAll` (Alt+F12) | `extractAll` | `doExtractAll` → `unpackWith` | `extract_all/UniExtract/UniExtract.exe` |
-| `mergePdf` / `extractPdfPages` | `mergePDFFiles` / `extractPDFPages`, `promptPdfExtractOptions` | `doMergePDFs` / `doExtractPDFPages`, `PdfExtractOptions` | `pdf/pdftk.exe` |
+| `mergePdf` / `extractPdfPages` | `mergePDFFiles` / `extractPDFPages` | `dialog/PdfExtractDialog`, `doMergePDFs` / `doExtractPDFPages`, `PdfExtractOptions` | `pdf/pdftk.exe` |
 | `convertMediaFile` (Alt+F5) | `convertMediaFile` → image or audio below | `ImageConversionSupport`, `AudioConversionSupport` | — |
 | `convertGraphicsFiles` | `convertGraphicsFiles`, `promptImageConversionOptions` | `services/ImageConversionService` (command, output lookup), `ImageConversionSupport` | `image_convert/caesiumclt.exe` |
 | `convertAudioFiles` | `convertAudioFiles`, `promptAudioConversionOptions` | `services/AudioConversionService` (commands, AAC bridge, ASCII staging), `AudioConversionSupport` | `sound_convert/sndfile-convert.exe`, `faac.exe`, `faad.exe` |
-| `checksumFile` / `checksumFolderContents` | `checksumFile` / `checksumFolderContents`, `promptChecksumOptions` | `tools/BundledToolCommands.checksum` | `checksum/rhash.exe` |
+| `checksumFile` / `checksumFolderContents` | `checksumFile` / `checksumFolderContents` | `dialog/ChecksumOptionsDialog`, `ChecksumResultDialog`; `tools/BundledToolCommands.checksum`, `checksumDigest`, `checksumOutputPath` | `checksum/rhash.exe` |
 | `analyzeFile` | `analyzeFile` | `tools/BundledToolCommands.analyzeFile` | `file_analysis/file.exe` + `magic.mgc` |
-| `compareFiles` | `compareFiles`, `canCompareSelectedFiles`, `promptCompareFilesOptions` | `tools/BundledToolCommands.compareFiles` | `file_compare/ExamDiff.exe` |
+| `compareFiles` | `compareFiles`, `canCompareSelectedFiles` | `dialog/CompareFilesDialog`, `tools/BundledToolCommands.compareFiles` | `file_compare/ExamDiff.exe` |
 | `compareFolders` | `compareFolders`, `applyFolderCompareStyle` | `dialog/CompareFoldersDialog`, `services/FolderComparer` (SHA-256 optional) | — |
 | `fileProperties` (Alt+Enter) | `fileProperties` | `tools/FilePropertiesLauncher` (temp `.vbs` via `wscript.exe`, Windows Properties dialog) | — |
-| `changeAttributes` | `changeAttributes`, `promptAttributes` | `helpers/FileAttributesHelper` | `attrib` |
+| `changeAttributes` | `changeAttributes` | `dialog/AttributesDialog`, `helpers/FileAttributesHelper` | `attrib` |
 | `editImageMetadata` / `removeImageMetadata` | `editImageMetadata` / `removeImageMetadata` → `removeMetadata` (shared confirm + background run) | `dialog/ImageMetadataDialog`, `helpers/ImageMetadataSupport` | `image_metadata/exiv2.exe` |
 | `editVideoMetadata` / `removeVideoMetadata` | `editVideoMetadata` / `removeVideoMetadata` | `dialog/VideoMetadataDialog`, `helpers/VideoMetadataSupport` | `video_metadata/AtomicParsley.exe` |
 | `editAudioMetadata` / `removeAudioMetadata` | `editAudioMetadata` / `removeAudioMetadata` | `dialog/AudioMetadataDialog`, `helpers/AudioMetadataSupport` | `audio_metadata/id3.exe` |
 | `compressExecutable` | `compressExecutable`, `promptExecutableCompressionOptions` | `helpers/ExecutableCompressionSupport` | `exe_compress/upx.exe` |
 | `refresh` (Ctrl+R) | — | `FilesPanesHelper.refreshFileListViews` | — |
-| `selectAll` / `unselectAll` / `invertSelection` / `selectByPattern` | same names, `selectByPatternWithDialog` | `FilesPanesHelper.selectAllItems` … `selectByPattern` | — |
+| `selectAll` / `unselectAll` / `invertSelection` / `selectByPattern` | same names | `dialog/SelectByPatternDialog`, `FilesPanesHelper.selectAllItems` … `selectByPattern` | — |
 | `sortByName` / `sortBySize` / `sortByDate` | same names, `onSortHeaderClicked` | `FilesPanesHelper.setSort`, `compareNaturalNames` | — |
 | `toggleDarkMode` | same name, `applyTheme` | `dialog/DialogTheme` (`ThemeMode`, `apply(scene)`) | `styles/app-theme.css` |
 | `bookmarkThisPath` / `gotoBookmark` / `removeBookmark` | `bookmarkCurrentPath` / `gotoBookmark` / `removeBookmark`, `promptBookmarkSelection` | stored as `bookmark.*` properties | — |
@@ -114,7 +114,7 @@ Not actions, but often asked for:
 | Pane footer (counts / sizes) | `Commander.updatePaneSummary` |
 | Running-tool progress bar + Stop button | `helpers/ExternalProgressController` (count, show/hide, `run` for background work); `Commander.buildExternalCommandListener` feeds it, `stopExternalTasks`, `runWithProgress` |
 | Error / info / toast | `Commander.showError`, `showInfo`, `showToast` |
-| Text-input prompt | `Commander.promptUser` / `getUserFeedback` |
+| Text-input prompt | `Commander.promptUser` / `getUserFeedback` → `dialog/TextPromptDialog` |
 | Startup paths + persistence | `Commander.loadConfigFile`, `resolveInitialPath`, `persistCurrentPaths` (on window close in `Main`) |
 | Read-only archive warning | `Commander.isInReadOnlyArchive`, `showReadOnlyLocationWarning` |
 
@@ -192,6 +192,12 @@ Not actions, but often asked for:
 | `OptionsDialog` | Shared options-dialog shell: heading, rows, OK (Enter) / Cancel (Escape), theme, owner; `tip(control, text)` sets a tooltip inline. |
 | `CompareFoldersDialog` | Compare Folders options → `FolderComparer.Options`. |
 | `SplitSizeDialog` | Part size for Alt+F11 split → 7-Zip `-v` argument. |
+| `ChecksumOptionsDialog` / `ChecksumResultDialog` | Hash type + output format; the result with Copy and Save. |
+| `CompareFilesDialog` | ExamDiff options → `CompareFilesOptions`. |
+| `PdfExtractDialog` | Which pages / pages per PDF → `PdfExtractOptions`. |
+| `AttributesDialog` | Read-only / hidden / system / archive → `AttributeChangeRequest`. |
+| `SelectByPatternDialog` | Wildcard or regex pattern (rejects an invalid regex). |
+| `TextPromptDialog` | One-line text prompt with a preselected range (rename selects the name without its extension). |
 | `ImageMetadataDialog` | EXIF/IPTC/XMP editor via `exiv2.exe`. |
 | `VideoMetadataDialog` | MP4-family tags via `AtomicParsley.exe`. |
 | `AudioMetadataDialog` | ID3 tags via `id3.exe`. |

@@ -70,6 +70,16 @@ public final class OptionsDialog<T> {
         return control;
     }
 
+    /** A text field's value as a positive whole number, or null when it is blank, not a number, or not above zero. */
+    public static Integer positiveIntOrNull(String text) {
+        try {
+            int value = Integer.parseInt(text == null ? "" : text.trim());
+            return value > 0 ? value : null;
+        } catch (NumberFormatException ex) {
+            return null;
+        }
+    }
+
     /** Appends rows below the heading. */
     public OptionsDialog<T> add(Node... rows) {
         content.getChildren().addAll(rows);
