@@ -683,15 +683,11 @@ public class Commander {
         applyTheme(scene, ThemeMode.from(properties.getProperty(THEME_MODE_KEY)), false);
     }
 
-    public void setDarkMode() {
+    private void setDarkMode() {
         applyTheme(rootPane.getScene(), ThemeMode.DARK, true);
     }
 
-    public void setLightMode() {
-        setRegularMode();
-    }
-
-    public void setRegularMode() {
+    private void setRegularMode() {
         applyTheme(rootPane.getScene(), ThemeMode.REGULAR, true);
     }
 

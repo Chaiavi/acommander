@@ -792,8 +792,7 @@
       "aliases": ["sync panes", "mirror pane", "same folder"],
       "contexts": ["commandPalette"],
       "selection": "none",
-      "type": "builtin",
-      "builtin": "syncOtherPane"
+      "type": "builtin"
     },
     {
       "id": "ftpConnect",

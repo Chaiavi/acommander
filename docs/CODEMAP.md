@@ -19,10 +19,10 @@ key press on Scene
   → AppRegistry.matchShortcut(scope, event)     finds the ActionDefinition from config/apps.json
   → SelectionRule.isSatisfied(selection)        `selection` field: none/single/multi/any/singleFile
   → ActionExecutor.execute(action)
-      1. FTP pane?        isActionSupportedOnFtp(id) — unlisted ids are rejected
-      2. Read-only pane?  isReadOnlyWriteAttempt → ActionMutator sets + isConditionalWriteBlocked
+      1. FTP pane?        apps.json `ftp: true` or rejected
+      2. Read-only pane?  apps.json `writes`: source = focused pane, target = other pane, both
       3. type external →  executeExternal: optional prompt → ToolCommandBuilder.buildCommand → commander.runExternal
-         type builtin  →  executeBuiltin: switch on `builtin` (or `id`) → a public Commander method
+         type builtin  →  BuiltinAction.fromId(`builtin` or `id`) → ActionExecutor.handler: exhaustive switch → a public Commander method
   → Commander.<method>()  reads selection, shows dialogs
   → commands (ACommands → CommandsAdvancedImpl) or a helper/*Support class, or a bundled exe directly
 ```
@@ -33,8 +33,8 @@ modifier is held.
 
 Command Palette (`Ctrl+Shift+P`): `palette/CommandPaletteController` lists `ActionRegistry.all()` (actions whose
 `contexts` include `commandPalette`), ranks with `ActionMatcher.rank()` + `ActionPriorityEngine.priority()`
-(`priority` / `priorityRules` in apps.json), hides disabled ones via `ActionRegistry.isSelectionAllowedForBuiltin()`,
-and runs the chosen one through `ActionExecutor.execute()`.
+(`priority` / `priorityRules` in apps.json), hides disabled ones via `ActionRegistry.isSelectionAllowed()` (apps.json
+`ftp`, `requires`, `fileTypes`), and runs the chosen one through `ActionExecutor.execute()`.
 
 ## 2. Places That Hard-Code Action Ids
 
@@ -42,12 +42,9 @@ Adding or renaming an action id? Check each of these:
 
 | Place | What it decides |
 |---|---|
-| `config/apps.json` | The action itself: label, shortcut, contexts, selection, tool `path` + `args` |
-| `ActionExecutor.executeBuiltin()` | builtin id → `Commander` method |
-| `ActionExecutor.isActionSupportedOnFtp()` | Allowed on FTP panes (also used by the palette) |
-| `ActionExecutor.isConditionalWriteBlocked()` | Which pane must be writable (source, target, or both) |
-| `helpers/ActionMutator` | Always-write / conditional-write / read-only sets for read-only archives |
-| `ActionRegistry.isSelectionAllowedForBuiltin()` | Palette shows the action only for matching file types |
+| `config/apps.json` | The action itself: label, shortcut, contexts, selection, tool `path` + `args`, and its rules: `ftp`, `writes`, `fileTypes`, `requires` |
+| `src/test/resources/action-rules-snapshot.txt` | Expected rules per action; `ActionRulesSnapshotTest` writes the actual table to `build/` when they differ |
+| `actions/BuiltinAction` + `ActionExecutor.handler()` | builtin id → `Commander` method (a missing case does not compile) |
 | `ActionRegistry.toAppAction()` | Dynamic palette labels (`fileProperties`, `duplicate`) |
 | `FilePaneKeyHandlerImpl.handle()` | F3 on a folder runs `calculateDirSpace` instead of `view` |
 | `Commander.setupFunctionButtonActions()` | Bottom F-key buttons (mouse) |
@@ -96,7 +93,7 @@ Adding or renaming an action id? Check each of these:
 | `refresh` (Ctrl+R) | — | `FilesPanesHelper.refreshFileListViews` | — |
 | `selectAll` / `unselectAll` / `invertSelection` / `selectByPattern` | same names, `selectByPatternWithDialog` | `FilesPanesHelper.selectAllItems` … `selectByPattern` | — |
 | `sortByName` / `sortBySize` / `sortByDate` | same names, `onSortHeaderClicked` | `FilesPanesHelper.setSort`, `compareNaturalNames` | — |
-| `setDarkMode` / `setLightMode` / `setRegularMode` / `toggleDarkMode` | same names, `applyTheme` | `ThemeMode` enum in Commander | `styles/app-theme.css` |
+| `toggleDarkMode` | same name, `applyTheme` | `ThemeMode` enum in Commander | `styles/app-theme.css` |
 | `bookmarkThisPath` / `gotoBookmark` / `removeBookmark` | `bookmarkCurrentPath` / `gotoBookmark` / `removeBookmark`, `promptBookmarkSelection` | stored as `bookmark.*` properties | — |
 | `ftpConnect` / `ftpDisconnect` | `ftpConnect` / `ftpDisconnect` | `vfs/FtpFileSystem`, `FtpConnectionOptions` | `remote_connectivity/curl.exe` |
 | `openHostsFile` | `openHostsFile` | elevated `edit` action via PowerShell `Start-Process -Verb RunAs` | `edit/Notepad4.exe` |
@@ -128,7 +125,7 @@ Not actions, but often asked for:
 2. External-tool progress UI: `configureExternalProgressUi` … `stopExternalTasks`.
 3. Sort headers: `configSortHeaders` … `sortIndicator`; `onPathChanged`.
 4. Key bindings + palette: `setupBindings`, `determineCurrentContext`, `openCommandPalette` … `selectPreviousCommandPaletteAction`.
-5. Theme: `initializeTheme`, `setDarkMode` … `toggleDarkMode` (apply logic at file end: `applyTheme`).
+5. Theme: `initializeTheme`, `toggleDarkMode` (apply logic at file end: `applyTheme`).
 6. Config/properties: `loadConfigFile`, `loadAppRegistry`, `saveConfigFile`, `persistCurrentPaths`.
 7. List look and icons: `configMouseDoubleClick`, `configListViewLookAndBehavior`, `resolveIconSpec`, pane summary.
 8. Navigation: `enterSelectedItem`, archive enter/exit, `openFileWithSystemDefault`.
@@ -159,8 +156,9 @@ Not actions, but often asked for:
 ### `actions/` — dispatch and palette ranking
 | File | Role |
 |---|---|
-| `ActionExecutor` | Runs an `ActionDefinition`: FTP + read-only gates, builtin switch, external command. |
-| `ActionRegistry` | Turns palette-scoped actions into `AppAction`s with enable rules and dynamic labels. |
+| `ActionExecutor` | Runs an `ActionDefinition`: FTP + read-only gates from its `ftp` / `writes`, builtin dispatch, external command. |
+| `BuiltinAction` | Enum of builtin ids; `BuiltinActionTest` checks it matches apps.json both ways. |
+| `ActionRegistry` | Turns palette-scoped actions into `AppAction`s with enable rules (`ftp`, `requires`, `fileTypes`) and dynamic labels. |
 | `AppAction` | Palette entry: id, title, shortcut, aliases, priority, enabled, run. |
 | `ActionContext` | Wraps `Commander` for palette callbacks. |
 | `ActionMatcher` | Fuzzy-ranks palette entries for the typed query. |
@@ -182,7 +180,7 @@ Not actions, but often asked for:
 |---|---|
 | `AppConfigLoader` | Jackson-loads `apps.json` into `AppConfig`. |
 | `AppConfig` | Root: `actions` list. |
-| `ActionDefinition` | One action (fields in README "Fields" table). |
+| `ActionDefinition` | One action (fields in README "Fields" table); nested enums `WriteTarget`, `FileType`, `Requirement`. |
 | `PromptDefinition` / `PriorityRuleDefinition` | `prompt` and `priorityRules` sub-objects. |
 | `ActionScope` | `global` / `filePane` / `commandPalette`; maps from `KeyContext`. |
 | `AppRegistry` | Index by scope, `findAction(id)`, `matchShortcut(scope, event)`. |
@@ -202,7 +200,6 @@ Other dialogs are built inline in `Commander` (`prompt*` methods).
 | `FilesPanesHelper` | Two panes: focus side, current `VFileSystem` per side, path, listing, sorting (`compareNaturalNames`), selection, archive enter/exit. Inner `ArchiveFolder`, `ArchiveParentItem`, `FilePane`. |
 | `ArchiveManager` | Opens an archive by extracting to a temp folder (`7z.exe`), repacks on close if modified. |
 | `ArchiveService` | `isSupportedArchiveExtension` — extensions 7-Zip can unpack (enables unpack/extractAll). |
-| `ActionMutator` | Action id sets: always-write, conditional-write, read-only. |
 | `FileAttributesHelper` | Read/apply R/H/S/A attributes (NIO, `attrib` fallback). |
 | `FileHelper` | `isTextFile` sniffing; `folderSize` (skips unreadable entries); `deleteQuietly` (best-effort temp tree delete). |
 | `BackgroundTasks` | The one background executor (virtual threads): `run`, `supply`. Never use `CompletableFuture.runAsync` without it. |
@@ -269,7 +266,7 @@ Other dialogs are built inline in `Commander` (`prompt*` methods).
 
 Under `src/test/java/org/chaiware/acommander/`, same package as the class tested:
 
-`actions/` ActionMatcher, ActionPriorityEngine, ActionRegistry, ActionRulesSnapshot (FTP / read-only / palette
+`actions/` ActionMatcher, ActionPriorityEngine, ActionRegistry, BuiltinAction, ActionRulesSnapshot (FTP / read-only / palette
 rules per action vs `src/test/resources/action-rules-snapshot.txt`) · `commands/` CommandsAdvancedImpl, CommandsSimpleImpl,
 PackVfs · `config/` ActionScope, AppConfigLoader, AppRegistryShortcutMatching · `helpers/` AppTempDir, AudioConversionSupport,
 BugReportUrl, FileAttributesHelper, FileHelper, FilesPanesHelperNaturalSort, ImageConversionSupport · `model/` ArchiveMode,

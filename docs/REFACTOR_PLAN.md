@@ -78,12 +78,15 @@ server is available.
 
 ## Phase 2 — Action Rules in apps.json (depends on 0)
 
-- [ ] 2.1 `ActionDefinition` fields: `ftp` (bool), `writes` (`none|source|target|both`), `fileTypes` (list).
-  `AppConfigLoader` rejects unknown values.
-- [ ] 2.2 Fill `apps.json` from the Phase 0 snapshot; snapshot test green before deleting old code.
-- [ ] 2.3 Delete `isActionSupportedOnFtp`, `isConditionalWriteBlocked`, `ActionMutator`, id checks in
-  `ActionRegistry.isSelectionAllowedForBuiltin`. Snapshot test becomes normal rule tests.
-- [ ] 2.4 `BuiltinAction` enum + exhaustive switch in `Commander`. Test: every `apps.json` builtin resolves.
+- [x] 2.1 `ActionDefinition` fields: `ftp` (bool), `writes` (`none|source|target|both`), `fileTypes` (list),
+  `requires` (list: `clipboardHasFiles`, `focusedPaneIsFtp`, `textFileInEachPane`). Nested enums, so Jackson
+  rejects a misspelled value at load.
+- [x] 2.2 Filled `apps.json` with today's rules; snapshot test stayed green on the switch.
+- [x] 2.3 Deleted `isActionSupportedOnFtp`, `isConditionalWriteBlocked`, `ActionMutator`, the id checks in
+  `ActionRegistry` (now `isSelectionAllowed`). Kept the snapshot test: it is the cheap review of any rule change.
+- [x] 2.4 `BuiltinAction` enum + exhaustive switch in `ActionExecutor.handler` (kept there, not in `Commander`).
+  `BuiltinActionTest` checks apps.json ↔ enum both ways. Dropped the unreachable `setDarkMode` / `setLightMode` /
+  `setRegularMode` builtins; `syncOtherPane` renamed to its action id.
 - [ ] 2.5 F-key mouse buttons go through `ActionExecutor` (fixes: mouse clicks skip FTP and read-only gates). Labels
   and actions from `apps.json` shortcuts.
 - [ ] 2.6 Docs: CODEMAP §2, README "Fields" table, AGENTS "Adding an action".
@@ -167,12 +170,12 @@ Gate: re-grep every shell-out; list any new ones added by earlier phases.
 
 Bugs noticed during the work, fixed in the phase named.
 
-1. Phase 2: `duplicate` is not blocked on a read-only archive (`writes=none`); it writes into the focused folder,
+1. Fixed (#145): `duplicate` is not blocked on a read-only archive (`writes=none`); it writes into the focused folder,
    so it should be `source`.
-2. Phase 2: `wipeDelete` (external SDelete) is not blocked on a read-only archive; should be `source` like
+2. Fixed (#145): `wipeDelete` (external SDelete) is not blocked on a read-only archive; should be `source` like
    `deleteWipe`.
-3. Phase 2: `editImageMetadata` is allowed on FTP but `removeImageMetadata` and the audio/video editors are not.
+3. Fixed (#145): `editImageMetadata` is allowed on FTP but `removeImageMetadata` and the audio/video editors are not.
    The dialog runs `exiv2` on a local path, so it should be `ftp=no`.
-4. Phase 2: `syncToOtherPane` is blocked on FTP only because the FTP list checks builtin `syncOtherPane`, which is
-   missing from it. Decide on purpose.
+4. Kept: `syncToOtherPane` stays blocked on FTP. Its FTP branch is unfinished (a page of open questions in comments);
+   enabling it is a feature, not a refactor.
 5. Phase 2 (step 2.5): mouse clicks on the F-key buttons call `Commander` directly and skip both gates.

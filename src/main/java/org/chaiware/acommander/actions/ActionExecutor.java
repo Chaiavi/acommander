@@ -56,75 +56,78 @@ public class ActionExecutor {
     }
 
     private void executeBuiltin(ActionDefinition action) {
-        String builtin = action.getBuiltin() == null ? action.getId() : action.getBuiltin();
-        switch (builtin) {
-            case "help" -> commander.help();
-            case "settings" -> commander.openSettings();
-            case "rename" -> commander.renameFile();
-            case "view" -> commander.viewFile();
-            case "edit" -> commander.editFile();
-            case "copy" -> commander.copyFile();
-            case "duplicate" -> commander.duplicateFile();
-            case "move" -> commander.moveFile();
-            case "mkdir" -> commander.makeDirectory();
-            case "mkfile" -> commander.makeFile();
-            case "delete" -> commander.deleteFile();
-            case "deleteWipe" -> commander.deleteWipe();
-            case "terminal" -> commander.terminalHere();
-            case "explorer" -> commander.explorerHere();
-            case "search" -> commander.search();
-            case "findInFiles" -> commander.findInFiles();
-            case "pack" -> commander.pack();
-            case "splitLargeFile" -> commander.splitLargeFile();
-            case "convertMediaFile" -> commander.convertMediaFile();
-            case "convertGraphicsFiles" -> commander.convertGraphicsFiles();
-            case "convertAudioFiles" -> commander.convertAudioFiles();
-            case "checksumFile" -> commander.checksumFile();
-            case "checksumFolderContents" -> commander.checksumFolderContents();
-            case "analyzeFile" -> commander.analyzeFile();
-            case "unpack" -> commander.unpackFile();
-            case "extractAll" -> commander.extractAll();
-            case "mergePdf" -> commander.mergePDFFiles();
-            case "extractPdfPages" -> commander.extractPDFPages();
-            case "compareFiles" -> commander.compareFiles();
-            case "compareFolders" -> commander.compareFolders();
-            case "changeAttributes" -> commander.changeAttributes();
-            case "fileProperties" -> commander.fileProperties();
-            case "editImageMetadata" -> commander.editImageMetadata();
-            case "removeImageMetadata" -> commander.removeImageMetadata();
-            case "editVideoMetadata" -> commander.editVideoMetadata();
-            case "removeVideoMetadata" -> commander.removeVideoMetadata();
-            case "editAudioMetadata" -> commander.editAudioMetadata();
-            case "removeAudioMetadata" -> commander.removeAudioMetadata();
-            case "compressExecutable" -> commander.compressExecutable();
-            case "refresh" -> commander.filesPanesHelper.refreshFileListViews();
-            case "openCommandPalette" -> commander.openCommandPalette();
-            case "leftPathCombo" -> commander.leftPathComboBox.show();
-            case "rightPathCombo" -> commander.rightPathComboBox.show();
-            case "syncOtherPane" -> commander.syncToOtherPane();
-            case "setDarkMode" -> commander.setDarkMode();
-            case "setLightMode" -> commander.setLightMode();
-            case "setRegularMode" -> commander.setRegularMode();
-            case "toggleDarkMode" -> commander.toggleDarkMode();
-            case "sortByName" -> commander.sortByName();
-            case "sortBySize" -> commander.sortBySize();
-            case "sortByDate" -> commander.sortByDate();
-            case "bookmarkThisPath" -> commander.bookmarkCurrentPath();
-            case "gotoBookmark" -> commander.gotoBookmark();
-            case "removeBookmark" -> commander.removeBookmark();
-            case "ftpConnect" -> commander.ftpConnect();
-            case "ftpDisconnect" -> commander.ftpDisconnect();
-            case "openHostsFile" -> commander.openHostsFile();
-            case "selectAll" -> commander.selectAll();
-            case "unselectAll" -> commander.unselectAll();
-            case "invertSelection" -> commander.invertSelection();
-            case "selectByPattern" -> commander.selectByPattern();
-            case "copySelection" -> commander.copySelectionToClipboard();
-            case "cutSelection" -> commander.cutSelectionToClipboard();
-            case "pasteSelection" -> commander.pasteClipboardSelection();
-            case "reportBug" -> commander.reportBug();
-            default -> logger.warn("Unknown builtin action id: {}", builtin);
-        }
+        String id = action.getBuiltin() == null ? action.getId() : action.getBuiltin();
+        BuiltinAction.fromId(id).ifPresentOrElse(
+                builtin -> handler(builtin).run(),
+                () -> logger.warn("Unknown builtin action id: {}", id));
+    }
+
+    /** Exhaustive on purpose: a new {@link BuiltinAction} without a handler does not compile. */
+    private Runnable handler(BuiltinAction builtin) {
+        return switch (builtin) {
+            case HELP -> commander::help;
+            case SETTINGS -> commander::openSettings;
+            case RENAME -> commander::renameFile;
+            case VIEW -> commander::viewFile;
+            case EDIT -> commander::editFile;
+            case COPY -> commander::copyFile;
+            case DUPLICATE -> commander::duplicateFile;
+            case MOVE -> commander::moveFile;
+            case MKDIR -> commander::makeDirectory;
+            case MKFILE -> commander::makeFile;
+            case DELETE -> commander::deleteFile;
+            case DELETE_WIPE -> commander::deleteWipe;
+            case TERMINAL -> commander::terminalHere;
+            case EXPLORER -> commander::explorerHere;
+            case SEARCH -> commander::search;
+            case FIND_IN_FILES -> commander::findInFiles;
+            case PACK -> commander::pack;
+            case SPLIT_LARGE_FILE -> commander::splitLargeFile;
+            case CONVERT_MEDIA_FILE -> commander::convertMediaFile;
+            case CONVERT_GRAPHICS_FILES -> commander::convertGraphicsFiles;
+            case CONVERT_AUDIO_FILES -> commander::convertAudioFiles;
+            case CHECKSUM_FILE -> commander::checksumFile;
+            case CHECKSUM_FOLDER_CONTENTS -> commander::checksumFolderContents;
+            case ANALYZE_FILE -> commander::analyzeFile;
+            case UNPACK -> commander::unpackFile;
+            case EXTRACT_ALL -> commander::extractAll;
+            case MERGE_PDF -> commander::mergePDFFiles;
+            case EXTRACT_PDF_PAGES -> commander::extractPDFPages;
+            case COMPARE_FILES -> commander::compareFiles;
+            case COMPARE_FOLDERS -> commander::compareFolders;
+            case CHANGE_ATTRIBUTES -> commander::changeAttributes;
+            case FILE_PROPERTIES -> commander::fileProperties;
+            case EDIT_IMAGE_METADATA -> commander::editImageMetadata;
+            case REMOVE_IMAGE_METADATA -> commander::removeImageMetadata;
+            case EDIT_VIDEO_METADATA -> commander::editVideoMetadata;
+            case REMOVE_VIDEO_METADATA -> commander::removeVideoMetadata;
+            case EDIT_AUDIO_METADATA -> commander::editAudioMetadata;
+            case REMOVE_AUDIO_METADATA -> commander::removeAudioMetadata;
+            case COMPRESS_EXECUTABLE -> commander::compressExecutable;
+            case REFRESH -> () -> commander.filesPanesHelper.refreshFileListViews();
+            case OPEN_COMMAND_PALETTE -> commander::openCommandPalette;
+            case LEFT_PATH_COMBO -> () -> commander.leftPathComboBox.show();
+            case RIGHT_PATH_COMBO -> () -> commander.rightPathComboBox.show();
+            case SYNC_TO_OTHER_PANE -> commander::syncToOtherPane;
+            case TOGGLE_DARK_MODE -> commander::toggleDarkMode;
+            case SORT_BY_NAME -> commander::sortByName;
+            case SORT_BY_SIZE -> commander::sortBySize;
+            case SORT_BY_DATE -> commander::sortByDate;
+            case BOOKMARK_THIS_PATH -> commander::bookmarkCurrentPath;
+            case GOTO_BOOKMARK -> commander::gotoBookmark;
+            case REMOVE_BOOKMARK -> commander::removeBookmark;
+            case FTP_CONNECT -> commander::ftpConnect;
+            case FTP_DISCONNECT -> commander::ftpDisconnect;
+            case OPEN_HOSTS_FILE -> commander::openHostsFile;
+            case SELECT_ALL -> commander::selectAll;
+            case UNSELECT_ALL -> commander::unselectAll;
+            case INVERT_SELECTION -> commander::invertSelection;
+            case SELECT_BY_PATTERN -> commander::selectByPattern;
+            case COPY_SELECTION -> commander::copySelectionToClipboard;
+            case CUT_SELECTION -> commander::cutSelectionToClipboard;
+            case PASTE_SELECTION -> commander::pasteClipboardSelection;
+            case REPORT_BUG -> commander::reportBug;
+        };
     }
 
     private void executeExternal(ActionDefinition action) {
