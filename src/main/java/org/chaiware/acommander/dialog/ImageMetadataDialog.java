@@ -20,7 +20,6 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutorService;
 
 /**
  * Dialog for viewing and editing image metadata using exiv2.
@@ -35,7 +34,6 @@ public class ImageMetadataDialog {
     private final File imageFile;
     private final Commander commander;
     @SuppressWarnings("unchecked")
-    private final ExecutorService executor = BackgroundTasks.executor();
 
     private TreeTableView<MetadataEntry> metadataTreeTable;
     private TreeItem<MetadataEntry> rootItem;
@@ -390,7 +388,7 @@ public class ImageMetadataDialog {
         setButtonsDisabled(true);
         pendingModifications.clear();
 
-        CompletableFuture.supplyAsync(() -> {
+        BackgroundTasks.supply(() -> {
             try {
                 logger.info("Loading metadata for file: {}", imageFile.getAbsolutePath());
                 
@@ -427,7 +425,7 @@ public class ImageMetadataDialog {
                 logger.error("Failed to load metadata", e);
                 return new LoadResult(false, "ERROR: Failed to load metadata\n" + e.getMessage(), e);
             }
-        }, executor).thenAcceptAsync(result -> {
+        }).thenAcceptAsync(result -> {
             if (!result.success) {
                 logger.warn("Metadata load resulted in error: {}", result.output);
                 showErrorInTable(result.output);
@@ -696,7 +694,7 @@ public class ImageMetadataDialog {
         setStatus("Applying " + pendingModifications.size() + " change(s)...");
         setButtonsDisabled(true);
 
-        CompletableFuture.runAsync(() -> {
+        BackgroundTasks.run(() -> {
             java.io.File tempCmdFile = null;
             try {
                 // Check if file is writable
@@ -794,14 +792,14 @@ public class ImageMetadataDialog {
                 }
                 Platform.runLater(() -> setButtonsDisabled(false));
             }
-        }, executor);
+        });
     }
 
     private void extractMetadata() {
         setStatus("Extracting metadata to sidecar file...");
         setButtonsDisabled(true);
 
-        CompletableFuture.runAsync(() -> {
+        BackgroundTasks.run(() -> {
             try {
                 if (!imageFile.canRead()) {
                     Platform.runLater(() -> showError(
@@ -855,7 +853,7 @@ public class ImageMetadataDialog {
             } finally {
                 Platform.runLater(() -> setButtonsDisabled(false));
             }
-        }, executor);
+        });
     }
 
     private void insertMetadata() {
@@ -874,7 +872,7 @@ public class ImageMetadataDialog {
         setStatus("Inserting metadata from sidecar file...");
         setButtonsDisabled(true);
 
-        CompletableFuture.runAsync(() -> {
+        BackgroundTasks.run(() -> {
             try {
                 if (!imageFile.canWrite()) {
                     Platform.runLater(() -> showError(
@@ -936,7 +934,7 @@ public class ImageMetadataDialog {
             } finally {
                 Platform.runLater(() -> setButtonsDisabled(false));
             }
-        }, executor);
+        });
     }
 
     private void setStatus(String status) {

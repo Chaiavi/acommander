@@ -71,8 +71,10 @@ server is available.
   of dead runs are deleted at startup. Replaced all 20 `deleteOnExit` (they never deleted non-empty folders, so
   extracted archives and unpack dirs leaked into `%TEMP%` forever). `CommandsAdvancedImpl.deleteRecursive` became
   `FileHelper.deleteQuietly`. Per-operation `TempWorkspace` dropped: the root already bounds every leak to one run.
-- [ ] 1.7 Create `ArchitectureRulesTest` (source-text scan like `CodeMapTest`): no `new ProcessBuilder` outside
-  `ProcessRunner`; no `deleteOnExit`; no `newCachedThreadPool`.
+- [x] 1.7 `ArchitectureRulesTest` (source-text scan like `CodeMapTest`): `new ProcessBuilder` only in
+  `ProcessRunner`; `Executors.new` / `CompletableFuture.runAsync|supplyAsync` only in `BackgroundTasks` (the
+  metadata dialogs now call it directly); no `deleteOnExit`, `File.createTempFile`, or temp files in the default
+  temp dir.
 
 ## Phase 2 — Action Rules in apps.json (depends on 0)
 

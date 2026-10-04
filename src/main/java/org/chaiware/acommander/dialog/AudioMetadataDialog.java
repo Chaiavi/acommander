@@ -21,7 +21,6 @@ import java.nio.charset.Charset;
 import java.nio.charset.CharsetEncoder;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutorService;
 
 /**
  * Dialog for editing MP3 metadata using id3.exe.
@@ -36,7 +35,6 @@ public class AudioMetadataDialog {
     private final Window owner;
     private final File audioFile;
     private final Commander commander;
-    private final ExecutorService executor = BackgroundTasks.executor();
     private final Charset id3IoCharset = detectNativeProcessCharset();
 
     private TextField titleField;
@@ -147,7 +145,7 @@ public class AudioMetadataDialog {
         setStatus("Loading metadata...");
         setControlsDisabled(true);
 
-        CompletableFuture.supplyAsync(this::readMetadata, executor)
+        BackgroundTasks.supply(this::readMetadata)
                 .thenAcceptAsync(result -> {
                     if (!result.success()) {
                         setStatus("Failed to load metadata");
@@ -254,7 +252,7 @@ public class AudioMetadataDialog {
         setControlsDisabled(true);
         setStatus("Saving metadata...");
 
-        CompletableFuture.supplyAsync(() -> runSave(command), executor)
+        BackgroundTasks.supply(() -> runSave(command))
                 .thenAcceptAsync(result -> {
                     if (result.success()) {
                         metadataModified = true;

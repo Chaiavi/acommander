@@ -15,10 +15,6 @@ public final class BackgroundTasks {
     private BackgroundTasks() {
     }
 
-    public static ExecutorService executor() {
-        return EXECUTOR;
-    }
-
     public static CompletableFuture<Void> run(Runnable task) {
         return CompletableFuture.runAsync(task, EXECUTOR);
     }

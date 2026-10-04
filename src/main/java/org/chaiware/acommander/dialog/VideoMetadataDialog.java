@@ -19,7 +19,6 @@ import java.io.File;
 import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutorService;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -35,7 +34,6 @@ public class VideoMetadataDialog {
     private final Window owner;
     private final File videoFile;
     private final Commander commander;
-    private final ExecutorService executor = BackgroundTasks.executor();
 
     private TextField titleField;
     private TextField artistField;
@@ -168,7 +166,7 @@ public class VideoMetadataDialog {
         setStatus("Loading metadata...");
         setControlsDisabled(true);
 
-        CompletableFuture.supplyAsync(this::readMetadata, executor)
+        BackgroundTasks.supply(this::readMetadata)
                 .thenAcceptAsync(result -> {
                     if (!result.success()) {
                         setStatus("Failed to load metadata");
@@ -284,7 +282,7 @@ public class VideoMetadataDialog {
         setStatus("Saving metadata...");
 
         boolean preserveTime = preserveTimeCheck.isSelected();
-        CompletableFuture.supplyAsync(() -> runSave(command, preserveTime), executor)
+        BackgroundTasks.supply(() -> runSave(command, preserveTime))
                 .thenAcceptAsync(result -> {
                     if (result.success()) {
                         metadataModified = true;
