@@ -89,6 +89,46 @@ class AppConfigLoaderTest {
     }
 
     @Test
+    void readsActionRules() throws Exception {
+        Path config = tempDir.resolve("config.json");
+        Files.writeString(config, """
+                { "actions": [ { "id": "a", "ftp": true, "writes": "target",
+                                 "fileTypes": ["pdf", "archive"], "requires": ["clipboardHasFiles"] } ] }
+                """);
+
+        ActionDefinition action = new AppConfigLoader().load(config).getActions().getFirst();
+
+        Assertions.assertThat(action.isFtp()).isTrue();
+        Assertions.assertThat(action.getWrites()).isEqualTo(ActionDefinition.WriteTarget.TARGET);
+        Assertions.assertThat(action.getFileTypes())
+                .containsExactly(ActionDefinition.FileType.PDF, ActionDefinition.FileType.ARCHIVE);
+        Assertions.assertThat(action.getRequires()).containsExactly(ActionDefinition.Requirement.CLIPBOARD_HAS_FILES);
+    }
+
+    @Test
+    void actionRulesDefaultToNothing() throws Exception {
+        Path config = tempDir.resolve("config.json");
+        Files.writeString(config, "{ \"actions\": [ { \"id\": \"a\" } ] }");
+
+        ActionDefinition action = new AppConfigLoader().load(config).getActions().getFirst();
+
+        Assertions.assertThat(action.isFtp()).isFalse();
+        Assertions.assertThat(action.getWrites()).isEqualTo(ActionDefinition.WriteTarget.NONE);
+        Assertions.assertThat(action.getFileTypes()).isEmpty();
+        Assertions.assertThat(action.getRequires()).isEmpty();
+    }
+
+    @Test
+    void misspelledRuleValueFailsToLoad() throws Exception {
+        Path config = tempDir.resolve("config.json");
+        Files.writeString(config, "{ \"actions\": [ { \"id\": \"a\", \"writes\": \"targt\" } ] }");
+
+        Assertions.assertThatThrownBy(() -> new AppConfigLoader().load(config))
+                .isInstanceOf(IOException.class)
+                .hasMessageContaining("targt");
+    }
+
+    @Test
     void moveActionSupportsMultiSelectionInDefaultConfig() throws Exception {
         Path config = Path.of("config", "apps.json");
         AppConfigLoader loader = new AppConfigLoader();

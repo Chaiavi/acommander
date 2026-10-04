@@ -1,5 +1,7 @@
 package org.chaiware.acommander.config;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -18,6 +20,37 @@ public class ActionDefinition {
     private PromptDefinition prompt;
     private Integer priority;
     private List<PriorityRuleDefinition> priorityRules = new ArrayList<>();
+    private boolean ftp;
+    private WriteTarget writes = WriteTarget.NONE;
+    private List<FileType> fileTypes = new ArrayList<>();
+    private List<Requirement> requires = new ArrayList<>();
+
+    /** The pane an action writes to; that pane being read-only (a read-only archive) blocks the action. */
+    public enum WriteTarget {
+        @JsonProperty("none") NONE,
+        @JsonProperty("source") SOURCE,
+        @JsonProperty("target") TARGET,
+        @JsonProperty("both") BOTH
+    }
+
+    /** The Command Palette offers the action only when every selected item is of one listed type. */
+    public enum FileType {
+        @JsonProperty("convertibleImage") CONVERTIBLE_IMAGE,
+        @JsonProperty("convertibleAudio") CONVERTIBLE_AUDIO,
+        @JsonProperty("imageWithMetadata") IMAGE_WITH_METADATA,
+        @JsonProperty("videoWithMetadata") VIDEO_WITH_METADATA,
+        @JsonProperty("audioWithMetadata") AUDIO_WITH_METADATA,
+        @JsonProperty("executable") EXECUTABLE,
+        @JsonProperty("archive") ARCHIVE,
+        @JsonProperty("pdf") PDF
+    }
+
+    /** Extra conditions the Command Palette checks before offering the action. */
+    public enum Requirement {
+        @JsonProperty("clipboardHasFiles") CLIPBOARD_HAS_FILES,
+        @JsonProperty("focusedPaneIsFtp") FOCUSED_PANE_IS_FTP,
+        @JsonProperty("textFileInEachPane") TEXT_FILE_IN_EACH_PANE
+    }
 
     public String getId() {
         return id;
@@ -129,5 +162,37 @@ public class ActionDefinition {
 
     public void setPriorityRules(List<PriorityRuleDefinition> priorityRules) {
         this.priorityRules = priorityRules == null ? new ArrayList<>() : priorityRules;
+    }
+
+    public boolean isFtp() {
+        return ftp;
+    }
+
+    public void setFtp(boolean ftp) {
+        this.ftp = ftp;
+    }
+
+    public WriteTarget getWrites() {
+        return writes;
+    }
+
+    public void setWrites(WriteTarget writes) {
+        this.writes = writes == null ? WriteTarget.NONE : writes;
+    }
+
+    public List<FileType> getFileTypes() {
+        return fileTypes;
+    }
+
+    public void setFileTypes(List<FileType> fileTypes) {
+        this.fileTypes = fileTypes == null ? new ArrayList<>() : fileTypes;
+    }
+
+    public List<Requirement> getRequires() {
+        return requires;
+    }
+
+    public void setRequires(List<Requirement> requires) {
+        this.requires = requires == null ? new ArrayList<>() : requires;
     }
 }
