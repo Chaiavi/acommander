@@ -205,7 +205,7 @@ Other dialogs are built inline in `Commander` (`prompt*` methods).
 | `ActionMutator` | Action id sets: always-write, conditional-write, read-only. |
 | `FileAttributesHelper` | Read/apply R/H/S/A attributes (NIO, `attrib` fallback). |
 | `FileHelper` | `isTextFile` sniffing; `folderSize` (skips unreadable entries); `deleteQuietly` (best-effort temp tree delete). |
-| `BackgroundTasks` | The one background executor (virtual threads): `run`, `supply`, `executor()`. Never use `CompletableFuture.runAsync` without it. |
+| `BackgroundTasks` | The one background executor (virtual threads): `run`, `supply`. Never use `CompletableFuture.runAsync` without it. |
 | `AppTempDir` | Every temp file/folder goes under `%TEMP%/acommander-<pid>`: `createTempFile`, `createTempDirectory`. Deleted on exit; `deleteStaleRoots` (run at startup by `Main`) removes roots of dead runs. |
 | `ImageConversionSupport`, `AudioConversionSupport` | Which files convert, target formats. |
 | `ImageMetadataSupport`, `VideoMetadataSupport`, `AudioMetadataSupport` | Which files the metadata editors accept. |
@@ -271,7 +271,7 @@ Under `src/test/java/org/chaiware/acommander/`, same package as the class tested
 
 `actions/` ActionMatcher, ActionPriorityEngine, ActionRegistry, ActionRulesSnapshot (FTP / read-only / palette
 rules per action vs `src/test/resources/action-rules-snapshot.txt`) · `commands/` CommandsAdvancedImpl, CommandsSimpleImpl,
-PackVfs · `config/` ActionScope, AppConfigLoader, AppRegistryShortcutMatching · `helpers/` AudioConversionSupport,
+PackVfs · `config/` ActionScope, AppConfigLoader, AppRegistryShortcutMatching · `helpers/` AppTempDir, AudioConversionSupport,
 BugReportUrl, FileAttributesHelper, FileHelper, FilesPanesHelperNaturalSort, ImageConversionSupport · `model/` ArchiveMode,
-FileItem · `tools/` ToolCommandBuilder, ProcessRunner · `vfs/` FtpFileSystem · root: CommanderCopy, `CodeMapTest` (fails when a main
+FileItem · `tools/` ToolCommandBuilder, ProcessRunner · `vfs/` FtpFileSystem · root: ArchitectureRules (process / background / temp-file rules), CommanderCopy, `CodeMapTest` (fails when a main
 class or an apps.json action is missing from this file).

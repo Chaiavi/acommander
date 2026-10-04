@@ -124,6 +124,9 @@ All actions and external tools live in `config/apps.json`; shortcuts are declare
 ## Conventions
 
 - UI updates from background threads go through `Platform.runLater`.
+- Start processes with `tools/ProcessRunner`, run background work with `helpers/BackgroundTasks`, create temp files
+  with `helpers/AppTempDir`. `ArchitectureRulesTest` fails the build on `new ProcessBuilder`,
+  `CompletableFuture.runAsync`, `deleteOnExit` or a temp file in the default temp dir anywhere else.
 - New storage types implement `VFileSystem` and are wired through `VfsManager`.
 - Metadata editing: `*MetadataSupport` runs the external tool, `*MetadataDialog` collects input; refresh the pane after.
 - Admin elevation: PowerShell `Start-Process -Verb RunAs`.
@@ -137,5 +140,10 @@ All actions and external tools live in `config/apps.json`; shortcuts are declare
   `build.gradle`; never commit them.
 - `config/acommander.properties` is per-user runtime state (gitignored). Never commit it.
 - Root `*.bat`, `run_build.py`, `verify_changes.py`, `bin/` are gitignored local leftovers; ignore them.
+- A file you must commit already has another session's uncommitted edits (`git diff <file>` shows hunks you didn't
+  write): `git commit -- <file>` would take theirs too. Stage only yours: `cmd /c "git show HEAD:<file> > %TEMP%\x"`
+  (cmd keeps the bytes; PowerShell `>` re-encodes), make your edit in both `%TEMP%\x` and the working file, then
+  `git update-index --cacheinfo 100644,$(git hash-object -w --path <file> $env:TEMP\x),<file>` and `git commit -m`
+  without a pathspec. A test failing on a class you never wrote is the same signal.
 - IntelliJ: after a clean build, debugger errors → **File → Invalidate Caches → Invalidate and Restart**. LSP errors in
   `Commander.java` (e.g. "getPath() undefined for Folder") are false positives if Gradle builds.
