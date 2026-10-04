@@ -25,6 +25,7 @@
     },
     {
       "id": "wipeDelete",
+      "writes": "source",
       "label": "SDelete",
       "type": "external",
       "path": "apps/delete/wipe/sdelete64.exe",
@@ -114,6 +115,7 @@
     {
       "id": "duplicate",
       "ftp": true,
+      "writes": "source",
       "label": "Duplicate",
       "shortcut": "Alt+F6",
       "aliases": ["dup"],
@@ -517,7 +519,6 @@
     },
     {
       "id": "editImageMetadata",
-      "ftp": true,
       "writes": "source",
       "fileTypes": ["imageWithMetadata"],
       "label": "Edit Image Metadata",

@@ -17,10 +17,10 @@ delete | ftp=yes | writes=source | palette=-+++++++++++++
 deleteKey | ftp=yes | writes=source | palette=n/a
 deleteWipe | ftp=no | writes=source | palette=-+++++++++++++
 deleteWipeKey | ftp=no | writes=source | palette=n/a
-duplicate | ftp=yes | writes=none | palette=-+++++++++++++
+duplicate | ftp=yes | writes=source | palette=-+++++++++++++
 edit | ftp=yes | writes=source | palette=-++++++++++---
 editAudioMetadata | ftp=no | writes=source | palette=------+-------
-editImageMetadata | ftp=yes | writes=source | palette=---++---------
+editImageMetadata | ftp=no | writes=source | palette=---++---------
 editVideoMetadata | ftp=no | writes=source | palette=-------+------
 explorer | ftp=no | writes=none | palette=++++++++++++++
 extractAll | ftp=no | writes=target | palette=---------+----
@@ -67,4 +67,4 @@ unlockDelete | ftp=no | writes=source | palette=n/a
 unpack | ftp=no | writes=target | palette=---------+----
 unselectAll | ftp=yes | writes=none | palette=-+++++++++++++
 view | ftp=yes | writes=none | palette=-++++++++++---
-wipeDelete | ftp=no | writes=none | palette=n/a
+wipeDelete | ftp=no | writes=source | palette=n/a
