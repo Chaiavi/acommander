@@ -14,6 +14,20 @@ schema, placeholders and shortcuts are in [README.md](README.md) — link there,
 - Try file operations only on files you created in a temp folder. The user works in the app while you work; never
   move, delete or rewrite their files to test something.
 
+## Commit and push at the end of every task
+
+When a task changed files, finish by committing and pushing to `origin/main` without asking.
+
+1. Code changes: `.\gradlew.bat build` must pass first. If it fails, fix it; don't commit a broken build.
+2. Commit only the files you changed, by path: `git commit -m "..." -- <file> <file>`. Other agent sessions may
+   have uncommitted work in the same tree; `git add -A` / `git commit -a` would sweep it in.
+3. Message: a short imperative subject (≤ 72 chars) saying what changed, e.g.
+   `Add tooltip to Stop button; fix PDF page range parsing`. Add a body with `-m` bullets only if there are
+   several unrelated changes.
+4. Never commit gitignored or runtime files (`config/acommander.properties`, `UniExtract.ini`, Eclipse files).
+5. If the push is rejected, `git pull --rebase` then push again. Never `--force`.
+6. Report the commit hash in the final reply.
+
 ## Where project knowledge lives
 
 | File | Loaded |
