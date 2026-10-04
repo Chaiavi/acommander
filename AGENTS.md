@@ -34,6 +34,10 @@ turn, in the cheapest place that fits:
 Write the falsifiable part (symptom, wrong conclusion, fix), not "be careful with X". Edit or delete notes that
 turn out wrong. Commit these files — they are shared project knowledge, not private memory.
 
+Personal agent memory (`/memories/`) comes from other, mostly Python, projects. Don't follow its project rules here;
+the files above win on any conflict. Use it only for agent tool and shell quirks (`02-tooling-quirks.md`), and save
+lessons about this repo in the files above, not in memory.
+
 ## Commands
 
 - Build + test (same as CI, [ci.yml](.github/workflows/ci.yml)): `.\gradlew.bat build`
