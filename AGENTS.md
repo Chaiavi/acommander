@@ -142,6 +142,9 @@ All actions and external tools live in `config/apps.json`; shortcuts are declare
   `Files.walk/list`, `MessageDigest` or a `Properties` variable there.
 - New storage types implement `VFileSystem` and are wired through `VfsManager`.
 - Metadata editing: `*MetadataSupport` runs the external tool, `*MetadataDialog` collects input; refresh the pane after.
+- Tool-output parsers are tested on real output. Capture it in a temp folder: a jpg from PowerShell
+  `System.Drawing.Bitmap` tagged with `apps/image_metadata/exiv2.exe -M"set Exif.Image.Make X"`; id3.exe tags an
+  empty `.mp3`. AtomicParsley needs a real mp4.
 - Admin elevation: PowerShell `Start-Process -Verb RunAs`.
 - Logging: `logback.xml` writes to `logs/` (gitignored).
 
