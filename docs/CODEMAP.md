@@ -94,7 +94,7 @@ Adding or renaming an action id? Check each of these:
 | `refresh` (Ctrl+R) | — | `FilesPanesHelper.refreshFileListViews` | — |
 | `selectAll` / `unselectAll` / `invertSelection` / `selectByPattern` | same names, `selectByPatternWithDialog` | `FilesPanesHelper.selectAllItems` … `selectByPattern` | — |
 | `sortByName` / `sortBySize` / `sortByDate` | same names, `onSortHeaderClicked` | `FilesPanesHelper.setSort`, `compareNaturalNames` | — |
-| `toggleDarkMode` | same name, `applyTheme` | `ThemeMode` enum in Commander | `styles/app-theme.css` |
+| `toggleDarkMode` | same name, `applyTheme` | `dialog/DialogTheme` (`ThemeMode`, `apply(scene)`) | `styles/app-theme.css` |
 | `bookmarkThisPath` / `gotoBookmark` / `removeBookmark` | `bookmarkCurrentPath` / `gotoBookmark` / `removeBookmark`, `promptBookmarkSelection` | stored as `bookmark.*` properties | — |
 | `ftpConnect` / `ftpDisconnect` | `ftpConnect` / `ftpDisconnect` | `vfs/FtpFileSystem`, `FtpConnectionOptions` | `remote_connectivity/curl.exe` |
 | `openHostsFile` | `openHostsFile` | elevated `edit` action via PowerShell `Start-Process -Verb RunAs` | `edit/Notepad4.exe` |
@@ -143,7 +143,7 @@ Not actions, but often asked for:
     `promptChecksumOptions`), `showError`, `showInfo`.
 17. Clipboard copy/cut/paste, toast.
 18. Private records and enums (options for each dialog), `promptAttributes`, `updateBottomButtons`,
-    read-only archive checks, `reportBug`, `applyTheme`, `ThemeMode`.
+    read-only archive checks, `reportBug`, `applyTheme`.
 
 ## 5. Every Class
 
@@ -192,7 +192,7 @@ Not actions, but often asked for:
 | `ImageMetadataDialog` | EXIF/IPTC/XMP editor via `exiv2.exe`. |
 | `VideoMetadataDialog` | MP4-family tags via `AtomicParsley.exe`. |
 | `AudioMetadataDialog` | ID3 tags via `id3.exe`. |
-| `DialogTheme` | `apply(dialog, owner, themeClass)`: theme style class + the owner's stylesheets. Used by the metadata dialogs (which take owner + theme class, not `Commander`) and `Commander.applyThemeToDialog`. |
+| `DialogTheme` | The dark/light theme: `ThemeMode` (settings value ↔ style class), `apply(scene, mode)` on the window root, `apply(dialog, owner, themeClass)` for dialogs (theme class + the owner's stylesheets). The metadata dialogs take owner + theme class, not `Commander`. |
 
 Other dialogs are built inline in `Commander` (`prompt*` methods).
 
@@ -286,7 +286,7 @@ Under `src/test/java/org/chaiware/acommander/`, same package as the class tested
 
 `actions/` ActionMatcher, ActionPriorityEngine, ActionRegistry, BuiltinAction, ActionRulesSnapshot (FTP / read-only / palette
 rules per action vs `src/test/resources/action-rules-snapshot.txt`) · `commands/` CommandsAdvancedImpl, CommandsSimpleImpl,
-PackVfs, ReportFailure · `config/` ActionScope, AppConfigLoader, AppRegistryShortcutMatching · `helpers/` AppTempDir, AppVersion, ArchiveManager, AudioConversionSupport,
+PackVfs, ReportFailure · `config/` ActionScope, AppConfigLoader, AppRegistryShortcutMatching · `dialog/` DialogTheme · `helpers/` AppTempDir, AppVersion, ArchiveManager, AudioConversionSupport,
 BugReportUrl, FileAttributesHelper, FileHelper, FileIcons, FilesPanesHelperNaturalSort, IncrementalFilter, ImageConversionSupport, SettingsStore, VideoMetadataSupport · `model/` ArchiveMode,
 FileItem · `services/` AudioConversionService, ClipboardTransfer, FolderComparer, ImageConversionService · `tools/` BundledTool, BundledToolCommands, ToolCommandBuilder, ProcessRunner · `vfs/` FtpFileSystem · root: ArchitectureRules (process / background / temp-file / app-path / version / fire-and-forget rules), CommanderCopy, `CodeMapTest` (fails when a main
 class or an apps.json action is missing from this file).

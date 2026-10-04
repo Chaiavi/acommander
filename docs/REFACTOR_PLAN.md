@@ -193,8 +193,9 @@ Rechecked after Phase 3: every symbol below still exists in `Commander`. Bug fix
   `FileTypes` in 6.1.
 - [x] 4.10 `IncrementalFilter` (`filterByChar`, `applyIncrementalFilter`), pure prefix logic tested. In `helpers/`,
   one per pane; the list and selection updates stay in `Commander`.
-- [ ] 4.11 Theme: `applyTheme`, `ThemeMode` and `applyThemeToDialog` join `dialog/DialogTheme` (3.4) in one theme
-  class, not a second one. `ThemeMode.from` gets a test (unknown / blank value → default).
+- [x] 4.11 Theme: `applyTheme`, `ThemeMode` and `applyThemeToDialog` join `dialog/DialogTheme` (3.4) in one theme
+  class, not a second one. `ThemeMode.from` gets a test (unknown / blank value → default). `applyTheme` (persists
+  the choice) and `applyThemeToDialog` (needs the window) stay in `Commander` as one-liners.
 - [ ] 4.12 `ExternalProgressController`, the UI side of external runs: `buildExternalCommandListener` (progress,
   Settings-editor reload, the `onFailure` error dialog), `show/hideOrUpdateExternalProgress`, `stopExternalTasks`,
   `runWithProgress`. The process side (`runExecutable`, `reportFailure`, Stop counter) is 7.2.

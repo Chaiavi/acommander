@@ -28,6 +28,7 @@ import org.chaiware.acommander.config.ActionDefinition;
 import org.chaiware.acommander.config.AppConfigLoader;
 import org.chaiware.acommander.config.AppRegistry;
 import org.chaiware.acommander.dialog.DialogTheme;
+import org.chaiware.acommander.dialog.DialogTheme.ThemeMode;
 import org.chaiware.acommander.helpers.*;
 import org.chaiware.acommander.keybinding.KeyBindingManager;
 import org.chaiware.acommander.keybinding.KeyBindingManager.KeyContext;
@@ -78,8 +79,6 @@ import static org.chaiware.acommander.helpers.FilesPanesHelper.FocusSide.RIGHT;
 
 
 public class Commander {
-    private static final String THEME_DARK_CLASS = DialogTheme.DARK;
-    private static final String THEME_LIGHT_CLASS = DialogTheme.LIGHT;
 
     @FXML
     public BorderPane rootPane;
@@ -5490,11 +5489,7 @@ public class Commander {
     }
 
     private void applyTheme(Scene scene, ThemeMode themeMode, boolean persist) {
-        if (scene == null || scene.getRoot() == null) {
-            return;
-        }
-        scene.getRoot().getStyleClass().removeAll(THEME_DARK_CLASS, THEME_LIGHT_CLASS);
-        scene.getRoot().getStyleClass().add(themeMode.styleClass);
+        DialogTheme.apply(scene, themeMode);
         currentThemeMode = themeMode;
         if (persist) {
             settings.setThemeMode(themeMode.configValue);
@@ -5507,28 +5502,5 @@ public class Commander {
             return;
         }
         DialogTheme.apply(dialog, rootPane.getScene().getWindow(), currentThemeMode.styleClass);
-    }
-
-    private enum ThemeMode {
-        DARK("dark", THEME_DARK_CLASS),
-        REGULAR("regular", THEME_LIGHT_CLASS);
-
-        private final String configValue;
-        private final String styleClass;
-
-        ThemeMode(String configValue, String styleClass) {
-            this.configValue = configValue;
-            this.styleClass = styleClass;
-        }
-
-        private static ThemeMode from(String value) {
-            if ("dark".equalsIgnoreCase(value)) {
-                return DARK;
-            }
-            if ("light".equalsIgnoreCase(value) || "regular".equalsIgnoreCase(value)) {
-                return REGULAR;
-            }
-            return REGULAR;
-        }
     }
 }
