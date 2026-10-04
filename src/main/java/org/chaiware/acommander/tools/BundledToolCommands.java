@@ -42,6 +42,10 @@ public final class BundledToolCommands {
 
     public record CompareFilesOptions(boolean ignoreCase, WhiteSpaceCompareMode whitespaceMode, boolean differencesOnly) {}
 
+    /** {@code extension} is used only when {@code findInSpecificExtension}; leading dots are ignored. */
+    public record FindInFilesOptions(String query, boolean caseInsensitive, boolean findInSpecificExtension,
+                                     String extension, boolean includeHiddenAndIgnored) {}
+
     /** A parsed split size; {@code sevenZipArg} goes after 7-Zip's {@code -v}. Invalid input carries a message. */
     public record SplitSize(boolean valid, long bytes, String sevenZipArg, String message) {
         private static SplitSize invalid(String message) {
@@ -65,6 +69,35 @@ public final class BundledToolCommands {
         }
         command.add(targetPath);
         return command;
+    }
+
+    /** ripgrep listing the files under {@code sourcePath} that contain the literal query. */
+    public static List<String> findInFiles(Path rgPath, String sourcePath, FindInFilesOptions options) {
+        List<String> command = new ArrayList<>(List.of(rgPath.toString(), "--files-with-matches", "--no-messages", "--fixed-strings"));
+        if (options.caseInsensitive()) {
+            command.add("--ignore-case");
+        }
+        if (options.includeHiddenAndIgnored()) {
+            command.add("--hidden");
+            command.add("--no-ignore");
+        }
+        if (options.findInSpecificExtension()) {
+            command.add("--glob");
+            command.add("*." + options.extension().replaceFirst("^\\.+", ""));
+        }
+        command.add(options.query());
+        command.add(sourcePath);
+        return command;
+    }
+
+    /** ripgrep's output lines as distinct absolute paths (relative lines resolve against {@code sourcePath}). */
+    public static List<String> foundFiles(List<String> output, String sourcePath) {
+        return output.stream()
+                .map(String::trim)
+                .filter(line -> !line.isEmpty())
+                .map(line -> Path.of(sourcePath).resolve(line).normalize().toString())
+                .distinct()
+                .toList();
     }
 
     /** The first hash on rhash's output (skipping its own error lines), or all of the output if none is found. */

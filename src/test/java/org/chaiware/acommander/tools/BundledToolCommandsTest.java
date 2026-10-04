@@ -30,6 +30,21 @@ class BundledToolCommandsTest {
     }
 
     @Test
+    void findInFilesAddsFlagsAndAnExtensionGlob() {
+        var options = new BundledToolCommands.FindInFilesOptions("needle", true, true, "..java", true);
+        assertThat(BundledToolCommands.findInFiles(Path.of("rg.exe"), "C:\\src", options)).containsExactly(
+                "rg.exe", "--files-with-matches", "--no-messages", "--fixed-strings", "--ignore-case",
+                "--hidden", "--no-ignore", "--glob", "*.java", "needle", "C:\\src");
+    }
+
+    @Test
+    void foundFilesResolvesRelativeLinesAndDropsDuplicates(@TempDir Path dir) {
+        String absolute = dir.resolve("b.txt").toString();
+        assertThat(BundledToolCommands.foundFiles(java.util.List.of(" a.txt ", "", absolute, "sub/../a.txt"), dir.toString()))
+                .containsExactly(dir.resolve("a.txt").toString(), absolute);
+    }
+
+    @Test
     void checksumOptionsDeriveTheRhashFlagFromTheLabel() {
         assertThat(ChecksumOptions.of("CRC32", false, true, false))
                 .isEqualTo(new ChecksumOptions("--crc32", "CRC32", false, true, false));

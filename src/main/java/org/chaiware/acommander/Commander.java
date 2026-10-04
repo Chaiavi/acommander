@@ -50,6 +50,7 @@ import org.chaiware.acommander.tools.BundledTool;
 import org.chaiware.acommander.tools.BundledToolCommands;
 import org.chaiware.acommander.tools.BundledToolCommands.ChecksumOptions;
 import org.chaiware.acommander.tools.BundledToolCommands.CompareFilesOptions;
+import org.chaiware.acommander.tools.BundledToolCommands.FindInFilesOptions;
 import org.chaiware.acommander.tools.BundledToolCommands.WhiteSpaceCompareMode;
 import org.chaiware.acommander.tools.FilePropertiesLauncher;
 import org.chaiware.acommander.tools.ProcessRunner;
@@ -1576,191 +1577,34 @@ public class Commander {
 
     public void findInFiles() {
         logger.info("Find in Files (ALT+F10)");
-        Optional<FindInFilesOptions> options = promptFindInFilesOptions();
+        String sourcePath = filesPanesHelper.getFocusedPath();
+        Optional<FindInFilesOptions> options = FindInFilesDialog.show(dialogOwner(), currentThemeMode.styleClass, sourcePath);
         if (options.isEmpty()) {
             return;
         }
-        runFindInFiles(options.get());
-    }
-
-    private Optional<FindInFilesOptions> promptFindInFilesOptions() {
-        Dialog<FindInFilesOptions> dialog = new Dialog<>();
-        dialog.setTitle("Find in Files");
-        dialog.setHeaderText(null);
-
-        ButtonType findType = new ButtonType("Find", ButtonBar.ButtonData.OK_DONE);
-        dialog.getDialogPane().getButtonTypes().addAll(findType, ButtonType.CANCEL);
-
-        TextField queryField = new TextField();
-        queryField.setPromptText("Text to find");
-
-        CheckBox caseInsensitive = new CheckBox("Case Insensitive");
-        CheckBox findInSpecificExtension = new CheckBox("Find in specific extention");
-        TextField extensionField = new TextField();
-        extensionField.setPromptText("Example: java");
-        extensionField.setDisable(true);
-        findInSpecificExtension.selectedProperty().addListener((obs, oldValue, selected) -> {
-            extensionField.setDisable(!selected);
-            if (!selected) {
-                extensionField.clear();
-            }
-        });
-
-        CheckBox includeHiddenAndIgnored = new CheckBox("Search including hidden & ignored files");
-
-        VBox content = new VBox(10,
-                new Label("Find text in: " + filesPanesHelper.getFocusedPath()),
-                queryField,
-                caseInsensitive,
-                findInSpecificExtension,
-                extensionField,
-                includeHiddenAndIgnored
-        );
-        content.setPadding(new Insets(12));
-        dialog.getDialogPane().setContent(content);
-        applyThemeToDialog(dialog);
-
-        Button findButton = (Button) dialog.getDialogPane().lookupButton(findType);
-        Runnable validate = () -> {
-            String query = queryField.getText() == null ? "" : queryField.getText().trim();
-            boolean extensionRequired = findInSpecificExtension.isSelected();
-            String ext = extensionField.getText() == null ? "" : extensionField.getText().trim();
-            findButton.setDisable(query.isEmpty() || (extensionRequired && ext.isEmpty()));
-        };
-        queryField.textProperty().addListener((obs, oldValue, newValue) -> validate.run());
-        extensionField.textProperty().addListener((obs, oldValue, newValue) -> validate.run());
-        findInSpecificExtension.selectedProperty().addListener((obs, oldValue, newValue) -> validate.run());
-        validate.run();
-
-        dialog.setOnShown(event -> Platform.runLater(queryField::requestFocus));
-        dialog.setResultConverter(button -> {
-            if (button != findType) {
-                return null;
-            }
-            String query = queryField.getText() == null ? "" : queryField.getText().trim();
-            String extension = extensionField.getText() == null ? "" : extensionField.getText().trim();
-            return new FindInFilesOptions(
-                    query,
-                    caseInsensitive.isSelected(),
-                    findInSpecificExtension.isSelected(),
-                    extension,
-                    includeHiddenAndIgnored.isSelected()
-            );
-        });
-        return dialog.showAndWait();
-    }
-
-    private void runFindInFiles(FindInFilesOptions options) {
-        String sourcePath = filesPanesHelper.getFocusedPath();
         Path rgPath = BundledTool.RIPGREP.path();
         if (!Files.isRegularFile(rgPath)) {
             showError("Find in Files", "Ripgrep executable was not found at: " + rgPath);
             return;
         }
 
-        List<String> command = new ArrayList<>();
-        command.add(rgPath.toString());
-        command.add("--files-with-matches");
-        command.add("--no-messages");
-        command.add("--fixed-strings");
-        if (options.caseInsensitive()) {
-            command.add("--ignore-case");
-        }
-        if (options.includeHiddenAndIgnored()) {
-            command.add("--hidden");
-            command.add("--no-ignore");
-        }
-        if (options.findInSpecificExtension()) {
-            String ext = options.extension().replaceFirst("^\\.+", "");
-            command.add("--glob");
-            command.add("*." + ext);
-        }
-        command.add(options.query());
-        command.add(sourcePath);
-
-        runExternal(command, false)
+        runExternal(BundledToolCommands.findInFiles(rgPath, sourcePath, options.get()), false)
                 .thenAccept(output -> Platform.runLater(() -> {
-                    if (output == null || output.isEmpty()) {
-                        Alert alert = new Alert(Alert.AlertType.INFORMATION, "No files found :-(");
-                        alert.setHeaderText(null);
-                        applyThemeToDialog(alert);
-                        alert.showAndWait();
+                    List<String> files = BundledToolCommands.foundFiles(output == null ? List.of() : output, sourcePath);
+                    if (files.isEmpty()) {
+                        showInfo("Find in Files", "No files found :-(");
                         return;
                     }
-
-                    List<String> files = output.stream()
-                            .map(String::trim)
-                            .filter(line -> !line.isEmpty())
-                            .map(line -> {
-                                Path path = Paths.get(line);
-                                if (!path.isAbsolute()) {
-                                    path = Paths.get(sourcePath).resolve(path);
-                                }
-                                return path.normalize().toString();
-                            })
-                            .distinct()
-                            .toList();
-
-                    FileItem selectedFile = showFileResultsDialog(files);
-                    if (selectedFile == null) {
-                        return;
-                    }
-                    filesPanesHelper.setFocusedFileListPath(selectedFile.getFile().getParent());
-                    filesPanesHelper.selectFileItem(true, selectedFile);
-                    requestFocusedFileListFocus();
+                    FoundFilesDialog.show(dialogOwner(), currentThemeMode.styleClass, files).ifPresent(selectedFile -> {
+                        filesPanesHelper.setFocusedFileListPath(selectedFile.getFile().getParent());
+                        filesPanesHelper.selectFileItem(true, selectedFile);
+                        requestFocusedFileListFocus();
+                    });
                 }))
                 .exceptionally(throwable -> {
                     Platform.runLater(() -> showError("Find in Files", "Failed running ripgrep: " + throwable.getMessage()));
                     return null;
                 });
-    }
-
-    private FileItem showFileResultsDialog(List<String> files) {
-        List<FileItem> fileItems = files.stream().map(filename -> new FileItem(new File(filename))).toList();
-        ListView<FileItem> fileList = new ListView<>();
-        fileList.getItems().setAll(fileItems);
-        fileList.setCellFactory(list -> new ListCell<>() {
-            @Override
-            protected void updateItem(FileItem item, boolean empty) {
-                super.updateItem(item, empty);
-                setText(empty || item == null ? null : item.getFullPath());
-            }
-        });
-        fileList.getSelectionModel().selectFirst();
-        fileList.getFocusModel().focus(0);
-        fileList.setPrefSize(980, 420);
-
-        Dialog<FileItem> dialog = new Dialog<>();
-        dialog.setTitle("Files Found");
-        DialogPane pane = dialog.getDialogPane();
-        pane.setContent(fileList);
-        ButtonType goToFileButton = new ButtonType("Go to File", ButtonBar.ButtonData.OK_DONE);
-        pane.getButtonTypes().addAll(goToFileButton, ButtonType.CANCEL);
-        pane.setPrefSize(1020, 480);
-        dialog.setResizable(true);
-        dialog.setResultConverter(buttonType -> buttonType == goToFileButton ? fileList.getSelectionModel().getSelectedItem() : null);
-        dialog.setOnShown(event -> Platform.runLater(() -> {
-            fileList.requestFocus();
-            fileList.getSelectionModel().selectFirst();
-            fileList.getFocusModel().focus(0);
-        }));
-
-        pane.addEventFilter(KeyEvent.KEY_PRESSED, event -> {
-            if (event.getCode() == KeyCode.ESCAPE) {
-                dialog.setResult(null);
-                dialog.close();
-                event.consume();
-                return;
-            }
-            if (event.getCode() == KeyCode.ENTER) {
-                dialog.setResult(fileList.getSelectionModel().getSelectedItem());
-                dialog.close();
-                event.consume();
-            }
-        });
-
-        applyThemeToDialog(dialog);
-        return dialog.showAndWait().orElse(null);
     }
 
     @FXML
@@ -3542,18 +3386,19 @@ public class Commander {
 
     public void gotoBookmark() {
         try {
-            Optional<String> selected = promptBookmarkSelection("Goto Bookmark", "Go to selected bookmark", "Go");
+            Optional<String> selected = pickBookmark("Go to Bookmark", "Go to selected bookmark", "Go",
+                    "Open the selected bookmark in the focused pane.");
             if (selected.isEmpty()) {
                 return;
             }
 
             String path = bookmarks.get(selected.get());
             if (path == null || path.isBlank()) {
-                showError("Goto Bookmark", "Bookmark path is missing.");
+                showError("Go to Bookmark", "Bookmark path is missing.");
                 return;
             }
             if (!Files.isDirectory(Path.of(path))) {
-                showError("Goto Bookmark", "Bookmark path does not exist: " + path);
+                showError("Go to Bookmark", "Bookmark path does not exist: " + path);
                 return;
             }
 
@@ -3564,7 +3409,8 @@ public class Commander {
     }
 
     public void removeBookmark() {
-        Optional<String> selected = promptBookmarkSelection("Remove Bookmark", "Select bookmark to remove", "Remove");
+        Optional<String> selected = pickBookmark("Remove Bookmark", "Select bookmark to remove", "Remove",
+                "Delete the selected bookmark; the folder itself is not touched.");
         if (selected.isEmpty()) {
             return;
         }
@@ -4036,124 +3882,13 @@ public class Commander {
         return getUserFeedback(defaultValue, title, question);
     }
 
-    private Optional<String> promptBookmarkSelection(String title, String hint, String actionButtonLabel) {
+    private Optional<String> pickBookmark(String title, String hint, String actionLabel, String actionTooltip) {
         if (bookmarks.isEmpty()) {
-            Alert alert = new Alert(Alert.AlertType.INFORMATION);
-            alert.setTitle(title);
-            alert.setHeaderText(null);
-            alert.setContentText("No bookmarks found.");
-            applyThemeToDialog(alert);
-            alert.showAndWait();
+            showInfo(title, "No bookmarks found.");
             return Optional.empty();
         }
-
-        List<String> names = bookmarks.keySet().stream()
-                .sorted(String.CASE_INSENSITIVE_ORDER)
-                .toList();
-
-        Dialog<String> dialog = new Dialog<>();
-        dialog.setTitle(title);
-        dialog.setHeaderText(null);
-
-        ButtonType actionType = new ButtonType(actionButtonLabel, ButtonBar.ButtonData.OK_DONE);
-        dialog.getDialogPane().getButtonTypes().addAll(actionType, ButtonType.CANCEL);
-
-        ListView<String> listView = new ListView<>();
-        listView.getItems().setAll(names);
-        listView.getSelectionModel().selectFirst();
-        listView.setPrefWidth(460);
-        listView.setPrefHeight(Math.min(320, Math.max(140, names.size() * 34)));
-        listView.setCellFactory(unused -> new ListCell<>() {
-            @Override
-            protected void updateItem(String name, boolean empty) {
-                super.updateItem(name, empty);
-                if (empty || name == null) {
-                    setGraphic(null);
-                    setText(null);
-                    return;
-                }
-
-                Label nameLabel = new Label(name);
-                nameLabel.setStyle("-fx-font-weight: bold;");
-                Label pathLabel = new Label(bookmarks.getOrDefault(name, ""));
-                pathLabel.setStyle("-fx-opacity: 0.8;");
-                VBox row = new VBox(2, nameLabel, pathLabel);
-                setGraphic(row);
-            }
-        });
-
-        listView.setOnMouseClicked(event -> {
-            if (event.getClickCount() == 2) {
-                String selected = listView.getSelectionModel().getSelectedItem();
-                if (selected != null) {
-                    dialog.setResult(selected);
-                    dialog.close();
-                }
-            }
-        });
-
-        Label hintLabel = new Label(hint);
-        VBox content = new VBox(10, hintLabel, listView);
-        content.setPadding(new Insets(10));
-        dialog.getDialogPane().setContent(content);
-
-        Button actionButton = (Button) dialog.getDialogPane().lookupButton(actionType);
-        Button cancelButton = (Button) dialog.getDialogPane().lookupButton(ButtonType.CANCEL);
-        actionButton.setDefaultButton(true);
-        cancelButton.setCancelButton(true);
-        Runnable syncActionButton = () -> actionButton.setDisable(listView.getSelectionModel().getSelectedItem() == null);
-        listView.getSelectionModel().selectedItemProperty().addListener((obs, oldValue, newValue) -> syncActionButton.run());
-        syncActionButton.run();
-
-        listView.setOnKeyPressed(event -> {
-            if (event.getCode() == KeyCode.ENTER) {
-                if (!actionButton.isDisabled()) {
-                    actionButton.fire();
-                }
-                event.consume();
-            } else if (event.getCode() == KeyCode.ESCAPE) {
-                cancelButton.fire();
-                event.consume();
-            }
-        });
-
-        dialog.getDialogPane().addEventFilter(KeyEvent.KEY_PRESSED, event -> {
-            if (event.getCode() != KeyCode.UP && event.getCode() != KeyCode.DOWN) {
-                return;
-            }
-            int size = listView.getItems().size();
-            if (size == 0) {
-                return;
-            }
-            int index = listView.getSelectionModel().getSelectedIndex();
-            if (index < 0) {
-                index = 0;
-            } else if (event.getCode() == KeyCode.DOWN) {
-                index = Math.min(index + 1, size - 1);
-            } else {
-                index = Math.max(index - 1, 0);
-            }
-            listView.getSelectionModel().select(index);
-            listView.scrollTo(index);
-            listView.requestFocus();
-            event.consume();
-        });
-
-        dialog.setOnShown(event -> {
-            if (!listView.getItems().isEmpty() && listView.getSelectionModel().getSelectedIndex() < 0) {
-                listView.getSelectionModel().selectFirst();
-            }
-            Platform.runLater(listView::requestFocus);
-        });
-
-        dialog.setResultConverter(button -> {
-            if (button == actionType) {
-                return listView.getSelectionModel().getSelectedItem();
-            }
-            return null;
-        });
-        applyThemeToDialog(dialog);
-        return dialog.showAndWait();
+        return BookmarkPickerDialog.show(dialogOwner(), currentThemeMode.styleClass, title, hint, actionLabel,
+                actionTooltip, bookmarks);
     }
 
     private String suggestBookmarkName(String path) {
@@ -4444,13 +4179,6 @@ public class Commander {
             return flag;
         }
     }
-    private record FindInFilesOptions(
-            String query,
-            boolean caseInsensitive,
-            boolean findInSpecificExtension,
-            String extension,
-            boolean includeHiddenAndIgnored
-    ) {}
 
     /** Alerts of an error and logs it */
     private void error(String error, Exception ex) {
@@ -4583,102 +4311,10 @@ public class Commander {
 
     public void reportBug() {
         logger.info("Opening bug report dialog");
-
-        Dialog<BugReportData> dialog = new Dialog<>();
-        dialog.setTitle("Report Bug / Contact");
-        dialog.initOwner(rootPane.getScene().getWindow());
-        dialog.initModality(Modality.WINDOW_MODAL);
-
-        dialog.getDialogPane().getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
-
-        applyThemeToDialog(dialog);
-
-        Label typeLabel = new Label("Type:");
-        ComboBox<String> typeCombo = new ComboBox<>();
-        typeCombo.getItems().addAll("Bug Report", "Feature Request", "Question", "Other");
-        typeCombo.setValue("Bug Report");
-
-        Label titleLabel = new Label("Title:");
-        TextField titleField = new TextField();
-        titleField.setPromptText("Brief description of the issue");
-
-        Label stepsLabel = new Label("Steps to reproduce:");
-        TextArea stepsArea = new TextArea();
-        stepsArea.setPromptText("1.\n2.\n3.");
-        stepsArea.setPrefRowCount(4);
-
-        Label expectedLabel = new Label("Expected behavior:");
-        TextArea expectedArea = new TextArea();
-        expectedArea.setPromptText("What should happen...");
-        expectedArea.setPrefRowCount(2);
-
-        Label actualLabel = new Label("Actual behavior:");
-        TextArea actualArea = new TextArea();
-        actualArea.setPromptText("What actually happens...");
-        actualArea.setPrefRowCount(2);
-
-        Label versionLabel = new Label("App version:");
-        Label versionValue = new Label(AppVersion.current());
-        versionValue.setStyle("-fx-font-weight: bold;");
-
-        GridPane grid = new GridPane();
-        grid.setHgap(10);
-        grid.setVgap(8);
-        grid.setPadding(new Insets(15));
-
-        int row = 0;
-        grid.add(typeLabel, 0, row);
-        grid.add(typeCombo, 1, row);
-        row++;
-        grid.add(titleLabel, 0, row);
-        grid.add(titleField, 1, row);
-        GridPane.setHgrow(titleField, Priority.ALWAYS);
-        row++;
-        grid.add(stepsLabel, 0, row);
-        grid.add(stepsArea, 1, row);
-        GridPane.setVgrow(stepsArea, Priority.ALWAYS);
-        row++;
-        grid.add(expectedLabel, 0, row);
-        grid.add(expectedArea, 1, row);
-        row++;
-        grid.add(actualLabel, 0, row);
-        grid.add(actualArea, 1, row);
-        row++;
-        grid.add(versionLabel, 0, row);
-        grid.add(versionValue, 1, row);
-
-        dialog.getDialogPane().setContent(grid);
-        dialog.getDialogPane().setPrefSize(600, 500);
-
-        Button submitButton = (Button) dialog.getDialogPane().lookupButton(ButtonType.OK);
-        submitButton.setText("Submit");
-
-        dialog.setResultConverter(buttonType -> {
-            if (buttonType == ButtonType.OK) {
-                String type = typeCombo.getValue();
-                String title = titleField.getText();
-                String steps = stepsArea.getText();
-                String expected = expectedArea.getText();
-                String actual = actualArea.getText();
-                return new BugReportData(type, title, steps, expected, actual, AppVersion.current());
-            }
-            return null;
-        });
-
-        Optional<BugReportData> result = dialog.showAndWait();
-        if (result.isPresent()) {
-            BugReportData data = result.get();
-            submitBugReport(data);
-        }
+        ReportBugDialog.show(dialogOwner(), currentThemeMode.styleClass, AppVersion.current()).ifPresent(this::submitBugReport);
     }
 
-    private record BugReportData(String type, String title, String steps, String expected, String actual,
-                                 String version) {
-    }
-
-    private void submitBugReport(BugReportData data) {
-        String url = BugReportUrl.build(data.type(), data.title(), data.steps(), data.expected(), data.actual(), data.version());
-
+    private void submitBugReport(String url) {
         logger.info("Opening bug report URL: {}", url);
 
         try {

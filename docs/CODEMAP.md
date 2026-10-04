@@ -72,7 +72,7 @@ Adding or renaming an action id? Check each of these:
 | `unlockDelete`, `wipeDelete`, `multiRename` | — (type `external`) | `ActionExecutor.executeExternal` | `delete/unlock_delete/ThisIsMyFile.exe`, `sdelete64.exe`, `Renamer.exe` |
 | `terminal` (F9) / `explorer` (Alt+F9) | `terminalHere` / `explorerHere` | `CommandsSimpleImpl.openTerminal` / `openExplorer` | PowerShell (cmd fallback), `explorer.exe` |
 | `search` (F10, Ctrl+F) | `search` | `CommandsSimpleImpl.searchFiles` (PowerShell `Get-ChildItem`) | — |
-| `findInFiles` (Alt+F10) | `findInFiles`, `runFindInFiles`, `showFileResultsDialog` | `FindInFilesOptions` record | `search_in_files/rg.exe` |
+| `findInFiles` (Alt+F10) | `findInFiles` | `dialog/FindInFilesDialog`, `FoundFilesDialog`; `tools/BundledToolCommands.findInFiles`, `foundFiles` | `search_in_files/rg.exe` |
 | `pack` (F11) | `pack` | `CommandsAdvancedImpl.doPack` | `pack_unpack/7zG.exe` |
 | `splitLargeFile` (Alt+F11) | `splitLargeFile` | `dialog/SplitSizeDialog`, `tools/BundledToolCommands.parseSplitSize` | `extract_all/UniExtract/bin/x64/7z.exe` |
 | `unpack` (F12) | `unpackFile` | `CommandsAdvancedImpl.doUnpack` → `unpackWith` | `pack_unpack/7zG.exe` |
@@ -95,12 +95,12 @@ Adding or renaming an action id? Check each of these:
 | `selectAll` / `unselectAll` / `invertSelection` / `selectByPattern` | same names | `dialog/SelectByPatternDialog`, `FilesPanesHelper.selectAllItems` … `selectByPattern` | — |
 | `sortByName` / `sortBySize` / `sortByDate` | same names, `onSortHeaderClicked` | `FilesPanesHelper.setSort`, `compareNaturalNames` | — |
 | `toggleDarkMode` | same name, `applyTheme` | `dialog/DialogTheme` (`ThemeMode`, `apply(scene)`) | `styles/app-theme.css` |
-| `bookmarkThisPath` / `gotoBookmark` / `removeBookmark` | `bookmarkCurrentPath` / `gotoBookmark` / `removeBookmark`, `promptBookmarkSelection` | stored as `bookmark.*` properties | — |
+| `bookmarkThisPath` / `gotoBookmark` / `removeBookmark` | `bookmarkCurrentPath` / `gotoBookmark` / `removeBookmark`, `pickBookmark` | `dialog/BookmarkPickerDialog`; stored as `bookmark.*` properties | — |
 | `ftpConnect` / `ftpDisconnect` | `ftpConnect` / `ftpDisconnect` | `vfs/FtpFileSystem`, `FtpConnectionOptions` | `remote_connectivity/curl.exe` |
 | `openHostsFile` | `openHostsFile` | elevated `edit` action via PowerShell `Start-Process -Verb RunAs` | `edit/Notepad4.exe` |
 | `syncToOtherPane` | `syncToOtherPane` | — | — |
 | `leftPathCombo` / `rightPathCombo` (Alt+F1/F2) | `leftPathComboBox.show()` | `helpers/ComboBoxSetup`, `FolderComboBoxCell` | — |
-| `reportBug` | `reportBug`, `submitBugReport` | `helpers/BugReportUrl` (prefilled issue URL + label) | browser |
+| `reportBug` | `reportBug`, `submitBugReport` | `dialog/ReportBugDialog`, `helpers/BugReportUrl` (prefilled issue URL + label) | browser |
 | `openCommandPalette` | `openCommandPalette` | `palette/CommandPaletteController` | — |
 
 Not actions, but often asked for:
@@ -198,6 +198,9 @@ Not actions, but often asked for:
 | `AttributesDialog` | Read-only / hidden / system / archive → `AttributeChangeRequest`. |
 | `SelectByPatternDialog` | Wildcard or regex pattern (rejects an invalid regex). |
 | `TextPromptDialog` | One-line text prompt with a preselected range (rename selects the name without its extension). |
+| `FindInFilesDialog` / `FoundFilesDialog` | Find in Files options; the found files list (Enter / double-click goes to one). |
+| `BookmarkPickerDialog` | Pick a bookmark by name (Go / Remove). |
+| `ReportBugDialog` | Bug report form → prefilled GitHub issue URL. |
 | `ImageMetadataDialog` | EXIF/IPTC/XMP editor via `exiv2.exe`. |
 | `VideoMetadataDialog` | MP4-family tags via `AtomicParsley.exe`. |
 | `AudioMetadataDialog` | ID3 tags via `id3.exe`. |
