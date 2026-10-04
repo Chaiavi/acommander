@@ -231,22 +231,41 @@ Smoke items: open every moved dialog once; Enter confirms, Escape cancels, dark 
 
 ## Phase 6 — Metadata Dialogs and File Types (depends on 1, 3)
 
-- [ ] 6.1 `FileTypes` owns the extension sets now spread over `ImageConversionSupport`, `AudioConversionSupport`,
-  `Image/Video/AudioMetadataSupport`, `ExecutableCompressionSupport`, `ArchiveService`, `ACommands.isArchive/isPdf`
-  and `Commander.getFileExtension/normalizedExtension`. `ActionRegistry.areAllOfType` moves there. Target-format
-  lists stay with the conversion services (4.4). `ActionRulesSnapshotTest` must not change.
-- [ ] 6.2 `MetadataDialogBase`; image (1,148 lines) / audio (509) / video (443) become adapters.
-- [ ] 6.3 Output parsers (exiv2, AtomicParsley, id3) as pure functions, tested on captured sample output.
+Rechecked after Phase 5. Bug fix first (6.0). 6.1 shrank: the real duplication is the "extension of a name" code,
+not the sets. 6.3 now runs before 6.2, so the base class is judged on what is left.
 
-Smoke items: edit + save + reload metadata on a copied jpg, mp3, mp4.
+- [ ] 6.0 Duplicate inside an archive hangs the app (bug fix, Found Along the Way 18). `Commander.fileExists` treats
+  `ArchiveFileSystem.listContents(path) != null` as "exists"; that call never returns null (it always adds `..`), so
+  `ClipboardTransfer.duplicateName` loops forever on the FX thread. Fix: list the target folder once and test the
+  name against it, for every file system; delete `fileExists`. Test: `duplicateName` with a taken-set ends.
+- [ ] 6.1 Changed. One `FileItem.extension()` (lower case, `""` when none) replaces ~16 copies of the
+  `lastIndexOf('.')` code: `normalizedExtension` in the 5 `*Support` classes and `ActionPriorityEngine`,
+  `getFileExtension` in `Commander` and `ArchiveManager`, `ACommands.isArchive/isPdf`, `ActionRegistry` (pdf),
+  `FileIcons`, `LocalFileSystem`, `ArchiveFileSystem`. The archive extensions live in 3 places
+  (`ArchiveService.SUPPORTED_EXTENSIONS`, `ArchiveMode` read-write / read-only sets, an inline zip/jar/tar/gz check in
+  `FtpFileSystem`); keep one source and test that they agree. Each other set stays next to the feature that uses
+  it; no `FileTypes` class. `ActionRegistry.areAllOfType` stays (it is one switch). `ActionRulesSnapshotTest` must
+  not change.
+- [ ] 6.3 Output parsers as pure functions in the `*MetadataSupport` classes, tested on captured sample output:
+  exiv2 (now inside `ImageMetadataDialog.populateTreeTable`, mixed with the tree), id3 (inside
+  `AudioMetadataDialog.queryAllTagValues`, mixed with the process run), AtomicParsley (`VideoMetadataDialog`
+  `parseTextData` / `mapAtomToKey`, already pure, untested).
+- [ ] 6.2 Shared metadata dialog code, sized after 6.3. Today: image 1,148 lines (tree table), audio 509, video 398
+  (forms). Shared: load in the background, disable controls, status line, Reload/Save, error dialog. Build audio
+  and video on `OptionsDialog` if it fits; a `MetadataDialogBase` only if more than ~100 lines stay duplicated.
+
+Smoke items: Duplicate inside a zip; edit + save + reload metadata on a copied jpg, mp3, mp4.
 
 ## Phase 7 — Commands Layer (depends on 1, 3)
 
-- [ ] 7.1 Replace `ACommands` / `CommandsAdvancedImpl` (1,119) / `CommandsSimpleImpl` (369) with `CopyMoveService`,
+Rechecked after Phase 5: all four steps still apply. 7.4 is tiny and independent; do it first.
+
+- [ ] 7.1 Replace `ACommands` (374) / `CommandsAdvancedImpl` (1,122) / `CommandsSimpleImpl` (369) with `CopyMoveService`,
   `DeleteService`, `ArchiveOps`, `PdfService`, `ShellService`, `ViewEditService`. Keep what 3.3 built: services
   throw, copy batches name every failed item, `verifyBatchCopy` stays, `unpackWith` stays one method.
-  `CommandsSimpleImpl.searchFiles` shows its own `Alert` ("No files found"); return the result and let `Commander`
-  show it, so no service touches JavaFX.
+  JavaFX still in `commands/`: `CommandsSimpleImpl.searchFiles` (`Alert` "No files found", `Platform.runLater`), a
+  `Dialog` in `CommandsSimpleImpl` (~line 308), and 5 `Platform.runLater(refreshFileListViews)` in
+  `CommandsAdvancedImpl`. Return results / take a refresh callback, so no service touches JavaFX.
 - [ ] 7.2 `ExternalToolRunner`, the process side of external runs: `runExecutable`, `reportFailure`, the Stop
   counter, `ProcessRunner.trackIn`. Make reporting the default: `run(command, title)` reports failures itself, and
   only `runAndWait` hands back a future. Then the `ArchitectureRulesTest` regex for a bare `runExecutable(...);` is
@@ -259,6 +278,9 @@ Smoke items: the full checklist, on local, archive and (if available) FTP panes.
 
 ## Phase 8 — FilesPanesHelper Split (depends on 7)
 
+Rechecked after Phase 5: `FilesPanesHelper` is 848 lines, unchanged. Do 8.2 and the pure `PaneSorter` (already tested
+by `FilesPanesHelperNaturalSortTest`); split archive navigation and selection only if Phase 7 or 9 needs it.
+
 - [ ] 8.1 `PaneSorter` (`SortState`, `SortColumn`, `compareNaturalNames`), `ArchiveNavigator`, selection helpers.
 - [ ] 8.2 Top-level `FilePane`, `ArchiveFolder`, `ArchiveParentItem`.
 
@@ -268,8 +290,9 @@ Smoke items: sort by each header, enter/leave nested archive folders, select by 
 
 - [x] 9.1 Decided by the code: FTP items already have `file == null` (name only, path from the pane), so `FileItem`
   can hold a nullable `Path` for local and archive items.
-- [ ] 9.2 `FileItem` holds `Path`; temporary `getFile()`; migrate the 29 `getFile()` call sites (`vfs/`, services,
-  `Commander`); delete `getFile()`.
+- [ ] 9.2 `FileItem` holds `Path`; temporary `getFile()`; migrate the 29 `getFile()` call sites (rechecked after
+  Phase 5: `Commander` 10, `CommandsAdvancedImpl` 8, `FtpFileSystem` 7, `FileHelper` 2, `CommandsSimpleImpl` 1,
+  `FilesPanesHelper` 1; the commands ones move with Phase 7); delete `getFile()`.
 
 Smoke items: the full checklist, plus Hebrew file and folder names.
 
@@ -278,13 +301,17 @@ Smoke items: the full checklist, plus Hebrew file and folder names.
 Gate: re-grep every shell-out and every log call that prints a command; list anything earlier phases added. Order is
 by severity. File each issue in the same step as its fix (decision 7).
 
+Rechecked after Phase 5: 10.1–10.7 still apply as written; no new item. Open question for 10.6: decision 1 adds
+`jna-platform` (not in `build.gradle` yet). Asking for the password on each connect needs no dependency.
+
 - [ ] 10.1 Passwords in logs (live leak). `FtpFileSystem.runCurl` redacts its own debug log (`obfuscateCommand`) but
   hands the raw curl command, `-u user:pass` included, to the `ExternalCommandListener`, and the listener (4.12)
   logs `String.join(" ", command)` whenever a command fails. `runExecutable` (7.2) logs every command at debug, and
   since 3.3 `ExternalCommandException`'s message (the full command) is shown in the error dialog. Fix: move
   `obfuscateCommand` to `tools/CommandLog.redact(command)` and use it for every log line, exception message and
   listener call that carries a command. Test: no logged or shown form of an FTP command contains the password. Then
-  delete the old `logs/*.log` files that may hold one.
+  delete the old `logs/*.log` files that may hold one. Also `@ToString.Exclude` the password in
+  `FtpConnectionOptions` (Lombok `@Data` prints it).
 - [ ] 10.2 FTP credentials on the command line (visible in Task Manager): pass `user:password` to curl via
   `--config -` on stdin (add stdin to `ProcessRunner`), not `-u`. Guard remote names starting with `-`.
 - [ ] 10.3 PowerShell injection. `CommandsSimpleImpl.openTerminal` (F9) puts the folder in
@@ -333,3 +360,9 @@ Bugs noticed during the work, fixed in the phase named.
 12. Fixed (#150): pack/unpack to an FTP or archive pane uploaded with `targetFs.copy(localPath, …)`.
 13. Fixed (#151): a malformed settings file crashes every start; Settings edits are overwritten by the next save.
 14. Fixed (#152): packing from inside an archive names the entries after their temp copies and drops folders.
+15. Fixed (#154): FTP connect saved the connection when Save was off (checkbox read before the dialog showed),
+    replaced a saved custom port with the protocol default, and accepted any port.
+16. Fixed (#155): Select by Pattern threw on an invalid regex or a blank pattern with regex on.
+17. Fixed (#156): file sizes failed to parse in comma-decimal locales (`Double.parseDouble` of a formatted size).
+18. Phase 6.0: Duplicate inside an archive loops forever on the FX thread (`Commander.fileExists` is always true
+    for an archive).
