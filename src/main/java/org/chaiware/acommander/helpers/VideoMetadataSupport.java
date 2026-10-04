@@ -9,8 +9,12 @@ import org.slf4j.LoggerFactory;
 import java.io.File;
 import java.io.IOException;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * Utility class for checking if files are supported by AtomicParsley for metadata editing.
@@ -19,8 +23,30 @@ public final class VideoMetadataSupport {
     private static final Logger log = LoggerFactory.getLogger(VideoMetadataSupport.class);
 
     private static final Set<String> SUPPORTED_EXTENSIONS = Set.of("mp4", "m4v", "3gp");
+    private static final Pattern TEXTDATA_LINE =
+            Pattern.compile("^Atom\\s+\"([^\"]+)\"(?:\\s+\\[[^\\]]+\\])?\\s+contains:\\s*(.*)$");
+    private static final Map<String, String> FIELD_BY_ATOM = Map.ofEntries(
+            Map.entry("©nam", "title"), Map.entry("©ART", "artist"), Map.entry("©alb", "album"),
+            Map.entry("©gen", "genre"), Map.entry("gnre", "genre"), Map.entry("©day", "year"),
+            Map.entry("trkn", "tracknum"), Map.entry("disk", "disk"), Map.entry("©cmt", "comment"),
+            Map.entry("©wrt", "composer"), Map.entry("desc", "description"));
 
     private VideoMetadataSupport() {
+    }
+
+    /** Field values from {@code AtomicParsley <file> --textdata}, keyed by the dialog's field names. */
+    public static Map<String, String> parseTextData(String output) {
+        Map<String, String> parsed = new LinkedHashMap<>();
+        if (output == null) {
+            return parsed;
+        }
+        for (String line : output.split("\\R")) {
+            Matcher matcher = TEXTDATA_LINE.matcher(line.replace("\uFEFF", "").trim());
+            if (matcher.matches() && FIELD_BY_ATOM.containsKey(matcher.group(1))) {
+                parsed.put(FIELD_BY_ATOM.get(matcher.group(1)), matcher.group(2).trim());
+            }
+        }
+        return parsed;
     }
 
     /** Removes all metadata in place, keeping the file time. */

@@ -252,10 +252,15 @@ not the sets. 6.3 now runs before 6.2, so the base class is judged on what is le
   refused txz, tbz2, 001, vhdx and others that Enter opens. `VFileSystem.isVirtualFolder/enterVirtualFolder` were
   dead (only local panes enter archives; nobody called `enterVirtualFolder`) and held the FTP list; deleted, with
   `VfsManager.openArchive` in their place. Also deleted the unused `ImageMetadataSupport.getSupportedFormatsDescription`.
-- [ ] 6.3 Output parsers as pure functions in the `*MetadataSupport` classes, tested on captured sample output:
+- [x] 6.3 Output parsers as pure functions in the `*MetadataSupport` classes, tested on captured sample output:
   exiv2 (now inside `ImageMetadataDialog.populateTreeTable`, mixed with the tree), id3 (inside
   `AudioMetadataDialog.queryAllTagValues`, mixed with the process run), AtomicParsley (`VideoMetadataDialog`
-  `parseTextData` / `mapAtomToKey`, already pure, untested).
+  `parseTextData` / `mapAtomToKey`, already pure, untested). Done: `ImageMetadataSupport.parsePrintAll` /
+  `displayValue` / `groupName`, `AudioMetadataSupport.parseQuery` (+ `QUERY_FORMAT`, `QUERY_KEYS`),
+  `VideoMetadataSupport.parseTextData` (atom → field map). exiv2 and id3 tests use output captured from the bundled
+  exes; AtomicParsley's uses its documented format (no mp4 to capture from). The image dialog's second copy of the
+  tree builder went too: `populateTreeTable` fills the entries and calls `rebuildTreeTable`. Dialogs now: image
+  1,049, audio 475, video 341.
 - [ ] 6.2 Shared metadata dialog code, sized after 6.3. Today: image 1,148 lines (tree table), audio 509, video 398
   (forms). Shared: load in the background, disable controls, status line, Reload/Save, error dialog. Build audio
   and video on `OptionsDialog` if it fits; a `MetadataDialogBase` only if more than ~100 lines stay duplicated.

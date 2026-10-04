@@ -10,6 +10,7 @@ import javafx.stage.Modality;
 import javafx.stage.Window;
 import org.chaiware.acommander.helpers.AppTempDir;
 import org.chaiware.acommander.helpers.BackgroundTasks;
+import org.chaiware.acommander.helpers.ImageMetadataSupport;
 import org.chaiware.acommander.tools.BundledTool;
 import org.chaiware.acommander.tools.ProcessRunner;
 import org.slf4j.Logger;
@@ -487,95 +488,12 @@ public class ImageMetadataDialog {
     private void populateTreeTable(String output) {
         entriesByKey.clear();
         allParsedEntries.clear();
-        rootItem = new TreeItem<>(new MetadataEntry("", "", "", ""));
-
-        if (output == null || output.trim().isEmpty()) {
-            metadataTreeTable.setRoot(rootItem);
-            setStatus("No metadata found in this image file.");
-            return;
+        for (ImageMetadataSupport.Exiv2Entry parsed : ImageMetadataSupport.parsePrintAll(output)) {
+            MetadataEntry entry = new MetadataEntry(parsed.key(), parsed.type(), parsed.value(), parsed.value());
+            entriesByKey.put(parsed.key(), entry);
+            allParsedEntries.add(entry);
         }
-
-        // Group entries by namespace
-        Map<String, List<MetadataEntry>> groups = new LinkedHashMap<>();
-
-        String[] lines = output.split("\n");
-        for (String line : lines) {
-            String trimmedLine = line.trim();
-            if (trimmedLine.isEmpty() || trimmedLine.startsWith("ERROR")) {
-                continue;
-            }
-
-            // Parse exiv2 -pa output:
-            // Exif.Image.Make Ascii 6 Nikon
-            // Xmp.dc.title XmpText 1 Example
-            String[] parts = trimmedLine.split("\\s+", 4);
-            if (parts.length >= 4) {
-                String key = parts[0].trim();
-                String type = parts[1].trim();
-                String value = normalizeValueForDisplay(type, parts[3].trim());
-                if (key.isEmpty()) {
-                    continue;
-                }
-
-                MetadataEntry entry = new MetadataEntry(key, type, value, value);
-                entriesByKey.put(key, entry);
-                allParsedEntries.add(entry);
-
-                String group = getGroupName(key);
-                groups.computeIfAbsent(group, k -> new ArrayList<>()).add(entry);
-            }
-        }
-
-        // Build tree structure
-        for (Map.Entry<String, List<MetadataEntry>> groupEntry : groups.entrySet()) {
-            String groupName = groupEntry.getKey();
-            List<MetadataEntry> entries = groupEntry.getValue();
-
-            TreeItem<MetadataEntry> groupItem = new TreeItem<>(
-                new MetadataEntry(groupName, "", "", "")
-            );
-
-            for (MetadataEntry entry : entries) {
-                TreeItem<MetadataEntry> entryItem = new TreeItem<>(entry);
-                groupItem.getChildren().add(entryItem);
-            }
-
-            rootItem.getChildren().add(groupItem);
-        }
-
-        metadataTreeTable.setRoot(rootItem);
-
-        // Expand all groups
-        for (TreeItem<MetadataEntry> child : rootItem.getChildren()) {
-            child.setExpanded(true);
-        }
-    }
-
-    private String getGroupName(String key) {
-        if (key.startsWith("Exif.")) {
-            String[] parts = key.split("\\.");
-            if (parts.length >= 3) {
-                return "EXIF - " + parts[1];
-            }
-            return "EXIF";
-        } else if (key.startsWith("Iptc.")) {
-            String[] parts = key.split("\\.");
-            if (parts.length >= 3) {
-                return "IPTC - " + parts[1];
-            }
-            return "IPTC";
-        } else if (key.startsWith("Xmp.")) {
-            String[] parts = key.split("\\.");
-            if (parts.length >= 3) {
-                return "XMP - " + parts[1];
-            }
-            return "XMP";
-        } else if (key.startsWith("Comment")) {
-            return "Comment";
-        } else if (key.startsWith("Thumbnail")) {
-            return "Thumbnail";
-        }
-        return "Other";
+        rebuildTreeTable(null);
     }
 
     private void filterMetadata() {
@@ -609,7 +527,7 @@ public class ImageMetadataDialog {
             }
 
             // Determine group
-            String group = getGroupName(key);
+            String group = ImageMetadataSupport.groupName(key);
             groups.computeIfAbsent(group, k -> new ArrayList<>()).add(entry);
         }
 
@@ -1017,27 +935,10 @@ public class ImageMetadataDialog {
         pendingModifications.add(new MetadataModification(key, value));
     }
 
-    private String normalizeValueForDisplay(String type, String value) {
-        if (value == null) {
-            return "";
-        }
-        if ("LangAlt".equalsIgnoreCase(type)) {
-            return stripLangAltPrefix(value);
-        }
-        return value;
-    }
-
     private String normalizeValueForWrite(String key, String value) {
         String normalized = value == null ? "" : value;
         MetadataEntry entry = entriesByKey.get(key);
-        if (entry != null && "LangAlt".equalsIgnoreCase(entry.getType())) {
-            return stripLangAltPrefix(normalized);
-        }
-        return normalized;
-    }
-
-    private String stripLangAltPrefix(String value) {
-        return value.replaceFirst("^lang=\"[^\"]+\"\\s+", "");
+        return entry == null ? normalized : ImageMetadataSupport.displayValue(entry.getType(), normalized);
     }
 
     private void showError(String message) {

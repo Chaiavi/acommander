@@ -6,6 +6,7 @@ import org.chaiware.acommander.tools.ProcessRunner;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
@@ -61,6 +62,42 @@ public final class ImageMetadataSupport {
 
     private ImageMetadataSupport() {
         // Private constructor to prevent instantiation
+    }
+
+    /** One {@code exiv2 -pa} line; {@code value} as shown to the user (see {@link #displayValue}). */
+    public record Exiv2Entry(String key, String type, String value) {}
+
+    /** Parses {@code exiv2 -pa}, one "key type count value" per line; lines without a value are skipped. */
+    public static List<Exiv2Entry> parsePrintAll(String output) {
+        List<Exiv2Entry> entries = new ArrayList<>();
+        if (output == null) {
+            return entries;
+        }
+        for (String line : output.split("\\R")) {
+            String[] parts = line.trim().split("\\s+", 4);
+            if (parts.length == 4 && !parts[0].startsWith("ERROR")) {
+                entries.add(new Exiv2Entry(parts[0], parts[1], displayValue(parts[1], parts[3].trim())));
+            }
+        }
+        return entries;
+    }
+
+    /** A LangAlt value without its {@code lang="x-default"} prefix; any other value unchanged. */
+    public static String displayValue(String type, String value) {
+        return "LangAlt".equalsIgnoreCase(type) ? value.replaceFirst("^lang=\"[^\"]+\"\\s+", "") : value;
+    }
+
+    /** Tree group of a key: "EXIF - Image" for {@code Exif.Image.Make}, likewise IPTC / XMP; else Comment, Thumbnail, Other. */
+    public static String groupName(String key) {
+        String family = key.startsWith("Exif.") ? "EXIF" : key.startsWith("Iptc.") ? "IPTC" : key.startsWith("Xmp.") ? "XMP" : null;
+        if (family != null) {
+            String[] parts = key.split("\\.");
+            return parts.length >= 3 ? family + " - " + parts[1] : family;
+        }
+        if (key.startsWith("Comment")) {
+            return "Comment";
+        }
+        return key.startsWith("Thumbnail") ? "Thumbnail" : "Other";
     }
 
     /** Deletes all metadata (EXIF, IPTC, XMP, comment) in place. */

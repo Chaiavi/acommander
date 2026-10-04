@@ -223,7 +223,7 @@ Not actions, but often asked for:
 | `SettingsStore` | `config/acommander.properties`: typed get/set (pane folders, theme, last selection pattern, bookmarks, FTP connections), save via temp file + atomic move; an unreadable file is moved to `.unreadable`. `Commander.loadSettings` / `saveSettings`; reloaded when the Settings editor closes. |
 | `AppVersion` | Running version from `app-version.properties`, which the build fills from `appVersion` in `build.gradle`. |
 | `ImageConversionSupport`, `AudioConversionSupport` | Which files convert, target formats. |
-| `ImageMetadataSupport`, `VideoMetadataSupport`, `AudioMetadataSupport` | Which files the metadata editors accept; `remove(file)` strips all metadata (exiv2 / AtomicParsley / id3). `VideoMetadataSupport` also deletes the temp files AtomicParsley leaves (used by its dialog too). |
+| `ImageMetadataSupport`, `VideoMetadataSupport`, `AudioMetadataSupport` | Which files the metadata editors accept; `remove(file)` strips all metadata (exiv2 / AtomicParsley / id3). Output parsers the dialogs use: `parsePrintAll` + `groupName` (exiv2), `parseTextData` (AtomicParsley), `parseQuery` (id3). `VideoMetadataSupport` also deletes the temp files AtomicParsley leaves (used by its dialog too). |
 | `ExecutableCompressionSupport` | Which files UPX accepts; `UpxAction` (level or decompress → flag), `upxCommand`, `percentChange`. |
 | `BugReportUrl` | Report Bug: prefilled GitHub new-issue URL with title prefix and label per report type; cuts the body to keep the URL under 8,000 chars. |
 | `FileIcons` | Glyph + colour per pane item (folder, archive, PDF, text, image, audio, video, executable, other). |
@@ -300,7 +300,7 @@ Under `src/test/java/org/chaiware/acommander/`, same package as the class tested
 
 `actions/` ActionMatcher, ActionPriorityEngine, ActionRegistry, BuiltinAction, ActionRulesSnapshot (FTP / read-only / palette
 rules per action vs `src/test/resources/action-rules-snapshot.txt`) · `commands/` CommandsAdvancedImpl, CommandsSimpleImpl,
-PackVfs, ReportFailure · `config/` ActionScope, AppConfigLoader, AppRegistryShortcutMatching · `dialog/` DialogTheme · `helpers/` AppTempDir, AppVersion, ArchiveManager, AudioConversionSupport,
-BugReportUrl, ExecutableCompressionSupport, ExternalProgressController, FileAttributesHelper, FileHelper, FileIcons, FilesPanesHelperNaturalSort, IncrementalFilter, ImageConversionSupport, SettingsStore, VideoMetadataSupport · `model/` ArchiveMode,
+PackVfs, ReportFailure · `config/` ActionScope, AppConfigLoader, AppRegistryShortcutMatching · `dialog/` DialogTheme · `helpers/` AppTempDir, AppVersion, ArchiveManager, AudioConversionSupport, AudioMetadataSupport,
+BugReportUrl, ExecutableCompressionSupport, ExternalProgressController, FileAttributesHelper, FileHelper, FileIcons, FilesPanesHelperNaturalSort, IncrementalFilter, ImageConversionSupport, ImageMetadataSupport, SettingsStore, VideoMetadataSupport · `model/` ArchiveMode,
 FileItem · `services/` AudioConversionService, ClipboardTransfer, FolderComparer, ImageConversionService · `tools/` BundledTool, BundledToolCommands, ToolCommandBuilder, ProcessRunner · `vfs/` FtpFileSystem · root: ArchitectureRules (process / background / temp-file / app-path / version / fire-and-forget / no file walking or hashing in `Commander` rules), CommanderCopy, `CodeMapTest` (fails when a main
 class or an apps.json action is missing from this file).

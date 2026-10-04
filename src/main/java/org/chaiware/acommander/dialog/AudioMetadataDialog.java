@@ -9,6 +9,7 @@ import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
 import javafx.stage.Modality;
 import javafx.stage.Window;
+import org.chaiware.acommander.helpers.AudioMetadataSupport;
 import org.chaiware.acommander.helpers.BackgroundTasks;
 import org.chaiware.acommander.tools.BundledTool;
 import org.chaiware.acommander.tools.ProcessRunner;
@@ -28,9 +29,6 @@ import java.util.concurrent.CompletableFuture;
 public class AudioMetadataDialog {
     private static final Logger logger = LoggerFactory.getLogger(AudioMetadataDialog.class);
     private static final String ID3_PATH = BundledTool.ID3.path().toString();
-    private static final String QUERY_SEPARATOR = "\t";
-    private static final List<String> QUERY_KEYS = List.of("title", "artist", "album", "track", "year", "genre", "comment");
-    private static final String QUERY_FORMAT = "%t\t%a\t%l\t%n\t%y\t%g\t%c";
 
     private final Window owner;
     private final File audioFile;
@@ -177,48 +175,16 @@ public class AudioMetadataDialog {
     }
 
     private Map<String, String> queryAllTagValues() throws IOException, InterruptedException {
-        List<String> command = List.of(ID3_PATH, "-q", QUERY_FORMAT, audioFile.getAbsolutePath());
+        List<String> command = List.of(ID3_PATH, "-q", AudioMetadataSupport.QUERY_FORMAT, audioFile.getAbsolutePath());
         ProcessResult result = runCommand(command);
         if (result.exitCode() != 0) {
             logger.warn("id3 read failed (exit {}): stdout='{}' stderr='{}'",
                     result.exitCode(),
                     truncateForLog(result.stdout()),
                     truncateForLog(result.stderr()));
-            return emptyQueryValues();
+            return AudioMetadataSupport.parseQuery("");
         }
-
-        String normalizedOutput = result.stdout()
-                .replace("\r\n", "\n")
-                .replace("\r", "\n")
-                .trim();
-        String[] rawValues = normalizedOutput.split(QUERY_SEPARATOR, -1);
-
-        if (rawValues.length != QUERY_KEYS.size()) {
-            logger.warn("Unexpected id3 query output field count. expected={} actual={} stdout='{}'",
-                    QUERY_KEYS.size(),
-                    rawValues.length,
-                    truncateForLog(result.stdout()));
-            return emptyQueryValues();
-        }
-
-        Map<String, String> values = new LinkedHashMap<>();
-        for (int i = 0; i < QUERY_KEYS.size(); i++) {
-            values.put(QUERY_KEYS.get(i), normalizeQueriedValue(rawValues[i]));
-        }
-        return values;
-    }
-
-    private String normalizeQueriedValue(String value) {
-        String normalized = value == null ? "" : value.trim();
-        return "<empty>".equalsIgnoreCase(normalized) ? "" : normalized;
-    }
-
-    private Map<String, String> emptyQueryValues() {
-        Map<String, String> values = new LinkedHashMap<>();
-        for (String key : QUERY_KEYS) {
-            values.put(key, "");
-        }
-        return values;
+        return AudioMetadataSupport.parseQuery(result.stdout());
     }
 
     private void populateFields(Map<String, String> values) {

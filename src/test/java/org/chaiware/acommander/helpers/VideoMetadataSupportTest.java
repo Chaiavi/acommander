@@ -7,6 +7,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Map;
 import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -30,5 +31,21 @@ class VideoMetadataSupportTest {
         assertThat(older).exists();
         assertThat(dir.resolve("other-temp-1.mp4")).exists();
         assertThat(video).exists();
+    }
+
+    @Test
+    void parsesTextDataIntoFieldsAndIgnoresUnknownAtoms() {
+        String output = """
+                \uFEFFAtom "\u00a9nam" contains: Holiday Clip
+                Atom "\u00a9ART" contains: Jane Doe
+                Atom "trkn" contains: 3 of 12
+                Atom "gnre" contains: Rock
+                Atom "----" [com.apple.iTunes;iTunNORM] contains: 0000
+                Atom "\u00a9too" contains: Lavf58.29.100
+                """;
+
+        assertThat(VideoMetadataSupport.parseTextData(output)).containsExactly(
+                Map.entry("title", "Holiday Clip"), Map.entry("artist", "Jane Doe"),
+                Map.entry("tracknum", "3 of 12"), Map.entry("genre", "Rock"));
     }
 }

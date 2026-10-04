@@ -20,8 +20,6 @@ import java.io.File;
 import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 /**
  * Dialog for editing MP4/M4V/3GP metadata using AtomicParsley.
@@ -29,8 +27,6 @@ import java.util.regex.Pattern;
 public class VideoMetadataDialog {
     private static final Logger logger = LoggerFactory.getLogger(VideoMetadataDialog.class);
     private static final String ATOMIC_PARSLEY_PATH = BundledTool.ATOMIC_PARSLEY.path().toString();
-    private static final Pattern ATOM_TEXTDATA_PATTERN =
-            Pattern.compile("^Atom\\s+\"([^\"]+)\"(?:\\s+\\[[^\\]]+\\])?\\s+contains:\\s*(.*)$");
 
     private final Window owner;
     private final File videoFile;
@@ -181,7 +177,7 @@ public class VideoMetadataDialog {
             if (processResult.exitCode() != 0) {
                 return new LoadResult(false, Map.of(), "AtomicParsley returned an error", processResult.stderr());
             }
-            return new LoadResult(true, parseTextData(processResult.stdout()), "", "");
+            return new LoadResult(true, VideoMetadataSupport.parseTextData(processResult.stdout()), "", "");
         } catch (Exception ex) {
             logger.error("Failed reading video metadata", ex);
             return new LoadResult(false, Map.of(), "Failed reading metadata", ex.getMessage());
@@ -205,49 +201,6 @@ public class VideoMetadataDialog {
         String value = values.getOrDefault(key, "");
         field.setText(value);
         originalValues.put(key, value);
-    }
-
-    private Map<String, String> parseTextData(String output) {
-        Map<String, String> parsed = new LinkedHashMap<>();
-        if (output == null || output.isBlank()) {
-            return parsed;
-        }
-        String[] lines = output.split("\\R");
-        for (String line : lines) {
-            String normalizedLine = stripBom(line).trim();
-            Matcher matcher = ATOM_TEXTDATA_PATTERN.matcher(normalizedLine);
-            if (!matcher.matches()) {
-                continue;
-            }
-            String atom = matcher.group(1);
-            String value = matcher.group(2) == null ? "" : matcher.group(2).trim();
-            mapAtomToKey(parsed, atom, value);
-        }
-        return parsed;
-    }
-
-    private void mapAtomToKey(Map<String, String> parsed, String atom, String value) {
-        if ("©nam".equals(atom)) {
-            parsed.put("title", value);
-        } else if ("©ART".equals(atom)) {
-            parsed.put("artist", value);
-        } else if ("©alb".equals(atom)) {
-            parsed.put("album", value);
-        } else if ("©gen".equals(atom) || "gnre".equals(atom)) {
-            parsed.put("genre", value);
-        } else if ("©day".equals(atom)) {
-            parsed.put("year", value);
-        } else if ("trkn".equals(atom)) {
-            parsed.put("tracknum", value);
-        } else if ("disk".equals(atom)) {
-            parsed.put("disk", value);
-        } else if ("©cmt".equals(atom)) {
-            parsed.put("comment", value);
-        } else if ("©wrt".equals(atom)) {
-            parsed.put("composer", value);
-        } else if ("desc".equals(atom)) {
-            parsed.put("description", value);
-        }
     }
 
     private void saveMetadata() {
@@ -378,16 +331,6 @@ public class VideoMetadataDialog {
 
     private String normalize(String value) {
         return value == null ? "" : value;
-    }
-
-    private String stripBom(String value) {
-        if (value == null || value.isEmpty()) {
-            return value == null ? "" : value;
-        }
-        if (value.charAt(0) == '\uFEFF') {
-            return value.substring(1);
-        }
-        return value;
     }
 
     private record LoadResult(boolean success, Map<String, String> metadata, String message, String details) {}
