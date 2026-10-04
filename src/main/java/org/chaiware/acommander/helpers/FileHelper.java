@@ -9,6 +9,12 @@ import org.slf4j.LoggerFactory;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.nio.file.FileVisitResult;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.SimpleFileVisitor;
+import java.nio.file.attribute.BasicFileAttributes;
+import java.util.concurrent.atomic.AtomicLong;
 
 public class FileHelper {
     private static final Logger logger = LoggerFactory.getLogger(FileHelper.class);
@@ -85,5 +91,30 @@ public class FileHelper {
         // If more than 30% of characters are "suspicious", consider it binary
         double suspiciousRatio = (double) suspicious / read;
         return suspiciousRatio <= 0.30d;
+    }
+
+    /** Total bytes of all files under {@code folder}; entries that can't be read are skipped, not fatal. */
+    public static long folderSize(Path folder) throws IOException {
+        AtomicLong total = new AtomicLong();
+        Files.walkFileTree(folder, new SimpleFileVisitor<>() {
+            @Override
+            public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) {
+                if (attrs.isRegularFile()) {
+                    total.addAndGet(attrs.size());
+                }
+                return FileVisitResult.CONTINUE;
+            }
+
+            @Override
+            public FileVisitResult visitFileFailed(Path file, IOException exc) {
+                return FileVisitResult.CONTINUE;
+            }
+
+            @Override
+            public FileVisitResult postVisitDirectory(Path dir, IOException exc) {
+                return FileVisitResult.CONTINUE;
+            }
+        });
+        return total.get();
     }
 }

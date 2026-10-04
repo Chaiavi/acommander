@@ -62,7 +62,7 @@ Adding or renaming an action id? Check each of these:
 | `help` (F1) | `help` | — | `view/UniversalViewer/Viewer.exe` on `config/f1-help.html` |
 | `settings` | `openSettings` | `commands.edit` | edits `config/acommander.properties` |
 | `rename` (F2, Shift+F6) | `renameFile` | `ACommands.rename` → single: Java, many: `multiRename` | `multi_rename/Renamer.exe` |
-| `view` (F3) | `viewFile` / `calculateDirSpace` (folder) | `CommandsAdvancedImpl.doView` | `view/UniversalViewer/Viewer.exe` |
+| `view` (F3) | `viewFile` / `calculateDirSpace` (folder) | `CommandsAdvancedImpl.doView` / `FileHelper.folderSize` | `view/UniversalViewer/Viewer.exe` |
 | `edit` (F4) | `editFile` | `CommandsAdvancedImpl.doEdit` | `edit/Notepad4.exe` |
 | `copy` (F5) | `copyFile`, `handleF5Button` | `CommandsAdvancedImpl.copyBatch` / VFS `copy` | `copy/fcp.exe` (FastCopy) |
 | `move` (F6) | `moveFile`, `handleF6Button` | `CommandsAdvancedImpl.moveBatch` | `copy/fcp.exe` |
@@ -89,7 +89,7 @@ Adding or renaming an action id? Check each of these:
 | `compareFolders` | `compareFolders`, `compareFolderTrees`, `applyFolderCompareStyle` | in-Java SHA-256 compare | — |
 | `fileProperties` (Alt+Enter) | `fileProperties` | temp `.vbs` via `wscript.exe` (Windows Properties dialog) | — |
 | `changeAttributes` | `changeAttributes`, `promptAttributes` | `helpers/FileAttributesHelper` | `attrib` |
-| `editImageMetadata` / `removeImageMetadata` | `editImageMetadata` / `removeImageMetadata` | `dialog/ImageMetadataDialog`, `helpers/ImageMetadataSupport` | `image_metadata/exiv2.exe` |
+| `editImageMetadata` / `removeImageMetadata` | `editImageMetadata` / `removeImageMetadata` → `removeMetadata` (shared confirm + background run) | `dialog/ImageMetadataDialog`, `helpers/ImageMetadataSupport` | `image_metadata/exiv2.exe` |
 | `editVideoMetadata` / `removeVideoMetadata` | `editVideoMetadata` / `removeVideoMetadata` | `dialog/VideoMetadataDialog`, `helpers/VideoMetadataSupport` | `video_metadata/AtomicParsley.exe` |
 | `editAudioMetadata` / `removeAudioMetadata` | `editAudioMetadata` / `removeAudioMetadata` | `dialog/AudioMetadataDialog`, `helpers/AudioMetadataSupport` | `audio_metadata/id3.exe` |
 | `compressExecutable` | `compressExecutable`, `promptExecutableCompressionOptions` | `helpers/ExecutableCompressionSupport` | `exe_compress/upx.exe` |
@@ -204,7 +204,7 @@ Other dialogs are built inline in `Commander` (`prompt*` methods).
 | `ArchiveService` | `isSupportedArchiveExtension` — extensions 7-Zip can unpack (enables unpack/extractAll). |
 | `ActionMutator` | Action id sets: always-write, conditional-write, read-only. |
 | `FileAttributesHelper` | Read/apply R/H/S/A attributes (NIO, `attrib` fallback). |
-| `FileHelper` | `isTextFile` sniffing. |
+| `FileHelper` | `isTextFile` sniffing; `folderSize` (skips unreadable entries). |
 | `BackgroundTasks` | The one background executor (virtual threads): `run`, `supply`, `executor()`. Never use `CompletableFuture.runAsync` without it. |
 | `ImageConversionSupport`, `AudioConversionSupport` | Which files convert, target formats. |
 | `ImageMetadataSupport`, `VideoMetadataSupport`, `AudioMetadataSupport` | Which files the metadata editors accept. |

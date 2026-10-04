@@ -53,9 +53,12 @@ import java.security.DigestInputStream;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.*;
+import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
+import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Consumer;
 import java.util.regex.Pattern;
 
 import static java.awt.Desktop.getDesktop;
@@ -1202,17 +1205,28 @@ public class Commander {
 
     /** Runs {@code work} on the background executor behind the progress bar; {@code onSuccess} then runs on the FX thread. */
     private void runWithProgress(String label, Runnable work, Runnable onSuccess, String failureMessage) {
+        runWithProgress(label, Executors.callable(work), ignored -> onSuccess.run(), failureMessage);
+    }
+
+    /** Like the Runnable form, but hands {@code work}'s result to {@code onSuccess}. Failures are logged and shown. */
+    private <T> void runWithProgress(String label, Callable<T> work, Consumer<T> onSuccess, String failureMessage) {
         int active = runningExternalCommands.incrementAndGet();
         showExternalProgress(active, label);
-        BackgroundTasks.run(work).whenComplete((ignored, ex) -> {
-            if (ex != null) {
-                logger.error(failureMessage, ex);
+        BackgroundTasks.supply(() -> {
+            try {
+                return work.call();
+            } catch (Exception e) {
+                throw new CompletionException(e);
             }
+        }).whenComplete((result, failure) -> {
             int remaining = runningExternalCommands.updateAndGet(current -> Math.max(0, current - 1));
             Platform.runLater(() -> {
                 hideOrUpdateExternalProgress(remaining);
-                if (ex == null) {
-                    onSuccess.run();
+                if (failure == null) {
+                    onSuccess.accept(result);
+                } else {
+                    Throwable cause = unwrapCompletionException(failure);
+                    error(failureMessage, cause instanceof Exception e ? e : new RuntimeException(cause));
                 }
             });
         });
@@ -1396,30 +1410,19 @@ public class Commander {
     public void calculateDirSpace() {
         logger.info("calculateDirSpace (F3 (on folder))");
 
-        try {
-            FileItem selectedItem = filesPanesHelper.getSelectedItem();
-            if (!selectedItem.isDirectory()) {
-                logger.error("Error: Trying to calculate size of a file and not a folder ??");
-                return;
-            }
-
-            long sizeOfFolder = Files.walk(selectedItem.getFile().toPath())
-                    .parallel()
-                    .filter(Files::isRegularFile)
-                    .mapToLong(path -> {
-                        try {
-                            return Files.size(path);
-                        } catch (IOException e) {
-                            return 0L;
-                        }
-                    })
-                    .sum();
-
-            selectedItem.setSize(sizeOfFolder);
-            filesPanesHelper.getFileList(true).refresh();
-        } catch (Exception ex) {
-            error("Failed calculating folder size", ex);
+        FileItem selectedItem = filesPanesHelper.getSelectedItem();
+        if (selectedItem == null || !selectedItem.isDirectory()) {
+            logger.error("Error: Trying to calculate size of a file and not a folder ??");
+            return;
         }
+        Path folder = selectedItem.getFile().toPath();
+        runWithProgress("Calculating size of " + selectedItem.getName(),
+                () -> FileHelper.folderSize(folder),
+                size -> {
+                    selectedItem.setSize(size);
+                    filesPanesHelper.getFileList(true).refresh();
+                },
+                "Failed calculating folder size");
     }
 
     @FXML
@@ -3891,23 +3894,21 @@ public class Commander {
             return;
         }
 
-        try {
-            FolderCompareResult result = compareFolderTrees(leftRoot, rightRoot, options.get());
-            folderCompareMarks.put(LEFT, new HashMap<>(result.leftMarks()));
-            folderCompareMarks.put(RIGHT, new HashMap<>(result.rightMarks()));
-            filesPanesHelper.refreshFileListViews();
-            showInfo(
-                    "Compare Folders",
-                    "Only left: " + result.onlyLeftCount()
-                            + "\nOnly right: " + result.onlyRightCount()
-                            + "\nDifferent: " + result.differentCount()
-            );
-            requestFocusedFileListFocus();
-        } catch (Exception ex) {
-            showError("Compare Folders", "Failed comparing folders: " + ex.getMessage());
-            logger.warn("Failed comparing folders", ex);
-            requestFocusedFileListFocus();
-        }
+        runWithProgress("Comparing folders",
+                () -> compareFolderTrees(leftRoot, rightRoot, options.get()),
+                result -> {
+                    folderCompareMarks.put(LEFT, new HashMap<>(result.leftMarks()));
+                    folderCompareMarks.put(RIGHT, new HashMap<>(result.rightMarks()));
+                    filesPanesHelper.refreshFileListViews();
+                    showInfo(
+                            "Compare Folders",
+                            "Only left: " + result.onlyLeftCount()
+                                    + "\nOnly right: " + result.onlyRightCount()
+                                    + "\nDifferent: " + result.differentCount()
+                    );
+                    requestFocusedFileListFocus();
+                },
+                "Failed comparing folders");
     }
 
     private Optional<CompareFoldersOptions> promptCompareFoldersOptions(Path leftRoot, Path rightRoot) {
@@ -4311,83 +4312,69 @@ public class Commander {
     @FXML
     public void removeImageMetadata() {
         logger.info("Remove Image Metadata");
-
-        try {
-            List<FileItem> selectedItems = commands.filterValidItems(filesPanesHelper.getSelectedItems());
-            if (selectedItems.isEmpty()) {
-                return;
-            }
-
-            // Ensure only supported image files are selected
-            if (!org.chaiware.acommander.helpers.ImageMetadataSupport.areAllSupportedImages(selectedItems)) {
-                showError("Remove Image Metadata", "Select one or more image files only.");
-                requestFocusedFileListFocus();
-                return;
-            }
-
-            // Confirm removal with user
-            Alert confirmDialog = new Alert(Alert.AlertType.WARNING);
-            confirmDialog.setTitle("Remove Image Metadata");
-            confirmDialog.setHeaderText("Remove metadata from " + selectedItems.size() + " image(s)?");
-            confirmDialog.setContentText("This will permanently remove all metadata from the selected image(s).");
-            confirmDialog.getButtonTypes().setAll(ButtonType.OK, ButtonType.CANCEL);
-
-            if (confirmDialog.showAndWait().orElse(ButtonType.CANCEL) != ButtonType.OK) {
-                return;
-            }
-
-            // Remove metadata from each selected file
-            int successCount = 0;
-            for (FileItem item : selectedItems) {
-                if (item.isDirectory()) {
-                    continue;
-                }
-
-                File file = item.getFile();
-                if (file == null || !file.exists()) {
-                    continue;
-                }
-
-                try {
-                    // Use exiv2 to delete all metadata with -d flag
-                    List<String> command = new ArrayList<>();
-                    command.add("apps/image_metadata/exiv2.exe");
-                    command.add("-d");
-                    command.add("a");  // 'a' means all metadata
-                    command.add(file.getAbsolutePath());
-
-                    int exitCode = ProcessRunner.of(command).mergeStderr().run().exitCode();
-                    if (exitCode == 0) {
-                        logger.info("Successfully removed metadata from: " + file.getAbsolutePath());
-                        successCount++;
-                    } else {
-                        logger.warn("Failed to remove metadata from: " + file.getAbsolutePath() + " (exit code: " + exitCode + ")");
-                    }
-                } catch (Exception ex) {
-                    logger.warn("Error removing metadata from: " + file.getAbsolutePath(), ex);
-                }
-            }
-
-            // Refresh the file list
-            filesPanesHelper.refreshFileListViews();
-
-            // Show result message
-            if (successCount > 0) {
-                Alert alert = new Alert(Alert.AlertType.INFORMATION);
-                alert.setTitle("Metadata Removed");
-                alert.setHeaderText("Success");
-                alert.setContentText("Metadata removed from " + successCount + " image(s)");
-                alert.showAndWait();
-            } else {
-                Alert alert = new Alert(Alert.AlertType.WARNING);
-                alert.setTitle("Metadata Removal Failed");
-                alert.setHeaderText("No metadata removed");
-                alert.setContentText("Failed to remove metadata from selected image(s)");
-                alert.showAndWait();
-            }
-        } catch (Exception ex) {
-            error("Failed removing image metadata", ex);
+        List<FileItem> selectedItems = commands.filterValidItems(filesPanesHelper.getSelectedItems());
+        if (selectedItems.isEmpty()) {
+            return;
         }
+        if (!ImageMetadataSupport.areAllSupportedImages(selectedItems)) {
+            showError("Remove Image Metadata", "Select one or more image files only.");
+            requestFocusedFileListFocus();
+            return;
+        }
+        removeMetadata("Remove Image Metadata", "image(s)", selectedItems,
+                file -> ProcessRunner.of("apps/image_metadata/exiv2.exe", "-d", "a", file.getAbsolutePath())
+                        .mergeStderr().run().succeeded());
+    }
+
+    /** Confirms, then runs {@code removeOne} on each selected file off the FX thread and reports how many succeeded. */
+    private void removeMetadata(String title, String kind, List<FileItem> selectedItems, MetadataRemover removeOne) {
+        Alert confirmDialog = new Alert(Alert.AlertType.WARNING);
+        confirmDialog.setTitle(title);
+        confirmDialog.setHeaderText("Remove metadata from " + selectedItems.size() + " " + kind + "?");
+        confirmDialog.setContentText("This will permanently remove all metadata from the selected " + kind + ".");
+        confirmDialog.getButtonTypes().setAll(ButtonType.OK, ButtonType.CANCEL);
+        applyThemeToDialog(confirmDialog);
+        if (confirmDialog.showAndWait().orElse(ButtonType.CANCEL) != ButtonType.OK) {
+            return;
+        }
+
+        runWithProgress(title,
+                () -> {
+                    int successCount = 0;
+                    for (FileItem item : selectedItems) {
+                        File file = item.getFile();
+                        if (item.isDirectory() || file == null || !file.exists()) {
+                            continue;
+                        }
+                        try {
+                            if (removeOne.remove(file)) {
+                                logger.info("Removed metadata from: {}", file.getAbsolutePath());
+                                successCount++;
+                            } else {
+                                logger.warn("Failed to remove metadata from: {}", file.getAbsolutePath());
+                            }
+                        } catch (Exception ex) {
+                            logger.warn("Error removing metadata from: {}", file.getAbsolutePath(), ex);
+                        }
+                    }
+                    return successCount;
+                },
+                successCount -> {
+                    filesPanesHelper.refreshFileListViews();
+                    Alert alert = new Alert(successCount > 0 ? Alert.AlertType.INFORMATION : Alert.AlertType.WARNING);
+                    alert.setTitle(successCount > 0 ? "Metadata Removed" : "Metadata Removal Failed");
+                    alert.setHeaderText(successCount > 0 ? "Success" : "No metadata removed");
+                    alert.setContentText(successCount > 0
+                            ? "Metadata removed from " + successCount + " " + kind
+                            : "Failed to remove metadata from selected " + kind);
+                    applyThemeToDialog(alert);
+                    alert.showAndWait();
+                },
+                "Failed removing metadata");
+    }
+
+    private interface MetadataRemover {
+        boolean remove(File file) throws Exception;
     }
 
     @FXML
@@ -4426,73 +4413,16 @@ public class Commander {
     @FXML
     public void removeVideoMetadata() {
         logger.info("Remove Video Metadata");
-
-        try {
-            List<FileItem> selectedItems = commands.filterValidItems(filesPanesHelper.getSelectedItems());
-            if (selectedItems.isEmpty()) {
-                return;
-            }
-
-            if (!VideoMetadataSupport.areAllSupportedVideos(selectedItems)) {
-                showError("Remove Video Metadata", "Select one or more supported video files only.");
-                requestFocusedFileListFocus();
-                return;
-            }
-
-            Alert confirmDialog = new Alert(Alert.AlertType.WARNING);
-            confirmDialog.setTitle("Remove Video Metadata");
-            confirmDialog.setHeaderText("Remove metadata from " + selectedItems.size() + " video file(s)?");
-            confirmDialog.setContentText("This will permanently remove all metadata from the selected media file(s).");
-            confirmDialog.getButtonTypes().setAll(ButtonType.OK, ButtonType.CANCEL);
-            applyThemeToDialog(confirmDialog);
-
-            if (confirmDialog.showAndWait().orElse(ButtonType.CANCEL) != ButtonType.OK) {
-                return;
-            }
-
-            int successCount = 0;
-            for (FileItem item : selectedItems) {
-                if (item == null || item.isDirectory()) {
-                    continue;
-                }
-
-                File file = item.getFile();
-                if (file == null || !file.exists()) {
-                    continue;
-                }
-
-                try {
-                    if (runVideoMetadataDeleteCommand(file)) {
-                        logger.info("Successfully removed video metadata from: {}", file.getAbsolutePath());
-                        successCount++;
-                    } else {
-                        logger.warn("Failed to fully remove video metadata from: {}", file.getAbsolutePath());
-                    }
-                } catch (Exception ex) {
-                    logger.warn("Error removing video metadata from: {}", file.getAbsolutePath(), ex);
-                }
-            }
-
-            filesPanesHelper.refreshFileListViews();
-
-            if (successCount > 0) {
-                Alert alert = new Alert(Alert.AlertType.INFORMATION);
-                alert.setTitle("Metadata Removed");
-                alert.setHeaderText("Success");
-                alert.setContentText("Metadata removed from " + successCount + " video file(s)");
-                applyThemeToDialog(alert);
-                alert.showAndWait();
-            } else {
-                Alert alert = new Alert(Alert.AlertType.WARNING);
-                alert.setTitle("Metadata Removal Failed");
-                alert.setHeaderText("No metadata removed");
-                alert.setContentText("Failed to remove metadata from selected video file(s)");
-                applyThemeToDialog(alert);
-                alert.showAndWait();
-            }
-        } catch (Exception ex) {
-            error("Failed removing video metadata", ex);
+        List<FileItem> selectedItems = commands.filterValidItems(filesPanesHelper.getSelectedItems());
+        if (selectedItems.isEmpty()) {
+            return;
         }
+        if (!VideoMetadataSupport.areAllSupportedVideos(selectedItems)) {
+            showError("Remove Video Metadata", "Select one or more supported video files only.");
+            requestFocusedFileListFocus();
+            return;
+        }
+        removeMetadata("Remove Video Metadata", "video file(s)", selectedItems, this::runVideoMetadataDeleteCommand);
     }
 
     private boolean runVideoMetadataDeleteCommand(File file) {
@@ -4607,75 +4537,18 @@ public class Commander {
     @FXML
     public void removeAudioMetadata() {
         logger.info("Remove Audio Metadata");
-
-        try {
-            List<FileItem> selectedItems = commands.filterValidItems(filesPanesHelper.getSelectedItems());
-            if (selectedItems.isEmpty()) {
-                return;
-            }
-
-            if (!org.chaiware.acommander.helpers.AudioMetadataSupport.areAllSupportedAudio(selectedItems)) {
-                showError("Remove Audio Metadata", "Select one or more supported audio files only.");
-                requestFocusedFileListFocus();
-                return;
-            }
-
-            Alert confirmDialog = new Alert(Alert.AlertType.WARNING);
-            confirmDialog.setTitle("Remove Audio Metadata");
-            confirmDialog.setHeaderText("Remove metadata from " + selectedItems.size() + " audio file(s)?");
-            confirmDialog.setContentText("This will permanently remove all metadata from the selected audio file(s).");
-            confirmDialog.getButtonTypes().setAll(ButtonType.OK, ButtonType.CANCEL);
-            applyThemeToDialog(confirmDialog);
-
-            if (confirmDialog.showAndWait().orElse(ButtonType.CANCEL) != ButtonType.OK) {
-                return;
-            }
-
-            int successCount = 0;
-            for (FileItem item : selectedItems) {
-                if (item.isDirectory()) {
-                    continue;
-                }
-
-                File file = item.getFile();
-                if (file == null || !file.exists()) {
-                    continue;
-                }
-
-                try {
-                    boolean v2Deleted = runAudioMetadataDeleteCommand(file, "-2");
-                    boolean v1Deleted = runAudioMetadataDeleteCommand(file, "-1");
-                    if (v2Deleted && v1Deleted) {
-                        logger.info("Successfully removed audio metadata from: {}", file.getAbsolutePath());
-                        successCount++;
-                    } else {
-                        logger.warn("Failed to fully remove audio metadata from: {}", file.getAbsolutePath());
-                    }
-                } catch (Exception ex) {
-                    logger.warn("Error removing audio metadata from: {}", file.getAbsolutePath(), ex);
-                }
-            }
-
-            filesPanesHelper.refreshFileListViews();
-
-            if (successCount > 0) {
-                Alert alert = new Alert(Alert.AlertType.INFORMATION);
-                alert.setTitle("Metadata Removed");
-                alert.setHeaderText("Success");
-                alert.setContentText("Metadata removed from " + successCount + " audio file(s)");
-                applyThemeToDialog(alert);
-                alert.showAndWait();
-            } else {
-                Alert alert = new Alert(Alert.AlertType.WARNING);
-                alert.setTitle("Metadata Removal Failed");
-                alert.setHeaderText("No metadata removed");
-                alert.setContentText("Failed to remove metadata from selected audio file(s)");
-                applyThemeToDialog(alert);
-                alert.showAndWait();
-            }
-        } catch (Exception ex) {
-            error("Failed removing audio metadata", ex);
+        List<FileItem> selectedItems = commands.filterValidItems(filesPanesHelper.getSelectedItems());
+        if (selectedItems.isEmpty()) {
+            return;
         }
+        if (!AudioMetadataSupport.areAllSupportedAudio(selectedItems)) {
+            showError("Remove Audio Metadata", "Select one or more supported audio files only.");
+            requestFocusedFileListFocus();
+            return;
+        }
+        // Non-short-circuit &: always try to delete both the ID3v2 and the ID3v1 tag.
+        removeMetadata("Remove Audio Metadata", "audio file(s)", selectedItems,
+                file -> runAudioMetadataDeleteCommand(file, "-2") & runAudioMetadataDeleteCommand(file, "-1"));
     }
 
     private boolean runAudioMetadataDeleteCommand(File file, String tagVersionFlag) {

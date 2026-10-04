@@ -9,6 +9,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -66,5 +67,15 @@ class FileHelperTest {
     @Test
     void isTextFile_returnsFalseForDirectory() {
         assertFalse(FileHelper.isTextFile(new FileItem(tempDir.toFile())));
+    }
+
+    @Test
+    void folderSize_sumsFilesInSubfolders() throws IOException {
+        Files.write(tempDir.resolve("a.bin"), new byte[10]);
+        Path sub = Files.createDirectory(tempDir.resolve("sub"));
+        Files.write(sub.resolve("b.bin"), new byte[32]);
+        Files.createDirectory(sub.resolve("empty"));
+
+        assertEquals(42, FileHelper.folderSize(tempDir));
     }
 }

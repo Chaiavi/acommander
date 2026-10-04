@@ -60,7 +60,10 @@ server is available.
   delete runners and `attrib` waited without draining output; the dialogs read stdout then stderr (hangs on a full
   stderr pipe); image extract/insert left buttons disabled on early exits. The relative `"apps/..."` exe paths work
   (child resolves against the app's cwd = `user.dir`); `ToolLocator` (3.1) still unifies them.
-- [ ] 1.4 Off the FX thread: `calculateDirSpace`, `compareFolders` entry collection, metadata remove runners.
+- [x] 1.4 Off the FX thread via `Commander.runWithProgress` (now also a `Callable` form that shows failures):
+  `calculateDirSpace` (new `FileHelper.folderSize`, which skips unreadable subfolders instead of failing),
+  `compareFolders`, and the three metadata removes (merged into `Commander.removeMetadata`; the image one now gets
+  the theme too).
 - [ ] 1.5 Close every `Files.walk` / `Files.list` (Commander `calculateDirSpace` + audio staging,
   `CommandsAdvancedImpl`, `CommandsSimpleImpl`, `ArchiveSession`).
 - [ ] 1.6 `AppTempDir` (`%TEMP%/acommander-<pid>`, deleted on exit, stale roots removed at startup) + per-operation
@@ -96,7 +99,9 @@ server is available.
 - [ ] 4.2 `BookmarkService`
 - [ ] 4.3 Checksum / analyze / compare / split command builders → `tools/`
 - [ ] 4.4 `AudioConversionService`, `ImageConversionService`
-- [ ] 4.5 Metadata remove runners → `*MetadataSupport`
+- [ ] 4.5 Metadata remove runners (`runVideoMetadataDeleteCommand`, `runAudioMetadataDeleteCommand`, the exiv2
+  lambda in `removeImageMetadata`) → `*MetadataSupport`. Merge the AtomicParsley artifact cleanup that is duplicated
+  in `Commander` and `VideoMetadataDialog`.
 - [ ] 4.6 `FilePropertiesLauncher` (VBS, moved as-is)
 - [ ] 4.7 `BugReportService` (moved as-is)
 - [ ] 4.8 `ClipboardTransfer`
