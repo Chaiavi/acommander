@@ -43,7 +43,7 @@ Command Palette; theme toggle; one metadata edit on a copied jpg/mp3/mp4; checks
 server is available.
 
 `Commander` line count: 7459 (start), 7199 (after Phase 1), 7038 (after Phase 2), 6929 (after Phase 3), 5380 (after
-Phase 4), 3632 (after Phase 5).
+Phase 4), 3632 (after Phase 5), 3533 (after Phase 6).
 
 ## Phase 0 — Prep and Safety Net (no behaviour change)
 
@@ -261,9 +261,16 @@ not the sets. 6.3 now runs before 6.2, so the base class is judged on what is le
   exes; AtomicParsley's uses its documented format (no mp4 to capture from). The image dialog's second copy of the
   tree builder went too: `populateTreeTable` fills the entries and calls `rebuildTreeTable`. Dialogs now: image
   1,049, audio 475, video 341.
-- [ ] 6.2 Shared metadata dialog code, sized after 6.3. Today: image 1,148 lines (tree table), audio 509, video 398
+- [x] 6.2 Shared metadata dialog code, sized after 6.3. Today: image 1,148 lines (tree table), audio 509, video 398
   (forms). Shared: load in the background, disable controls, status line, Reload/Save, error dialog. Build audio
   and video on `OptionsDialog` if it fits; a `MetadataDialogBase` only if more than ~100 lines stay duplicated.
+  Done: `OptionsDialog` doesn't fit (it closes on OK; these stay open to save and reload). ~150 lines per dialog
+  were the same, so `dialog/MetadataFormDialog` holds the form (a field list, extra rows, Preserve File Time,
+  Reload/Save, status, errors) and a `Tool` (read / writeCommand / write). Audio is now 71 lines, video 48, the
+  form 195 (were 475 + 341). The tool runs moved to `Audio/VideoMetadataSupport.read/writeCommand/write` (tested);
+  id3's code-page check now covers every argument but the exe path, so a path it can't open fails with that
+  message. Every control got a tooltip. The image dialog keeps its own tree layout; it got a static `show`, and
+  `Commander`'s three edit handlers became one `editMetadata`.
 
 Smoke items: Duplicate inside a zip; edit + save + reload metadata on a copied jpg, mp3, mp4.
 

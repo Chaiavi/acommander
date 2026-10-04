@@ -2380,37 +2380,31 @@ public class Commander {
 
     @FXML
     public void editImageMetadata() {
-        logger.info("Edit Image Metadata");
+        editMetadata("image", org.chaiware.acommander.dialog.ImageMetadataDialog::show);
+    }
 
+    /** Opens {@code editor} on the first selected file; refreshes the panes when it saved. */
+    private void editMetadata(String kind, MetadataEditor editor) {
+        logger.info("Edit {} metadata", kind);
+        List<FileItem> selectedItems = commands.filterValidItems(filesPanesHelper.getSelectedItems());
+        if (selectedItems.isEmpty() || selectedItems.getFirst().isDirectory()) {
+            return;
+        }
+        File file = selectedItems.getFirst().getFile();
+        if (file == null || !file.exists()) {
+            return;
+        }
         try {
-            List<FileItem> selectedItems = commands.filterValidItems(filesPanesHelper.getSelectedItems());
-            if (selectedItems.isEmpty()) {
-                return;
-            }
-
-            FileItem selectedItem = selectedItems.getFirst();
-            if (selectedItem.isDirectory()) {
-                return;
-            }
-
-            File file = selectedItem.getFile();
-            if (file == null || !file.exists()) {
-                return;
-            }
-
-            // Show the metadata editor dialog
-            org.chaiware.acommander.dialog.ImageMetadataDialog dialog =
-                    new org.chaiware.acommander.dialog.ImageMetadataDialog(
-                            rootPane.getScene().getWindow(), file, currentThemeMode.styleClass);
-            boolean modified = dialog.showAndWait();
-
-            if (modified) {
-                // Refresh the file list to show any size/date changes
+            if (editor.edit(dialogOwner(), currentThemeMode.styleClass, file)) {
                 filesPanesHelper.refreshFileListViews();
             }
         } catch (Exception ex) {
-            error("Failed editing image metadata", ex);
+            error("Failed editing " + kind + " metadata", ex);
         }
+    }
+
+    private interface MetadataEditor {
+        boolean edit(Window owner, String themeClass, File file);
     }
 
     @FXML
@@ -2481,35 +2475,7 @@ public class Commander {
 
     @FXML
     public void editVideoMetadata() {
-        logger.info("Edit Video Metadata");
-
-        try {
-            List<FileItem> selectedItems = commands.filterValidItems(filesPanesHelper.getSelectedItems());
-            if (selectedItems.isEmpty()) {
-                return;
-            }
-
-            FileItem selectedItem = selectedItems.getFirst();
-            if (selectedItem.isDirectory()) {
-                return;
-            }
-
-            File file = selectedItem.getFile();
-            if (file == null || !file.exists()) {
-                return;
-            }
-
-            org.chaiware.acommander.dialog.VideoMetadataDialog dialog =
-                    new org.chaiware.acommander.dialog.VideoMetadataDialog(
-                            rootPane.getScene().getWindow(), file, currentThemeMode.styleClass);
-            boolean modified = dialog.showAndWait();
-
-            if (modified) {
-                filesPanesHelper.refreshFileListViews();
-            }
-        } catch (Exception ex) {
-            error("Failed editing video metadata", ex);
-        }
+        editMetadata("video", org.chaiware.acommander.dialog.VideoMetadataDialog::show);
     }
 
     @FXML
@@ -2529,35 +2495,7 @@ public class Commander {
 
     @FXML
     public void editAudioMetadata() {
-        logger.info("Edit Audio Metadata");
-
-        try {
-            List<FileItem> selectedItems = commands.filterValidItems(filesPanesHelper.getSelectedItems());
-            if (selectedItems.isEmpty()) {
-                return;
-            }
-
-            FileItem selectedItem = selectedItems.getFirst();
-            if (selectedItem.isDirectory()) {
-                return;
-            }
-
-            File file = selectedItem.getFile();
-            if (file == null || !file.exists()) {
-                return;
-            }
-
-            org.chaiware.acommander.dialog.AudioMetadataDialog dialog =
-                    new org.chaiware.acommander.dialog.AudioMetadataDialog(
-                            rootPane.getScene().getWindow(), file, currentThemeMode.styleClass);
-            boolean modified = dialog.showAndWait();
-
-            if (modified) {
-                filesPanesHelper.refreshFileListViews();
-            }
-        } catch (Exception ex) {
-            error("Failed editing audio metadata", ex);
-        }
+        editMetadata("audio", org.chaiware.acommander.dialog.AudioMetadataDialog::show);
     }
 
     @FXML

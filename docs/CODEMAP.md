@@ -87,9 +87,9 @@ Adding or renaming an action id? Check each of these:
 | `compareFolders` | `compareFolders`, `applyFolderCompareStyle` | `dialog/CompareFoldersDialog`, `services/FolderComparer` (SHA-256 optional) | — |
 | `fileProperties` (Alt+Enter) | `fileProperties` | `tools/FilePropertiesLauncher` (temp `.vbs` via `wscript.exe`, Windows Properties dialog) | — |
 | `changeAttributes` | `changeAttributes` | `dialog/AttributesDialog`, `helpers/FileAttributesHelper` | `attrib` |
-| `editImageMetadata` / `removeImageMetadata` | `editImageMetadata` / `removeImageMetadata` → `removeMetadata` (shared confirm + background run) | `dialog/ImageMetadataDialog`, `helpers/ImageMetadataSupport` | `image_metadata/exiv2.exe` |
-| `editVideoMetadata` / `removeVideoMetadata` | `editVideoMetadata` / `removeVideoMetadata` | `dialog/VideoMetadataDialog`, `helpers/VideoMetadataSupport` | `video_metadata/AtomicParsley.exe` |
-| `editAudioMetadata` / `removeAudioMetadata` | `editAudioMetadata` / `removeAudioMetadata` | `dialog/AudioMetadataDialog`, `helpers/AudioMetadataSupport` | `audio_metadata/id3.exe` |
+| `editImageMetadata` / `removeImageMetadata` | `editImageMetadata` → `editMetadata` (shared with video/audio) / `removeImageMetadata` → `removeMetadata` (shared confirm + background run) | `dialog/ImageMetadataDialog`, `helpers/ImageMetadataSupport` | `image_metadata/exiv2.exe` |
+| `editVideoMetadata` / `removeVideoMetadata` | `editVideoMetadata` / `removeVideoMetadata` | `dialog/VideoMetadataDialog` (on `MetadataFormDialog`), `helpers/VideoMetadataSupport` | `video_metadata/AtomicParsley.exe` |
+| `editAudioMetadata` / `removeAudioMetadata` | `editAudioMetadata` / `removeAudioMetadata` | `dialog/AudioMetadataDialog` (on `MetadataFormDialog`), `helpers/AudioMetadataSupport` | `audio_metadata/id3.exe` |
 | `compressExecutable` | `compressExecutable` | `dialog/ExecutableCompressionDialog`, `helpers/ExecutableCompressionSupport` (`UpxAction`, `upxCommand`, `percentChange`) | `exe_compress/upx.exe` |
 | `refresh` (Ctrl+R) | — | `FilesPanesHelper.refreshFileListViews` | — |
 | `selectAll` / `unselectAll` / `invertSelection` / `selectByPattern` | same names | `dialog/SelectByPatternDialog`, `FilesPanesHelper.selectAllItems` … `selectByPattern` | — |
@@ -202,9 +202,10 @@ Not actions, but often asked for:
 | `ImageConversionDialog` / `AudioConversionDialog` | Conversion options → `ImageConversionRequest` / `AudioConversionRequest`. |
 | `ExecutableCompressionDialog` | UPX compress level or decompress → `UpxAction`. |
 | `FtpConnectDialog` | Host, port, user, protocol, saved connections → `FtpConnectionOptions` + save flag. |
-| `ImageMetadataDialog` | EXIF/IPTC/XMP editor via `exiv2.exe`. |
-| `VideoMetadataDialog` | MP4-family tags via `AtomicParsley.exe`. |
-| `AudioMetadataDialog` | ID3 tags via `id3.exe`. |
+| `ImageMetadataDialog` | EXIF/IPTC/XMP editor via `exiv2.exe` (tree table, own layout). |
+| `MetadataFormDialog` | Shared tag form for audio and video: a text field per `Field`, extra rows, Preserve File Time, Reload/Save, status; a `Tool` reads and writes in the background. `changes` = edited option/value pairs. |
+| `VideoMetadataDialog` | MP4-family tags via `AtomicParsley.exe`: field list + `VideoMetadataSupport` read/write. |
+| `AudioMetadataDialog` | ID3 tags via `id3.exe`: field list, tag-version combo + `AudioMetadataSupport` read/write. |
 | `DialogTheme` | The dark/light theme: `ThemeMode` (settings value ↔ style class), `apply(scene, mode)` on the window root, `apply(dialog, owner, themeClass)` for dialogs (theme class + the owner's stylesheets). The metadata dialogs take owner + theme class, not `Commander`. |
 
 `Commander` shows a dialog with `XxxDialog.show(dialogOwner(), currentThemeMode.styleClass, …)` and acts on the
@@ -223,7 +224,7 @@ Not actions, but often asked for:
 | `SettingsStore` | `config/acommander.properties`: typed get/set (pane folders, theme, last selection pattern, bookmarks, FTP connections), save via temp file + atomic move; an unreadable file is moved to `.unreadable`. `Commander.loadSettings` / `saveSettings`; reloaded when the Settings editor closes. |
 | `AppVersion` | Running version from `app-version.properties`, which the build fills from `appVersion` in `build.gradle`. |
 | `ImageConversionSupport`, `AudioConversionSupport` | Which files convert, target formats. |
-| `ImageMetadataSupport`, `VideoMetadataSupport`, `AudioMetadataSupport` | Which files the metadata editors accept; `remove(file)` strips all metadata (exiv2 / AtomicParsley / id3). Output parsers the dialogs use: `parsePrintAll` + `groupName` (exiv2), `parseTextData` (AtomicParsley), `parseQuery` (id3). `VideoMetadataSupport` also deletes the temp files AtomicParsley leaves (used by its dialog too). |
+| `ImageMetadataSupport`, `VideoMetadataSupport`, `AudioMetadataSupport` | Which files the metadata editors accept; `remove(file)` strips all metadata (exiv2 / AtomicParsley / id3). Output parsers the dialogs use: `parsePrintAll` + `groupName` (exiv2), `parseTextData` (AtomicParsley), `parseQuery` (id3). Video and audio also `read` / `writeCommand` / `write` (id3 refuses text the Windows code page can't hold). `VideoMetadataSupport` also deletes the temp files AtomicParsley leaves. |
 | `ExecutableCompressionSupport` | Which files UPX accepts; `UpxAction` (level or decompress → flag), `upxCommand`, `percentChange`. |
 | `BugReportUrl` | Report Bug: prefilled GitHub new-issue URL with title prefix and label per report type; cuts the body to keep the URL under 8,000 chars. |
 | `FileIcons` | Glyph + colour per pane item (folder, archive, PDF, text, image, audio, video, executable, other). |
@@ -300,7 +301,7 @@ Under `src/test/java/org/chaiware/acommander/`, same package as the class tested
 
 `actions/` ActionMatcher, ActionPriorityEngine, ActionRegistry, BuiltinAction, ActionRulesSnapshot (FTP / read-only / palette
 rules per action vs `src/test/resources/action-rules-snapshot.txt`) · `commands/` CommandsAdvancedImpl, CommandsSimpleImpl,
-PackVfs, ReportFailure · `config/` ActionScope, AppConfigLoader, AppRegistryShortcutMatching · `dialog/` DialogTheme · `helpers/` AppTempDir, AppVersion, ArchiveManager, AudioConversionSupport, AudioMetadataSupport,
+PackVfs, ReportFailure · `config/` ActionScope, AppConfigLoader, AppRegistryShortcutMatching · `dialog/` DialogTheme, MetadataFormDialog · `helpers/` AppTempDir, AppVersion, ArchiveManager, AudioConversionSupport, AudioMetadataSupport,
 BugReportUrl, ExecutableCompressionSupport, ExternalProgressController, FileAttributesHelper, FileHelper, FileIcons, FilesPanesHelperNaturalSort, IncrementalFilter, ImageConversionSupport, ImageMetadataSupport, SettingsStore, VideoMetadataSupport · `model/` ArchiveMode,
 FileItem · `services/` AudioConversionService, ClipboardTransfer, FolderComparer, ImageConversionService · `tools/` BundledTool, BundledToolCommands, ToolCommandBuilder, ProcessRunner · `vfs/` FtpFileSystem · root: ArchitectureRules (process / background / temp-file / app-path / version / fire-and-forget / no file walking or hashing in `Commander` rules), CommanderCopy, `CodeMapTest` (fails when a main
 class or an apps.json action is missing from this file).

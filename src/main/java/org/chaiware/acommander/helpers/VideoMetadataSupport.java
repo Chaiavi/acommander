@@ -8,6 +8,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -47,6 +48,40 @@ public final class VideoMetadataSupport {
             }
         }
         return parsed;
+    }
+
+    /** The tags of a video, keyed like {@link #parseTextData}. */
+    public static Map<String, String> read(File video) throws IOException, InterruptedException {
+        ProcessRunner.Result run = ProcessRunner.of(BundledTool.ATOMIC_PARSLEY.path().toString(),
+                video.getAbsolutePath(), "--textdata").run();
+        if (!run.succeeded()) {
+            throw new IOException("AtomicParsley failed with exit code " + run.exitCode() + "\n\n" + run.stderrText().trim());
+        }
+        return parseTextData(run.stdoutText());
+    }
+
+    /** {@code AtomicParsley <file> <changes> [--preserveTime] --overWrite}; {@code changes} is option, value, … */
+    public static List<String> writeCommand(File video, List<String> changes, boolean preserveTime) {
+        List<String> command = new ArrayList<>(List.of(BundledTool.ATOMIC_PARSLEY.path().toString(), video.getAbsolutePath()));
+        command.addAll(changes);
+        if (preserveTime) {
+            command.add("--preserveTime");
+        }
+        command.add("--overWrite");
+        return command;
+    }
+
+    /** Runs a {@link #writeCommand}, then deletes the temp files it left; throws when AtomicParsley fails. */
+    public static void write(File video, List<String> command) throws IOException, InterruptedException {
+        Set<String> existingArtifacts = atomicParsleyArtifacts(video);
+        try {
+            ProcessRunner.Result run = ProcessRunner.of(command).run();
+            if (!run.succeeded()) {
+                throw new IOException("AtomicParsley failed with exit code " + run.exitCode() + "\n\n" + run.stderrText().trim());
+            }
+        } finally {
+            deleteNewArtifacts(video, existingArtifacts);
+        }
     }
 
     /** Removes all metadata in place, keeping the file time. */

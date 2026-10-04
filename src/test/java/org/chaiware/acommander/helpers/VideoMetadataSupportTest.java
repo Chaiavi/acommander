@@ -1,5 +1,6 @@
 package org.chaiware.acommander.helpers;
 
+import org.chaiware.acommander.tools.BundledTool;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -7,6 +8,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -47,5 +49,16 @@ class VideoMetadataSupportTest {
         assertThat(VideoMetadataSupport.parseTextData(output)).containsExactly(
                 Map.entry("title", "Holiday Clip"), Map.entry("artist", "Jane Doe"),
                 Map.entry("tracknum", "3 of 12"), Map.entry("genre", "Rock"));
+    }
+
+    @Test
+    void writeCommandEndsWithOverwriteAfterTheChanges() {
+        File video = new File("C:\\videos\\clip.mp4");
+        String atomicParsley = BundledTool.ATOMIC_PARSLEY.path().toString();
+
+        assertThat(VideoMetadataSupport.writeCommand(video, List.of("--title", "Trip"), true))
+                .containsExactly(atomicParsley, video.getAbsolutePath(), "--title", "Trip", "--preserveTime", "--overWrite");
+        assertThat(VideoMetadataSupport.writeCommand(video, List.of("--year", "2020"), false))
+                .containsExactly(atomicParsley, video.getAbsolutePath(), "--year", "2020", "--overWrite");
     }
 }

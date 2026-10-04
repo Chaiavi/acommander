@@ -70,16 +70,18 @@ public class ImageMetadataDialog {
             new MetadataTemplate("IPTC Source", "Iptc.Application2.Source", "String")
     );
 
-    public ImageMetadataDialog(Window owner, File imageFile, String themeClass) {
+    private ImageMetadataDialog(Window owner, File imageFile, String themeClass) {
         this.owner = owner;
         this.imageFile = imageFile;
         this.themeClass = themeClass;
     }
 
-    /**
-     * Shows the metadata dialog and returns true if metadata was modified.
-     */
-    public boolean showAndWait() {
+    /** Shows the editor until closed; true when a save changed the file. */
+    public static boolean show(Window owner, String themeClass, File imageFile) {
+        return new ImageMetadataDialog(owner, imageFile, themeClass).showAndWait();
+    }
+
+    private boolean showAndWait() {
         Dialog<Boolean> dialog = new Dialog<>();
         dialog.setTitle("Edit Image Metadata");
         dialog.initOwner(owner);

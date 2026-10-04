@@ -1,454 +1,26 @@
 package org.chaiware.acommander.dialog;
 
-import javafx.application.Platform;
-import javafx.geometry.Insets;
-import javafx.scene.control.*;
-import javafx.scene.layout.GridPane;
-import javafx.scene.layout.HBox;
-import javafx.scene.layout.Priority;
-import javafx.scene.layout.VBox;
-import javafx.stage.Modality;
+import javafx.collections.FXCollections;
+import javafx.scene.control.ComboBox;
 import javafx.stage.Window;
+import org.chaiware.acommander.dialog.MetadataFormDialog.Field;
 import org.chaiware.acommander.helpers.AudioMetadataSupport;
-import org.chaiware.acommander.helpers.BackgroundTasks;
-import org.chaiware.acommander.tools.BundledTool;
-import org.chaiware.acommander.tools.ProcessRunner;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.io.File;
-import java.io.IOException;
 import java.nio.charset.Charset;
-import java.nio.charset.CharsetEncoder;
-import java.util.*;
-import java.util.concurrent.CompletableFuture;
+import java.util.List;
+import java.util.Map;
 
-/**
- * Dialog for editing MP3 metadata using id3.exe.
- */
-public class AudioMetadataDialog {
-    private static final Logger logger = LoggerFactory.getLogger(AudioMetadataDialog.class);
-    private static final String ID3_PATH = BundledTool.ID3.path().toString();
-
-    private final Window owner;
-    private final File audioFile;
-    private final String themeClass;
-    private final Charset id3IoCharset = detectNativeProcessCharset();
-
-    private TextField titleField;
-    private TextField artistField;
-    private TextField albumField;
-    private TextField trackField;
-    private TextField yearField;
-    private TextField genreField;
-    private TextField commentField;
-    private ComboBox<TagVersion> tagVersionCombo;
-    private CheckBox preserveTimeCheck;
-    private Label statusLabel;
-    private Button reloadButton;
-    private Button saveButton;
-
-    private final Map<String, String> originalValues = new LinkedHashMap<>();
-    private boolean metadataModified;
-
-    public AudioMetadataDialog(Window owner, File audioFile, String themeClass) {
-        this.owner = owner;
-        this.audioFile = audioFile;
-        this.themeClass = themeClass;
-    }
-
-    public boolean showAndWait() {
-        Dialog<Boolean> dialog = new Dialog<>();
-        dialog.setTitle("Edit Audio Metadata");
-        dialog.initOwner(owner);
-        dialog.initModality(Modality.WINDOW_MODAL);
-        DialogPane pane = dialog.getDialogPane();
-        pane.getButtonTypes().addAll(ButtonType.CLOSE);
-        pane.setMinWidth(760);
-        pane.setMinHeight(500);
-
-        DialogTheme.apply(dialog, owner, themeClass);
-        pane.setContent(buildContent());
-        dialog.setOnShown(e -> loadMetadata());
-        dialog.setResultConverter(button -> metadataModified);
-        dialog.showAndWait();
-        return metadataModified;
-    }
-
-    private VBox buildContent() {
-        Label title = new Label("Audio Metadata Editor");
-        title.setStyle("-fx-font-size: 16px; -fx-font-weight: bold;");
-        Label subtitle = new Label("File: " + audioFile.getName() + "  -  Powered by id3.exe");
-        subtitle.setStyle("-fx-text-fill: #666666; -fx-font-size: 11px;");
-
-        GridPane form = buildForm();
-
-        reloadButton = new Button("Reload");
-        reloadButton.setOnAction(e -> loadMetadata());
-
-        saveButton = new Button("Save Metadata");
-        saveButton.setStyle("-fx-font-weight: bold;");
-        saveButton.setOnAction(e -> saveMetadata());
-
-        HBox actions = new HBox(10, reloadButton, saveButton);
-        statusLabel = new Label("Ready");
-        statusLabel.setStyle("-fx-text-fill: #666666; -fx-font-size: 11px;");
-
-        VBox root = new VBox(10, title, subtitle, new Separator(), form, actions, new Separator(), statusLabel);
-        root.setPadding(new Insets(10));
-        return root;
-    }
-
-    private GridPane buildForm() {
-        titleField = new TextField();
-        artistField = new TextField();
-        albumField = new TextField();
-        trackField = new TextField();
-        yearField = new TextField();
-        genreField = new TextField();
-        commentField = new TextField();
-
-        tagVersionCombo = new ComboBox<>();
-        tagVersionCombo.getItems().addAll(TagVersion.values());
-        tagVersionCombo.setValue(TagVersion.ID3V2);
-
-        preserveTimeCheck = new CheckBox("Preserve file modification time");
-        preserveTimeCheck.setSelected(true);
-
-        GridPane grid = new GridPane();
-        grid.setHgap(10);
-        grid.setVgap(8);
-        grid.addRow(0, new Label("Title"), titleField);
-        grid.addRow(1, new Label("Artist"), artistField);
-        grid.addRow(2, new Label("Album"), albumField);
-        grid.addRow(3, new Label("Track"), trackField);
-        grid.addRow(4, new Label("Year"), yearField);
-        grid.addRow(5, new Label("Genre"), genreField);
-        grid.addRow(6, new Label("Comment"), commentField);
-        grid.addRow(7, new Label("Tag Version"), tagVersionCombo);
-        grid.add(preserveTimeCheck, 1, 8);
-
-        GridPane.setHgrow(titleField, Priority.ALWAYS);
-        GridPane.setHgrow(artistField, Priority.ALWAYS);
-        GridPane.setHgrow(albumField, Priority.ALWAYS);
-        GridPane.setHgrow(trackField, Priority.ALWAYS);
-        GridPane.setHgrow(yearField, Priority.ALWAYS);
-        GridPane.setHgrow(genreField, Priority.ALWAYS);
-        GridPane.setHgrow(commentField, Priority.ALWAYS);
-        GridPane.setHgrow(tagVersionCombo, Priority.ALWAYS);
-        return grid;
-    }
-
-    private void loadMetadata() {
-        setStatus("Loading metadata...");
-        setControlsDisabled(true);
-
-        BackgroundTasks.supply(this::readMetadata)
-                .thenAcceptAsync(result -> {
-                    if (!result.success()) {
-                        setStatus("Failed to load metadata");
-                        showError(result.message(), "Failed to load metadata", result.details());
-                    } else {
-                        populateFields(result.values());
-                        setStatus("Metadata loaded");
-                    }
-                    setControlsDisabled(false);
-                }, Platform::runLater);
-    }
-
-    private LoadResult readMetadata() {
-        File id3 = new File(ID3_PATH);
-        if (!id3.exists()) {
-            return new LoadResult(false, Map.of(), "id3.exe not found", id3.getAbsolutePath());
-        }
-        if (!audioFile.exists()) {
-            return new LoadResult(false, Map.of(), "Audio file does not exist", audioFile.getAbsolutePath());
-        }
-        try {
-            logger.info("Loading audio metadata for file: {}", audioFile.getAbsolutePath());
-            Map<String, String> values = queryAllTagValues();
-            return new LoadResult(true, values, "", "");
-        } catch (Exception ex) {
-            logger.error("Failed reading audio metadata", ex);
-            return new LoadResult(false, Map.of(), "Failed reading metadata", ex.getMessage());
-        }
-    }
-
-    private Map<String, String> queryAllTagValues() throws IOException, InterruptedException {
-        List<String> command = List.of(ID3_PATH, "-q", AudioMetadataSupport.QUERY_FORMAT, audioFile.getAbsolutePath());
-        ProcessResult result = runCommand(command);
-        if (result.exitCode() != 0) {
-            logger.warn("id3 read failed (exit {}): stdout='{}' stderr='{}'",
-                    result.exitCode(),
-                    truncateForLog(result.stdout()),
-                    truncateForLog(result.stderr()));
-            return AudioMetadataSupport.parseQuery("");
-        }
-        return AudioMetadataSupport.parseQuery(result.stdout());
-    }
-
-    private void populateFields(Map<String, String> values) {
-        setField("title", titleField, values.get("title"));
-        setField("artist", artistField, values.get("artist"));
-        setField("album", albumField, values.get("album"));
-        setField("track", trackField, values.get("track"));
-        setField("year", yearField, values.get("year"));
-        setField("genre", genreField, values.get("genre"));
-        setField("comment", commentField, values.get("comment"));
-    }
-
-    private void setField(String key, TextField field, String value) {
-        String safe = value == null ? "" : value;
-        field.setText(safe);
-        originalValues.put(key, safe);
-    }
-
-    private void saveMetadata() {
-        if (!audioFile.canWrite()) {
-            showError("Cannot modify metadata: File is read-only", "File is read-only", audioFile.getAbsolutePath());
-            return;
-        }
-
-        List<String> command = buildSaveCommand();
-        if (command.isEmpty()) {
-            setStatus("No metadata changes to save");
-            return;
-        }
-
-        setControlsDisabled(true);
-        setStatus("Saving metadata...");
-
-        BackgroundTasks.supply(() -> runSave(command))
-                .thenAcceptAsync(result -> {
-                    if (result.success()) {
-                        metadataModified = true;
-                        setStatus("Metadata saved successfully");
-                        loadMetadata();
-                    } else {
-                        setStatus("Failed to save metadata");
-                        showError(result.message(), "Failed to save metadata", result.details());
-                        setControlsDisabled(false);
-                    }
-                }, Platform::runLater);
-    }
-
-    private List<String> buildSaveCommand() {
-        List<String> command = new ArrayList<>();
-        command.add(ID3_PATH);
-
-        TagVersion version = tagVersionCombo.getValue();
-        if (version != null) {
-            command.add(version.flag());
-        }
-        if (preserveTimeCheck.isSelected()) {
-            command.add("-M");
-        }
-
-        int optionsBeforeTagEdits = command.size();
-        appendIfChanged(command, "title", "-t", titleField.getText());
-        appendIfChanged(command, "artist", "-a", artistField.getText());
-        appendIfChanged(command, "album", "-l", albumField.getText());
-        appendIfChanged(command, "track", "-n", trackField.getText());
-        appendIfChanged(command, "year", "-y", yearField.getText());
-        appendIfChanged(command, "genre", "-g", genreField.getText());
-        appendIfChanged(command, "comment", "-c", commentField.getText());
-
-        if (command.size() == optionsBeforeTagEdits) {
-            return List.of();
-        }
-
-        command.add(audioFile.getAbsolutePath());
-        return command;
-    }
-
-    private void appendIfChanged(List<String> command, String key, String option, String currentValue) {
-        String normalizedCurrent = normalize(currentValue);
-        String normalizedOriginal = normalize(originalValues.get(key));
-        if (!Objects.equals(normalizedCurrent, normalizedOriginal)) {
-            command.add(option);
-            command.add(currentValue == null ? "" : currentValue);
-        }
-    }
-
-    private SaveResult runSave(List<String> command) {
-        try {
-            logger.info("Saving audio metadata for file: {}", audioFile.getAbsolutePath());
-            String encodingError = findNonEncodableChangedField();
-            if (encodingError != null) {
-                logger.warn("id3 save blocked due to native encoding limitation: {}", encodingError);
-                return new SaveResult(false, "Cannot save some characters with current id3.exe encoding", encodingError);
-            }
-            ProcessResult result = runCommand(command);
-            if (result.exitCode() != 0) {
-                String details = buildFailureDetails(result);
-                logger.error("id3 save failed (exit {}): {}", result.exitCode(), details);
-                return new SaveResult(false, "id3.exe returned an error", details);
-            }
-            logger.info("Audio metadata saved: {}", audioFile.getAbsolutePath());
-            return new SaveResult(true, "", "");
-        } catch (Exception ex) {
-            logger.error("Failed saving audio metadata", ex);
-            return new SaveResult(false, "Failed saving metadata", ex.getMessage());
-        }
-    }
-
-    private ProcessResult runCommand(List<String> command) throws IOException, InterruptedException {
-        logger.info("Executing id3 command: {}", formatCommand(command));
-        ProcessRunner.Result run = ProcessRunner.of(command)
-                .charset(id3IoCharset)
-                .run();
-        String stdout = run.stdoutText();
-        String stderr = run.stderrText();
-        int exit = run.exitCode();
-        logger.info("id3 command completed with exit code {}", exit);
-        if (!stderr.isEmpty()) {
-            logger.warn("id3 stderr: {}", truncateForLog(stderr));
-        }
-        if (exit != 0 && !stdout.isEmpty()) {
-            logger.warn("id3 stdout (on failure): {}", truncateForLog(stdout));
-        }
-        return new ProcessResult(exit, stdout, stderr);
-    }
-
-    private void setControlsDisabled(boolean disabled) {
-        titleField.setDisable(disabled);
-        artistField.setDisable(disabled);
-        albumField.setDisable(disabled);
-        trackField.setDisable(disabled);
-        yearField.setDisable(disabled);
-        genreField.setDisable(disabled);
-        commentField.setDisable(disabled);
-        tagVersionCombo.setDisable(disabled);
-        preserveTimeCheck.setDisable(disabled);
-        reloadButton.setDisable(disabled);
-        saveButton.setDisable(disabled);
-    }
-
-    private void setStatus(String status) {
-        if (statusLabel != null) {
-            statusLabel.setText(status == null ? "" : status);
-        }
-    }
-
-    private String normalize(String value) {
-        return value == null ? "" : value;
-    }
-
-    private String formatCommand(List<String> command) {
-        return command.stream()
-                .map(part -> {
-                    if (part == null) {
-                        return "";
-                    }
-                    if (part.contains(" ") || part.contains("\t")) {
-                        return "\"" + part.replace("\"", "\\\"") + "\"";
-                    }
-                    return part;
-                })
-                .reduce((a, b) -> a + " " + b)
-                .orElse("");
-    }
-
-    private String truncateForLog(String value) {
-        if (value == null) {
-            return "";
-        }
-        String normalized = value.replace("\r", "\\r").replace("\n", "\\n");
-        int max = 1200;
-        if (normalized.length() <= max) {
-            return normalized;
-        }
-        return normalized.substring(0, max) + "...(truncated)";
-    }
-
-    private String buildFailureDetails(ProcessResult result) {
-        String stderr = result.stderr() == null ? "" : result.stderr().trim();
-        String stdout = result.stdout() == null ? "" : result.stdout().trim();
-        StringBuilder details = new StringBuilder();
-        if (!stderr.isEmpty()) {
-            details.append(stderr);
-        }
-        if (!stdout.isEmpty()) {
-            if (!details.isEmpty()) {
-                details.append("\n\n");
-            }
-            details.append("stdout:\n").append(stdout);
-        }
-        if (details.isEmpty()) {
-            details.append("id3.exe exited with code ").append(result.exitCode());
-        }
-        return details.toString();
-    }
-
-    private String findNonEncodableChangedField() {
-        CharsetEncoder encoder = id3IoCharset.newEncoder();
-        String[][] fields = new String[][]{
-                {"title", titleField.getText()},
-                {"artist", artistField.getText()},
-                {"album", albumField.getText()},
-                {"track", trackField.getText()},
-                {"year", yearField.getText()},
-                {"genre", genreField.getText()},
-                {"comment", commentField.getText()}
-        };
-
-        for (String[] field : fields) {
-            String key = field[0];
-            String value = normalize(field[1]);
-            if (Objects.equals(value, normalize(originalValues.get(key)))) {
-                continue;
-            }
-            if (!encoder.canEncode(value)) {
-                return "Field '" + key + "' contains characters not representable in current Windows ANSI code page (" +
-                        id3IoCharset.displayName() + "). id3.exe has no UTF-8 input flag. " +
-                        "Use a Windows system locale/code page that supports these characters (for Hebrew: Windows-1255 or UTF-8 ACP), then restart the app.";
-            }
-        }
-        return null;
-    }
-
-    private Charset detectNativeProcessCharset() {
-        String[] candidates = new String[]{
-                System.getProperty("native.encoding"),
-                System.getProperty("sun.jnu.encoding"),
-                Charset.defaultCharset().name()
-        };
-        for (String candidate : candidates) {
-            if (candidate == null || candidate.isBlank()) {
-                continue;
-            }
-            try {
-                return Charset.forName(candidate);
-            } catch (Exception ignored) {
-            }
-        }
-        return Charset.defaultCharset();
-    }
-
-    private void showError(String message, String title, String details) {
-        Alert alert = new Alert(Alert.AlertType.ERROR);
-        alert.setTitle(title);
-        alert.setHeaderText(null);
-        StringBuilder content = new StringBuilder(message == null ? "" : message);
-        if (details != null && !details.isBlank()) {
-            content.append("\n\n").append(details);
-        }
-        alert.setContentText(content.toString());
-        alert.setResizable(true);
-        alert.getDialogPane().setMinHeight(javafx.scene.layout.Region.USE_PREF_SIZE);
-        alert.getDialogPane().setPrefWidth(520);
-        DialogTheme.apply(alert, owner, themeClass);
-        alert.showAndWait();
-    }
-
-    private record LoadResult(boolean success, Map<String, String> values, String message, String details) {
-    }
-
-    private record SaveResult(boolean success, String message, String details) {
-    }
-
-    private record ProcessResult(int exitCode, String stdout, String stderr) {
-    }
+/** Edits an mp3's ID3 tags with id3.exe. */
+public final class AudioMetadataDialog {
+    private static final List<Field> FIELDS = List.of(
+            new Field("title", "Title", "-t", "The song title."),
+            new Field("artist", "Artist", "-a", "The performing artist."),
+            new Field("album", "Album", "-l", "The album the song is on."),
+            new Field("track", "Track", "-n", "The track number, e.g. 3 or 3/12."),
+            new Field("year", "Year", "-y", "The release year."),
+            new Field("genre", "Genre", "-g", "The genre name or ID3 genre number."),
+            new Field("comment", "Comment", "-c", "A free-text comment."));
 
     private enum TagVersion {
         ID3V2("ID3v2 (Recommended)", "-2"),
@@ -463,13 +35,37 @@ public class AudioMetadataDialog {
             this.flag = flag;
         }
 
-        public String flag() {
-            return flag;
-        }
-
         @Override
         public String toString() {
             return label;
         }
+    }
+
+    private AudioMetadataDialog() {
+    }
+
+    /** Shows the editor until closed; true when a save changed the file. */
+    public static boolean show(Window owner, String themeClass, File mp3) {
+        Charset charset = AudioMetadataSupport.nativeCharset();
+        ComboBox<TagVersion> version = OptionsDialog.tip(new ComboBox<>(FXCollections.observableArrayList(TagVersion.values())),
+                "Which ID3 tag Save writes the changes to.");
+        version.setValue(TagVersion.ID3V2);
+        return MetadataFormDialog.show(owner, themeClass, "Edit Audio Metadata", mp3, "id3.exe", FIELDS,
+                Map.of("Tag Version", version), new MetadataFormDialog.Tool() {
+                    @Override
+                    public Map<String, String> read() throws Exception {
+                        return AudioMetadataSupport.read(mp3, charset);
+                    }
+
+                    @Override
+                    public List<String> writeCommand(List<String> changes, boolean preserveTime) {
+                        return AudioMetadataSupport.writeCommand(version.getValue().flag, preserveTime, changes, mp3);
+                    }
+
+                    @Override
+                    public void write(List<String> command) throws Exception {
+                        AudioMetadataSupport.write(command, charset);
+                    }
+                });
     }
 }
