@@ -15,6 +15,7 @@ import org.chaiware.acommander.vfs.VFileSystem;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -63,131 +64,104 @@ public class CommandsAdvancedImpl extends ACommands {
                     Map.of(),
                     selectedFiles
             );
-            runExecutable(command, true);
+            reportFailure(runExecutable(command, true), "Multi Rename");
             log.debug("Finished Multi File Rename Process");
         }
     }
 
     @Override
-    protected void doView(FileItem fileItem) {
-        try {
-            VFileSystem fs = fileListsLoader.getFocusedFileSystem();
-            File fileToView;
-            boolean isTemp = false;
+    protected void doView(FileItem fileItem) throws IOException {
+        VFileSystem fs = fileListsLoader.getFocusedFileSystem();
+        File fileToView;
+        boolean isTemp = false;
 
-            if (fs instanceof LocalFileSystem) {
-                fileToView = fileItem.getFile();
-            } else {
-                // Download to temp
-                fileToView = AppTempDir.createTempFile("acommander_view_", "_" + fileItem.getName()).toFile();
-                isTemp = true;
-                fs.copy(fs.getInternalPath(fileItem), new LocalFileSystem(""), fileToView.getAbsolutePath());
-            }
-
-            ActionDefinition action = requireAction("view");
-            List<String> selectedFiles = List.of(fileToView.getAbsolutePath());
-            List<String> command = ToolCommandBuilder.buildCommand(
-                    action.getPath(),
-                    action.getArgs(),
-                    fileListsLoader,
-                    Map.of(),
-                    selectedFiles
-            );
-            
-            final boolean finalIsTemp = isTemp;
-            final File finalFileToView = fileToView;
-            runExecutable(command, false).thenRun(() -> {
-                if (finalIsTemp) {
-                    finalFileToView.delete();
-                }
-            });
-            log.debug("Viewed: {}", fileItem.getName());
-        } catch (Exception e) {
-            log.error("Failed to view file: {}", fileItem.getName(), e);
+        if (fs instanceof LocalFileSystem) {
+            fileToView = fileItem.getFile();
+        } else {
+            // Download to temp
+            fileToView = AppTempDir.createTempFile("acommander_view_", "_" + fileItem.getName()).toFile();
+            isTemp = true;
+            fs.copy(fs.getInternalPath(fileItem), new LocalFileSystem(""), fileToView.getAbsolutePath());
         }
+
+        ActionDefinition action = requireAction("view");
+        List<String> selectedFiles = List.of(fileToView.getAbsolutePath());
+        List<String> command = ToolCommandBuilder.buildCommand(
+                action.getPath(),
+                action.getArgs(),
+                fileListsLoader,
+                Map.of(),
+                selectedFiles
+        );
+
+        final boolean finalIsTemp = isTemp;
+        final File finalFileToView = fileToView;
+        reportFailure(runExecutable(command, false).thenRun(() -> {
+            if (finalIsTemp) {
+                finalFileToView.delete();
+            }
+        }), "View");
+        log.debug("Viewed: {}", fileItem.getName());
     }
 
     @Override
-    protected void doEdit(FileItem fileItem) {
-        try {
-            VFileSystem fs = fileListsLoader.getFocusedFileSystem();
-            File fileToEdit;
-            boolean isTemp = false;
+    protected void doEdit(FileItem fileItem) throws IOException {
+        VFileSystem fs = fileListsLoader.getFocusedFileSystem();
+        File fileToEdit;
+        boolean isTemp = false;
 
-            if (fs instanceof LocalFileSystem) {
-                fileToEdit = fileItem.getFile();
-            } else {
-                // Download to temp
-                fileToEdit = AppTempDir.createTempFile("acommander_edit_", "_" + fileItem.getName()).toFile();
-                isTemp = true;
-                fs.copy(fs.getInternalPath(fileItem), new LocalFileSystem(""), fileToEdit.getAbsolutePath());
-            }
+        if (fs instanceof LocalFileSystem) {
+            fileToEdit = fileItem.getFile();
+        } else {
+            // Download to temp
+            fileToEdit = AppTempDir.createTempFile("acommander_edit_", "_" + fileItem.getName()).toFile();
+            isTemp = true;
+            fs.copy(fs.getInternalPath(fileItem), new LocalFileSystem(""), fileToEdit.getAbsolutePath());
+        }
 
-            ActionDefinition action = requireAction("edit");
-            List<String> selectedFiles = List.of(fileToEdit.getAbsolutePath());
-            List<String> command = ToolCommandBuilder.buildCommand(
-                    action.getPath(),
-                    action.getArgs(),
-                    fileListsLoader,
-                    Map.of(),
-                    selectedFiles
-            );
-            
-            final boolean finalIsTemp = isTemp;
-            final File finalFileToEdit = fileToEdit;
-            final String internalPath = fs.getInternalPath(fileItem);
-            
-            runExecutable(command, false).thenRun(() -> {
+        ActionDefinition action = requireAction("edit");
+        List<String> selectedFiles = List.of(fileToEdit.getAbsolutePath());
+        List<String> command = ToolCommandBuilder.buildCommand(
+                action.getPath(),
+                action.getArgs(),
+                fileListsLoader,
+                Map.of(),
+                selectedFiles
+        );
+
+        final boolean finalIsTemp = isTemp;
+        final File finalFileToEdit = fileToEdit;
+        final String internalPath = fs.getInternalPath(fileItem);
+
+        reportFailure(runExecutable(command, false).thenRun(() -> {
+            if (finalIsTemp) {
                 try {
-                    if (finalIsTemp) {
-                        // Upload back
-                        new LocalFileSystem("").copy(finalFileToEdit.getAbsolutePath(), fs, internalPath);
-                        finalFileToEdit.delete();
-                    }
-                    // Only mark for repack if in a read-write archive
-                    if (fs != null) {
-                        fs.markModified();
-                    }
+                    new LocalFileSystem("").copy(finalFileToEdit.getAbsolutePath(), fs, internalPath);
                 } catch (IOException e) {
-                    log.error("Failed to upload edited file back to VFS", e);
+                    throw new UncheckedIOException("Your edit could not be saved to " + internalPath
+                            + ". The edited copy stays at " + finalFileToEdit + " until ACommander closes.", e);
                 }
-            });
-            log.debug("Edited: {}", fileItem.getName());
-        } catch (Exception e) {
-            log.error("Failed to edit file: {}", fileItem.getName(), e);
-        }
+                finalFileToEdit.delete();
+            }
+            // Only mark for repack if in a read-write archive
+            fs.markModified();
+        }), "Edit");
+        log.debug("Edited: {}", fileItem.getName());
     }
 
     @Override
-    protected void doCopy(FileItem sourceFile, String targetFolder) {
-        try {
-            VFileSystem sourceFs = fileListsLoader.getFocusedFileSystem();
-            VFileSystem targetFs = fileListsLoader.getUnfocusedFileSystem();
-            
-            // If either side is an archive or FTP, use the VFS-based copy from simple implementation
-            if (sourceFs instanceof ArchiveFileSystem || targetFs instanceof ArchiveFileSystem ||
-                sourceFs instanceof FtpFileSystem || targetFs instanceof FtpFileSystem) {
-                commandsSimpleImpl.doCopy(sourceFile, targetFolder);
-                return;
-            }
+    protected void doCopy(FileItem sourceFile, String targetFolder) throws Exception {
+        VFileSystem sourceFs = fileListsLoader.getFocusedFileSystem();
+        VFileSystem targetFs = fileListsLoader.getUnfocusedFileSystem();
 
-            ActionDefinition action = requireAction("copy");
-            List<String> selectedFiles = List.of(sourceFile.getFullPath());
-            List<String> command = ToolCommandBuilder.buildCommand(
-                    action.getPath(),
-                    action.getArgs(),
-                    fileListsLoader,
-                    Map.of("${targetFolder}", targetFolder),
-                    selectedFiles
-            );
-            runExecutable(command, true).thenRun(() -> {
-                // Mark target archive for repack if target is in archive
-                markTargetArchiveForRepack(targetFolder);
-            });
-            log.debug("Copied: {} To: {}", sourceFile, targetFolder);
-        } catch (Exception e) {
-            log.error("Failed to copy file: {}", sourceFile.getName(), e);
+        // If either side is an archive or FTP, use the VFS-based copy from simple implementation
+        if (sourceFs instanceof ArchiveFileSystem || targetFs instanceof ArchiveFileSystem ||
+            sourceFs instanceof FtpFileSystem || targetFs instanceof FtpFileSystem) {
+            commandsSimpleImpl.doCopy(sourceFile, targetFolder);
+            return;
         }
+        copyItemIndividually(sourceFile, targetFolder);
+        log.debug("Copied: {} To: {}", sourceFile, targetFolder);
     }
     
     /**
@@ -207,7 +181,7 @@ public class CommandsAdvancedImpl extends ACommands {
         }
     }
 
-    public void copyBatch(List<FileItem> selectedItems, String targetFolder) {
+    public void copyBatch(List<FileItem> selectedItems, String targetFolder) throws Exception {
         List<FileItem> validItems = filterValidItems(selectedItems);
         if (validItems.isEmpty()) {
             return;
@@ -215,21 +189,11 @@ public class CommandsAdvancedImpl extends ACommands {
 
         VFileSystem sourceFs = fileListsLoader.getFocusedFileSystem();
         VFileSystem targetFs = fileListsLoader.getUnfocusedFileSystem();
-
-        if (sourceFs instanceof ArchiveFileSystem || targetFs instanceof ArchiveFileSystem ||
-            sourceFs instanceof FtpFileSystem || targetFs instanceof FtpFileSystem) {
-            for (FileItem item : validItems) {
-                try {
-                    commandsSimpleImpl.doCopy(item, targetFolder);
-                } catch (Exception e) {
-                    log.error("Failed to copy item in batch: {}", item.getName(), e);
-                }
-            }
-            return;
-        }
+        boolean viaVfs = sourceFs instanceof ArchiveFileSystem || targetFs instanceof ArchiveFileSystem ||
+                sourceFs instanceof FtpFileSystem || targetFs instanceof FtpFileSystem;
 
         // If many items and both sides are local, run one batch command.
-        if ((sourceFs == null || sourceFs instanceof LocalFileSystem) && (targetFs == null || targetFs instanceof LocalFileSystem) && validItems.size() > 1) {
+        if (!viaVfs && (sourceFs == null || sourceFs instanceof LocalFileSystem) && (targetFs == null || targetFs instanceof LocalFileSystem) && validItems.size() > 1) {
             ActionDefinition action = requireAction("copy");
 
             List<String> selectedFilesList = validItems.stream()
@@ -246,38 +210,41 @@ public class CommandsAdvancedImpl extends ACommands {
             );
 
             log.debug("Built batch copy command: {}", command);
-            runExecutable(command, true)
+            reportFailure(runExecutable(command, true)
                     .thenAccept(output -> {
                         markTargetArchiveForRepack(targetFolder);
-                        logBatchCopyVerification(validItems, targetFolder, command);
+                        verifyBatchCopy(validItems, targetFolder, command);
                         log.debug("Copied {} items To: {} using command", validItems.size(), targetFolder);
-                    })
-                    .exceptionally(ex -> {
-                        log.error(
-                                "Batch copy failed for {} item(s). target={} command={}",
-                                validItems.size(),
-                                targetFolder,
-                                command,
-                                ex
-                        );
-                        return null;
-                    });
+                    }), "Copy");
             return;
         }
 
         // Copy each item individually to avoid command line length issues with many files
         // or files with special characters (e.g., Hebrew, Unicode)
+        List<String> failedNames = new ArrayList<>();
+        Exception firstFailure = null;
         for (FileItem item : validItems) {
             try {
-                copyItemIndividually(item, targetFolder);
+                if (viaVfs) {
+                    commandsSimpleImpl.doCopy(item, targetFolder);
+                } else {
+                    copyItemIndividually(item, targetFolder);
+                }
             } catch (Exception e) {
                 log.error("Failed to copy item: {}", item.getName(), e);
+                failedNames.add(item.getName());
+                if (firstFailure == null) {
+                    firstFailure = e;
+                }
             }
+        }
+        if (!failedNames.isEmpty()) {
+            throw new Exception("Failed copying " + failedNames.size() + " item(s): " + String.join(", ", failedNames), firstFailure);
         }
         log.debug("Copied {} items To: {}", validItems.size(), targetFolder);
     }
 
-    private void logBatchCopyVerification(List<FileItem> copiedItems, String targetFolder, List<String> command) {
+    private void verifyBatchCopy(List<FileItem> copiedItems, String targetFolder, List<String> command) {
         if (copiedItems == null || copiedItems.isEmpty() || targetFolder == null || targetFolder.isBlank()) {
             return;
         }
@@ -303,30 +270,24 @@ public class CommandsAdvancedImpl extends ACommands {
                     missing,
                     command
             );
-            return;
+            throw new IllegalStateException("The copy tool reported success, but these are missing in " + targetFolder
+                    + ": " + String.join(", ", missing));
         }
 
         log.debug("Batch copy verification passed for {} item(s) in target {}", copiedItems.size(), targetFolder);
     }
 
     private void copyItemIndividually(FileItem item, String targetFolder) {
-        try {
-            ActionDefinition action = requireAction("copy");
-            List<String> selectedFiles = List.of(item.getFullPath());
-            List<String> command = ToolCommandBuilder.buildCommand(
-                    action.getPath(),
-                    action.getArgs(),
-                    fileListsLoader,
-                    Map.of("${targetFolder}", targetFolder),
-                    selectedFiles
-            );
-            runExecutable(command, true).thenRun(() -> {
-                markTargetArchiveForRepack(targetFolder);
-            });
-        } catch (Exception e) {
-            log.error("Failed to copy item individually: {}", item.getName(), e);
-            throw new RuntimeException(e);
-        }
+        ActionDefinition action = requireAction("copy");
+        List<String> selectedFiles = List.of(item.getFullPath());
+        List<String> command = ToolCommandBuilder.buildCommand(
+                action.getPath(),
+                action.getArgs(),
+                fileListsLoader,
+                Map.of("${targetFolder}", targetFolder),
+                selectedFiles
+        );
+        reportFailure(runExecutable(command, true).thenRun(() -> markTargetArchiveForRepack(targetFolder)), "Copy");
     }
 
     @Override
@@ -362,12 +323,8 @@ public class CommandsAdvancedImpl extends ACommands {
                 Map.of("${targetFolder}", targetFolder),
                 selectedFiles
         );
-        runExecutable(command, true)
-                .thenAccept(output -> log.debug("Moved: {} To: {}", sourceFile, targetFolder))
-                .exceptionally(ex -> {
-                    log.error("Failed to move {} to {} using external tool", sourceFile.getFullPath(), targetFolder, ex);
-                    return null;
-                });
+        reportFailure(runExecutable(command, true)
+                .thenAccept(output -> log.debug("Moved: {} To: {}", sourceFile, targetFolder)), "Move");
     }
 
     public void moveBatch(List<FileItem> selectedItems, String targetFolder) throws Exception {
@@ -500,7 +457,7 @@ public class CommandsAdvancedImpl extends ACommands {
                 Map.of(),
                 selectedFiles
         );
-        runExecutable(command, true);
+        reportFailure(runExecutable(command, true), "Unlock and Delete");
         log.debug("Unlocked & Deleted: {}", validItems.stream().map(FileItem::getName).collect(Collectors.joining(", ")));
     }
 
@@ -517,7 +474,7 @@ public class CommandsAdvancedImpl extends ACommands {
                 Map.of(),
                 selectedFiles
         );
-        runExecutable(command, true);
+        reportFailure(runExecutable(command, true), "Wipe Delete");
         log.debug("Deleted & Wiped: {}", validItems.stream().map(FileItem::getName).collect(Collectors.joining(", ")));
     }
 
@@ -545,153 +502,140 @@ public class CommandsAdvancedImpl extends ACommands {
     }
 
     @Override
-    protected void doPack(List<FileItem> validItems, String archiveFilenameWithPath) {
-        try {
-            VFileSystem sourceFs = fileListsLoader.getFocusedFileSystem();
-            VFileSystem targetFs = fileListsLoader.getUnfocusedFileSystem();
+    protected void doPack(List<FileItem> validItems, String archiveFilenameWithPath) throws IOException {
+        VFileSystem sourceFs = fileListsLoader.getFocusedFileSystem();
+        VFileSystem targetFs = fileListsLoader.getUnfocusedFileSystem();
 
-            List<File> tempFiles = new ArrayList<>();
-            List<String> localPathsToPack = new ArrayList<>();
+        List<File> tempFiles = new ArrayList<>();
+        List<String> localPathsToPack = new ArrayList<>();
 
-            // 1. Prepare source files (download if remote)
-            for (FileItem item : validItems) {
-                if (sourceFs instanceof LocalFileSystem) {
-                    localPathsToPack.add(item.getFullPath());
-                } else {
-                    if (item.isDirectory()) {
-                        log.warn("Skipping directory in remote VFS packing: {}. Recursive packing is not supported for remote systems yet.", item.getName());
-                        continue;
-                    }
-                    File tempFile = AppTempDir.createTempFile("acommander_pack_", "_" + item.getName()).toFile();
-                    tempFiles.add(tempFile);
-                    sourceFs.copy(sourceFs.getInternalPath(item), new LocalFileSystem(""), tempFile.getAbsolutePath());
-                    localPathsToPack.add(tempFile.getAbsolutePath());
-                }
-            }
-
-            if (localPathsToPack.isEmpty()) {
-                log.info("No valid files to pack.");
-                return;
-            }
-
-            // 2. Prepare target archive path (local or temp)
-            String localArchivePath;
-            boolean uploadRequired = false;
-            if (targetFs instanceof LocalFileSystem) {
-                localArchivePath = archiveFilenameWithPath;
+        // 1. Prepare source files (download if remote)
+        for (FileItem item : validItems) {
+            if (sourceFs instanceof LocalFileSystem) {
+                localPathsToPack.add(item.getFullPath());
             } else {
-                File tempArchive = AppTempDir.createTempFile("acommander_pack_target_", "_" + new File(archiveFilenameWithPath).getName()).toFile();
-                tempArchive.delete(); // Ensure it doesn't exist yet so 7z creates it
-                tempFiles.add(tempArchive);
-                localArchivePath = tempArchive.getAbsolutePath();
-                uploadRequired = true;
-            }
-
-            ActionDefinition action = requireAction("pack");
-            List<String> command = ToolCommandBuilder.buildCommand(
-                    action.getPath(),
-                    action.getArgs(),
-                    fileListsLoader,
-                    Map.of("${archiveFile}", localArchivePath),
-                    localPathsToPack
-            );
-
-            final boolean finalUploadRequired = uploadRequired;
-            final String finalLocalArchivePath = localArchivePath;
-
-            runExecutable(command, true).thenRun(() -> {
-                try {
-                    if (finalUploadRequired) {
-                        // Upload the created archive back to remote VFS
-                        targetFs.copy(finalLocalArchivePath, targetFs, targetFs.getInternalPath(new FileItem(new File(archiveFilenameWithPath))));
-                    }
-                    // Cleanup temp files
-                    for (File f : tempFiles) {
-                        f.delete();
-                    }
-                    // Refresh UI
-                    Platform.runLater(fileListsLoader::refreshFileListViews);
-                } catch (IOException e) {
-                    log.error("Failed to upload/cleanup after pack", e);
+                if (item.isDirectory()) {
+                    log.warn("Skipping directory in remote VFS packing: {}. Recursive packing is not supported for remote systems yet.", item.getName());
+                    continue;
                 }
-            });
-            log.debug("Archiving process started for: {}", archiveFilenameWithPath);
-        } catch (Exception e) {
-            log.error("Failed to pack files", e);
+                File tempFile = AppTempDir.createTempFile("acommander_pack_", "_" + item.getName()).toFile();
+                tempFiles.add(tempFile);
+                sourceFs.copy(sourceFs.getInternalPath(item), new LocalFileSystem(""), tempFile.getAbsolutePath());
+                localPathsToPack.add(tempFile.getAbsolutePath());
+            }
         }
+
+        if (localPathsToPack.isEmpty()) {
+            log.info("No valid files to pack.");
+            return;
+        }
+
+        // 2. Prepare target archive path (local or temp)
+        String localArchivePath;
+        boolean uploadRequired = false;
+        if (targetFs instanceof LocalFileSystem) {
+            localArchivePath = archiveFilenameWithPath;
+        } else {
+            File tempArchive = AppTempDir.createTempFile("acommander_pack_target_", "_" + new File(archiveFilenameWithPath).getName()).toFile();
+            tempArchive.delete(); // Ensure it doesn't exist yet so 7z creates it
+            tempFiles.add(tempArchive);
+            localArchivePath = tempArchive.getAbsolutePath();
+            uploadRequired = true;
+        }
+
+        ActionDefinition action = requireAction("pack");
+        List<String> command = ToolCommandBuilder.buildCommand(
+                action.getPath(),
+                action.getArgs(),
+                fileListsLoader,
+                Map.of("${archiveFile}", localArchivePath),
+                localPathsToPack
+        );
+
+        final boolean finalUploadRequired = uploadRequired;
+        final String finalLocalArchivePath = localArchivePath;
+
+        reportFailure(runExecutable(command, true).thenRun(() -> {
+            if (finalUploadRequired) {
+                // Upload the created archive back to remote VFS
+                try {
+                    new LocalFileSystem("").copy(finalLocalArchivePath, targetFs, targetFs.getInternalPath(new FileItem(new File(archiveFilenameWithPath))));
+                } catch (IOException e) {
+                    throw new UncheckedIOException("The archive was created but could not be uploaded to " + archiveFilenameWithPath, e);
+                }
+            }
+            for (File f : tempFiles) {
+                f.delete();
+            }
+            Platform.runLater(fileListsLoader::refreshFileListViews);
+        }), "Pack");
+        log.debug("Archiving process started for: {}", archiveFilenameWithPath);
     }
 
     @Override
-    protected void doUnpack(FileItem selectedItem, String destinationPath) {
-        try {
-            VFileSystem sourceFs = fileListsLoader.getFocusedFileSystem();
-            VFileSystem targetFs = fileListsLoader.getUnfocusedFileSystem();
+    protected void doUnpack(FileItem selectedItem, String destinationPath) throws IOException {
+        unpackWith("unpack", "Unpack", selectedItem, destinationPath);
+    }
 
-            File archiveToUnpack;
-            boolean isTempArchive = false;
+    /** Unpack and Extract All differ only in the tool; remote sources and targets go through local temp copies. */
+    private void unpackWith(String actionId, String title, FileItem selectedItem, String destinationPath) throws IOException {
+        VFileSystem sourceFs = fileListsLoader.getFocusedFileSystem();
+        VFileSystem targetFs = fileListsLoader.getUnfocusedFileSystem();
 
-            // 1. Prepare source archive (download if remote)
-            if (sourceFs instanceof LocalFileSystem) {
-                archiveToUnpack = selectedItem.getFile();
-            } else {
-                archiveToUnpack = AppTempDir.createTempFile("acommander_unpack_", "_" + selectedItem.getName()).toFile();
-                isTempArchive = true;
-                sourceFs.copy(sourceFs.getInternalPath(selectedItem), new LocalFileSystem(""), archiveToUnpack.getAbsolutePath());
-            }
+        File archiveToUnpack;
+        boolean isTempArchive = false;
 
-            // 2. Prepare target destination (must be local for 7z)
-            String localDestPath;
-            boolean uploadRequired = false;
-            File tempDestDir = null;
-
-            if (targetFs instanceof LocalFileSystem) {
-                localDestPath = destinationPath;
-            } else {
-                tempDestDir = AppTempDir.createTempDirectory("acommander_unpack_dest_").toFile();
-                localDestPath = tempDestDir.getAbsolutePath();
-                uploadRequired = true;
-            }
-
-            ActionDefinition action = requireAction("unpack");
-            List<String> command = ToolCommandBuilder.buildCommand(
-                    action.getPath(),
-                    action.getArgs(),
-                    fileListsLoader,
-                    Map.of("${destinationPath}", localDestPath),
-                    List.of(archiveToUnpack.getAbsolutePath())
-            );
-
-            final boolean finalIsTempArchive = isTempArchive;
-            final File finalArchiveToUnpack = archiveToUnpack;
-            final boolean finalUploadRequired = uploadRequired;
-            final File finalTempDestDir = tempDestDir;
-
-            runExecutable(command, true).thenRun(() -> {
-                try {
-                    if (finalUploadRequired && finalTempDestDir != null) {
-                        // Upload all unpacked files to remote VFS
-                        File[] files = finalTempDestDir.listFiles();
-                        if (files != null) {
-                            for (File f : files) {
-                                uploadRecursive(f, targetFs, destinationPath);
-                            }
-                        }
-                        // Cleanup temp dir
-                        FileHelper.deleteQuietly(finalTempDestDir.toPath());
-                    }
-                    if (finalIsTempArchive) {
-                        finalArchiveToUnpack.delete();
-                    }
-                    // Refresh UI
-                    Platform.runLater(fileListsLoader::refreshFileListViews);
-                } catch (Exception e) {
-                    log.error("Failed to upload/cleanup after unpack", e);
-                }
-            });
-            log.debug("Unpacking process started for: {}", selectedItem.getName());
-        } catch (Exception e) {
-            log.error("Failed to unpack file", e);
+        // 1. Prepare source archive (download if remote)
+        if (sourceFs instanceof LocalFileSystem) {
+            archiveToUnpack = selectedItem.getFile();
+        } else {
+            archiveToUnpack = AppTempDir.createTempFile("acommander_unpack_", "_" + selectedItem.getName()).toFile();
+            isTempArchive = true;
+            sourceFs.copy(sourceFs.getInternalPath(selectedItem), new LocalFileSystem(""), archiveToUnpack.getAbsolutePath());
         }
+
+        // 2. Prepare target destination (must be local for the tool)
+        String localDestPath;
+        File tempDestDir = null;
+        if (targetFs instanceof LocalFileSystem) {
+            localDestPath = destinationPath;
+        } else {
+            tempDestDir = AppTempDir.createTempDirectory("acommander_unpack_dest_").toFile();
+            localDestPath = tempDestDir.getAbsolutePath();
+        }
+
+        ActionDefinition action = requireAction(actionId);
+        List<String> command = ToolCommandBuilder.buildCommand(
+                action.getPath(),
+                action.getArgs(),
+                fileListsLoader,
+                Map.of("${destinationPath}", localDestPath),
+                List.of(archiveToUnpack.getAbsolutePath())
+        );
+
+        final boolean finalIsTempArchive = isTempArchive;
+        final File finalTempDestDir = tempDestDir;
+        reportFailure(runExecutable(command, true).thenRun(() -> {
+            if (finalTempDestDir != null) {
+                // Upload all unpacked files to the remote target
+                File[] files = finalTempDestDir.listFiles();
+                try {
+                    if (files != null) {
+                        for (File f : files) {
+                            uploadRecursive(f, targetFs, destinationPath);
+                        }
+                    }
+                } catch (IOException e) {
+                    throw new UncheckedIOException("The files were unpacked but could not be uploaded to " + destinationPath, e);
+                }
+                FileHelper.deleteQuietly(finalTempDestDir.toPath());
+            }
+            if (finalIsTempArchive) {
+                archiveToUnpack.delete();
+            }
+            Platform.runLater(fileListsLoader::refreshFileListViews);
+        }), title);
+        log.debug("{} started for: {}", title, selectedItem.getName());
     }
 
     private void uploadRecursive(File source, VFileSystem targetFs, String targetInternalDir) throws IOException {
@@ -705,78 +649,13 @@ public class CommandsAdvancedImpl extends ACommands {
                 }
             }
         } else {
-            targetFs.copy(source.getAbsolutePath(), targetFs, targetPath);
+            new LocalFileSystem("").copy(source.getAbsolutePath(), targetFs, targetPath);
         }
     }
 
     @Override
-    protected void doExtractAll(FileItem selectedItem, String destinationPath) {
-        // Similar to doUnpack, extractAll typically uses a different 7z flag ('x' instead of 'e')
-        // but the VFS handling logic is identical.
-        try {
-            VFileSystem sourceFs = fileListsLoader.getFocusedFileSystem();
-            VFileSystem targetFs = fileListsLoader.getUnfocusedFileSystem();
-
-            File archiveToUnpack;
-            boolean isTempArchive = false;
-
-            if (sourceFs instanceof LocalFileSystem) {
-                archiveToUnpack = selectedItem.getFile();
-            } else {
-                archiveToUnpack = AppTempDir.createTempFile("acommander_extract_", "_" + selectedItem.getName()).toFile();
-                isTempArchive = true;
-                sourceFs.copy(sourceFs.getInternalPath(selectedItem), new LocalFileSystem(""), archiveToUnpack.getAbsolutePath());
-            }
-
-            String localDestPath;
-            boolean uploadRequired = false;
-            File tempDestDir = null;
-
-            if (targetFs instanceof LocalFileSystem) {
-                localDestPath = destinationPath;
-            } else {
-                tempDestDir = AppTempDir.createTempDirectory("acommander_extract_dest_").toFile();
-                localDestPath = tempDestDir.getAbsolutePath();
-                uploadRequired = true;
-            }
-
-            ActionDefinition action = requireAction("extractAll");
-            List<String> command = ToolCommandBuilder.buildCommand(
-                    action.getPath(),
-                    action.getArgs(),
-                    fileListsLoader,
-                    Map.of("${destinationPath}", localDestPath),
-                    List.of(archiveToUnpack.getAbsolutePath())
-            );
-
-            final boolean finalIsTempArchive = isTempArchive;
-            final File finalArchiveToUnpack = archiveToUnpack;
-            final boolean finalUploadRequired = uploadRequired;
-            final File finalTempDestDir = tempDestDir;
-
-            runExecutable(command, true).thenRun(() -> {
-                try {
-                    if (finalUploadRequired && finalTempDestDir != null) {
-                        File[] files = finalTempDestDir.listFiles();
-                        if (files != null) {
-                            for (File f : files) {
-                                uploadRecursive(f, targetFs, destinationPath);
-                            }
-                        }
-                        FileHelper.deleteQuietly(finalTempDestDir.toPath());
-                    }
-                    if (finalIsTempArchive) {
-                        finalArchiveToUnpack.delete();
-                    }
-                    Platform.runLater(fileListsLoader::refreshFileListViews);
-                } catch (Exception e) {
-                    log.error("Failed to upload/cleanup after extractAll", e);
-                }
-            });
-            log.debug("ExtractAll process started for: {}", selectedItem.getName());
-        } catch (Exception e) {
-            log.error("Failed to extract file", e);
-        }
+    protected void doExtractAll(FileItem selectedItem, String destinationPath) throws IOException {
+        unpackWith("extractAll", "Extract All", selectedItem, destinationPath);
     }
 
     @Override

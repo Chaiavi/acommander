@@ -169,6 +169,6 @@ public class ActionExecutor {
         boolean refresh = action.getRefreshAfter() != null
                 ? action.getRefreshAfter()
                 : false;
-        commander.runExternal(command, refresh);
+        commander.runExternalReported(command, refresh, action.getLabel());
     }
 }

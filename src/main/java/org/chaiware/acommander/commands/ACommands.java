@@ -16,7 +16,9 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 public abstract class ACommands {
@@ -24,6 +26,7 @@ public abstract class ACommands {
     protected FilesPanesHelper fileListsLoader;
     protected ExternalCommandListener externalCommandListener;
     private final Set<Process> runningProcesses = ConcurrentHashMap.newKeySet();
+    private final AtomicInteger stopRequests = new AtomicInteger();
     final Logger log = LoggerFactory.getLogger(ACommands.class);
 
     public ACommands(FilesPanesHelper filesPanesHelper) {
@@ -290,7 +293,27 @@ public abstract class ACommands {
         return runExecutable(params, shouldUpdateUI, acceptedNonZeroExitCodes);
     }
 
+    /**
+     * Shows the user a failure of work nobody waits on (otherwise it is only logged). A tool the user stopped with
+     * the Stop button is not reported.
+     */
+    public void reportFailure(CompletableFuture<?> work, String title) {
+        int stopsBefore = stopRequests.get();
+        work.exceptionally(ex -> {
+            Throwable cause = ex instanceof CompletionException && ex.getCause() != null ? ex.getCause() : ex;
+            log.error("{} failed", title, cause);
+            // ponytail: one stop counter for all tools, so Stop also mutes a different tool failing meanwhile.
+            // Track the stopped processes if that matters.
+            boolean stoppedByUser = cause instanceof ExternalCommandException && stopRequests.get() != stopsBefore;
+            if (!stoppedByUser && externalCommandListener != null) {
+                externalCommandListener.onFailure(title, cause);
+            }
+            return null;
+        });
+    }
+
     public int stopRunningExternalCommands() {
+        stopRequests.incrementAndGet();
         List<Process> snapshot = new ArrayList<>(runningProcesses);
         int stopped = 0;
         for (Process process : snapshot) {

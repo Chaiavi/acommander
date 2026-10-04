@@ -1,5 +1,6 @@
 package org.chaiware.acommander.commands;
 
+import org.chaiware.acommander.config.AppRegistry;
 import org.chaiware.acommander.helpers.FilesPanesHelper;
 import org.chaiware.acommander.model.FileItem;
 import org.chaiware.acommander.vfs.FtpFileSystem;
@@ -13,6 +14,7 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.util.List;
 
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
@@ -30,7 +32,7 @@ class PackVfsTest {
     @BeforeEach
     void setUp() throws IOException {
         filesPanesHelper = mock(FilesPanesHelper.class);
-        commands = new CommandsAdvancedImpl(filesPanesHelper, null);
+        commands = new CommandsAdvancedImpl(filesPanesHelper, mock(AppRegistry.class));
         sourceFs = mock(FtpFileSystem.class);
         targetFs = new LocalFileSystem(tempDir.toString());
 
@@ -50,8 +52,9 @@ class PackVfsTest {
 
         Path archivePath = tempDir.resolve("test.zip");
 
-        // Act
-        commands.pack(items, archivePath.toString());
+        // Act: no pack tool configured, so it stops after the downloads
+        assertThatThrownBy(() -> commands.pack(items, archivePath.toString()))
+                .hasMessageContaining("Missing action config: pack");
 
         // Assert
         // Should only copy the file, not the directory

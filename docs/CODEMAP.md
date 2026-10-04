@@ -75,8 +75,8 @@ Adding or renaming an action id? Check each of these:
 | `findInFiles` (Alt+F10) | `findInFiles`, `runFindInFiles`, `showFileResultsDialog` | `FindInFilesOptions` record | `search_in_files/rg.exe` |
 | `pack` (F11) | `pack` | `CommandsAdvancedImpl.doPack` | `pack_unpack/7zG.exe` |
 | `splitLargeFile` (Alt+F11) | `splitLargeFile`, `promptSplitSize`, `parseSplitSize` | — | `extract_all/UniExtract/bin/x64/7z.exe` |
-| `unpack` (F12) | `unpackFile` | `CommandsAdvancedImpl.doUnpack` | `pack_unpack/7zG.exe` |
-| `extractAll` (Alt+F12) | `extractAll` | `doExtractAll` | `extract_all/UniExtract/UniExtract.exe` |
+| `unpack` (F12) | `unpackFile` | `CommandsAdvancedImpl.doUnpack` → `unpackWith` | `pack_unpack/7zG.exe` |
+| `extractAll` (Alt+F12) | `extractAll` | `doExtractAll` → `unpackWith` | `extract_all/UniExtract/UniExtract.exe` |
 | `mergePdf` / `extractPdfPages` | `mergePDFFiles` / `extractPDFPages`, `promptPdfExtractOptions` | `doMergePDFs` / `doExtractPDFPages`, `PdfExtractOptions` | `pdf/pdftk.exe` |
 | `convertMediaFile` (Alt+F5) | `convertMediaFile` → image or audio below | `ImageConversionSupport`, `AudioConversionSupport` | — |
 | `convertGraphicsFiles` | `convertGraphicsFiles`, `promptImageConversionOptions` | `ImageConversionSupport` | `image_convert/caesiumclt.exe` |
@@ -169,10 +169,10 @@ Not actions, but often asked for:
 ### `commands/` — file operations behind the UI
 | File | Role |
 |---|---|
-| `ACommands` | Base: filters `..`/invalid items, template methods (`rename` → `doRename`, …), `runExecutable`, stop running tools. |
+| `ACommands` | Base: filters `..`/invalid items, template methods (`rename` → `doRename`, …), `runExecutable`, stop running tools, `reportFailure` (shows the failure of a tool run nobody waits on; every fire-and-forget run must use it, or `Commander.runExternalReported`). |
 | `CommandsAdvancedImpl` | Used by the app. Runs apps.json tool paths (`requireAction(id)`), batches copy/move, PDFs, pack/unpack; falls back to `CommandsSimpleImpl`. |
 | `CommandsSimpleImpl` | Pure-Java/OS ops: single rename, copy/move, mkdir, terminal, explorer, PowerShell file search. Pack/PDF throw "not implemented". |
-| `ExternalCommandListener` | Callback for tool start/finish (drives the progress bar). |
+| `ExternalCommandListener` | Callback for tool start/finish (drives the progress bar) and `onFailure` (error dialog). |
 | `ExternalCommandException` | Non-zero exit with command + output tail. |
 | `PdfExtractOptions` | Record: extract all / page expression / pages per PDF. |
 

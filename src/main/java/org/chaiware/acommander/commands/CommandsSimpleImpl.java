@@ -210,12 +210,8 @@ public class CommandsSimpleImpl extends ACommands {
 
                     // Fallback to Command Prompt
                     List<String> fallbackCommand = Arrays.asList("cmd", "/c", "start", "cmd", "/k", "cd /d " + openHerePath);
-                    runExecutable(fallbackCommand, false)
-                            .thenAccept(output -> log.debug("Opened Command Shell Here: {}", openHerePath))
-                            .exceptionally(fallbackThrowable -> {
-                                log.error("Both PowerShell and Command Prompt failed", fallbackThrowable);
-                                return null;
-                            });
+                    reportFailure(runExecutable(fallbackCommand, false)
+                            .thenAccept(output -> log.debug("Opened Command Shell Here: {}", openHerePath)), "Open Terminal");
 
                     return null;
                 });
@@ -243,7 +239,7 @@ public class CommandsSimpleImpl extends ACommands {
         }
 
         List<String> command = Arrays.asList("explorer.exe", targetPath.getAbsolutePath());
-        runExecutable(command, false, Set.of(1));
+        reportFailure(runExecutable(command, false, Set.of(1)), "Open Explorer");
         log.debug("Opened Explorer Here: {}", targetPath.getAbsolutePath());
     }
 

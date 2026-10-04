@@ -115,7 +115,7 @@ Rechecked after Phase 2. Dropped the `UiFeedback` and `CommanderContext` interfa
 - [ ] 3.2 `SettingsStore` over `acommander.properties`: typed get/set + atomic save (temp file, then move) for
   left/right folder, theme, `last_selection_pattern`, bookmarks and FTP connections (absorbs the old 4.2). Password
   stays plaintext until 10.6. Test on a temp dir: round trip, and an interrupted save keeps the old file.
-- [ ] 3.3 Errors and data loss the user never sees (bug fixes; one issue each):
+- [x] 3.3 Errors and data loss the user never sees (bug fixes; one issue each):
   1. Done (#147). **Data loss on repack failure.** `ArchiveManager.closeArchive` deleted the extracted folder in
      `finally`, even when the repack failed, and every caller only logged. Now the edits are copied to
      `<archive>.recovered-<yyyyMMdd-HHmmss>` next to the archive (home folder as fallback) and the error names it;
@@ -125,8 +125,14 @@ Rechecked after Phase 2. Dropped the `UiFeedback` and `CommanderContext` interfa
      `goUpInArchive` now throw into `runWithProgress`. `exitArchive` shows the parent folder itself (before the
      repack), so the two "leave archive, show parent" copies in `Commander` and `goUpInArchive` are gone. Backspace
      inside an archive now runs through `Commander.goUpInArchive` (it repacked on the UI thread before).
-  3. Review the 7 `throw new RuntimeException(e)` and 10 `catch (... ignored)`; fix the ones that hide a
-     user-facing failure, leave the rest.
+  3. Done (#150). **Failed tool runs showed nothing.** Reviewing the `RuntimeException` wraps and ignored catches
+     found them harmless (path-parse fallbacks, unwrapped delete lambdas; `loadConfigFile` goes with 3.2). The real
+     hole was elsewhere: ~15 fire-and-forget `runExecutable` calls (copy, move, pack, unpack, extract all, view,
+     edit, multi rename, wipe/unlock delete, split, every apps.json external action) and `do*` methods that caught
+     and logged everything. Now `ACommands.reportFailure` shows them (not after Stop), the `do*` methods throw,
+     copy batches report per-item failures, and F4 on FTP/archive names the temp copy when the save-back fails.
+     Also fixed: pack/unpack to an FTP or archive pane uploaded with `targetFs.copy(localPath, …)`, which reads
+     the local path as remote. `doUnpack` / `doExtractAll` merged into `unpackWith` (was 7.1).
 - [ ] 3.4 Metadata dialogs take the owner `Window` + theme instead of `Commander` (they use only `rootPane` and
   `getCurrentThemeMode`). `ActionContext` and the public fields stay: changing them is churn with no payoff, and
   `ActionRulesSnapshotTest` already covers `ActionExecutor` with a mocked `Commander`.
@@ -206,8 +212,8 @@ Smoke items: edit + save + reload metadata on a copied jpg, mp3, mp4.
 ## Phase 7 — Commands Layer (depends on 1, 3)
 
 - [ ] 7.1 Replace `ACommands` / `CommandsAdvancedImpl` (1,248) / `CommandsSimpleImpl` with `CopyMoveService`,
-  `DeleteService`, `ArchiveOps`, `PdfService`, `ShellService`, `ViewEditService`. `doUnpack` and `doExtractAll` are
-  copies of each other; merge them.
+  `DeleteService`, `ArchiveOps`, `PdfService`, `ShellService`, `ViewEditService`. (`doUnpack` / `doExtractAll`
+  already merged in 3.3.)
 - [ ] 7.2 `ExternalToolRunner` (run, listener, stop).
 - [ ] 7.3 Delete the "Not implemented yet" stubs; move tests with the code (`CommanderCopyTest` builds a
   `CommandsSimpleImpl`).

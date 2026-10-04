@@ -41,6 +41,13 @@ class ArchitectureRulesTest {
                 .as("read the version with helpers/AppVersion; build.gradle appVersion is the only source").isEmpty();
     }
 
+    @Test
+    void toolRunsAreNeverFireAndForget() throws IOException {
+        assertThat(violations("^\\s*(runExecutable|runExternal)\\((?:[^()]|\\([^()]*\\))*\\);\\s*$", null))
+                .as("a dropped tool future hides its failure; wrap it in reportFailure or use runExternalReported")
+                .isEmpty();
+    }
+
     private static List<String> violations(String regex, String allowedFileName) throws IOException {
         Pattern pattern = Pattern.compile(regex);
         List<Path> sources;

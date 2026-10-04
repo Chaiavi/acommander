@@ -265,6 +265,11 @@ public class Commander {
                     }
                 });
             }
+
+            @Override
+            public void onFailure(String title, Throwable error) {
+                Platform.runLater(() -> showError(title + " Failed", error.getMessage()));
+            }
         };
     }
 
@@ -2060,7 +2065,7 @@ public class Commander {
                     "-v" + splitArg.get()
             );
 
-            runExternal(command, true);
+            runExternalReported(command, true, "Split File");
             filesPanesHelper.selectFileItem(false, new FileItem(new File(outputArchivePath)));
         } catch (Exception ex) {
             error("Failed splitting large file", ex);
@@ -5602,6 +5607,11 @@ public class Commander {
 
     public CompletableFuture<List<String>> runExternal(List<String> command, boolean refreshAfter) {
         return commands.runExternal(command, refreshAfter);
+    }
+
+    /** Runs a tool nobody waits on; a failure is shown to the user under {@code title}. */
+    public void runExternalReported(List<String> command, boolean refreshAfter, String title) {
+        commands.reportFailure(commands.runExternal(command, refreshAfter), title);
     }
 
     public CompletableFuture<List<String>> runExternal(
