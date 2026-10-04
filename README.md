@@ -1,35 +1,42 @@
 # ⚡ A Commander
 
-- Dual-pane file explorer for Windows
-- Inspired by **Norton Commander**
-- Extended functionality using **3rd party tools**
-- **Command Palette** (ctrl+shft+p) to rule them all!
+**A Norton Commander-inspired, Total Commander-style dual-pane file manager for Windows, with a VS Code-style
+command palette. Free and open source.**
 
-Fast. Keyboard-driven. Endlessly configurable.
-
+[![Latest Release](https://img.shields.io/github/v/release/Chaiavi/acommander?label=Download&logo=windows)](https://github.com/Chaiavi/acommander/releases/latest)
+[![CI](https://github.com/Chaiavi/acommander/actions/workflows/ci.yml/badge.svg)](https://github.com/Chaiavi/acommander/actions/workflows/ci.yml)
 [![Java](https://img.shields.io/badge/Java-21-orange?logo=openjdk&logoColor=white)](#)
 [![Platform](https://img.shields.io/badge/Platform-Windows%2010%2F11-0078D6?logo=windows&logoColor=white)](#)
-[![Build](https://img.shields.io/badge/Build-Gradle-02303A?logo=gradle&logoColor=white)](#)
-[![License](https://img.shields.io/badge/License-BSL%201.0-blue)](#license)
+[![License](https://img.shields.io/badge/License-BSL%201.0-blue)](#-license)
 
-## Out of the box, open ACommander
+## 📥 Download
 
-![image](https://github.com/user-attachments/assets/5880e5c6-c1f4-4450-b169-b8bf8079a350)
+**[Download the latest release for Windows](https://github.com/Chaiavi/acommander/releases/latest)**
 
-## A Commander workstation with multiple associated apps running (View Text File, View Image, Edit and Terminal)
+1. Windows 10 or 11. No Java install needed; the runtime is included.
+2. Unzip anywhere and run `acommander.exe`. It is portable; nothing is installed.
+3. The zip is about 300 MB because it bundles about 20 tools and its own Java runtime.
 
-![image](https://github.com/user-attachments/assets/345ee06a-8edc-4302-9b1c-2f76124177d3)
+![A Commander out of the box](https://github.com/user-attachments/assets/5880e5c6-c1f4-4450-b169-b8bf8079a350)
 
----
+## 💡 Why A Commander
 
-A Commander keeps file operations fast and keyboard-driven, and offloads specialized tasks — view, edit, copy, archive, convert, checksum — to proven external tools configured in `config/apps.json`.
+- **Norton Commander at heart** — two panes, the classic F-key bar (`F3` view, `F5` copy, `F6` move, `F8` delete), and
+  a Norton Commander theme, with dark and light themes too.
+- **Command Palette** — press `Ctrl+Shift+P` and type to find any action, like in VS Code. No menus to dig through.
+- **Tools included** — about 20 proven tools (7-Zip, FastCopy, ripgrep, Universal Viewer, PDFtk and more) work out of
+  the box. No setup.
+- **Archives and servers as folders** — browse zip and 7z files, and FTP / SFTP / FTPS servers, like local folders.
+- **Configurable without code** — every action, tool and shortcut lives in `config/apps.json`.
+
+### A Commander workstation with several associated apps running (View Text File, View Image, Edit and Terminal)
+
+![A Commander with associated apps running](https://github.com/user-attachments/assets/345ee06a-8edc-4302-9b1c-2f76124177d3)
 
 ---
 
 ## 📑 Table of Contents
 
-- [What's New in v4.5](#-whats-new-in-v45)
-- [What's New in v4.0](#-whats-new-in-v40)
 - [Core Features](#-core-features)
 - [File Operations](#-file-operations)
 - [Virtual File System (VFS) & Remote Access](#-virtual-file-system-vfs--remote-access)
@@ -39,81 +46,10 @@ A Commander keeps file operations fast and keyboard-driven, and offloads special
 - [Default Shortcuts](#-default-shortcuts)
 - [External Tools Bundled](#-external-tools-bundled)
 - [Configuration](#-configuration-configappsjson)
-- [Build & Run](#-build--run)
+- [Release History](#-release-history)
+- [Build from Source](#-build-from-source)
 - [Project Layout](#-project-layout)
 - [License](#-license)
-
----
-
-## 🆕 What's New in v4.5
-
-v4.5 is a quality-focused update that adds small but practical workflow features and fixes a set of day-to-day issues.
-
-### New Features & Enhancements
-
-- **Open hosts file** — open the Windows hosts file directly from the Command Palette
-- **Report Bug / Contact** — quickly open a bug/contact flow from inside the app
-- **Analyze File** — identify file type/content details for a single selected file
-- **Extract PDF Pages (upgraded)** — interactive extraction modes with page expressions (`,`, `:`, `-`) and chunking
-  options
-- **Natural numeric sort** — filename sorting now treats numbers naturally (`... 9, 10 ...`)
-
-### Bug Fixes
-
-- Fixed Ant Renamer not opening/showing correctly
-- Fixed multi-file move reliability
-- Fixed PDF merge failures
-- Fixed PDF page extraction failures
-- Fixed Hebrew rename caret/navigation behavior with arrow keys
-- Improved post-move focus to stay on the next item in the source pane
-
----
-
-## 🆕 What's New in v4.0
-
-v4.0 is a major release that brings virtual file system support, metadata editing, folder synchronization, and many
-quality-of-life improvements.
-
-### Virtual File System (VFS) & Remote Access
-
-- **Virtual folders** — browse archives (zip, 7z, etc.) as if they were regular directories
-- **FTP / SFTP / FTPS** — connect to remote servers and browse them inline, just like local paths
-- **FTP-to-FTP copy** — transfer files directly between two remote FTP locations
-
-### File Comparison & Synchronization
-
-- **Compare files** — diff two files side by side via ExamDiff
-- **Synchronize folders** — keep two directories in sync across panes
-
-### Metadata Editing
-
-- **Edit video metadata** — modify tags on video files via AtomicParsley
-- **Edit image metadata** — view and change EXIF/IPTC data on images via exiv2
-- **Edit MP3 metadata** — update ID3 tags on audio files via id3
-
-### File Operations
-
-- **Duplicate file** — quickly clone a file in the same directory
-- **Copy / Paste** — standard clipboard-based copy and paste support
-- **View properties** — inspect detailed file and folder properties
-- **Advanced selection** — select all, invert selection, select by mask with keyboard shortcuts
-- **UPX compression** — compress/decompress EXE and DLL files via UPX
-
-### UI & Usability
-
-- **Dark / Light / Norton Commander themes** — switch UI modes to match your preference
-- **Improved default sorting** — date and size sort descending by default; name sorts ascending
-- **USB drive support** — detect and browse USB disk keys seamlessly
-
-### Infrastructure
-
-- **GitHub CI/CD** — automated compile and build via GitHub Actions
-
-### Bug Fixes
-
-- Fixed empty bottom button bar triggering unintended actions when Alt-clicked
-- Fixed `Alt+F1` / `Alt+F2` path dropdowns not changing the folder
-- Fixed a bug in multi-file copying
 
 ---
 
@@ -314,7 +250,84 @@ Every action is **data-driven**. Add, remove, or reconfigure tools without touch
 
 ---
 
-## 🚀 Build & Run
+## � Release History
+
+Full notes and downloads for every version: [GitHub Releases](https://github.com/Chaiavi/acommander/releases).
+
+<details>
+<summary><b>v4.5</b> — quality update: small workflow features and day-to-day fixes</summary>
+
+**New Features & Enhancements**
+
+- **Open hosts file** — open the Windows hosts file directly from the Command Palette
+- **Report Bug / Contact** — quickly open a bug/contact flow from inside the app
+- **Analyze File** — identify file type/content details for a single selected file
+- **Extract PDF Pages (upgraded)** — interactive extraction modes with page expressions (`,`, `:`, `-`) and chunking
+  options
+- **Natural numeric sort** — filename sorting now treats numbers naturally (`... 9, 10 ...`)
+
+**Bug Fixes**
+
+- Fixed Ant Renamer not opening/showing correctly
+- Fixed multi-file move reliability
+- Fixed PDF merge failures
+- Fixed PDF page extraction failures
+- Fixed Hebrew rename caret/navigation behavior with arrow keys
+- Improved post-move focus to stay on the next item in the source pane
+
+</details>
+
+<details>
+<summary><b>v4.0</b> — major release: virtual file system, metadata editing, folder sync</summary>
+
+**Virtual File System (VFS) & Remote Access**
+
+- **Virtual folders** — browse archives (zip, 7z, etc.) as if they were regular directories
+- **FTP / SFTP / FTPS** — connect to remote servers and browse them inline, just like local paths
+- **FTP-to-FTP copy** — transfer files directly between two remote FTP locations
+
+**File Comparison & Synchronization**
+
+- **Compare files** — diff two files side by side via ExamDiff
+- **Synchronize folders** — keep two directories in sync across panes
+
+**Metadata Editing**
+
+- **Edit video metadata** — modify tags on video files via AtomicParsley
+- **Edit image metadata** — view and change EXIF/IPTC data on images via exiv2
+- **Edit MP3 metadata** — update ID3 tags on audio files via id3
+
+**File Operations**
+
+- **Duplicate file** — quickly clone a file in the same directory
+- **Copy / Paste** — standard clipboard-based copy and paste support
+- **View properties** — inspect detailed file and folder properties
+- **Advanced selection** — select all, invert selection, select by mask with keyboard shortcuts
+- **UPX compression** — compress/decompress EXE and DLL files via UPX
+
+**UI & Usability**
+
+- **Dark / Light / Norton Commander themes** — switch UI modes to match your preference
+- **Improved default sorting** — date and size sort descending by default; name sorts ascending
+- **USB drive support** — detect and browse USB disk keys seamlessly
+
+**Infrastructure**
+
+- **GitHub CI/CD** — automated compile and build via GitHub Actions
+
+**Bug Fixes**
+
+- Fixed empty bottom button bar triggering unintended actions when Alt-clicked
+- Fixed `Alt+F1` / `Alt+F2` path dropdowns not changing the folder
+- Fixed a bug in multi-file copying
+
+</details>
+
+---
+
+## 🚀 Build from Source
+
+You only need this to change the code. To use the app, [download a release](#-download).
 
 ```bash
 # Run the application
