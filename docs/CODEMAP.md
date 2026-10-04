@@ -65,7 +65,7 @@ Adding or renaming an action id? Check each of these:
 | `copy` (F5) | `copyFile`, `handleF5Button` | `CommandsAdvancedImpl.copyBatch` / VFS `copy` | `copy/fcp.exe` (FastCopy) |
 | `move` (F6) | `moveFile`, `handleF6Button` | `CommandsAdvancedImpl.moveBatch` | `copy/fcp.exe` |
 | `duplicate` (Alt+F6) | `duplicateFile`, `generateDuplicateName` | VFS `copy` | — |
-| `copySelection` / `cutSelection` / `pasteSelection` | `copySelectionToClipboard`, `cutSelectionToClipboard`, `pasteClipboardSelection` | `ClipboardTransferState` record in Commander | — |
+| `copySelection` / `cutSelection` / `pasteSelection` | `copySelectionToClipboard`, `cutSelectionToClipboard`, `pasteClipboardSelection` | `services/ClipboardTransfer` (state, paste loop, duplicate names, target paths) | — |
 | `mkdir` (F7) / `mkfile` (Alt+F7) | `makeDirectory` / `makeFile` | VFS `makeDirectory` / `makeFile` | — |
 | `delete` (F8, Del) | `deleteFile` | `CommandsAdvancedImpl.doDelete` / VFS `delete` | — |
 | `deleteWipe` (Shift+F8) | `deleteWipe` | `doWipeDelete` | `delete/wipe/sdelete64.exe` |
@@ -243,6 +243,7 @@ Other dialogs are built inline in `Commander` (`prompt*` methods).
 | `FolderComparer` | Compare Folders: only-left / only-right / different (size, date, SHA-256) marks per top-level item; `key(path)` looks a pane item up. |
 | `ImageConversionService` | caesiumclt command from an `ImageConversionRequest`; finds the first output file to select. |
 | `AudioConversionService` | Runs sndfile-convert (faad/faac for AAC/M4A) per file through an injected runner; stages non-ASCII paths; collision policy; encoding choices for the dialog. |
+| `ClipboardTransfer` | Copy/cut/paste between panes on any VFS: clipboard `State`, `paste` (move or copy, per-item failures), `duplicateName` (`_copy`, `_copy_2`, …), `isSameFolder`, `targetInternalPath`. F5 into the same folder uses it too. |
 
 ### `tools/`
 | File | Role |
@@ -285,5 +286,5 @@ Under `src/test/java/org/chaiware/acommander/`, same package as the class tested
 rules per action vs `src/test/resources/action-rules-snapshot.txt`) · `commands/` CommandsAdvancedImpl, CommandsSimpleImpl,
 PackVfs, ReportFailure · `config/` ActionScope, AppConfigLoader, AppRegistryShortcutMatching · `helpers/` AppTempDir, AppVersion, ArchiveManager, AudioConversionSupport,
 BugReportUrl, FileAttributesHelper, FileHelper, FilesPanesHelperNaturalSort, ImageConversionSupport, SettingsStore, VideoMetadataSupport · `model/` ArchiveMode,
-FileItem · `services/` AudioConversionService, FolderComparer, ImageConversionService · `tools/` BundledTool, BundledToolCommands, ToolCommandBuilder, ProcessRunner · `vfs/` FtpFileSystem · root: ArchitectureRules (process / background / temp-file / app-path / version / fire-and-forget rules), CommanderCopy, `CodeMapTest` (fails when a main
+FileItem · `services/` AudioConversionService, ClipboardTransfer, FolderComparer, ImageConversionService · `tools/` BundledTool, BundledToolCommands, ToolCommandBuilder, ProcessRunner · `vfs/` FtpFileSystem · root: ArchitectureRules (process / background / temp-file / app-path / version / fire-and-forget rules), CommanderCopy, `CodeMapTest` (fails when a main
 class or an apps.json action is missing from this file).

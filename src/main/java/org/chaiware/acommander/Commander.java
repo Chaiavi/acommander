@@ -40,6 +40,7 @@ import org.chaiware.acommander.services.FolderComparer;
 import org.chaiware.acommander.services.AudioConversionService;
 import org.chaiware.acommander.services.AudioConversionService.AudioCompressionProfile;
 import org.chaiware.acommander.services.AudioConversionService.AudioConversionRequest;
+import org.chaiware.acommander.services.ClipboardTransfer;
 import org.chaiware.acommander.services.ImageConversionService;
 import org.chaiware.acommander.services.ImageConversionService.ImageCompressionMode;
 import org.chaiware.acommander.services.ImageConversionService.ImageConversionRequest;
@@ -133,7 +134,7 @@ public class Commander {
     private Popup toastPopup;
     private Label toastLabel;
     private PauseTransition toastHideTransition;
-    private ClipboardTransferState clipboardTransferState;
+    private ClipboardTransfer.State clipboardTransferState;
 
     private KeyBindingManager keyBindingManager;
     private javafx.scene.input.MouseEvent functionButtonClick;
@@ -1356,7 +1357,7 @@ public class Commander {
             String sourceFolderSnapshot = filesPanesHelper.getFocusedPath();
             VFileSystem fs = filesPanesHelper.getFocusedFileSystem();
             VFileSystem targetFs = filesPanesHelper.getUnfocusedFileSystem();
-            boolean duplicateInSameFolder = isSamePasteFolder(
+            boolean duplicateInSameFolder = ClipboardTransfer.isSameFolder(
                     fs,
                     targetFs,
                     sourceFolderSnapshot,
@@ -1367,18 +1368,18 @@ public class Commander {
                 if (fs instanceof FtpFileSystem) {
                     BackgroundTasks.run(() -> {
                         try {
-                            List<ClipboardEntry> pastedSelections = new ArrayList<>();
+                            List<ClipboardTransfer.Entry> pastedSelections = new ArrayList<>();
                             for (FileItem selectedItem : selectedItems) {
                                 String duplicateName = generateDuplicateName(selectedItem.getName(), targetFolderSnapshot, targetFs);
                                 String sourceInternalPath = fs.getInternalPath(selectedItem);
-                                String targetInternalPath = resolveTargetInternalPath(targetFs, targetFolderSnapshot, duplicateName, selectedItem.isDirectory());
+                                String targetInternalPath = ClipboardTransfer.targetInternalPath(targetFs, targetFolderSnapshot, duplicateName, selectedItem.isDirectory());
                                 fs.copy(sourceInternalPath, targetFs, targetInternalPath);
-                                pastedSelections.add(new ClipboardEntry(duplicateName, selectedItem.isDirectory(), sourceInternalPath));
+                                pastedSelections.add(new ClipboardTransfer.Entry(duplicateName, selectedItem.isDirectory(), sourceInternalPath));
                             }
                             Platform.runLater(() -> {
                                 filesPanesHelper.refreshFileListViews();
-                                for (ClipboardEntry entry : pastedSelections) {
-                                    filesPanesHelper.selectFileItem(false, createSelectionProbe(targetFs, targetFolderSnapshot, entry));
+                                for (ClipboardTransfer.Entry entry : pastedSelections) {
+                                    filesPanesHelper.selectFileItem(false, ClipboardTransfer.selectionProbe(targetFs, targetFolderSnapshot, entry));
                                 }
                             });
                         } catch (Exception e) {
@@ -1389,9 +1390,9 @@ public class Commander {
                     for (FileItem selectedItem : selectedItems) {
                         String duplicateName = generateDuplicateName(selectedItem.getName(), targetFolderSnapshot, targetFs);
                         String sourceInternalPath = fs.getInternalPath(selectedItem);
-                        String targetInternalPath = resolveTargetInternalPath(targetFs, targetFolderSnapshot, duplicateName, selectedItem.isDirectory());
+                        String targetInternalPath = ClipboardTransfer.targetInternalPath(targetFs, targetFolderSnapshot, duplicateName, selectedItem.isDirectory());
                         fs.copy(sourceInternalPath, targetFs, targetInternalPath);
-                        filesPanesHelper.selectFileItem(false, createSelectionProbe(targetFs, targetFolderSnapshot, new ClipboardEntry(duplicateName, selectedItem.isDirectory(), sourceInternalPath)));
+                        filesPanesHelper.selectFileItem(false, ClipboardTransfer.selectionProbe(targetFs, targetFolderSnapshot, new ClipboardTransfer.Entry(duplicateName, selectedItem.isDirectory(), sourceInternalPath)));
                     }
                     filesPanesHelper.refreshFileListViews();
                 }
@@ -1502,26 +1503,7 @@ public class Commander {
      * E.g., "file.txt" -> "file_copy.txt", "file_copy.txt" -> "file_copy_2.txt"
      */
     private String generateDuplicateName(String originalName, String targetFolder, VFileSystem fs) {
-        String name;
-        String extension = "";
-        
-        int lastDotIndex = originalName.lastIndexOf('.');
-        if (lastDotIndex > 0) {
-            name = originalName.substring(0, lastDotIndex);
-            extension = originalName.substring(lastDotIndex);
-        } else {
-            name = originalName;
-        }
-        
-        String duplicateName = name + "_copy" + extension;
-        int counter = 2;
-        
-        while (fileExists(targetFolder + "\\" + duplicateName, fs)) {
-            duplicateName = name + "_copy_" + counter + extension;
-            counter++;
-        }
-        
-        return duplicateName;
+        return ClipboardTransfer.duplicateName(originalName, name -> fileExists(targetFolder + "\\" + name, fs));
     }
 
     private boolean fileExists(String fullPath, VFileSystem fs) {
@@ -5182,44 +5164,18 @@ public class Commander {
             return;
         }
 
-        boolean duplicateInSameFolder = !isCut && isSamePasteFolder(
-                clipboardTransferState.sourceFs(),
-                targetFs,
-                clipboardTransferState.sourceFolder(),
-                targetFolder
-        );
-
-        List<ClipboardEntry> entries = List.copyOf(clipboardTransferState.entries());
-        VFileSystem sourceFs = clipboardTransferState.sourceFs();
+        ClipboardTransfer.State state = clipboardTransferState;
         BackgroundTasks.run(() -> {
-            List<ClipboardEntry> failed = new ArrayList<>();
-            List<ClipboardEntry> pastedSelections = new ArrayList<>();
-            for (ClipboardEntry entry : entries) {
-                try {
-                    String targetName = entry.name();
-                    if (duplicateInSameFolder) {
-                        targetName = generateDuplicateName(entry.name(), targetFolder, targetFs);
-                    }
-                    String targetInternalPath = resolveTargetInternalPath(targetFs, targetFolder, targetName, entry.directory());
-                    if (isCut) {
-                        sourceFs.move(entry.sourceInternalPath(), targetFs, targetInternalPath);
-                    } else {
-                        sourceFs.copy(entry.sourceInternalPath(), targetFs, targetInternalPath);
-                    }
-                    pastedSelections.add(new ClipboardEntry(targetName, entry.directory(), entry.sourceInternalPath()));
-                } catch (Exception ex) {
-                    logger.warn("Paste failed for item: {}", entry.name(), ex);
-                    failed.add(entry);
-                }
-            }
+            ClipboardTransfer.PasteResult result = ClipboardTransfer.paste(state, targetFs, targetFolder,
+                    name -> generateDuplicateName(name, targetFolder, targetFs));
 
             Platform.runLater(() -> {
                 filesPanesHelper.refreshFileListViews();
-                for (ClipboardEntry entry : pastedSelections) {
-                    filesPanesHelper.selectFileItem(true, createSelectionProbe(targetFs, targetFolder, entry));
+                for (ClipboardTransfer.Entry entry : result.pasted()) {
+                    filesPanesHelper.selectFileItem(true, ClipboardTransfer.selectionProbe(targetFs, targetFolder, entry));
                 }
 
-                int successCount = pastedSelections.size();
+                int successCount = result.pasted().size();
                 if (successCount <= 0) {
                     showError("Paste", "Failed to paste selected items.");
                     return;
@@ -5228,53 +5184,13 @@ public class Commander {
                 clipboardTransferState = null;
                 commandPaletteController.refresh();
 
-                if (failed.isEmpty()) {
+                if (result.failed().isEmpty()) {
                     showToast("Pasted " + successCount + " file(s)");
                 } else {
-                    showToast("Pasted " + successCount + " of " + entries.size() + " file(s)");
+                    showToast("Pasted " + successCount + " of " + state.entries().size() + " file(s)");
                 }
             });
         });
-    }
-
-    private boolean isSamePasteFolder(VFileSystem sourceFs, VFileSystem targetFs, String sourceFolder, String targetFolder) {
-        if (sourceFs == null || targetFs == null || sourceFolder == null || targetFolder == null) {
-            return false;
-        }
-        if (sourceFs instanceof LocalFileSystem && targetFs instanceof LocalFileSystem) {
-            return isSameLocalFolder(sourceFolder, targetFolder);
-        }
-        if (!Objects.equals(sourceFs.getIdentifier(), targetFs.getIdentifier())) {
-            return false;
-        }
-        if (sourceFs instanceof FtpFileSystem) {
-            return normalizeFtpPath(sourceFolder).equals(normalizeFtpPath(targetFolder));
-        }
-        return Objects.equals(sourceFolder, targetFolder);
-    }
-
-    private boolean isSameLocalFolder(String sourceFolder, String targetFolder) {
-        try {
-            String sourceNormalized = Paths.get(sourceFolder).toAbsolutePath().normalize().toString();
-            String targetNormalized = Paths.get(targetFolder).toAbsolutePath().normalize().toString();
-            return sourceNormalized.equalsIgnoreCase(targetNormalized);
-        } catch (Exception ex) {
-            return sourceFolder.equalsIgnoreCase(targetFolder);
-        }
-    }
-
-    private String normalizeFtpPath(String path) {
-        if (path == null || path.isBlank()) {
-            return "/";
-        }
-        String normalized = path.replace("\\", "/");
-        if (!normalized.startsWith("/")) {
-            normalized = "/" + normalized;
-        }
-        if (!normalized.endsWith("/")) {
-            normalized = normalized + "/";
-        }
-        return normalized;
     }
 
     private void setClipboardTransferState(boolean cut) {
@@ -5288,36 +5204,13 @@ public class Commander {
         VFileSystem sourceFs = filesPanesHelper.getFileSystem(sourceSide);
         String sourceFolder = filesPanesHelper.getPath(sourceSide);
 
-        List<ClipboardEntry> entries = selectedItems.stream()
-                .map(item -> new ClipboardEntry(item.getName(), item.isDirectory(), sourceFs.getInternalPath(item)))
+        List<ClipboardTransfer.Entry> entries = selectedItems.stream()
+                .map(item -> new ClipboardTransfer.Entry(item.getName(), item.isDirectory(), sourceFs.getInternalPath(item)))
                 .toList();
 
-        clipboardTransferState = new ClipboardTransferState(entries, cut, sourceSide, sourceFs, sourceFolder);
+        clipboardTransferState = new ClipboardTransfer.State(entries, cut, sourceSide, sourceFs, sourceFolder);
         commandPaletteController.refresh();
         showToast((cut ? "Cut " : "Copied ") + entries.size() + " file(s)");
-    }
-
-    private String resolveTargetInternalPath(VFileSystem targetFs, String targetFolder, String name, boolean directory) {
-        if (targetFs instanceof LocalFileSystem) {
-            return targetFs.getInternalPath(new FileItem(new File(targetFolder, name)));
-        }
-        String separator = targetFs.getSeparator();
-        String base = targetFolder == null ? "" : targetFolder;
-        if (base.isBlank()) {
-            base = separator;
-        }
-        String fullPath = base.endsWith(separator) ? base + name : base + separator + name;
-        if (targetFs instanceof FtpFileSystem ftpFileSystem) {
-            return ftpFileSystem.sanitizePath(fullPath);
-        }
-        return targetFs.getInternalPath(new FileItem(new File(fullPath), name, 0, 0, directory));
-    }
-
-    private FileItem createSelectionProbe(VFileSystem targetFs, String targetFolder, ClipboardEntry entry) {
-        if (targetFs instanceof LocalFileSystem) {
-            return new FileItem(new File(targetFolder, entry.name()));
-        }
-        return new FileItem(null, entry.name(), 0, 0, entry.directory());
     }
 
     private void showToast(String message) {
@@ -5402,18 +5295,6 @@ public class Commander {
             boolean findInSpecificExtension,
             String extension,
             boolean includeHiddenAndIgnored
-    ) {}
-    private record ClipboardEntry(
-            String name,
-            boolean directory,
-            String sourceInternalPath
-    ) {}
-    private record ClipboardTransferState(
-            List<ClipboardEntry> entries,
-            boolean cut,
-            FilesPanesHelper.FocusSide sourceSide,
-            VFileSystem sourceFs,
-            String sourceFolder
     ) {}
 
     private Optional<FileAttributesHelper.AttributeChangeRequest> promptAttributes(List<FileItem> selectedItems) {

@@ -187,7 +187,8 @@ Rechecked after Phase 3: every symbol below still exists in `Commander`. Bug fix
   fallback stays). What a check could have caught is a URL GitHub rejects as too long, so `BugReportUrl` caps the
   body to keep the URL under ~8,000 characters and notes the cut. Test: a huge "steps" text still yields a URL
   under the cap.
-- [ ] 4.8 `ClipboardTransfer` (`ClipboardEntry`, `ClipboardTransferState`, copy/cut/paste).
+- [x] 4.8 `ClipboardTransfer` (`ClipboardEntry`, `ClipboardTransferState`, copy/cut/paste). In `services/`, with the
+  paste-target helpers F5 shares (`isSameFolder`, `targetInternalPath`, `duplicateName`).
 - [ ] 4.9 `FileIcons` (`resolveIconSpec`, `IconSpec`, `is*Extension`).
 - [ ] 4.10 `IncrementalFilter` (`filterByChar`, `applyIncrementalFilter`), pure prefix logic tested.
 - [ ] 4.11 Theme: `applyTheme`, `ThemeMode` and `applyThemeToDialog` join `dialog/DialogTheme` (3.4) in one theme
