@@ -1,25 +1,24 @@
 package org.chaiware.acommander.commands;
 
-import org.chaiware.acommander.helpers.FilesPanesHelper;
 import org.junit.jupiter.api.Test;
 
 import java.util.concurrent.CompletableFuture;
 
 import static org.mockito.Mockito.*;
 
-class ReportFailureTest {
+class ExternalToolRunnerTest {
 
     private final ExternalCommandListener listener = mock(ExternalCommandListener.class);
-    private final CommandsSimpleImpl commands = new CommandsSimpleImpl(mock(FilesPanesHelper.class));
+    private final ExternalToolRunner runner = new ExternalToolRunner(() -> {});
 
-    ReportFailureTest() {
-        commands.setExternalCommandListener(listener);
+    ExternalToolRunnerTest() {
+        runner.setListener(listener);
     }
 
     @Test
     void failureOfUnwatchedWorkReachesTheUserWithItsCause() {
         CompletableFuture<Void> work = new CompletableFuture<>();
-        commands.reportFailure(work.thenRun(() -> {}), "Copy");
+        runner.reportFailure(work.thenRun(() -> {}), "Copy");
 
         IllegalStateException cause = new IllegalStateException("disk full");
         work.completeExceptionally(cause);
@@ -29,7 +28,7 @@ class ReportFailureTest {
 
     @Test
     void successIsNotReported() {
-        commands.reportFailure(CompletableFuture.completedFuture(null), "Copy");
+        runner.reportFailure(CompletableFuture.completedFuture(null), "Copy");
 
         verify(listener, never()).onFailure(anyString(), any());
     }
@@ -37,9 +36,9 @@ class ReportFailureTest {
     @Test
     void toolStoppedByTheUserIsNotReported() {
         CompletableFuture<Void> work = new CompletableFuture<>();
-        commands.reportFailure(work, "Copy");
+        runner.reportFailure(work, "Copy");
 
-        commands.stopRunningExternalCommands();
+        runner.stopAll();
         work.completeExceptionally(new ExternalCommandException(1, "fastcopy.exe", ""));
 
         verify(listener, never()).onFailure(anyString(), any());

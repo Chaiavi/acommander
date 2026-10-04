@@ -29,23 +29,10 @@ public class CommandsAdvancedImpl extends ACommands {
     ACommands commandsSimpleImpl;
     private final AppRegistry appRegistry;
 
-    public CommandsAdvancedImpl(FilesPanesHelper fileListsLoader, AppRegistry appRegistry) {
-        super(fileListsLoader);
-        commandsSimpleImpl = new CommandsSimpleImpl(fileListsLoader);
+    public CommandsAdvancedImpl(FilesPanesHelper fileListsLoader, AppRegistry appRegistry, ExternalToolRunner runner) {
+        super(fileListsLoader, runner);
+        commandsSimpleImpl = new CommandsSimpleImpl(fileListsLoader, runner);
         this.appRegistry = appRegistry;
-    }
-
-    @Override
-    public void setExternalCommandListener(ExternalCommandListener externalCommandListener) {
-        super.setExternalCommandListener(externalCommandListener);
-        commandsSimpleImpl.setExternalCommandListener(externalCommandListener);
-    }
-
-    @Override
-    public int stopRunningExternalCommands() {
-        int stoppedByAdvanced = super.stopRunningExternalCommands();
-        int stoppedBySimple = commandsSimpleImpl.stopRunningExternalCommands();
-        return stoppedByAdvanced + stoppedBySimple;
     }
 
     @Override

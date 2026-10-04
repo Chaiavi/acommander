@@ -17,8 +17,8 @@ import java.util.Set;
 
 /** Simple implementation using Java code and Powershell (Not 3rd party executables) */
 public class CommandsSimpleImpl extends ACommands {
-    public CommandsSimpleImpl(FilesPanesHelper fileListsLoader) {
-        super(fileListsLoader);
+    public CommandsSimpleImpl(FilesPanesHelper fileListsLoader, ExternalToolRunner runner) {
+        super(fileListsLoader, runner);
     }
 
     @Override

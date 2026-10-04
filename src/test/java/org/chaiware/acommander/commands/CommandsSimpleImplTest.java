@@ -30,7 +30,7 @@ class CommandsSimpleImplTest {
         VFileSystem localFs = new LocalFileSystem("");
         when(panesHelper.getFocusedFileSystem()).thenReturn(localFs);
         when(panesHelper.getUnfocusedFileSystem()).thenReturn(localFs);
-        CommandsSimpleImpl commands = new CommandsSimpleImpl(panesHelper);
+        CommandsSimpleImpl commands = new CommandsSimpleImpl(panesHelper, new ExternalToolRunner(() -> {}));
 
         commands.copy(new FileItem(sourceFile.toFile()), targetDir.toString());
 
@@ -52,7 +52,7 @@ class CommandsSimpleImplTest {
         VFileSystem localFs = new LocalFileSystem("");
         when(panesHelper.getFocusedFileSystem()).thenReturn(localFs);
         when(panesHelper.getUnfocusedFileSystem()).thenReturn(localFs);
-        CommandsSimpleImpl commands = new CommandsSimpleImpl(panesHelper);
+        CommandsSimpleImpl commands = new CommandsSimpleImpl(panesHelper, new ExternalToolRunner(() -> {}));
 
         commands.copy(new FileItem(sourceDir.toFile()), targetDir.toString());
 
@@ -72,7 +72,7 @@ class CommandsSimpleImplTest {
         VFileSystem localFs = new LocalFileSystem("");
         when(panesHelper.getFocusedFileSystem()).thenReturn(localFs);
         when(panesHelper.getUnfocusedFileSystem()).thenReturn(localFs);
-        CommandsSimpleImpl commands = new CommandsSimpleImpl(panesHelper);
+        CommandsSimpleImpl commands = new CommandsSimpleImpl(panesHelper, new ExternalToolRunner(() -> {}));
 
         commands.move(new FileItem(sourceFile.toFile()), targetDir.toString());
 
@@ -90,7 +90,7 @@ class CommandsSimpleImplTest {
         FilesPanesHelper panesHelper = mock(FilesPanesHelper.class);
         VFileSystem localFs = new LocalFileSystem("");
         when(panesHelper.getFocusedFileSystem()).thenReturn(localFs);
-        CommandsSimpleImpl commands = new CommandsSimpleImpl(panesHelper);
+        CommandsSimpleImpl commands = new CommandsSimpleImpl(panesHelper, new ExternalToolRunner(() -> {}));
 
         commands.rename(List.of(new FileItem(sourceFile.toFile())), "new.txt");
 
@@ -104,7 +104,7 @@ class CommandsSimpleImplTest {
         FilesPanesHelper panesHelper = mock(FilesPanesHelper.class);
         VFileSystem localFs = new LocalFileSystem("");
         when(panesHelper.getFocusedFileSystem()).thenReturn(localFs);
-        CommandsSimpleImpl commands = new CommandsSimpleImpl(panesHelper);
+        CommandsSimpleImpl commands = new CommandsSimpleImpl(panesHelper, new ExternalToolRunner(() -> {}));
 
         commands.mkdir(tempDir.toString(), "created");
 
@@ -117,7 +117,7 @@ class CommandsSimpleImplTest {
         FilesPanesHelper panesHelper = mock(FilesPanesHelper.class);
         VFileSystem localFs = new LocalFileSystem("");
         when(panesHelper.getFocusedFileSystem()).thenReturn(localFs);
-        CommandsSimpleImpl commands = new CommandsSimpleImpl(panesHelper);
+        CommandsSimpleImpl commands = new CommandsSimpleImpl(panesHelper, new ExternalToolRunner(() -> {}));
 
         commands.mkFile(tempDir.toString(), "file.txt");
 

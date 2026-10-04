@@ -45,7 +45,7 @@ class CommandsAdvancedImplTest {
         AppConfig appConfig = new AppConfig();
         appConfig.setActions(List.of());
         AppRegistry appRegistry = new AppRegistry(appConfig);
-        CommandsAdvancedImpl commands = new CommandsAdvancedImpl(panesHelper, appRegistry);
+        CommandsAdvancedImpl commands = new CommandsAdvancedImpl(panesHelper, appRegistry, new ExternalToolRunner(() -> {}));
 
         commands.moveBatch(
                 List.of(new FileItem(first.toFile()), new FileItem(second.toFile())),
@@ -123,7 +123,7 @@ class CommandsAdvancedImplTest {
         private Path asciiOutputPath;
 
         private TestMergeCommands(FilesPanesHelper fileListsLoader, AppRegistry appRegistry) {
-            super(fileListsLoader, appRegistry);
+            super(fileListsLoader, appRegistry, new ExternalToolRunner(() -> {}));
         }
 
         @Override

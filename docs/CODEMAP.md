@@ -167,9 +167,10 @@ Not actions, but often asked for:
 ### `commands/` — file operations behind the UI
 | File | Role |
 |---|---|
-| `ACommands` | Base: filters `..`/invalid items, template methods (`rename` → `doRename`, …), `runExecutable`, stop running tools, `reportFailure` (shows the failure of a tool run nobody waits on; every fire-and-forget run must use it, or `Commander.runExternalReported`). |
+| `ACommands` | Base: filters `..`/invalid items, template methods (`rename` → `doRename`, …); runs tools through the shared `ExternalToolRunner`. |
 | `CommandsAdvancedImpl` | Used by the app. Runs apps.json tool paths (`requireAction(id)`), batches copy/move, PDFs, pack/unpack; falls back to `CommandsSimpleImpl`. |
 | `CommandsSimpleImpl` | Pure-Java/OS ops: single rename, copy/move, mkdir, terminal, explorer, PowerShell file search. Pack/PDF throw "not implemented". |
+| `ExternalToolRunner` | One per app: `runExecutable` (background run, listener events, accepted exit codes, a callback when a tool changed files), `reportFailure` (shows the failure of a run nobody waits on; every fire-and-forget run must use it, or `Commander.runExternalReported`), `stopAll` (Stop button). No JavaFX. |
 | `ExternalCommandListener` | Callback for tool start/finish (drives the progress bar) and `onFailure` (error dialog). |
 | `ExternalCommandException` | Non-zero exit with command + output tail. |
 | `PdfExtractOptions` | Record: extract all / page expression / pages per PDF. |
@@ -301,7 +302,7 @@ Under `src/test/java/org/chaiware/acommander/`, same package as the class tested
 
 `actions/` ActionMatcher, ActionPriorityEngine, ActionRegistry, BuiltinAction, ActionRulesSnapshot (FTP / read-only / palette
 rules per action vs `src/test/resources/action-rules-snapshot.txt`) · `commands/` CommandsAdvancedImpl, CommandsSimpleImpl,
-PackVfs, ReportFailure · `config/` ActionScope, AppConfigLoader, AppRegistryShortcutMatching · `dialog/` DialogTheme, MetadataFormDialog · `helpers/` AppTempDir, AppVersion, ArchiveManager, AudioConversionSupport, AudioMetadataSupport,
+PackVfs, ExternalToolRunner · `config/` ActionScope, AppConfigLoader, AppRegistryShortcutMatching · `dialog/` DialogTheme, MetadataFormDialog · `helpers/` AppTempDir, AppVersion, ArchiveManager, AudioConversionSupport, AudioMetadataSupport,
 BugReportUrl, ExecutableCompressionSupport, ExternalProgressController, FileAttributesHelper, FileHelper, FileIcons, FilesPanesHelperNaturalSort, IncrementalFilter, ImageConversionSupport, ImageMetadataSupport, SettingsStore, VideoMetadataSupport · `model/` ArchiveMode,
 FileItem · `services/` AudioConversionService, ClipboardTransfer, FolderComparer, ImageConversionService · `tools/` BundledTool, BundledToolCommands, ToolCommandBuilder, ProcessRunner · `vfs/` FtpFileSystem · root: ArchitectureRules (process / background / temp-file / app-path / version / fire-and-forget / no file walking or hashing in `Commander` rules), CommanderCopy, `CodeMapTest` (fails when a main
 class or an apps.json action is missing from this file).

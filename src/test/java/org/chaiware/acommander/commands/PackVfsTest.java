@@ -34,7 +34,7 @@ class PackVfsTest {
     @BeforeEach
     void setUp() throws IOException {
         filesPanesHelper = mock(FilesPanesHelper.class);
-        commands = new CommandsAdvancedImpl(filesPanesHelper, mock(AppRegistry.class));
+        commands = new CommandsAdvancedImpl(filesPanesHelper, mock(AppRegistry.class), new ExternalToolRunner(() -> {}));
         sourceFs = mock(FtpFileSystem.class);
         targetFs = new LocalFileSystem(tempDir.toString());
 

@@ -289,13 +289,14 @@ failures are only logged, and a merge into an FTP or archive pane writes to the 
   `Platform.runLater` wrappers go. Search by name (F10) runs a PowerShell command and shows its own copy of the
   found-files dialog in `CommandsSimpleImpl`; the command moves to `tools/BundledToolCommands` and `Commander` shows
   the existing `FoundFilesDialog`, like Find in Files. `PdfExtractOptions` moves to `services/`.
-- [ ] 7.2 Changed: `commands/ExternalToolRunner` (next to its listener and exception) owns `runExecutable`,
+- [x] 7.2 Changed: `commands/ExternalToolRunner` (next to its listener and exception) owns `runExecutable`,
   `reportFailure`, the Stop counter and `ProcessRunner.trackIn`, under the same names. Dropped "reporting by
   default": callers chain follow-up steps (upload, verify, cleanup) whose failure must reach the user with the
   tool's, and one `reportFailure` on the chain already does that. It takes a `Runnable` to run when a tool changed
   files instead of `FilesPanesHelper`, so it has no JavaFX. One runner is shared: today the advanced commands and
   their inner simple commands each have their own Stop counter and process set. `ArchitectureRulesTest` also catches
-  a qualified `runner.runExecutable(...);`. `ReportFailureTest` becomes `ExternalToolRunnerTest`.
+  a qualified `runner.runExecutable(...);`. `ReportFailureTest` becomes `ExternalToolRunnerTest`. Done; `Commander`
+  owns the runner and passes it to the commands (the `ACommands.runExecutable` wrappers live until 7.1).
 - [ ] 7.3 Delete the 8 "Not implemented" stubs; move tests with the code (`CommanderCopyTest` builds a
   `CommandsSimpleImpl`). Falls out of 7.1: the stubs exist only to fill the abstract class.
 - [x] 7.4 `LocalFileSystem.copyDirectory` and `ArchiveFileSystem.copyDirectory` are the same method; keep one.

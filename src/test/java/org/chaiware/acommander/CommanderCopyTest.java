@@ -2,6 +2,7 @@ package org.chaiware.acommander;
 
 import org.assertj.core.api.Assertions;
 import org.chaiware.acommander.commands.CommandsSimpleImpl;
+import org.chaiware.acommander.commands.ExternalToolRunner;
 import org.chaiware.acommander.helpers.FilesPanesHelper;
 import org.chaiware.acommander.model.FileItem;
 import org.chaiware.acommander.vfs.LocalFileSystem;
@@ -36,7 +37,7 @@ class CommanderCopyTest {
 
         Commander commander = new Commander();
         commander.filesPanesHelper = panesHelper;
-        commander.commands = new CommandsSimpleImpl(panesHelper);
+        commander.commands = new CommandsSimpleImpl(panesHelper, new ExternalToolRunner(() -> {}));
 
         commander.copyFile();
 

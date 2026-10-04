@@ -105,6 +105,7 @@ public class Commander {
 
     private final SettingsStore settings = new SettingsStore(AppPaths.config("acommander.properties"));
     ACommands commands;
+    private ExternalToolRunner toolRunner;
     private AppRegistry appRegistry;
     private ActionExecutor actionExecutor;
     private final Map<String, String> bookmarks = new LinkedHashMap<>();
@@ -143,8 +144,12 @@ public class Commander {
         filesPanesHelper.setExternalCommandListener(externalCommandListener);
         appRegistry = loadAppRegistry();
         actionExecutor = new ActionExecutor(this, appRegistry);
-        commands = new CommandsAdvancedImpl(filesPanesHelper, appRegistry);
-        commands.setExternalCommandListener(externalCommandListener);
+        toolRunner = new ExternalToolRunner(() -> Platform.runLater(() -> {
+            filesPanesHelper.markArchiveNeedsRepack(filesPanesHelper.getFocusedSide());
+            filesPanesHelper.refreshFileListViews();
+        }));
+        toolRunner.setListener(externalCommandListener);
+        commands = new CommandsAdvancedImpl(filesPanesHelper, appRegistry, toolRunner);
         configMouseDoubleClick();
 
         logger.debug("Loading file lists into the double panes file views");
@@ -255,7 +260,7 @@ public class Commander {
 
     @FXML
     public void stopExternalTasks() {
-        int stopped = commands.stopRunningExternalCommands();
+        int stopped = toolRunner.stopAll();
         logger.info("Stop requested for running external tasks. Requested stops: {}", stopped);
         if (externalStopButton != null) {
             externalStopButton.setDisable(true);
@@ -3120,12 +3125,12 @@ public class Commander {
     }
 
     public CompletableFuture<List<String>> runExternal(List<String> command, boolean refreshAfter) {
-        return commands.runExternal(command, refreshAfter);
+        return toolRunner.runExecutable(command, refreshAfter);
     }
 
     /** Runs a tool nobody waits on; a failure is shown to the user under {@code title}. */
     public void runExternalReported(List<String> command, boolean refreshAfter, String title) {
-        commands.reportFailure(commands.runExternal(command, refreshAfter), title);
+        toolRunner.reportFailure(toolRunner.runExecutable(command, refreshAfter), title);
     }
 
     public CompletableFuture<List<String>> runExternal(
@@ -3133,7 +3138,7 @@ public class Commander {
             boolean refreshAfter,
             Set<Integer> acceptedNonZeroExitCodes
     ) {
-        return commands.runExternal(command, refreshAfter, acceptedNonZeroExitCodes);
+        return toolRunner.runExecutable(command, refreshAfter, acceptedNonZeroExitCodes);
     }
 
     private FileItem getSingleSelectedFile(ListView<FileItem> listView) {

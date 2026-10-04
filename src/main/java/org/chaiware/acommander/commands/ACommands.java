@@ -1,38 +1,25 @@
 package org.chaiware.acommander.commands;
 
-import javafx.application.Platform;
-import org.chaiware.acommander.helpers.BackgroundTasks;
 import org.chaiware.acommander.helpers.FilesPanesHelper;
 import org.chaiware.acommander.model.ArchiveMode;
 import org.chaiware.acommander.model.FileItem;
-import org.chaiware.acommander.tools.ProcessRunner;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionException;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 public abstract class ACommands {
     protected FilesPanesHelper fileListsLoader;
-    protected ExternalCommandListener externalCommandListener;
-    private final Set<Process> runningProcesses = ConcurrentHashMap.newKeySet();
-    private final AtomicInteger stopRequests = new AtomicInteger();
+    protected final ExternalToolRunner runner;
     final Logger log = LoggerFactory.getLogger(ACommands.class);
 
-    public ACommands(FilesPanesHelper filesPanesHelper) {
+    public ACommands(FilesPanesHelper filesPanesHelper, ExternalToolRunner runner) {
         this.fileListsLoader = filesPanesHelper;
-    }
-
-    public void setExternalCommandListener(ExternalCommandListener externalCommandListener) {
-        this.externalCommandListener = externalCommandListener;
+        this.runner = runner;
     }
 
     // helper methods for filtering
@@ -191,7 +178,7 @@ public abstract class ACommands {
     protected abstract int doGetPdfPageCount(FileItem selectedItem) throws Exception;
 
     protected CompletableFuture<List<String>> runExecutable(List<String> params, boolean shouldUpdateUI) {
-        return runExecutable(params, shouldUpdateUI, Set.of());
+        return runner.runExecutable(params, shouldUpdateUI);
     }
 
     protected CompletableFuture<List<String>> runExecutable(
@@ -199,148 +186,10 @@ public abstract class ACommands {
             boolean shouldUpdateUI,
             Set<Integer> acceptedNonZeroExitCodes
     ) {
-        List<String> commandSnapshot = List.copyOf(params);
-        Set<Integer> acceptedExitCodes = new HashSet<>();
-        acceptedExitCodes.add(0);
-        if (acceptedNonZeroExitCodes != null) {
-            acceptedExitCodes.addAll(acceptedNonZeroExitCodes);
-        }
-        notifyCommandStarted(commandSnapshot);
-        return BackgroundTasks.supply(() -> {
-            int exitCode = -1;
-            Throwable failure = null;
-            try {
-                log.debug("Running: {}", String.join(" ", commandSnapshot));
-                ProcessRunner.Result result = ProcessRunner.of(params).mergeStderr().trackIn(runningProcesses).run();
-                List<String> output = result.stdout();
-                exitCode = result.exitCode();
-                log.debug("Process completed with exit code: {}", exitCode);
-                if (!acceptedExitCodes.contains(exitCode)) {
-                    String toolOutput = summarizeOutput(output);
-                    ExternalCommandException ex = new ExternalCommandException(
-                            exitCode,
-                            formatCommand(commandSnapshot),
-                            toolOutput
-                    );
-                    failure = ex;
-                    log.error(
-                            "External command failed. exitCode={} command={} outputTail={}",
-                            exitCode,
-                            formatCommand(commandSnapshot),
-                            toolOutput
-                    );
-                    throw ex;
-                }
-
-                if (shouldUpdateUI) Platform.runLater(() -> {
-                    fileListsLoader.markArchiveNeedsRepack(fileListsLoader.getFocusedSide());
-                    fileListsLoader.refreshFileListViews();
-                });
-                return output;
-
-            } catch (IOException | InterruptedException e) {
-                failure = e;
-                if (e instanceof InterruptedException) {
-                    Thread.currentThread().interrupt();
-                }
-                log.error("Error running external process. command={}", formatCommand(commandSnapshot), e);
-                throw new RuntimeException(e);
-            } finally {
-                notifyCommandFinished(commandSnapshot, exitCode, failure);
-            }
-        });
+        return runner.runExecutable(params, shouldUpdateUI, acceptedNonZeroExitCodes);
     }
 
-    public CompletableFuture<List<String>> runExternal(List<String> params, boolean shouldUpdateUI) {
-        return runExecutable(params, shouldUpdateUI);
-    }
-
-    public CompletableFuture<List<String>> runExternal(
-            List<String> params,
-            boolean shouldUpdateUI,
-            Set<Integer> acceptedNonZeroExitCodes
-    ) {
-        return runExecutable(params, shouldUpdateUI, acceptedNonZeroExitCodes);
-    }
-
-    /**
-     * Shows the user a failure of work nobody waits on (otherwise it is only logged). A tool the user stopped with
-     * the Stop button is not reported.
-     */
-    public void reportFailure(CompletableFuture<?> work, String title) {
-        int stopsBefore = stopRequests.get();
-        work.exceptionally(ex -> {
-            Throwable cause = ex instanceof CompletionException && ex.getCause() != null ? ex.getCause() : ex;
-            log.error("{} failed", title, cause);
-            // ponytail: one stop counter for all tools, so Stop also mutes a different tool failing meanwhile.
-            // Track the stopped processes if that matters.
-            boolean stoppedByUser = cause instanceof ExternalCommandException && stopRequests.get() != stopsBefore;
-            if (!stoppedByUser && externalCommandListener != null) {
-                externalCommandListener.onFailure(title, cause);
-            }
-            return null;
-        });
-    }
-
-    public int stopRunningExternalCommands() {
-        stopRequests.incrementAndGet();
-        List<Process> snapshot = new ArrayList<>(runningProcesses);
-        int stopped = 0;
-        for (Process process : snapshot) {
-            if (!process.isAlive()) {
-                continue;
-            }
-            try {
-                process.destroy();
-                if (process.isAlive()) {
-                    process.destroyForcibly();
-                }
-                stopped++;
-            } catch (Exception ex) {
-                log.warn("Failed stopping external process", ex);
-            }
-        }
-        return stopped;
-    }
-
-    private void notifyCommandStarted(List<String> command) {
-        if (externalCommandListener == null) {
-            return;
-        }
-        try {
-            externalCommandListener.onCommandStarted(command);
-        } catch (Exception ex) {
-            log.debug("External command listener failed on start", ex);
-        }
-    }
-
-    private void notifyCommandFinished(List<String> command, int exitCode, Throwable error) {
-        if (externalCommandListener == null) {
-            return;
-        }
-        try {
-            externalCommandListener.onCommandFinished(command, exitCode, error);
-        } catch (Exception ex) {
-            log.debug("External command listener failed on finish", ex);
-        }
-    }
-
-    private String formatCommand(List<String> command) {
-        if (command == null || command.isEmpty()) {
-            return "<empty>";
-        }
-        return String.join(" ", command);
-    }
-
-    private String summarizeOutput(List<String> output) {
-        if (output == null || output.isEmpty()) {
-            return "<no output>";
-        }
-        int start = Math.max(0, output.size() - 20);
-        String tail = String.join(" | ", output.subList(start, output.size()));
-        if (tail.length() > 4000) {
-            return tail.substring(tail.length() - 4000);
-        }
-        return tail;
+    protected void reportFailure(CompletableFuture<?> work, String title) {
+        runner.reportFailure(work, title);
     }
 }

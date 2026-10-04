@@ -52,7 +52,7 @@ class ArchitectureRulesTest {
 
     @Test
     void toolRunsAreNeverFireAndForget() throws IOException {
-        assertThat(violations("^\\s*(runExecutable|runExternal)\\((?:[^()]|\\([^()]*\\))*\\);\\s*$", null))
+        assertThat(violations("^\\s*(\\w+\\.)?(runExecutable|runExternal)\\((?:[^()]|\\([^()]*\\))*\\);\\s*$", null))
                 .as("a dropped tool future hides its failure; wrap it in reportFailure or use runExternalReported")
                 .isEmpty();
     }
