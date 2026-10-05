@@ -15,6 +15,7 @@ import org.chaiware.acommander.vfs.FtpConnectionOptions;
 import org.chaiware.acommander.vfs.FtpConnectionOptions.Protocol;
 
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Consumer;
 
@@ -60,7 +61,8 @@ public final class FtpConnectDialog {
         nameField.setPromptText("Connection Name (optional)");
         CheckBox trustCheckBox = tip(new CheckBox("Trust Any Certificate"),
                 "Skip checking the server's TLS certificate or SSH key; tick only for a self-signed server you trust.");
-        CheckBox saveCheckBox = tip(new CheckBox("Save for Next Time"), "Add this connection to Saved Connections.");
+        CheckBox saveCheckBox = tip(new CheckBox("Save for Next Time"),
+                "Add this connection to Saved Connections; the password is encrypted for your Windows account.");
         saveCheckBox.setSelected(true);
 
         protocolCombo.valueProperty().addListener((obs, oldValue, newValue) ->
@@ -75,7 +77,10 @@ public final class FtpConnectDialog {
             hostField.setText(option.getHost());
             portField.setText(String.valueOf(option.getPort()));
             userField.setText(option.getUsername());
-            passField.setText(option.getPassword());
+            passField.setText(Objects.requireNonNullElse(option.getPassword(), ""));
+            if (passField.getText().isEmpty()) {
+                Platform.runLater(passField::requestFocus);
+            }
             nameField.setText(option.getName());
             trustCheckBox.setSelected(option.isTrustAnyCertificate());
             saveCheckBox.setSelected(true);

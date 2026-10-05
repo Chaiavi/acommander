@@ -399,7 +399,7 @@ Rechecked after Phase 9 (2026-10-05). Gate findings:
   the bundled curl (LibreSSL) has a built-in CA list, so valid FTPS certificates pass; a refused certificate is exit
   60; SFTP with no `.ssh\known_hosts` file is exit 2 before connecting. Auto-discover stops on exit 60 instead of
   falling back to plain FTP (it would send the password in clear); exit 2 can't be told apart, so SFTP falls through.
-- [ ] 10.5 FTP password at rest: encrypt with DPAPI through PowerShell (decision 1; needs `ProcessRunner.stdin` from
+- [x] 10.5 FTP password at rest (#166): encrypt with DPAPI through PowerShell (decision 1; needs `ProcessRunner.stdin` from
   10.1). Today it is plain text in `acommander.properties`.
   1. New `tools/Dpapi`: `protect(List<String>)` and `unprotect(List<String>)`, one hidden
      `powershell -NoProfile -NonInteractive -Command <constant script>` per batch. Data goes over stdin and stdout as

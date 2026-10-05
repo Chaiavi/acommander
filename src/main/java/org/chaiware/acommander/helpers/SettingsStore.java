@@ -1,5 +1,6 @@
 package org.chaiware.acommander.helpers;
 
+import org.chaiware.acommander.tools.Dpapi;
 import org.chaiware.acommander.vfs.FtpConnectionOptions;
 
 import java.io.ByteArrayOutputStream;
@@ -9,8 +10,10 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
@@ -24,12 +27,24 @@ public class SettingsStore {
     private static final String LAST_SELECTION_PATTERN = "last_selection_pattern";
     private static final String BOOKMARK_PREFIX = "bookmark.";
     private static final String FTP_PREFIX = "ftp.";
+    private static final String PASSWORD_DPAPI = "passwordDpapi";
 
     private final Path file;
     private final Properties properties = new Properties();
+    private final Dpapi dpapi;
+    /** Connection name → the encrypted password last read or written. */
+    private final Map<String, String> savedCiphers = new HashMap<>();
+    /** Cipher → its password, so an unchanged password is never decrypted or encrypted again. */
+    private final Map<String, String> decrypted = new HashMap<>();
+    private boolean plainFtpPasswordsFound;
 
     public SettingsStore(Path file) {
+        this(file, new Dpapi());
+    }
+
+    public SettingsStore(Path file, Dpapi dpapi) {
         this.file = file;
+        this.dpapi = dpapi;
     }
 
     public Path file() {
@@ -112,8 +127,10 @@ public class SettingsStore {
         bookmarks.forEach((name, path) -> properties.setProperty(BOOKMARK_PREFIX + name, path));
     }
 
-    /** Saved FTP connections by name; the password is stored as plain text. */
+    /** Saved FTP connections by name; an encrypted password is null until {@link #unlockFtpPasswords}. */
     public Map<String, FtpConnectionOptions> ftpConnections() {
+        savedCiphers.clear();
+        plainFtpPasswordsFound = false;
         Map<String, FtpConnectionOptions.FtpConnectionOptionsBuilder> builders = new HashMap<>();
         for (String key : properties.stringPropertyNames()) {
             if (!key.startsWith(FTP_PREFIX)) {
@@ -138,7 +155,14 @@ public class SettingsStore {
                     }
                 }
                 case "username" -> builder.username(value);
-                case "password" -> builder.password(value);
+                case "password" -> { // written before passwords were encrypted
+                    builder.password(value);
+                    plainFtpPasswordsFound = true;
+                }
+                case PASSWORD_DPAPI -> {
+                    savedCiphers.put(name, value);
+                    builder.password(decrypted.get(value));
+                }
                 case "trustAnyCertificate" -> builder.trustAnyCertificate(Boolean.parseBoolean(value));
                 case "protocol" -> {
                     try {
@@ -155,14 +179,61 @@ public class SettingsStore {
         return connections;
     }
 
-    public void setFtpConnections(Map<String, FtpConnectionOptions> connections) {
+    /** True when the file holds a plain-text FTP password; saving the connections once encrypts it. */
+    public boolean hasPlainFtpPasswords() {
+        return plainFtpPasswordsFound;
+    }
+
+    /** Decrypts every password still null in {@code connections}, in one run; one that can't be decrypted becomes "". */
+    public void unlockFtpPasswords(Map<String, FtpConnectionOptions> connections) throws IOException {
+        List<String> locked = connections.entrySet().stream()
+                .filter(entry -> entry.getValue().getPassword() == null)
+                .map(entry -> savedCiphers.get(entry.getKey()))
+                .filter(cipher -> cipher != null && !decrypted.containsKey(cipher))
+                .distinct()
+                .toList();
+        List<String> passwords = dpapi.unprotect(locked);
+        for (int i = 0; i < locked.size(); i++) {
+            decrypted.put(locked.get(i), passwords.get(i));
+        }
+        connections.replaceAll((name, options) -> options.getPassword() != null ? options
+                : options.toBuilder().password(decrypted.getOrDefault(savedCiphers.get(name), "")).build());
+    }
+
+    /**
+     * Replaces the saved connections. New or changed passwords are encrypted first, in one run, so a failure leaves the
+     * file's connections untouched; a password never unlocked (null) keeps its saved cipher. Never writes plain text.
+     */
+    public void setFtpConnections(Map<String, FtpConnectionOptions> connections) throws IOException {
+        Map<String, String> ciphers = new HashMap<>();
+        List<String> names = new ArrayList<>();
+        List<String> passwords = new ArrayList<>();
+        for (Map.Entry<String, FtpConnectionOptions> entry : connections.entrySet()) {
+            String password = entry.getValue().getPassword();
+            String saved = savedCiphers.get(entry.getKey());
+            if (saved != null && (password == null || password.equals(decrypted.get(saved)))) {
+                ciphers.put(entry.getKey(), saved);
+            } else if (password != null && !password.isEmpty()) {
+                names.add(entry.getKey());
+                passwords.add(password);
+            }
+        }
+        List<String> encrypted = dpapi.protect(passwords);
+        for (int i = 0; i < names.size(); i++) {
+            ciphers.put(names.get(i), encrypted.get(i));
+            decrypted.put(encrypted.get(i), passwords.get(i));
+        }
+        savedCiphers.clear();
+        savedCiphers.putAll(ciphers);
         properties.keySet().removeIf(key -> key.toString().startsWith(FTP_PREFIX));
         connections.forEach((name, options) -> {
             String prefix = FTP_PREFIX + name + ".";
             properties.setProperty(prefix + "host", options.getHost());
             properties.setProperty(prefix + "port", String.valueOf(options.getPort()));
             properties.setProperty(prefix + "username", options.getUsername());
-            properties.setProperty(prefix + "password", options.getPassword());
+            if (ciphers.containsKey(name)) {
+                properties.setProperty(prefix + PASSWORD_DPAPI, ciphers.get(name));
+            }
             properties.setProperty(prefix + "protocol", options.getProtocol().name());
             properties.setProperty(prefix + "trustAnyCertificate", String.valueOf(options.isTrustAnyCertificate()));
         });

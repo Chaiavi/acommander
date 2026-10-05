@@ -219,7 +219,7 @@ Not actions, but often asked for:
 | `BackgroundTasks` | The one background executor (virtual threads): `run`, `supply`. Never use `CompletableFuture.runAsync` without it. |
 | `AppTempDir` | Every temp file/folder goes under `%TEMP%/acommander-<pid>`: `createTempFile`, `createTempDirectory`. Deleted on exit; `deleteStaleRoots` (run at startup by `Main`) removes roots of dead runs. |
 | `AppPaths` | The app root (`user.dir`), `config(name)`, `resolve(relative)`. The only reader of `user.dir`. |
-| `SettingsStore` | `config/acommander.properties`: typed get/set (pane folders, theme, last selection pattern, bookmarks, FTP connections), save via temp file + atomic move; an unreadable file is moved to `.unreadable`. `Commander.loadSettings` / `saveSettings`; reloaded when the Settings editor closes. |
+| `SettingsStore` | `config/acommander.properties`: typed get/set (pane folders, theme, last selection pattern, bookmarks, FTP connections), save via temp file + atomic move; an unreadable file is moved to `.unreadable`. FTP passwords are stored DPAPI-encrypted (`passwordDpapi`), decrypted by `unlockFtpPasswords` when the FTP dialog opens. `Commander.loadSettings` / `saveSettings`; reloaded when the Settings editor closes. |
 | `AppVersion` | Running version from `app-version.properties`, which the build fills from `appVersion` in `build.gradle`. |
 | `ImageConversionSupport`, `AudioConversionSupport` | Which files convert, target formats. |
 | `ImageMetadataSupport`, `VideoMetadataSupport`, `AudioMetadataSupport` | Which files the metadata editors accept; `remove(file)` strips all metadata (exiv2 / AtomicParsley / id3). Output parsers the dialogs use: `parsePrintAll` + `groupName` (exiv2), `parseTextData` (AtomicParsley), `parseQuery` (id3). Video and audio also `read` / `writeCommand` / `write` (id3 refuses text the Windows code page can't hold). `VideoMetadataSupport` also deletes the temp files AtomicParsley leaves. |
@@ -270,8 +270,9 @@ Not actions, but often asked for:
 | `ToolCommandBuilder` | Expands `${...}` placeholders in apps.json `args`; resolves `path` with `AppPaths`. |
 | `BundledTool` | Every tool under `apps/` the code runs directly (7z, curl, exiv2, rg, rhash, …) → `path()`. Tools of apps.json actions are listed there instead. `BundledToolTest` checks both lists are on disk. |
 | `BundledToolCommands` | Argument lists + option types for rhash (checksum), file (analyze), ExamDiff (compare files), ripgrep (find by name / in files, `foundFiles`) and the 7-Zip split size. |
+| `Dpapi` | Windows DPAPI (current user) through one hidden PowerShell run per batch, base64 lines on stdin/stdout. Encrypts the saved FTP passwords for `SettingsStore`. |
 | `FilePropertiesLauncher` | Opens the Windows Properties dialog of a path: writes a VBS script to the temp dir, runs it with `wscript.exe`. |
-| `ProcessRunner` | The one way to start a process: `run()` drains stdout/stderr (merged or apart) and returns `Result`; `launch()` for GUI tools; `trackIn` for the Stop button. |
+| `ProcessRunner` | The one way to start a process: `run()` drains stdout/stderr (merged or apart) and returns `Result`; `launch()` for GUI tools; `trackIn` for the Stop button; `stdin` keeps secrets off the command line. |
 
 ### `vfs/` — pane file systems
 | File | Role |

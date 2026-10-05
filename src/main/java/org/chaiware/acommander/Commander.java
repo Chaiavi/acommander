@@ -514,6 +514,9 @@ public class Commander {
         bookmarks.putAll(settings.bookmarks());
         ftpConnections.clear();
         ftpConnections.putAll(settings.ftpConnections());
+        if (settings.hasPlainFtpPasswords()) {
+            saveSettings();
+        }
     }
 
     private Path getConfigFilePath() {
@@ -545,7 +548,12 @@ public class Commander {
 
     private void saveSettings() {
         settings.setBookmarks(bookmarks);
-        settings.setFtpConnections(ftpConnections);
+        try {
+            settings.setFtpConnections(ftpConnections);
+        } catch (IOException ex) {
+            logger.error("Failed encrypting FTP passwords", ex);
+            showToast("FTP connections not saved: " + ex.getMessage());
+        }
         try {
             settings.save();
         } catch (IOException ex) {
@@ -2781,6 +2789,12 @@ public class Commander {
     }
 
     public void ftpConnect() {
+        try {
+            settings.unlockFtpPasswords(ftpConnections);
+        } catch (IOException e) {
+            logger.error("Failed decrypting saved FTP passwords", e);
+            showToast("Saved FTP passwords could not be read: " + e.getMessage());
+        }
         Optional<FtpConnectDialog.Result> result = FtpConnectDialog.show(dialogOwner(), currentThemeMode.styleClass,
                 ftpConnections, name -> {
                     ftpConnections.remove(name);
