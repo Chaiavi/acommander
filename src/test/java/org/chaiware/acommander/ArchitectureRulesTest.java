@@ -31,13 +31,13 @@ class ArchitectureRulesTest {
 
     @Test
     void tempFilesLiveUnderAppTempDir() throws IOException {
-        assertThat(violations("deleteOnExit|File\\.createTempFile\\(|Files\\.createTemp(File|Directory)\\(\"", null))
+        assertThat(violations("deleteOnExit|File\\.createTempFile\\(|Files\\.createTemp(File|Directory)\\(\""))
                 .as("create temp files with helpers/AppTempDir; it deletes them on exit").isEmpty();
     }
 
     @Test
     void versionIsNeverHardCoded() throws IOException {
-        assertThat(violations("(?i)version\\w*\\s*=\\s*\"\\d+\\.\\d", null))
+        assertThat(violations("(?i)version\\w*\\s*=\\s*\"\\d+\\.\\d"))
                 .as("read the version with helpers/AppVersion; build.gradle appVersion is the only source").isEmpty();
     }
 
@@ -52,7 +52,7 @@ class ArchitectureRulesTest {
 
     @Test
     void toolRunsAreNeverFireAndForget() throws IOException {
-        assertThat(violations("^\\s*(\\w+\\.)?(runExecutable|runExternal)\\((?:[^()]|\\([^()]*\\))*\\);\\s*$", null))
+        assertThat(violations("^\\s*(\\w+\\.)?(runExecutable|runExternal)\\((?:[^()]|\\([^()]*\\))*\\);\\s*$"))
                 .as("a dropped tool future hides its failure; wrap it in reportFailure or use runExternalReported")
                 .isEmpty();
     }
@@ -75,7 +75,25 @@ class ArchitectureRulesTest {
                 .isEmpty();
     }
 
-    private static List<String> violations(String regex, String allowedFileName) throws IOException {
+    @Test
+    void curlGetsTheLoginOnStdinAndChecksCertificates() {
+        Path ftp = MAIN.resolve(Path.of("org", "chaiware", "acommander", "vfs", "FtpFileSystem.java"));
+        assertThat(matchingLines(ftp, Pattern.compile("\"(-u|--user|-k)\"")).toList())
+                .as("the login goes to curl on stdin (-K -), never in its arguments; --insecure only for Trust Any Certificate")
+                .isEmpty();
+    }
+
+    @Test
+    void shellsNeverParseFileNames() throws IOException {
+        assertThat(violations("\"/[ck]\""))
+                .as("cmd /c parses & and %VAR% in names; use ShellExecute (rundll32 ShellExec_RunDLL) or a working directory")
+                .isEmpty();
+        assertThat(violations("\"-Command\"", "FileOperations.java", "ComboBoxSetup.java", "Dpapi.java"))
+                .as("a PowerShell -Command must be a constant script; pass paths and secrets as the working directory or stdin")
+                .isEmpty();
+    }
+
+    private static List<String> violations(String regex, String... allowedFileNames) throws IOException {
         Pattern pattern = Pattern.compile(regex);
         List<Path> sources;
         try (Stream<Path> files = Files.walk(MAIN)) {
@@ -83,7 +101,7 @@ class ArchitectureRulesTest {
         }
         assertThat(sources).as("no sources found under " + MAIN.toAbsolutePath()).isNotEmpty();
         return sources.stream()
-                .filter(file -> !file.getFileName().toString().equals(allowedFileName))
+                .filter(file -> !List.of(allowedFileNames).contains(file.getFileName().toString()))
                 .flatMap(file -> matchingLines(file, pattern))
                 .toList();
     }

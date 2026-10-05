@@ -141,6 +141,11 @@ All actions and external tools live in `config/apps.json`; shortcuts are declare
   passes a fake that records the commands (`AudioConversionServiceTest`).
 - `Commander` doesn't walk folders, hash files or read settings itself; `ArchitectureRulesTest` fails on
   `Files.walk/list`, `MessageDigest` or a `Properties` variable there.
+- A secret goes to a process on stdin (`ProcessRunner.stdin`), never in its arguments (Task Manager shows them). A
+  file or folder name never goes inside a shell string: open it through ShellExecute
+  (`rundll32.exe shell32.dll,ShellExec_RunDLL <path>`, as Explorer does) or pass a folder as the working directory
+  (`ProcessRunner.directory`). `ArchitectureRulesTest` fails on `"/c"`, on `"-Command"` outside `FileOperations`,
+  `ComboBoxSetup` and `Dpapi`, and on `-u` / `-k` in `FtpFileSystem`.
 - New storage types implement `VFileSystem` and are wired through `VfsManager`.
 - To select an item after an operation, call `FilesPanesHelper.selectFileItem(focused, folder, name)`. Never build
   the probe with `Path.of`: FTP names and bad-media names hold `:*?` and throw `InvalidPathException`.
@@ -172,3 +177,7 @@ All actions and external tools live in `config/apps.json`; shortcuts are declare
   `git commit -m` without a pathspec.
 - IntelliJ: after a clean build, debugger errors → **File → Invalidate Caches → Invalidate and Restart**. LSP errors in
   `Commander.java` (e.g. "getPath() undefined for Folder") are false positives if Gradle builds.
+- `Desktop.open` throws "Unsupported URI content" for executables (`.bat`, `.exe`); use ShellExec_RunDLL (above).
+- A console program started from the app gets no window (the app has no console). To give it one, have a hidden
+  `powershell -Command "Start-Process ..."` start it (`FileOperations.openTerminal`). Check such process tricks
+  from `build\runtime\bin\javaw.exe Probe.java`, not `java.exe`: a console parent behaves differently.

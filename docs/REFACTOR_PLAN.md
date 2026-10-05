@@ -44,7 +44,7 @@ Command Palette; theme toggle; one metadata edit on a copied jpg/mp3/mp4; checks
 server is available.
 
 `Commander` line count: 7459 (start), 7199 (after Phase 1), 7038 (after Phase 2), 6929 (after Phase 3), 5380 (after
-Phase 4), 3632 (after Phase 5), 3533 (after Phase 6), 3553 (after Phase 7; Search moved in from the commands), 3554 (after Phase 8), 3500 (after Phase 9).
+Phase 4), 3632 (after Phase 5), 3533 (after Phase 6), 3553 (after Phase 7; Search moved in from the commands), 3554 (after Phase 8), 3500 (after Phase 9), 3477 (after Phase 10).
 
 ## Phase 0 — Prep and Safety Net (no behaviour change)
 
@@ -437,7 +437,7 @@ Rechecked after Phase 9 (2026-10-05). Gate findings:
   with a `ponytail:` comment (one idle `wscript.exe` per open dialog until the app exits; in-process
   `ShellExecuteEx` would need JNA). Smoke: Alt+Enter twice, close the app, then no `wscript.exe` is left.
 - [x] 10.8 Bug report URL parameters are encoded (`BugReportUrl`, #144; labels are constants).
-- [ ] 10.9 `ArchitectureRulesTest` locks the above: no `"-u"` and no `"-k"` in `FtpFileSystem` (`"-k"` is a different
+- [x] 10.9 `ArchitectureRulesTest` locks the above: no `"-u"` and no `"-k"` in `FtpFileSystem` (`"-k"` is a different
   flag for `file.exe` in `BundledToolCommands`); no `"/c"` anywhere in `src/main` (10.3 and 10.6 remove the last
   ones); `"-Command"` only in `FileOperations`, `ComboBoxSetup` and `Dpapi`.
 
