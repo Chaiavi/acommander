@@ -99,15 +99,36 @@ def seedUniExtractIni = tasks.register('seedUniExtractIni', Copy) {
     into 'apps/extract_all/UniExtract'
 }
 
-// Task to copy config and apps folders to build/libs
-def copyResources = tasks.register('copyResources', Copy) {
-    dependsOn seedUniExtractIni
+// What a release ships from config/ and apps/. Tools write logs and settings into their folders, and
+// config/acommander.properties holds the user's paths, bookmarks and FTP logins: none of that ships.
+def releaseConfigFiles = ['apps.json', 'f1-help.html']
+def releaseAppsExcludes = [
+        '**/*.log',
+        'copy/Log/**',
+        'copy/FastCopy2.ini',
+        'extract_all/UniExtract/UniExtract.ini',
+        'extract_all/UniExtract/batch.queue',
+        'extract_all/UniExtract/log/**',
+]
+def releaseResources = copySpec {
     from('config') {
+        include releaseConfigFiles
         into 'config'
     }
     from('apps') {
+        exclude releaseAppsExcludes
         into 'apps'
     }
+    // A fresh UniExtract.ini from the template, not the one UniExtract rewrote on this machine
+    from('apps/extract_all/UniExtract/UniExtract.default.ini') {
+        rename { 'UniExtract.ini' }
+        into 'apps/extract_all/UniExtract'
+    }
+}
+
+// Task to copy config and apps folders to build/libs
+def copyResources = tasks.register('copyResources', Copy) {
+    with releaseResources
     into layout.buildDirectory.dir('libs')
 }
 
@@ -134,7 +155,7 @@ launch4j {
     jvmOptions = ['--enable-native-access=javafx.graphics']
 }
 
-def copyRuntime = tasks.register('copyRuntime', Copy) {
+def copyRuntime = tasks.register('copyRuntime', Sync) {
     def runtimeHome = javaToolchains.launcherFor {
         languageVersion = JavaLanguageVersion.of(21)
     }.map { it.metadata.installationPath.asFile }
@@ -142,42 +163,76 @@ def copyRuntime = tasks.register('copyRuntime', Copy) {
     into(layout.buildDirectory.dir('runtime'))
 }
 
-// Create distribution task - puts files in dist folder at project root
-def copyDist = tasks.register('copyDist', Copy) {
-    dependsOn tasks.named('createExe')
-    dependsOn copyRuntime
-    from('build/launch4j') {  // Default location for launch4j output
+// Built from the sources, never from dist/ or build/libs, where a run of the app leaves its own settings and logs
+def distributionContents = copySpec {
+    from(layout.buildDirectory.dir('launch4j')) {  // Default location for launch4j output
         include '*.exe'
     }
-    into 'dist'
-
-    // Also copy from build/libs for config and apps
-    from('build/libs') {
-        include '*.jar'
-        include 'config/**'
-        include 'apps/**'
-        into '.'
-    }
-
-    from(layout.buildDirectory.dir('runtime')) {
+    from(tasks.named('shadowJar'))
+    with releaseResources
+    from(copyRuntime) {
         into 'runtime'
     }
 }
 
-// Zip the distribution folder
+// Create distribution task - puts files in dist folder at project root
+def copyDist = tasks.register('copyDist', Copy) {
+    dependsOn tasks.named('createExe')
+    with distributionContents
+    into 'dist'
+}
+
 def zipDist = tasks.register('zipDist', Zip) {
-    dependsOn copyDist
-    from 'dist'
-    exclude '*.zip'
+    dependsOn tasks.named('createExe')
+    mustRunAfter copyDist
+    with distributionContents
     archiveFileName = "acommander-v${appVersion}.zip"
     destinationDirectory = file('dist')
 }
 
-// Make dist task run both copy and zip
+// Fails the release if the ZIP holds per-user files or lacks what the app needs to start
+def verifyDistribution = tasks.register('verifyDistribution') {
+    def zipFile = zipDist.flatMap { it.archiveFile }
+    def uniExtractTemplate = file('apps/extract_all/UniExtract/UniExtract.default.ini')
+    def allowedConfig = releaseConfigFiles.collect { 'config/' + it }
+    inputs.file(zipFile)
+    inputs.file(uniExtractTemplate)
+    doLast {
+        def zip = new java.util.zip.ZipFile(zipFile.get().asFile)
+        try {
+            def names = Collections.list(zip.entries()).collect { it.name }
+            def privateEntries = names.findAll { name ->
+                (name.startsWith('config/') && name != 'config/' && !allowedConfig.contains(name)) ||
+                        name.toLowerCase().endsWith('.log') ||
+                        name.contains('acommander.properties') ||
+                        name.startsWith('apps/copy/Log/') ||
+                        name == 'apps/copy/FastCopy2.ini' ||
+                        name == 'apps/extract_all/UniExtract/batch.queue' ||
+                        name.startsWith('apps/extract_all/UniExtract/log/')
+            }
+            def required = ['acommander.exe', 'acommander.jar', 'runtime/bin/javaw.exe',
+                            'apps/extract_all/UniExtract/UniExtract.ini'] + allowedConfig
+            def missing = required.findAll { !names.contains(it) }
+            def problems = []
+            if (privateEntries) problems << "per-user files: ${privateEntries.take(20)}"
+            if (missing) problems << "missing files: ${missing}"
+            def ini = zip.getEntry('apps/extract_all/UniExtract/UniExtract.ini')
+            if (ini != null && zip.getInputStream(ini).bytes != uniExtractTemplate.bytes) {
+                problems << 'UniExtract.ini is not UniExtract.default.ini'
+            }
+            if (problems) {
+                throw new GradleException("${zipFile.get().asFile.name}: ${problems.join('; ')}")
+            }
+        } finally {
+            zip.close()
+        }
+    }
+}
+
 tasks.register('dist') {
-    dependsOn zipDist
+    dependsOn copyDist, zipDist, verifyDistribution
     group = 'distribution'
-    description = 'Creates distribution folder and ZIP file'
+    description = 'Creates the dist folder and a verified distribution ZIP'
 }
 
 // Fix task dependencies

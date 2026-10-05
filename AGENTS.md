@@ -64,7 +64,6 @@ When a task changed files, finish by committing and pushing to `origin/main` wit
 |---|---|
 | `AGENTS.md` (this file) | Always |
 | [docs/CODEMAP.md](docs/CODEMAP.md) | Before searching code: key→action flow, action id → `Commander` method → tool, every class in one line, `Commander` layout |
-| [docs/REFACTOR_PLAN.md](docs/REFACTOR_PLAN.md) | Phased refactor in progress: run its Phase Gate before starting a phase, tick steps as they land |
 | [ui-logic.instructions.md](.github/instructions/ui-logic.instructions.md) | Editing `Commander.java`, `dialog/**`, `palette/**` |
 | [ui-text.instructions.md](.github/instructions/ui-text.instructions.md) | Editing UI classes, `*.fxml`, `config/apps.json` |
 
@@ -88,7 +87,9 @@ lessons about this repo in the files above, not in memory.
 - Build + test (same as CI, [ci.yml](.github/workflows/ci.yml)): `.\gradlew.bat build`
 - One test class: `.\gradlew.bat test --tests "org.chaiware.acommander.model.FileItemTest"`
 - Run: `.\gradlew.bat run` (working dir must be repo root, see below)
-- Windows distribution (EXE + bundled runtime + apps/config + zip → `dist/`): `.\gradlew.bat dist`
+- Windows distribution (EXE + bundled runtime + apps/config + zip → `dist/`): `.\gradlew.bat dist`. The ZIP is built
+  from `releaseResources` in `build.gradle` (public config files only, no tool logs or settings), never from `dist/`
+  or `build/libs/`; `verifyDistribution` fails it if per-user files get in.
 - After every fix or feature run `build` and fix failures. Add a JUnit 5 + AssertJ + Mockito test for new business
   logic under the matching package in `src/test/java`. Tests don't start the JavaFX toolkit — don't test UI.
 

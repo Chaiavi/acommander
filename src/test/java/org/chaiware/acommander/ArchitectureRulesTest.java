@@ -13,7 +13,7 @@ import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-/** Source rules the compiler can't enforce (docs/REFACTOR_PLAN.md). Each names the one file allowed to break it. */
+/** Source rules the compiler can't enforce. Each names the one file allowed to break it. */
 class ArchitectureRulesTest {
     private static final Path MAIN = Path.of("src", "main", "java");
 

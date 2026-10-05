@@ -27,8 +27,8 @@ import static org.mockito.Mockito.mockingDetails;
 import static org.mockito.Mockito.when;
 
 /**
- * Locks every apps.json action's FTP gate, read-only gate and palette enablement (REFACTOR_PLAN Phase 2 moves them
- * into apps.json). On a mismatch the actual table is written to build/action-rules-snapshot.actual.txt.
+ * Locks every apps.json action's FTP gate, read-only gate and palette enablement. On a mismatch the actual table is
+ * written to build/action-rules-snapshot.actual.txt.
  */
 class ActionRulesSnapshotTest {
     private static final Path SNAPSHOT = Path.of("src", "test", "resources", "action-rules-snapshot.txt");
