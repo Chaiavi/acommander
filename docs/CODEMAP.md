@@ -84,7 +84,7 @@ Adding or renaming an action id? Check each of these:
 | `checksumFile` / `checksumFolderContents` | `checksumFile` / `checksumFolderContents` | `dialog/ChecksumOptionsDialog`, `ChecksumResultDialog`; `tools/BundledToolCommands.checksum`, `checksumDigest`, `checksumOutputPath` | `checksum/rhash.exe` |
 | `analyzeFile` | `analyzeFile` | `tools/BundledToolCommands.analyzeFile` | `file_analysis/file.exe` + `magic.mgc` |
 | `compareFiles` | `compareFiles`, `canCompareSelectedFiles` | `dialog/CompareFilesDialog`, `tools/BundledToolCommands.compareFiles` | `file_compare/ExamDiff.exe` |
-| `compareFolders` | `compareFolders`, `applyFolderCompareStyle` | `dialog/CompareFoldersDialog`, `services/FolderComparer` (SHA-256 optional) | — |
+| `compareFolders` | `compareFolders`, `applyFolderCompareStyle` | `dialog/CompareFoldersDialog`, `services/FolderComparer` (byte comparison optional) | — |
 | `fileProperties` (Alt+Enter) | `fileProperties` | `tools/FilePropertiesLauncher` (temp `.vbs` via `wscript.exe`, Windows Properties dialog) | — |
 | `changeAttributes` | `changeAttributes` | `dialog/AttributesDialog`, `helpers/FileAttributesHelper` | `attrib` |
 | `editImageMetadata` / `removeImageMetadata` | `editImageMetadata` → `editMetadata` (shared with video/audio) / `removeImageMetadata` → `removeMetadata` (shared confirm + background run) | `dialog/ImageMetadataDialog`, `helpers/ImageMetadataSupport` | `image_metadata/exiv2.exe` |
@@ -255,7 +255,7 @@ Not actions, but often asked for:
 ### `services/` — feature logic moved out of `Commander` (no JavaFX)
 | File | Role |
 |---|---|
-| `FolderComparer` | Compare Folders: only-left / only-right / different (size, date, SHA-256) marks per top-level item; `key(path)` looks a pane item up. |
+| `FolderComparer` | Compare Folders: only-left / only-right / different (size, date, contents via `Files.mismatch`) marks per top-level item; `key(path)` looks a pane item up. |
 | `ImageConversionService` | caesiumclt command from an `ImageConversionRequest`; finds the first output file to select. |
 | `AudioConversionService` | Runs sndfile-convert (faad/faac for AAC/M4A) per file through an injected runner; stages non-ASCII paths; collision policy; encoding choices for the dialog. |
 | `ClipboardTransfer` | Copy/cut/paste between panes on any VFS: clipboard `State`, `paste` (move or copy, per-item failures), `duplicateName` (`_copy`, `_copy_2`, …), `isSameFolder`, `targetInternalPath`. F5 into the same folder uses it too. |
@@ -304,6 +304,6 @@ Under `src/test/java/org/chaiware/acommander/`, same package as the class tested
 
 `actions/` ActionMatcher, ActionPriorityEngine, ActionRegistry, BuiltinAction, ActionRulesSnapshot (FTP / read-only / palette
 rules per action vs `src/test/resources/action-rules-snapshot.txt`) · `commands/` ExternalToolRunner · `config/` ActionScope, AppConfigLoader, AppRegistryShortcutMatching · `dialog/` DialogTheme, MetadataFormDialog · `helpers/` AppTempDir, AppVersion, ArchiveManager, AudioConversionSupport, AudioMetadataSupport,
-BugReportUrl, ExecutableCompressionSupport, ExternalProgressController, FileAttributesHelper, FileHelper, FileIcons, IncrementalFilter, ImageConversionSupport, ImageMetadataSupport, PaneSorter, SettingsStore, VideoMetadataSupport · `model/` ArchiveMode,
+BugReportUrl, ExecutableCompressionSupport, ExternalProgressController, FileAttributesHelper, FileHelper, FileIcons, FilesPanesHelper, IncrementalFilter, ImageConversionSupport, ImageMetadataSupport, PaneSorter, SettingsStore, VideoMetadataSupport · `model/` ArchiveMode,
 FileItem · `services/` ArchiveOperations, AudioConversionService, ClipboardTransfer, FileOperations, FolderComparer, ImageConversionService, PdfOperations · `tools/` BundledTool, BundledToolCommands, ToolCommandBuilder, ProcessRunner · `vfs/` ArchiveFileSystem, FtpFileSystem, LocalFileSystem · root: ArchitectureRules (process / background / temp-file / app-path / version / fire-and-forget / no file walking or hashing in `Commander` rules), CommanderCopy, `CodeMapTest` (fails when a main
 class or an apps.json action is missing from this file).

@@ -1,18 +1,11 @@
 package org.chaiware.acommander.services;
 
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.security.DigestInputStream;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.util.HashMap;
-import java.util.HexFormat;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.stream.Stream;
@@ -22,7 +15,7 @@ public final class FolderComparer {
 
     public enum Mark { LEFT_ONLY, RIGHT_ONLY, DIFFERENT }
 
-    public record Options(boolean compareByDate, boolean checksum, boolean recursive, boolean caseSensitiveNames) {}
+    public record Options(boolean compareByDate, boolean compareContents, boolean recursive, boolean caseSensitiveNames) {}
 
     /** Marks are keyed by {@link #key(Path)} of the top-level item in that pane. */
     public record Result(Map<String, Mark> leftMarks, Map<String, Mark> rightMarks,
@@ -81,7 +74,7 @@ public final class FolderComparer {
         if (options.compareByDate() && left.modifiedMillis() != right.modifiedMillis()) {
             return true;
         }
-        return options.checksum() && !Objects.equals(sha256(left.absolutePath()), sha256(right.absolutePath()));
+        return options.compareContents() && Files.mismatch(left.absolutePath(), right.absolutePath()) != -1;
     }
 
     private static Map<String, Entry> collectEntries(Path root, Options options) throws IOException {
@@ -114,19 +107,6 @@ public final class FolderComparer {
         }
         entries.putIfAbsent(key, new Entry(path.toAbsolutePath().normalize(),
                 root.resolve(topLevelName).toAbsolutePath().normalize(), directory, size, modified));
-    }
-
-    private static String sha256(Path file) throws IOException {
-        MessageDigest digest;
-        try {
-            digest = MessageDigest.getInstance("SHA-256");
-        } catch (NoSuchAlgorithmException ex) {
-            throw new IllegalStateException("SHA-256 algorithm is not available", ex);
-        }
-        try (InputStream in = new DigestInputStream(Files.newInputStream(file), digest)) {
-            in.transferTo(OutputStream.nullOutputStream());
-        }
-        return HexFormat.of().formatHex(digest.digest());
     }
 
     /** A top-level item seen as left-only by one entry and right-only by another becomes DIFFERENT. */

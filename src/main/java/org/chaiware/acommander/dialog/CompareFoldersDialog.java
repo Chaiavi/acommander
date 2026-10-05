@@ -24,19 +24,19 @@ public final class CompareFoldersDialog {
         subtitle.setWrapText(true);
         CheckBox compareByDate = tip(new CheckBox("Compare Also by Date"),
                 "Treat files with the same size but a different modified date as different.");
-        CheckBox checksum = tip(new CheckBox("Checksum Files for Comparison (Slower)"),
-                "Read both files and compare their content hash instead of trusting size and date.");
+        CheckBox compareContents = tip(new CheckBox("Compare File Contents (Slower)"),
+                "Read both files byte by byte when their sizes match, instead of trusting size and date.");
         CheckBox recursive = tip(new CheckBox("Compare Also Subfolders (Recursively)"),
                 "Walk into subfolders on both sides, not only the top level.");
         recursive.setSelected(true);
         CheckBox caseSensitive = tip(new CheckBox("Case-Sensitive Filename Matching"),
                 "Pair files only when their names match in upper and lower case too.");
 
-        dialog.add(subtitle, new Separator(), compareByDate, checksum, recursive, caseSensitive);
+        dialog.add(subtitle, new Separator(), compareByDate, compareContents, recursive, caseSensitive);
         dialog.dialog().getDialogPane().setPrefSize(700, 320);
         return dialog.showAndWait(() -> new FolderComparer.Options(
                 compareByDate.isSelected(),
-                checksum.isSelected(),
+                compareContents.isSelected(),
                 recursive.isSelected(),
                 caseSensitive.isSelected()));
     }

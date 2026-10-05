@@ -9,10 +9,12 @@ import java.nio.file.Path;
 import java.nio.file.attribute.FileTime;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class FolderComparerTest {
 
     private static final FolderComparer.Options SIZE_ONLY = new FolderComparer.Options(false, false, true, false);
+    private static final FolderComparer.Options CONTENTS = new FolderComparer.Options(false, true, true, false);
 
     @TempDir
     Path left;
@@ -59,13 +61,48 @@ class FolderComparerTest {
     }
 
     @Test
-    void checksumFindsSameSizeDifferentContent() throws IOException {
+    void contentComparisonFindsSameSizeDifferentContent() throws IOException {
         Files.writeString(left.resolve("f.txt"), "abc");
         Files.writeString(right.resolve("f.txt"), "abd");
 
         assertThat(FolderComparer.compare(left, right, SIZE_ONLY).differentCount()).isZero();
-        assertThat(FolderComparer.compare(left, right, new FolderComparer.Options(false, true, true, false))
-                .differentCount()).isEqualTo(1);
+        assertThat(FolderComparer.compare(left, right, CONTENTS).differentCount()).isEqualTo(1);
+    }
+
+    @Test
+    void contentComparisonFindsADifferenceAnywhereInALargeFile() throws IOException {
+        byte[] data = new byte[300_000];
+        for (int i = 0; i < data.length; i++) {
+            data[i] = (byte) i;
+        }
+        for (int position : new int[]{0, data.length / 2, data.length - 1}) {
+            byte[] changed = data.clone();
+            changed[position]++;
+            Files.write(left.resolve("big.bin"), data);
+            Files.write(right.resolve("big.bin"), changed);
+
+            assertThat(FolderComparer.compare(left, right, CONTENTS).differentCount()).as("byte %d", position).isEqualTo(1);
+        }
+        Files.write(right.resolve("big.bin"), data);
+        assertThat(FolderComparer.compare(left, right, CONTENTS).differentCount()).isZero();
+    }
+
+    @Test
+    void contentComparisonTreatsEmptyFilesAsEqual() throws IOException {
+        Files.createFile(left.resolve("empty.txt"));
+        Files.createFile(right.resolve("empty.txt"));
+
+        assertThat(FolderComparer.compare(left, right, CONTENTS).differentCount()).isZero();
+    }
+
+    @Test
+    void contentComparisonFailsInsteadOfCallingAnUnreadableFileEqual() throws IOException {
+        Files.writeString(left.resolve("f.txt"), "abc");
+        Path locked = Files.writeString(right.resolve("f.txt"), "abc");
+        try (var channel = java.nio.channels.FileChannel.open(locked, java.nio.file.StandardOpenOption.WRITE);
+             var lock = channel.lock()) {
+            assertThatThrownBy(() -> FolderComparer.compare(left, right, CONTENTS)).isInstanceOf(IOException.class);
+        }
     }
 
     @Test
