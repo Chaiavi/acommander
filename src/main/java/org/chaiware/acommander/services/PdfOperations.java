@@ -88,6 +88,8 @@ public class PdfOperations {
             int totalPages = options.knownTotalPages() != null && options.knownTotalPages() > 0
                     ? options.knownTotalPages() : readPageCount(action, input);
             validateExtractRequest(pdf.getName(), totalPages, options);
+            List<Integer> selectedPages = options.mode() == PdfExtractOptions.Mode.SPECIFIC_PAGES_SINGLE
+                    ? parsePageExpression(options.pageExpression(), totalPages) : List.of();
             List<String> command = ToolCommandBuilder.buildCommand(action.getPath(), action.getArgs(), panes,
                     Map.of("${outputPattern}", workDir.resolve("page_%04d.pdf").toString()), List.of(input.toString()));
             String prefix = pdf.getName().replaceFirst("(?i)\\.pdf$", "");
@@ -101,7 +103,7 @@ public class PdfOperations {
                     })
                     .thenRun(() -> {
                         try {
-                            savePages(workDir, prefix, options, targetFs, destinationPath);
+                            savePages(workDir, prefix, options, selectedPages, targetFs, destinationPath);
                         } catch (Exception e) {
                             throw new CompletionException(e);
                         }
@@ -130,12 +132,15 @@ public class PdfOperations {
         }
     }
 
-    /** Pages like "1, 3-5, p7, 9:8" in ascending order; throws on a token that is not a positive page or range. */
-    static List<Integer> parsePageExpression(String expression) {
+    /**
+     * Pages like "1, 3-5, p7, 9:8" in ascending order. Every page is checked against {@code totalPages} before a range
+     * is expanded, so a typo like 1-2000000000 fails at once instead of filling memory.
+     */
+    static List<Integer> parsePageExpression(String expression, int totalPages) {
         if (expression == null || expression.isBlank()) {
             throw new IllegalArgumentException("Page expression is empty.");
         }
-        Set<Integer> pages = new TreeSet<>();
+        BitSet pages = new BitSet(Math.max(totalPages, 0) + 1);
         for (String rawToken : expression.split(",")) {
             String token = rawToken.trim().replaceFirst("(?i)^pages?\\s*", "").replaceFirst("(?i)^p\\s*", "");
             if (token.isEmpty()) {
@@ -151,9 +156,13 @@ public class PdfOperations {
                 if (start <= 0 || end <= 0) {
                     throw new IllegalArgumentException("Page numbers must be positive: " + token);
                 }
-                for (int page = Math.min(start, end); page <= Math.max(start, end); page++) {
-                    pages.add(page);
+                int last = Math.max(start, end);
+                if (last > totalPages) {
+                    throw new IllegalArgumentException("Requested page is out of bounds. PDF has " + totalPages
+                            + " pages, requested up to page " + last + ".");
                 }
+                pages.set(Math.min(start, end), last);
+                pages.set(last);
             } catch (NumberFormatException ex) {
                 throw new IllegalArgumentException("Invalid page token: " + token, ex);
             }
@@ -161,7 +170,7 @@ public class PdfOperations {
         if (pages.isEmpty()) {
             throw new IllegalArgumentException("No pages were parsed from page expression.");
         }
-        return List.copyOf(pages);
+        return pages.stream().boxed().toList();
     }
 
     static void validateExtractRequest(String fileName, int totalPages, PdfExtractOptions options) {
@@ -179,11 +188,7 @@ public class PdfOperations {
                         "Pages per PDF (" + pagesPerPdf + ") exceeds PDF length (" + totalPages + " pages).");
             }
         } else if (options.mode() == PdfExtractOptions.Mode.SPECIFIC_PAGES_SINGLE) {
-            int maxRequested = parsePageExpression(options.pageExpression()).getLast();
-            if (maxRequested > totalPages) {
-                throw new IllegalArgumentException("Requested page is out of bounds. PDF has " + totalPages
-                        + " pages, requested up to page " + maxRequested + ".");
-            }
+            parsePageExpression(options.pageExpression(), totalPages);
         }
     }
 
@@ -206,8 +211,8 @@ public class PdfOperations {
     }
 
     /** Names the burst pages as the options ask, in a local folder, then saves them to the target pane. */
-    private void savePages(Path workDir, String prefix, PdfExtractOptions options, VFileSystem targetFs,
-                           String destinationPath) throws Exception {
+    private void savePages(Path workDir, String prefix, PdfExtractOptions options, List<Integer> selectedPages,
+                           VFileSystem targetFs, String destinationPath) throws Exception {
         List<Path> pages;
         try (Stream<Path> files = Files.list(workDir)) {
             pages = files.filter(path -> path.getFileName().toString().matches("^page_\\d{4}\\.pdf$")).sorted().toList();
@@ -219,7 +224,7 @@ public class PdfOperations {
         switch (options.mode()) {
             case SPECIFIC_PAGES_SINGLE -> {
                 int saved = 0;
-                for (int page : parsePageExpression(options.pageExpression())) {
+                for (int page : selectedPages) {
                     if (page <= pages.size()) {
                         Files.move(pages.get(page - 1), outDir.resolve(String.format("%s_%04d.pdf", prefix, page)));
                         saved++;

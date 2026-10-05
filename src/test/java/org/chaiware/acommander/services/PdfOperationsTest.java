@@ -32,11 +32,20 @@ class PdfOperationsTest {
 
     @Test
     void parsesPageListsAndRanges() {
-        assertThat(PdfOperations.parsePageExpression("1, 3-5, p7, 9:8")).containsExactly(1, 3, 4, 5, 7, 8, 9);
-        assertThat(PdfOperations.parsePageExpression("pages 2")).containsExactly(2);
-        assertThatThrownBy(() -> PdfOperations.parsePageExpression("0")).hasMessageContaining("positive");
-        assertThatThrownBy(() -> PdfOperations.parsePageExpression("1-2-3")).hasMessageContaining("Invalid page range");
-        assertThatThrownBy(() -> PdfOperations.parsePageExpression("x")).hasMessageContaining("Invalid page token");
+        assertThat(PdfOperations.parsePageExpression("1, 3-5, p7, 9:8", 10)).containsExactly(1, 3, 4, 5, 7, 8, 9);
+        assertThat(PdfOperations.parsePageExpression("pages 2", 10)).containsExactly(2);
+        assertThat(PdfOperations.parsePageExpression("5-3, 4, 3", 5)).containsExactly(3, 4, 5);
+        assertThatThrownBy(() -> PdfOperations.parsePageExpression("0", 10)).hasMessageContaining("positive");
+        assertThatThrownBy(() -> PdfOperations.parsePageExpression("1-2-3", 10)).hasMessageContaining("Invalid page range");
+        assertThatThrownBy(() -> PdfOperations.parsePageExpression("x", 10)).hasMessageContaining("Invalid page token");
+    }
+
+    @Test
+    void aHugeRangeIsRejectedBeforeItIsExpanded() {
+        assertThatThrownBy(() -> PdfOperations.parsePageExpression("1-2147483647", 3)).hasMessageContaining("out of bounds");
+        assertThatThrownBy(() -> PdfOperations.parsePageExpression("2147483647-1", 3)).hasMessageContaining("out of bounds");
+        assertThatThrownBy(() -> PdfOperations.parsePageExpression("1-99999999999", 3)).hasMessageContaining("Invalid page token");
+        assertThat(PdfOperations.parsePageExpression("1-3", 3)).containsExactly(1, 2, 3);
     }
 
     @Test
