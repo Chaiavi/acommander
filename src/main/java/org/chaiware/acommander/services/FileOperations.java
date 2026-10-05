@@ -137,7 +137,7 @@ public class FileOperations {
         }
         boolean viaVfs = viaVfs();
         if (!viaVfs && validItems.size() > 1) {
-            List<String> command = command("copy", Map.of("${targetFolder}", targetFolder), fullPaths(validItems));
+            List<String> command = command("copy", Map.of("${targetFolder}", toolTarget(targetFolder)), fullPaths(validItems));
             log.debug("Built batch copy command: {}", command);
             runner.reportFailure(runner.runExecutable(command, true).thenAccept(output -> {
                 markTargetArchiveForRepack(targetFolder);
@@ -180,7 +180,7 @@ public class FileOperations {
             vfsMove(item, targetFolder);
             return;
         }
-        runner.reportFailure(runner.runExecutable(command("move", Map.of("${targetFolder}", targetFolder), List.of(item.getFullPath())), true)
+        runner.reportFailure(runner.runExecutable(command("move", Map.of("${targetFolder}", toolTarget(targetFolder)), List.of(item.getFullPath())), true)
                 .thenAccept(output -> log.debug("Moved: {} To: {}", item, targetFolder)), "Move");
     }
 
@@ -200,7 +200,7 @@ public class FileOperations {
                 if (viaVfs || sameDrive(item, targetFolder)) {
                     vfsMove(item, targetFolder);
                 } else {
-                    runner.runExecutable(command("move", Map.of("${targetFolder}", targetFolder), List.of(item.getFullPath())), true).join();
+                    runner.runExecutable(command("move", Map.of("${targetFolder}", toolTarget(targetFolder)), List.of(item.getFullPath())), true).join();
                 }
             } catch (CompletionException ex) {
                 Throwable cause = ex.getCause() == null ? ex : ex.getCause();
@@ -333,8 +333,16 @@ public class FileOperations {
     }
 
     private void copyWithTool(FileItem item, String targetFolder) {
-        List<String> command = command("copy", Map.of("${targetFolder}", targetFolder), List.of(item.getFullPath()));
+        List<String> command = command("copy", Map.of("${targetFolder}", toolTarget(targetFolder)), List.of(item.getFullPath()));
         runner.reportFailure(runner.runExecutable(command, true).thenRun(() -> markTargetArchiveForRepack(targetFolder)), "Copy");
+    }
+
+    /**
+     * FastCopy's /to= folder with a trailing backslash: without it, FastCopy copies or moves a single folder's
+     * contents into the target instead of the folder itself.
+     */
+    static String toolTarget(String targetFolder) {
+        return targetFolder.endsWith("\\") ? targetFolder : targetFolder + "\\";
     }
 
     /** Marks an archive for repack when {@code targetFolder} is inside its extracted temp folder. */

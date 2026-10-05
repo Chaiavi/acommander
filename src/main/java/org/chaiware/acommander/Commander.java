@@ -1157,12 +1157,7 @@ public class Commander {
                         if (selectedItems.size() > 1) {
                             fileOps.copyBatch(selectedItems, targetFolderSnapshot);
                         } else {
-                            for (FileItem selectedItem : selectedItems) {
-                                String target = targetFolderSnapshot;
-                                if (selectedItem.isDirectory())
-                                    target += "\\" + selectedItem.getName();
-                                fileOps.copy(selectedItem, target);
-                            }
+                            fileOps.copy(selectedItems.getFirst(), targetFolderSnapshot);
                         }
                     } catch (Exception e) {
                         Platform.runLater(() -> error("Failed Copying file", e));
@@ -1182,9 +1177,8 @@ public class Commander {
                 }
 
                 for (FileItem selectedItem : selectedItems) {
-                    String targetFolder = filesPanesHelper.getUnfocusedPath();
-                    fileOps.copy(selectedItem, selectedItem.isDirectory() ? targetFolder + "\\" + selectedItem.getName() : targetFolder);
-                    filesPanesHelper.selectFileItem(false, targetFolder, selectedItem.getName());
+                    fileOps.copy(selectedItem, targetFolderSnapshot);
+                    filesPanesHelper.selectFileItem(false, targetFolderSnapshot, selectedItem.getName());
                 }
             }
         } catch (Exception e) {

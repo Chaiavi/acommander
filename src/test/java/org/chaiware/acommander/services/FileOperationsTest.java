@@ -3,8 +3,14 @@ package org.chaiware.acommander.services;
 import org.chaiware.acommander.commands.ExternalToolRunner;
 import org.chaiware.acommander.config.AppConfig;
 import org.chaiware.acommander.config.AppRegistry;
+import org.chaiware.acommander.helpers.AppTempDir;
+import org.chaiware.acommander.helpers.ArchiveManager;
+import org.chaiware.acommander.helpers.FileHelper;
 import org.chaiware.acommander.helpers.FilesPanesHelper;
+import org.chaiware.acommander.model.ArchiveMode;
+import org.chaiware.acommander.model.ArchiveSession;
 import org.chaiware.acommander.model.FileItem;
+import org.chaiware.acommander.vfs.ArchiveFileSystem;
 import org.chaiware.acommander.vfs.FtpConnectionOptions;
 import org.chaiware.acommander.vfs.FtpFileSystem;
 import org.chaiware.acommander.vfs.LocalFileSystem;
@@ -113,5 +119,31 @@ class FileOperationsTest {
 
         assertThat(file).doesNotExist();
         assertThat(tempDir).exists();
+    }
+
+    @Test
+    void fastCopyGetsTheTargetFolderWithATrailingBackslash() {
+        // Without it FastCopy copies or moves a single folder's contents instead of the folder
+        assertThat(FileOperations.toolTarget("D:\\backup")).isEqualTo("D:\\backup\\");
+        assertThat(FileOperations.toolTarget("D:\\")).isEqualTo("D:\\");
+    }
+
+    @Test
+    void copyingAFolderIntoAnArchiveAddsItsNameOnce() throws Exception {
+        Path source = Files.createDirectories(tempDir.resolve("src").resolve("dirA"));
+        Files.writeString(source.resolve("inner.txt"), "x");
+        Path extracted = AppTempDir.createTempDirectory("archive_test_");
+        ArchiveFileSystem archive = new ArchiveFileSystem(
+                new ArchiveSession("a.zip", extracted, ArchiveMode.READ_WRITE), new ArchiveManager());
+        when(panes.getUnfocusedFileSystem()).thenReturn(archive);
+        try {
+            operations.copy(new FileItem(source), extracted.toString());
+
+            assertThat(extracted.resolve("dirA").resolve("inner.txt")).hasContent("x");
+            assertThat(extracted.resolve("dirA").resolve("dirA")).doesNotExist();
+        } finally {
+            AppTempDir.release(extracted);
+            FileHelper.deleteQuietly(extracted);
+        }
     }
 }
