@@ -367,6 +367,9 @@ public class FilesPanesHelper {
             }
             logger.debug("Refreshing file list using VFS {}: {}", fs.getIdentifier(), path);
             List<FileItem> contents = fs.listContents(path);
+            if (fs instanceof FtpFileSystem ftpFs) {
+                ftpFs.setCurrentPath(path);
+            }
             items.addAll(contents);
             logger.debug("Loaded {} items using VFS", contents.size());
         } catch (IOException e) {

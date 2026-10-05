@@ -615,4 +615,38 @@ class FtpFileSystemTest {
         assertTrue(fs.getIdentifier().startsWith("sftp:"));
         assertTrue(fs.getDisplayName().startsWith("sftp://"));
     }
+
+    @Test
+    void listingAnotherFolderDoesNotMoveThePaneItemsResolveAgainst() throws IOException {
+        FtpFileSystem fs = new FtpFileSystem(FtpConnectionOptions.builder()
+                .host(MOCK_HOST).port(21).username("u").password(MOCK_PASSWORD).build()) {
+            @Override
+            public List<String> runCurl(List<String> command) {
+                return List.of("-rw-r--r--    1 u u  5 Mar 01 16:39 inner.txt");
+            }
+        };
+        fs.setCurrentPath("/pub");
+
+        // A recursive copy or delete of one batch item lists its subfolders
+        fs.listContents("/pub/first/deep");
+
+        assertEquals("/pub/second.txt", fs.getInternalPath(new FileItem(null, "second.txt", 1, 0, false)));
+        assertEquals("ftp://ftp.example.com/pub/", fs.getDisplayName());
+    }
+
+    @Test
+    void identityIsTheConnectionNotTheFolder() {
+        FtpConnectionOptions options = FtpConnectionOptions.builder()
+                .host(MOCK_HOST).port(21).username("u").password(MOCK_PASSWORD).build();
+        FtpFileSystem left = new FtpFileSystem(options);
+        FtpFileSystem right = new FtpFileSystem(options);
+        left.setCurrentPath("/a");
+        right.setCurrentPath("/b");
+
+        assertEquals(left.getIdentifier(), right.getIdentifier());
+        assertNotEquals(left.getIdentifier(), new FtpFileSystem(options.toBuilder().username("other").build()).getIdentifier());
+        assertNotEquals(left.getIdentifier(),
+                new FtpFileSystem(options.toBuilder().protocol(FtpConnectionOptions.Protocol.FTPS).build()).getIdentifier());
+        assertFalse(left.getIdentifier().contains(MOCK_PASSWORD));
+    }
 }

@@ -108,9 +108,17 @@ public class FtpFileSystem implements VFileSystem {
         this.externalCommandListener = listener;
     }
 
+    /** The connection: protocol, user, server. Two panes on it are the same file system whatever folder they show. */
     @Override
     public String getIdentifier() {
-        return options.getProtocol().getScheme() + ":" + options.getHost() + ":" + options.getPort() + currentInternalPath;
+        return options.getProtocol().name().toLowerCase(Locale.ROOT) + ":" + options.getUsername() + "@"
+                + options.getHost() + ":" + options.getPort();
+    }
+
+    /** The folder the pane shows; name-only items ({@link #getInternalPath}) resolve against it. */
+    public void setCurrentPath(String path) {
+        String clean = sanitizePath(path);
+        currentInternalPath = clean.endsWith("/") ? clean : clean + "/";
     }
 
     @Override
@@ -121,25 +129,24 @@ public class FtpFileSystem implements VFileSystem {
         return options.getProtocol().getScheme() + "://" + options.getHost() + path;
     }
 
+    /** Lists a folder without changing the pane's folder, so recursive copies and deletes can list freely. */
     @Override
     public List<FileItem> listContents(String internalPath) throws IOException {
-        String cleanPath = sanitizePath(internalPath);
-        logger.info("Listing contents of FTP path: {} (original: {})", cleanPath, internalPath);
-
-        this.currentInternalPath = cleanPath;
-        if (!currentInternalPath.endsWith("/")) {
-            currentInternalPath += "/";
+        String folder = sanitizePath(internalPath);
+        if (!folder.endsWith("/")) {
+            folder += "/";
         }
+        logger.info("Listing contents of FTP path: {} (original: {})", folder, internalPath);
 
         List<String> command = createBaseCurlCommand();
         command.add("--silent");
-        command.add(options.getFullUrl(currentInternalPath));
+        command.add(options.getFullUrl(folder));
 
         List<String> output = runCurl(command);
         List<FileItem> items = new ArrayList<>();
         
         // Add ".."
-        if (!"/".equals(currentInternalPath)) {
+        if (!"/".equals(folder)) {
             items.add(new FileItem(null, "..", 0, 0, true));
         }
 
