@@ -5,8 +5,8 @@ import org.chaiware.acommander.config.ActionDefinition;
 import org.chaiware.acommander.config.AppRegistry;
 import org.chaiware.acommander.helpers.AppTempDir;
 import org.chaiware.acommander.helpers.FileHelper;
-import org.chaiware.acommander.helpers.FilesPanesHelper;
 import org.chaiware.acommander.model.FileItem;
+import org.chaiware.acommander.services.ClipboardTransfer.Entry;
 import org.chaiware.acommander.tools.ToolCommandBuilder;
 import org.chaiware.acommander.vfs.LocalFileSystem;
 import org.chaiware.acommander.vfs.VFileSystem;
@@ -14,7 +14,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -24,112 +23,82 @@ import java.util.concurrent.CompletionException;
 import java.util.stream.Stream;
 
 /**
- * PDF merge, page extraction and page count with the apps.json pdftk actions. Sources come from the focused pane and
- * results go to the other pane, local, archive or FTP. pdftk here is not Unicode-safe, so it only sees ASCII copies.
+ * PDF merge, page extraction and page count with the apps.json pdftk actions, on the file systems and paths captured
+ * when the user started ({@link ClipboardTransfer#capture}); results go to any pane type. pdftk here is not
+ * Unicode-safe, so it only sees ASCII copies. Blocking: each method returns once its output is saved.
  */
 public class PdfOperations {
     private static final Logger log = LoggerFactory.getLogger(PdfOperations.class);
 
-    private final FilesPanesHelper panes;
     private final AppRegistry registry;
     private final ExternalToolRunner runner;
 
-    public PdfOperations(FilesPanesHelper panes, AppRegistry registry, ExternalToolRunner runner) {
-        this.panes = panes;
+    public PdfOperations(AppRegistry registry, ExternalToolRunner runner) {
         this.registry = registry;
         this.runner = runner;
     }
 
-    /** Merges {@code items} into {@code fileName} in {@code targetFolder}; runs in the background, a failure is shown. */
-    public void merge(List<FileItem> items, String targetFolder, String fileName) throws IOException {
-        VFileSystem sourceFs = panes.getFocusedFileSystem();
-        VFileSystem targetFs = panes.getUnfocusedFileSystem();
+    /** Merges {@code pdfs} into {@code fileName} in {@code targetFolder}. */
+    public void merge(VFileSystem sourceFs, List<Entry> pdfs, VFileSystem targetFs, String targetFolder, String fileName)
+            throws IOException {
         Path workDir = AppTempDir.createTempDirectory("acommander_pdf_merge_work_");
         try {
             List<String> inputs = new ArrayList<>();
-            for (FileItem item : items) {
-                if (isParentEntry(item)) {
-                    continue;
-                }
+            for (Entry pdf : pdfs) {
                 Path input = workDir.resolve("input_" + inputs.size() + ".pdf");
-                sourceFs.copy(sourceFs.getInternalPath(item), new LocalFileSystem(""), input.toString());
+                sourceFs.copy(pdf.sourceInternalPath(), new LocalFileSystem(""), input.toString());
                 inputs.add(input.toString());
             }
             Path output = workDir.resolve("output.pdf");
-            ActionDefinition action = registry.requireAction("mergePdf");
-            List<String> command = ToolCommandBuilder.buildCommand(action.getPath(), action.getArgs(), panes,
-                    Map.of("${outputPdf}", output.toString()), inputs);
-            String target = ClipboardTransfer.targetInternalPath(targetFs, targetFolder, fileName, false);
-            runner.reportFailure(runner.runExecutable(command, false)
-                    .thenRun(() -> {
-                        save(output, targetFs, target);
-                        panes.refreshFileListViews();
-                    })
-                    .whenComplete((ignored, error) -> FileHelper.deleteQuietly(workDir)), "Merge PDFs");
-        } catch (IOException | RuntimeException e) {
+            run(registry.requireAction("mergePdf"), null, Map.of("${outputPdf}", output.toString()), inputs);
+            save(output, targetFs, ClipboardTransfer.targetInternalPath(targetFs, targetFolder, fileName, false));
+        } finally {
             FileHelper.deleteQuietly(workDir);
-            throw e;
         }
     }
 
-    /** Page files of {@code pdf} into {@code destinationPath}, as {@code options} say; the tool runs in the background. */
-    public void extractPages(FileItem pdf, String destinationPath, PdfExtractOptions options) throws IOException {
-        if (isParentEntry(pdf)) {
-            return;
-        }
+    /** Page files of {@code pdf} into {@code destinationFolder}, as {@code options} say. */
+    public void extractPages(VFileSystem sourceFs, Entry pdf, VFileSystem targetFs, String destinationFolder,
+                             PdfExtractOptions options) throws IOException {
         requirePdf(pdf);
-        VFileSystem sourceFs = panes.getFocusedFileSystem();
-        VFileSystem targetFs = panes.getUnfocusedFileSystem();
         Path workDir = AppTempDir.createTempDirectory("acommander_pdf_extract_work_");
         try {
             Path input = workDir.resolve("input.pdf");
-            sourceFs.copy(sourceFs.getInternalPath(pdf), new LocalFileSystem(""), input.toString());
+            sourceFs.copy(pdf.sourceInternalPath(), new LocalFileSystem(""), input.toString());
             ActionDefinition action = registry.requireAction("extractPdfPages");
             int totalPages = options.knownTotalPages() != null && options.knownTotalPages() > 0
                     ? options.knownTotalPages() : readPageCount(action, input);
-            validateExtractRequest(pdf.getName(), totalPages, options);
+            validateExtractRequest(pdf.name(), totalPages, options);
             List<Integer> selectedPages = options.mode() == PdfExtractOptions.Mode.SPECIFIC_PAGES_SINGLE
                     ? parsePageExpression(options.pageExpression(), totalPages) : List.of();
-            List<String> command = ToolCommandBuilder.buildCommand(action.getPath(), action.getArgs(), panes,
-                    Map.of("${outputPattern}", workDir.resolve("page_%04d.pdf").toString()), List.of(input.toString()));
-            String prefix = pdf.getName().replaceFirst("(?i)\\.pdf$", "");
-            runner.reportFailure(runner.runExecutable(command, false)
-                    .handle((ignored, error) -> {
-                        if (error != null) {
-                            log.warn("pdftk burst failed for '{}', extracting page by page", pdf.getName(), error);
-                            extractPageByPage(action, input, workDir, totalPages);
-                        }
-                        return null;
-                    })
-                    .thenRun(() -> {
-                        try {
-                            savePages(workDir, prefix, options, selectedPages, targetFs, destinationPath);
-                        } catch (Exception e) {
-                            throw new CompletionException(e);
-                        }
-                        panes.refreshFileListViews();
-                    })
-                    .whenComplete((ignored, error) -> FileHelper.deleteQuietly(workDir)), "Extract PDF Pages");
-        } catch (IOException | RuntimeException e) {
+            try {
+                run(action, null, Map.of("${outputPattern}", workDir.resolve("page_%04d.pdf").toString()), List.of(input.toString()));
+            } catch (CompletionException e) {
+                log.warn("pdftk burst failed for '{}', extracting page by page", pdf.name(), e.getCause());
+                extractPageByPage(action, input, workDir, totalPages);
+            }
+            savePages(workDir, pdf.name().replaceFirst("(?i)\\.pdf$", ""), options, selectedPages, targetFs, destinationFolder);
+        } finally {
             FileHelper.deleteQuietly(workDir);
-            throw e;
         }
     }
 
-    public int pageCount(FileItem pdf) throws IOException {
-        if (isParentEntry(pdf)) {
-            throw new IllegalArgumentException("No valid PDF selected.");
-        }
+    public int pageCount(VFileSystem fs, Entry pdf) throws IOException {
         requirePdf(pdf);
         Path workDir = AppTempDir.createTempDirectory("acommander_pdf_count_work_");
         try {
             Path input = workDir.resolve("input.pdf");
-            VFileSystem fs = panes.getFocusedFileSystem();
-            fs.copy(fs.getInternalPath(pdf), new LocalFileSystem(""), input.toString());
+            fs.copy(pdf.sourceInternalPath(), new LocalFileSystem(""), input.toString());
             return readPageCount(registry.requireAction("extractPdfPages"), input);
         } finally {
             FileHelper.deleteQuietly(workDir);
         }
+    }
+
+    /** Runs pdftk and waits; {@code args} replaces the action's arguments when given. Fails with the tool's error. */
+    private List<String> run(ActionDefinition action, List<String> args, Map<String, String> values, List<String> files) {
+        return runner.runExecutable(ToolCommandBuilder.buildCommand(action.getPath(),
+                args == null ? action.getArgs() : args, null, values, files), false).join();
     }
 
     /**
@@ -192,27 +161,23 @@ public class PdfOperations {
         }
     }
 
-    private static boolean isParentEntry(FileItem item) {
-        return "..".equals(item.getPresentableFilename());
-    }
-
-    private static void requirePdf(FileItem item) {
-        if (item.isDirectory() || !"pdf".equals(item.extension())) {
-            throw new IllegalArgumentException("The selected file is not a PDF: " + item.getName());
+    private static void requirePdf(Entry entry) {
+        if (entry.directory() || !"pdf".equals(FileItem.extension(entry.name()))) {
+            throw new IllegalArgumentException("The selected file is not a PDF: " + entry.name());
         }
     }
 
-    private static void save(Path local, VFileSystem targetFs, String target) {
+    private static void save(Path local, VFileSystem targetFs, String target) throws IOException {
         try {
             new LocalFileSystem("").copy(local.toString(), targetFs, target);
         } catch (IOException e) {
-            throw new UncheckedIOException("The PDF was made but could not be saved to " + target, e);
+            throw new IOException("The PDF was made but could not be saved to " + target, e);
         }
     }
 
     /** Names the burst pages as the options ask, in a local folder, then saves them to the target pane. */
     private void savePages(Path workDir, String prefix, PdfExtractOptions options, List<Integer> selectedPages,
-                           VFileSystem targetFs, String destinationPath) throws Exception {
+                           VFileSystem targetFs, String destinationPath) throws IOException {
         List<Path> pages;
         try (Stream<Path> files = Files.list(workDir)) {
             pages = files.filter(path -> path.getFileName().toString().matches("^page_\\d{4}\\.pdf$")).sorted().toList();
@@ -240,8 +205,7 @@ public class PdfOperations {
                     int end = Math.min(start + options.pagesPerPdf() - 1, pages.size());
                     List<String> chunk = pages.subList(start - 1, end).stream().map(Path::toString).toList();
                     Path chunkFile = outDir.resolve(String.format("%s_%04d-%04d.pdf", prefix, start, end));
-                    runner.runExecutable(ToolCommandBuilder.buildCommand(mergeAction.getPath(), mergeAction.getArgs(),
-                            panes, Map.of("${outputPdf}", chunkFile.toString()), chunk), false).join();
+                    run(mergeAction, null, Map.of("${outputPdf}", chunkFile.toString()), chunk);
                 }
             }
             default -> {
@@ -265,17 +229,15 @@ public class PdfOperations {
     private void extractPageByPage(ActionDefinition action, Path input, Path workDir, int totalPages) {
         for (int page = 1; page <= totalPages; page++) {
             Path output = workDir.resolve(String.format("page_%04d.pdf", page));
-            runner.runExecutable(ToolCommandBuilder.buildCommand(action.getPath(),
-                    List.of("${selectedFile}", "cat", String.valueOf(page), "output", "${outputPdf}"), panes,
-                    Map.of("${outputPdf}", output.toString()), List.of(input.toString())), false).join();
+            run(action, List.of("${selectedFile}", "cat", String.valueOf(page), "output", "${outputPdf}"),
+                    Map.of("${outputPdf}", output.toString()), List.of(input.toString()));
         }
     }
 
     private int readPageCount(ActionDefinition action, Path input) {
         List<String> output;
         try {
-            output = runner.runExecutable(ToolCommandBuilder.buildCommand(action.getPath(),
-                    List.of("${selectedFile}", "dump_data"), panes, Map.of(), List.of(input.toString())), false).join();
+            output = run(action, List.of("${selectedFile}", "dump_data"), Map.of(), List.of(input.toString()));
         } catch (CompletionException ex) {
             throw new IllegalArgumentException("Failed to read PDF page count.", ex.getCause() == null ? ex : ex.getCause());
         }

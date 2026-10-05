@@ -158,8 +158,8 @@ public class Commander {
         }));
         toolRunner.setListener(externalCommandListener);
         fileOps = new FileOperations(appRegistry, toolRunner);
-        archiveOps = new ArchiveOperations(filesPanesHelper, appRegistry, toolRunner);
-        pdfOps = new PdfOperations(filesPanesHelper, appRegistry, toolRunner);
+        archiveOps = new ArchiveOperations(appRegistry, toolRunner);
+        pdfOps = new PdfOperations(appRegistry, toolRunner);
         configMouseDoubleClick();
 
         logger.debug("Loading file lists into the double panes file views");
@@ -930,7 +930,8 @@ public class Commander {
             if (refresh) {
                 filesPanesHelper.refreshFileListViews();
             }
-            error(title + " failed", failure instanceof Exception e ? e : new RuntimeException(failure));
+            Throwable cause = unwrapCompletionException(failure);
+            error(title + " failed", cause instanceof Exception e ? e : new RuntimeException(cause));
         });
     }
 
@@ -1286,25 +1287,23 @@ public class Commander {
     @FXML
     public void pack() {
         logger.info("Pack (F11)");
-        try {
-            List<FileItem> selectedItems = new ArrayList<>(fileOps.filterValidItems(filesPanesHelper.getSelectedItems()));
-            if (selectedItems.isEmpty()) {
-                return;
-            }
-            String firstFilename = selectedItems.getFirst().getName();
-            String zipFilename = firstFilename.contains(".")
-                    ? firstFilename.substring(0, firstFilename.lastIndexOf('.')) + ".zip"
-                    : firstFilename + ".zip";
-            Optional<String> result = getUserFeedback(zipFilename, "Pack to zip", "Zip filename");
-            if (result.isPresent()) {
-                String targetFolder = filesPanesHelper.getUnfocusedPath();
-                archiveOps.pack(selectedItems, targetFolder + "\\" + result.get());
-                filesPanesHelper.selectFileItem(false, targetFolder, result.get());
-            } else
-                logger.info("User cancelled the packing");
-        } catch (Exception e) {
-            error("Failed Packing file", e);
+        ClipboardTransfer.State source = captureSelection(false);
+        if (source.entries().isEmpty()) {
+            return;
         }
+        String firstFilename = source.entries().getFirst().name();
+        String zipFilename = firstFilename.contains(".")
+                ? firstFilename.substring(0, firstFilename.lastIndexOf('.')) + ".zip"
+                : firstFilename + ".zip";
+        getUserFeedback(zipFilename, "Pack to zip", "Zip filename").ifPresent(archiveName -> {
+            FilesPanesHelper.FocusSide targetSide = otherSide(source.sourceSide());
+            VFileSystem targetFs = filesPanesHelper.getFileSystem(targetSide);
+            String targetFolder = filesPanesHelper.getPath(targetSide);
+            runFileOperation("Pack", List.of(source.sourceFs(), targetFs), true, () -> {
+                archiveOps.pack(source.sourceFs(), source.entries(), targetFs, targetFolder, archiveName);
+                return null;
+            }, ignored -> filesPanesHelper.selectNames(targetSide, targetFolder, List.of(archiveName)));
+        });
     }
 
     public void splitLargeFile() {
@@ -1811,114 +1810,76 @@ public class Commander {
     @FXML
     public void unpackFile() {
         logger.info("UnPack (F12)");
-        try {
-            List<FileItem> selectedItems = new ArrayList<>(filesPanesHelper.getSelectedItems());
-            for (FileItem selectedItem : selectedItems)
-                archiveOps.unpack(selectedItem, filesPanesHelper.getUnfocusedPath());
-        } catch (IllegalArgumentException e) {
-            showError("Unpack", e.getMessage());
-        } catch (Exception e) {
-            error("Failed UNPacking file", e);
-        }
+        unpackSelection("Unpack", (sourceFs, entry, targetFs, folder) -> archiveOps.unpack(sourceFs, entry, targetFs, folder));
     }
 
     public void extractAll() {
         logger.info("Extract Anything (ALT+F12)");
-        try {
-            List<FileItem> selectedItems = new ArrayList<>(filesPanesHelper.getSelectedItems());
-            for (FileItem selectedItem : selectedItems)
-                archiveOps.extractAll(selectedItem, filesPanesHelper.getUnfocusedPath());
-        } catch (IllegalArgumentException e) {
-            logger.warn("Extract All failed for file '{}': {}", 
-                    filesPanesHelper.getSelectedItems().isEmpty() ? "unknown" 
-                            : filesPanesHelper.getSelectedItems().getFirst().getName(), 
-                    e.getMessage());
-            showError("Extract", e.getMessage());
-        } catch (Exception e) {
-            error("Failed UNPacking file", e);
+        unpackSelection("Extract All", (sourceFs, entry, targetFs, folder) -> archiveOps.extractAll(sourceFs, entry, targetFs, folder));
+    }
+
+    private interface UnpackWork {
+        void run(VFileSystem sourceFs, ClipboardTransfer.Entry entry, VFileSystem targetFs, String folder) throws IOException;
+    }
+
+    private void unpackSelection(String title, UnpackWork work) {
+        ClipboardTransfer.State source = captureSelection(false);
+        if (source.entries().isEmpty()) {
+            return;
         }
+        FilesPanesHelper.FocusSide targetSide = otherSide(source.sourceSide());
+        VFileSystem targetFs = filesPanesHelper.getFileSystem(targetSide);
+        String targetFolder = filesPanesHelper.getPath(targetSide);
+        runFileOperation(title, List.of(source.sourceFs(), targetFs), true, () -> {
+            for (ClipboardTransfer.Entry entry : source.entries()) {
+                work.run(source.sourceFs(), entry, targetFs, targetFolder);
+            }
+            return null;
+        }, ignored -> {});
     }
 
     public void mergePDFFiles() {
         logger.info("Merge PDF Files");
-        try {
-            List<FileItem> selectedItems = filesPanesHelper.getSelectedItems();
-            String firstFilename = selectedItems.getFirst().getName();
-            String zipFilename = firstFilename.contains(".")
-                    ? firstFilename.substring(0, firstFilename.lastIndexOf('.')) + ".pdf"
-                    : firstFilename + ".pdf";
-            Optional<String> result = getUserFeedback(zipFilename, "Merge PDF Files", "PDF filename");
-            logger.debug("getUserFeedback result present: {}", result.isPresent());
-            if (result.isPresent()) {
-                String filename = result.get();
-                logger.debug("Raw filename from user: '{}'", filename);
-                // Ensure the filename has .pdf extension
-                if (filename == null || filename.isBlank()) {
-                    logger.warn("Filename is null or blank, using default 'merged.pdf'");
-                    filename = "merged.pdf";
-                } else if (!filename.toLowerCase().endsWith(".pdf")) {
-                    filename = filename + ".pdf";
-                    logger.debug("Added .pdf extension, filename is now: '{}'", filename);
-                } else {
-                    logger.debug("Filename already has .pdf extension: '{}'", filename);
-                }
-                // Use safe File constructor to handle path separators correctly
-                String parentDir = filesPanesHelper.getUnfocusedPath();
-                logger.debug("Parent dir: '{}'", parentDir);
-                logger.debug("Filename: '{}'", filename);
-                pdfOps.merge(selectedItems, parentDir, filename);
-                filesPanesHelper.selectFileItem(false, parentDir, filename);
-            } else
-                logger.info("User cancelled the packing");
-        } catch (Exception e) {
-            error("Failed Packing file", e);
+        ClipboardTransfer.State source = captureSelection(false);
+        if (source.entries().isEmpty()) {
+            return;
         }
+        String firstFilename = source.entries().getFirst().name();
+        String suggested = firstFilename.contains(".")
+                ? firstFilename.substring(0, firstFilename.lastIndexOf('.')) + ".pdf"
+                : firstFilename + ".pdf";
+        getUserFeedback(suggested, "Merge PDF Files", "PDF filename").ifPresent(entered -> {
+            String fileName = entered.isBlank() ? "merged.pdf"
+                    : entered.toLowerCase(Locale.ROOT).endsWith(".pdf") ? entered : entered + ".pdf";
+            FilesPanesHelper.FocusSide targetSide = otherSide(source.sourceSide());
+            VFileSystem targetFs = filesPanesHelper.getFileSystem(targetSide);
+            String targetFolder = filesPanesHelper.getPath(targetSide);
+            runFileOperation("Merge PDF Files", List.of(source.sourceFs(), targetFs), true, () -> {
+                pdfOps.merge(source.sourceFs(), source.entries(), targetFs, targetFolder, fileName);
+                return null;
+            }, ignored -> filesPanesHelper.selectNames(targetSide, targetFolder, List.of(fileName)));
+        });
     }
 
     public void extractPDFPages() {
         logger.info("Extract PDF Pages");
-        List<FileItem> selectedItems = new ArrayList<>(filesPanesHelper.getSelectedItems());
-        if (selectedItems.isEmpty()) {
+        ClipboardTransfer.State source = captureSelection(false);
+        if (source.entries().isEmpty()) {
             return;
         }
-        FileItem firstSelected = selectedItems.getFirst();
-        String destinationPath = filesPanesHelper.getUnfocusedPath();
-
-        BackgroundTasks.supply(() -> {
-                    try {
-                        return pdfOps.pageCount(firstSelected);
-                    } catch (Exception e) {
-                        throw new CompletionException(e);
-                    }
-                })
-                .whenComplete((totalPages, throwable) -> Platform.runLater(() -> {
-                    if (throwable != null) {
-                        Throwable root = unwrapCompletionException(throwable);
-                        if (root instanceof IllegalArgumentException iae) {
-                            showError("Extract PDF Pages", iae.getMessage());
-                        } else {
-                            error("Failed Extracting Pages from PDF file", root instanceof Exception ex ? ex : new RuntimeException(root));
-                        }
-                        return;
-                    }
-
-                    try {
-                        Optional<PdfExtractOptions> options = PdfExtractDialog.show(dialogOwner(),
-                                currentThemeMode.styleClass, firstSelected.getName(), totalPages);
-                        if (options.isEmpty()) {
-                            logger.info("User cancelled PDF extraction options dialog");
-                            return;
-                        }
-                        PdfExtractOptions effectiveOptions = options.get().withKnownTotalPages(totalPages);
-                        for (FileItem selectedItem : selectedItems) {
-                            pdfOps.extractPages(selectedItem, destinationPath, effectiveOptions);
-                        }
-                    } catch (IllegalArgumentException e) {
-                        showError("Extract PDF Pages", e.getMessage());
-                    } catch (Exception e) {
-                        error("Failed Extracting Pages from PDF file", e);
-                    }
-                }));
+        ClipboardTransfer.Entry first = source.entries().getFirst();
+        FilesPanesHelper.FocusSide targetSide = otherSide(source.sourceSide());
+        VFileSystem targetFs = filesPanesHelper.getFileSystem(targetSide);
+        String targetFolder = filesPanesHelper.getPath(targetSide);
+        runFileOperation("Read PDF Page Count", List.of(source.sourceFs()), false,
+                () -> pdfOps.pageCount(source.sourceFs(), first),
+                totalPages -> PdfExtractDialog.show(dialogOwner(), currentThemeMode.styleClass, first.name(), totalPages)
+                        .ifPresent(options -> runFileOperation("Extract PDF Pages", List.of(source.sourceFs(), targetFs), true, () -> {
+                            for (ClipboardTransfer.Entry pdf : source.entries()) {
+                                pdfOps.extractPages(source.sourceFs(), pdf, targetFs, targetFolder, options.withKnownTotalPages(totalPages));
+                            }
+                            return null;
+                        }, ignored -> {})));
     }
 
     public boolean canCompareSelectedFiles() {

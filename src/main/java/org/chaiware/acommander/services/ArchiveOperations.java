@@ -5,9 +5,9 @@ import org.chaiware.acommander.config.ActionDefinition;
 import org.chaiware.acommander.config.AppRegistry;
 import org.chaiware.acommander.helpers.AppTempDir;
 import org.chaiware.acommander.helpers.FileHelper;
-import org.chaiware.acommander.helpers.FilesPanesHelper;
 import org.chaiware.acommander.model.ArchiveMode;
 import org.chaiware.acommander.model.FileItem;
+import org.chaiware.acommander.services.ClipboardTransfer.Entry;
 import org.chaiware.acommander.tools.ToolCommandBuilder;
 import org.chaiware.acommander.vfs.LocalFileSystem;
 import org.chaiware.acommander.vfs.VFileSystem;
@@ -16,155 +16,128 @@ import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
-import java.io.UncheckedIOException;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
 /**
- * Pack (7-Zip), Unpack (7-Zip) and Extract All (UniExtract) with the apps.json tools. Sources come from the focused
- * pane and results go to the other pane; archive and FTP sides go through local temp copies.
+ * Pack (7-Zip), Unpack (7-Zip) and Extract All (UniExtract) with the apps.json tools, on the file systems and paths
+ * captured when the user started ({@link ClipboardTransfer#capture}). Archive and FTP sides go through local temp
+ * copies. Blocking: each method returns once the result is in its target folder, so call it off the FX thread.
  */
 public class ArchiveOperations {
     private static final Logger log = LoggerFactory.getLogger(ArchiveOperations.class);
 
-    private final FilesPanesHelper panes;
     private final AppRegistry registry;
     private final ExternalToolRunner runner;
 
-    public ArchiveOperations(FilesPanesHelper panes, AppRegistry registry, ExternalToolRunner runner) {
-        this.panes = panes;
+    public ArchiveOperations(AppRegistry registry, ExternalToolRunner runner) {
         this.registry = registry;
         this.runner = runner;
     }
 
-    /** Packs {@code items} into {@code archivePath}; non-local items are copied out under their own names first. */
-    public void pack(List<FileItem> items, String archivePath) throws IOException {
-        VFileSystem sourceFs = panes.getFocusedFileSystem();
-        VFileSystem targetFs = panes.getUnfocusedFileSystem();
+    /** Packs {@code entries} into {@code archiveName} in {@code targetFolder}; non-local items are copied out under their own names first. */
+    public void pack(VFileSystem sourceFs, List<Entry> entries, VFileSystem targetFs, String targetFolder, String archiveName)
+            throws IOException {
         List<Path> tempPaths = new ArrayList<>();
-        List<String> localPathsToPack = new ArrayList<>();
+        try {
+            List<String> localPathsToPack = new ArrayList<>();
+            Path stagingDir = null;
+            for (Entry entry : entries) {
+                if (sourceFs instanceof LocalFileSystem) {
+                    localPathsToPack.add(entry.sourceInternalPath());
+                    continue;
+                }
+                if (stagingDir == null) {
+                    stagingDir = AppTempDir.createTempDirectory("acommander_pack_");
+                    tempPaths.add(stagingDir);
+                }
+                Path staged = stagingDir.resolve(entry.name()).normalize();
+                if (!stagingDir.equals(staged.getParent())) {
+                    throw new IOException("Can't pack an item with this name: " + entry.name());
+                }
+                sourceFs.copy(entry.sourceInternalPath(), new LocalFileSystem(""), staged.toString());
+                localPathsToPack.add(staged.toString());
+            }
+            if (localPathsToPack.isEmpty()) {
+                log.info("No valid files to pack.");
+                return;
+            }
 
-        Path stagingDir = null;
-        for (FileItem item : items) {
-            if ("..".equals(item.getPresentableFilename())) {
-                continue;
+            boolean local = targetFs instanceof LocalFileSystem;
+            Path localArchive = local ? Path.of(targetFolder, archiveName)
+                    : AppTempDir.createTempDirectory("acommander_pack_target_").resolve(archiveName);
+            if (!local) {
+                tempPaths.add(localArchive.getParent());
             }
-            if (sourceFs instanceof LocalFileSystem) {
-                localPathsToPack.add(item.getFullPath());
-                continue;
-            }
-            if (stagingDir == null) {
-                stagingDir = AppTempDir.createTempDirectory("acommander_pack_");
-                tempPaths.add(stagingDir);
-            }
-            Path staged = stagingDir.resolve(item.getName()).normalize();
-            if (!stagingDir.equals(staged.getParent())) {
-                throw new IOException("Can't pack an item with this name: " + item.getName());
-            }
-            sourceFs.copy(sourceFs.getInternalPath(item), new LocalFileSystem(""), staged.toString());
-            localPathsToPack.add(staged.toString());
-        }
-        if (localPathsToPack.isEmpty()) {
-            log.info("No valid files to pack.");
-            return;
-        }
-
-        String localArchivePath = archivePath;
-        boolean uploadRequired = !(targetFs instanceof LocalFileSystem);
-        if (uploadRequired) {
-            Path tempArchive = AppTempDir.createTempFile("acommander_pack_target_", "_" + new File(archivePath).getName());
-            tempArchive.toFile().delete(); // 7-Zip must create it
-            tempPaths.add(tempArchive);
-            localArchivePath = tempArchive.toString();
-        }
-
-        ActionDefinition action = registry.requireAction("pack");
-        List<String> command = ToolCommandBuilder.buildCommand(action.getPath(), action.getArgs(), panes,
-                Map.of("${archiveFile}", localArchivePath), localPathsToPack);
-        String finalLocalArchivePath = localArchivePath;
-        runner.reportFailure(runner.runExecutable(command, true).thenRun(() -> {
-            if (uploadRequired) {
+            ActionDefinition action = registry.requireAction("pack");
+            runner.runExecutable(ToolCommandBuilder.buildCommand(action.getPath(), action.getArgs(), null,
+                    Map.of("${archiveFile}", localArchive.toString()), localPathsToPack), false).join();
+            if (!local) {
+                String target = ClipboardTransfer.targetInternalPath(targetFs, targetFolder, archiveName, false);
                 try {
-                    new LocalFileSystem("").copy(finalLocalArchivePath, targetFs,
-                            targetFs.getInternalPath(new FileItem(Path.of(archivePath))));
+                    new LocalFileSystem("").copy(localArchive.toString(), targetFs, target);
                 } catch (IOException e) {
-                    throw new UncheckedIOException("The archive was created but could not be uploaded to " + archivePath, e);
+                    throw new IOException("The archive was created but could not be uploaded to " + target, e);
                 }
             }
+        } finally {
             tempPaths.forEach(FileHelper::deleteQuietly);
-            panes.refreshFileListViews();
-        }), "Pack");
-        log.debug("Archiving process started for: {}", archivePath);
+        }
     }
 
-    /** Unpacks a 7-Zip archive into {@code destinationPath}; throws for a file 7-Zip can't unpack. */
-    public void unpack(FileItem archive, String destinationPath) throws IOException {
-        if ("..".equals(archive.getPresentableFilename())) {
-            return;
+    /** Unpacks a 7-Zip archive into {@code destinationFolder}; throws for a file 7-Zip can't unpack. */
+    public void unpack(VFileSystem sourceFs, Entry archive, VFileSystem targetFs, String destinationFolder) throws IOException {
+        if (archive.directory() || !ArchiveMode.isUnpackable(FileItem.extension(archive.name()))) {
+            log.warn("Unpack rejected file '{}': not a supported archive format", archive.name());
+            throw new IllegalArgumentException("The selected file is not a supported archive: " + archive.name());
         }
-        if (archive.isDirectory() || !ArchiveMode.isUnpackable(archive.extension())) {
-            log.warn("Unpack rejected file '{}': extension '{}' is not a supported archive format",
-                    archive.getName(), archive.extension());
-            throw new IllegalArgumentException("The selected file is not a supported archive: " + archive.getName());
-        }
-        unpackWith("unpack", "Unpack", archive, destinationPath);
+        unpackWith("unpack", sourceFs, archive, targetFs, destinationFolder);
     }
 
-    /** Extracts anything UniExtract can open (installers, archives, …) into {@code destinationPath}. */
-    public void extractAll(FileItem file, String destinationPath) throws IOException {
-        if ("..".equals(file.getPresentableFilename())) {
-            return;
-        }
-        unpackWith("extractAll", "Extract All", file, destinationPath);
+    /** Extracts anything UniExtract can open (installers, archives, …) into {@code destinationFolder}. */
+    public void extractAll(VFileSystem sourceFs, Entry file, VFileSystem targetFs, String destinationFolder) throws IOException {
+        unpackWith("extractAll", sourceFs, file, targetFs, destinationFolder);
     }
 
     /** Unpack and Extract All differ only in the tool; remote sources and targets go through local temp copies. */
-    private void unpackWith(String actionId, String title, FileItem selectedItem, String destinationPath) throws IOException {
-        VFileSystem sourceFs = panes.getFocusedFileSystem();
-        VFileSystem targetFs = panes.getUnfocusedFileSystem();
+    private void unpackWith(String actionId, VFileSystem sourceFs, Entry archive, VFileSystem targetFs,
+                            String destinationFolder) throws IOException {
+        List<Path> tempPaths = new ArrayList<>();
+        try {
+            Path archiveToUnpack = Path.of(archive.sourceInternalPath());
+            if (!(sourceFs instanceof LocalFileSystem)) {
+                archiveToUnpack = AppTempDir.createTempFile("acommander_unpack_", "_" + archive.name());
+                tempPaths.add(archiveToUnpack);
+                sourceFs.copy(archive.sourceInternalPath(), new LocalFileSystem(""), archiveToUnpack.toString());
+            }
+            boolean local = targetFs instanceof LocalFileSystem;
+            Path localDest = local ? Path.of(destinationFolder) : AppTempDir.createTempDirectory("acommander_unpack_dest_");
+            if (!local) {
+                tempPaths.add(localDest);
+            }
 
-        Path archiveToUnpack = selectedItem.getPath();
-        boolean isTempArchive = !(sourceFs instanceof LocalFileSystem);
-        if (isTempArchive) {
-            archiveToUnpack = AppTempDir.createTempFile("acommander_unpack_", "_" + selectedItem.getName());
-            sourceFs.copy(sourceFs.getInternalPath(selectedItem), new LocalFileSystem(""), archiveToUnpack.toString());
-        }
-
-        String localDestPath = destinationPath;
-        Path tempDestDir = null;
-        if (!(targetFs instanceof LocalFileSystem)) {
-            tempDestDir = AppTempDir.createTempDirectory("acommander_unpack_dest_");
-            localDestPath = tempDestDir.toString();
-        }
-
-        ActionDefinition action = registry.requireAction(actionId);
-        List<String> command = ToolCommandBuilder.buildCommand(action.getPath(), action.getArgs(), panes,
-                Map.of("${destinationPath}", localDestPath), List.of(archiveToUnpack.toAbsolutePath().toString()));
-
-        Path finalArchive = archiveToUnpack;
-        Path finalTempDestDir = tempDestDir;
-        runner.reportFailure(runner.runExecutable(command, true).thenRun(() -> {
-            if (finalTempDestDir != null) {
-                File[] files = finalTempDestDir.toFile().listFiles();
+            ActionDefinition action = registry.requireAction(actionId);
+            runner.runExecutable(ToolCommandBuilder.buildCommand(action.getPath(), action.getArgs(), null,
+                    Map.of("${destinationPath}", localDest.toString()),
+                    List.of(archiveToUnpack.toAbsolutePath().toString())), false).join();
+            if (!local) {
+                File[] files = localDest.toFile().listFiles();
                 try {
                     if (files != null) {
                         for (File f : files) {
-                            uploadRecursive(f, targetFs, destinationPath);
+                            uploadRecursive(f, targetFs, destinationFolder);
                         }
                     }
                 } catch (IOException e) {
-                    throw new UncheckedIOException("The files were unpacked but could not be uploaded to " + destinationPath, e);
+                    throw new IOException("The files were unpacked but could not be uploaded to " + destinationFolder, e);
                 }
-                FileHelper.deleteQuietly(finalTempDestDir);
             }
-            if (isTempArchive) {
-                FileHelper.deleteQuietly(finalArchive);
-            }
-            panes.refreshFileListViews();
-        }), title);
-        log.debug("{} started for: {}", title, selectedItem.getName());
+            log.debug("{} done for: {}", actionId, archive.name());
+        } finally {
+            tempPaths.forEach(FileHelper::deleteQuietly);
+        }
     }
 
     private static void uploadRecursive(File source, VFileSystem targetFs, String targetInternalDir) throws IOException {

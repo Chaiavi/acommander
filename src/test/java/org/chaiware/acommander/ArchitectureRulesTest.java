@@ -68,6 +68,18 @@ class ArchitectureRulesTest {
     }
 
     @Test
+    void servicesNeverReadThePanes() throws IOException {
+        Path services = MAIN.resolve(Path.of("org", "chaiware", "acommander", "services"));
+        Pattern paneAccess = Pattern.compile("FilesPanesHelper (?!\\.FocusSide)|panes\\.|getFocused|getUnfocused|getSelectedItems");
+        try (Stream<Path> files = Files.list(services)) {
+            assertThat(files.flatMap(file -> matchingLines(file, paneAccess)).toList())
+                    .as("services get the file systems and paths captured when the user started (ClipboardTransfer.capture); "
+                            + "reading the panes later picks up whatever the user switched to meanwhile")
+                    .isEmpty();
+        }
+    }
+
+    @Test
     void commanderLeavesFileTreesHashesAndSettingsToTestableClasses() {
         Path commander = MAIN.resolve(Path.of("org", "chaiware", "acommander", "Commander.java"));
         assertThat(matchingLines(commander, Pattern.compile("Files\\.(walk|list)\\(|MessageDigest|\\bProperties\\s+\\w+\\s*[;=]|new Properties\\(")).toList())
