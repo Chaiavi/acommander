@@ -29,10 +29,23 @@ public final class ClipboardTransfer {
     public record State(List<Entry> entries, boolean cut, FilesPanesHelper.FocusSide sourceSide, VFileSystem sourceFs,
                         String sourceFolder) {}
 
-    /** {@code pasted} carries the name each item got in the target folder. */
-    public record PasteResult(List<Entry> pasted, List<Entry> failed) {}
+    /** {@code pasted} carries the name each item got in the target folder; {@code firstFailure} is null when none failed. */
+    public record PasteResult(List<Entry> pasted, List<Entry> failed, Exception firstFailure) {}
 
     private ClipboardTransfer() {
+    }
+
+    /**
+     * The selected items with their full paths on {@code fs}, read now: an FTP item is only a name, resolved against
+     * the pane's folder, which may change before the operation runs. ".." is dropped. Call on the FX thread.
+     */
+    public static State capture(List<FileItem> items, boolean cut, FilesPanesHelper.FocusSide side, VFileSystem fs,
+                                String folder) {
+        List<Entry> entries = items.stream()
+                .filter(item -> !"..".equals(item.getPresentableFilename()))
+                .map(item -> new Entry(item.getName(), item.isDirectory(), fs.getInternalPath(item)))
+                .toList();
+        return new State(entries, cut, side, fs, folder);
     }
 
     /**
@@ -43,6 +56,7 @@ public final class ClipboardTransfer {
         boolean duplicate = !state.cut() && isSameFolder(state.sourceFs(), targetFs, state.sourceFolder(), targetFolder);
         List<Entry> pasted = new ArrayList<>();
         List<Entry> failed = new ArrayList<>();
+        Exception firstFailure = null;
         for (Entry entry : state.entries()) {
             try {
                 String targetName = duplicate ? duplicateName(entry.name(), targetFs, targetFolder) : entry.name();
@@ -56,9 +70,10 @@ public final class ClipboardTransfer {
             } catch (Exception ex) {
                 log.warn("Paste failed for item: {}", entry.name(), ex);
                 failed.add(entry);
+                firstFailure = firstFailure == null ? ex : firstFailure;
             }
         }
-        return new PasteResult(pasted, failed);
+        return new PasteResult(pasted, failed, firstFailure);
     }
 
     /** {@code name_copy.ext}, then {@code name_copy_2.ext}, {@code name_copy_3.ext}, … until one is not taken. */
@@ -114,14 +129,6 @@ public final class ClipboardTransfer {
             return ftpFileSystem.sanitizePath(fullPath);
         }
         return targetFs.getInternalPath(new FileItem(Path.of(fullPath), name, 0, 0, directory));
-    }
-
-    /** An item equal to the pasted one, to select it in the refreshed pane. */
-    public static FileItem selectionProbe(VFileSystem targetFs, String targetFolder, Entry entry) {
-        if (targetFs instanceof LocalFileSystem) {
-            return new FileItem(Path.of(targetFolder, entry.name()));
-        }
-        return new FileItem(null, entry.name(), 0, 0, entry.directory());
     }
 
     private static String normalizeFtpFolder(String path) {

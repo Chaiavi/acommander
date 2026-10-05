@@ -52,6 +52,7 @@ import org.chaiware.acommander.tools.BundledToolCommands.CompareFilesOptions;
 import org.chaiware.acommander.tools.BundledToolCommands.FindInFilesOptions;
 import org.chaiware.acommander.tools.FilePropertiesLauncher;
 import org.chaiware.acommander.tools.ProcessRunner;
+import org.chaiware.acommander.vfs.ArchiveFileSystem;
 import org.chaiware.acommander.vfs.FtpConnectionOptions;
 import org.chaiware.acommander.vfs.FtpFileSystem;
 import org.chaiware.acommander.vfs.LocalFileSystem;
@@ -156,7 +157,7 @@ public class Commander {
             filesPanesHelper.refreshFileListViews();
         }));
         toolRunner.setListener(externalCommandListener);
-        fileOps = new FileOperations(filesPanesHelper, appRegistry, toolRunner);
+        fileOps = new FileOperations(appRegistry, toolRunner);
         archiveOps = new ArchiveOperations(filesPanesHelper, appRegistry, toolRunner);
         pdfOps = new PdfOperations(filesPanesHelper, appRegistry, toolRunner);
         configMouseDoubleClick();
@@ -903,6 +904,76 @@ public class Commander {
                 cause -> error(failureMessage, cause instanceof Exception e ? e : new RuntimeException(cause)));
     }
 
+    /**
+     * Runs file work, whose items and file systems were read on the FX thread, in the background behind the progress
+     * bar. Archives in {@code uses} stay open until it ends; then, if {@code refresh}, both panes refresh once, and
+     * {@code onDone} or the error dialog runs on the FX thread.
+     */
+    private <T> void runFileOperation(String title, List<VFileSystem> uses, boolean refresh, Callable<T> work, Consumer<T> onDone) {
+        List<ArchiveSession> held = uses.stream()
+                .filter(ArchiveFileSystem.class::isInstance)
+                .map(fs -> ((ArchiveFileSystem) fs).getSession())
+                .toList();
+        held.forEach(ArchiveSession::acquire);
+        progress.run(title, () -> {
+            try {
+                return work.call();
+            } finally {
+                held.forEach(ArchiveSession::release);
+            }
+        }, result -> {
+            if (refresh) {
+                filesPanesHelper.refreshFileListViews();
+            }
+            onDone.accept(result);
+        }, failure -> {
+            if (refresh) {
+                filesPanesHelper.refreshFileListViews();
+            }
+            error(title + " failed", failure instanceof Exception e ? e : new RuntimeException(failure));
+        });
+    }
+
+    /**
+     * F5, F6, Alt+F6 and Ctrl+V: what to transfer was captured from the source pane; the target is read now, then the
+     * work runs in the background. {@code onDone} gets the result after the panes refreshed.
+     */
+    private void transfer(String title, ClipboardTransfer.State source, FilesPanesHelper.FocusSide targetSide,
+                          Consumer<ClipboardTransfer.PasteResult> onDone) {
+        VFileSystem targetFs = filesPanesHelper.getFileSystem(targetSide);
+        String targetFolder = filesPanesHelper.getPath(targetSide);
+        if (source.entries().isEmpty() || targetFs == null) {
+            return;
+        }
+        if (source.cut() && ClipboardTransfer.isSameFolder(source.sourceFs(), targetFs, source.sourceFolder(), targetFolder)) {
+            showToast("Cannot move items into the same folder");
+            return;
+        }
+        runFileOperation(title, List.of(source.sourceFs(), targetFs), true,
+                () -> fileOps.transfer(source, targetFs, targetFolder),
+                result -> {
+                    filesPanesHelper.selectNames(targetSide, targetFolder,
+                            result.pasted().stream().map(ClipboardTransfer.Entry::name).toList());
+                    if (!result.failed().isEmpty()) {
+                        String names = result.failed().stream().map(ClipboardTransfer.Entry::name).collect(java.util.stream.Collectors.joining(", "));
+                        String cause = result.firstFailure() == null ? "" : "\n\n" + result.firstFailure().getMessage();
+                        showError(title, "Failed for " + result.failed().size() + " of " + source.entries().size()
+                                + " item(s): " + names + cause);
+                    }
+                    onDone.accept(result);
+                });
+    }
+
+    private ClipboardTransfer.State captureSelection(boolean cut) {
+        FilesPanesHelper.FocusSide side = filesPanesHelper.getFocusedSide();
+        return ClipboardTransfer.capture(new ArrayList<>(filesPanesHelper.getSelectedItems()), cut, side,
+                filesPanesHelper.getFileSystem(side), filesPanesHelper.getPath(side));
+    }
+
+    private static FilesPanesHelper.FocusSide otherSide(FilesPanesHelper.FocusSide side) {
+        return side == LEFT ? RIGHT : LEFT;
+    }
+
     private String leafName(String path) {
         if (path == null || path.isBlank()) {
             return null;
@@ -937,9 +1008,8 @@ public class Commander {
             if (!Files.exists(configFile)) {
                 Files.createFile(configFile);
             }
-            FileItem selectedItem = new FileItem(configFile, configFile.getFileName().toString());
             restoreFileListFocusAfterSettingsEdit = true;
-            fileOps.edit(selectedItem);
+            fileOps.edit(new LocalFileSystem(""), new ClipboardTransfer.Entry(configFile.getFileName().toString(), false, configFile.toString()));
         } catch (Exception ex) {
             restoreFileListFocusAfterSettingsEdit = false;
             error("Failed Opening settings", ex);
@@ -992,24 +1062,14 @@ public class Commander {
                 );
                 if (result.isPresent()) { // if user dismisses the dialog it won't rename...
                     String newName = result.get();
-                    
-                    VFileSystem fs = filesPanesHelper.getFocusedFileSystem();
-                    if (fs instanceof FtpFileSystem) {
-                        BackgroundTasks.run(() -> {
-                            try {
-                                fileOps.rename(Collections.singletonList(selectedItem), newName);
-                            } catch (Exception e) {
-                                Platform.runLater(() -> error("Failed Renaming file/s", e));
-                            }
-                        }).thenRun(() -> Platform.runLater(() ->
-                                filesPanesHelper.selectFileItem(true, filesPanesHelper.getFocusedPath(), newName)));
-                    } else {
-                        fileOps.rename(Collections.singletonList(selectedItem), newName);
-                        filesPanesHelper.selectFileItem(true, filesPanesHelper.getFocusedPath(), newName);
-                    }
+                    ClipboardTransfer.State source = captureSelection(false);
+                    runFileOperation("Rename", List.of(source.sourceFs()), true, () -> {
+                        fileOps.rename(source.sourceFs(), source.entries().getFirst(), newName);
+                        return null;
+                    }, ignored -> filesPanesHelper.selectNames(source.sourceSide(), source.sourceFolder(), List.of(newName)));
                 }
             } else // Multi files selected (multi rename)
-                fileOps.rename(selectedItems, "");
+                fileOps.multiRename(selectedItems);
         } catch (Exception e) {
             error("Failed Renaming file/s", e);
         }
@@ -1018,27 +1078,13 @@ public class Commander {
     @FXML
     public void viewFile() {
         logger.info("View (F3)");
-
-        try {
-            List<FileItem> selectedItems = filesPanesHelper.getSelectedItems();
-            VFileSystem fs = filesPanesHelper.getFocusedFileSystem();
-
-            if (fs instanceof FtpFileSystem) {
-                BackgroundTasks.run(() -> {
-                    try {
-                        for (FileItem selectedItem : selectedItems)
-                            fileOps.view(selectedItem);
-                    } catch (Exception e) {
-                        Platform.runLater(() -> error("Failed Viewing file", e));
-                    }
-                });
-            } else {
-                for (FileItem selectedItem : selectedItems)
-                    fileOps.view(selectedItem);
+        ClipboardTransfer.State source = captureSelection(false);
+        runFileOperation("View", List.of(source.sourceFs()), false, () -> {
+            for (ClipboardTransfer.Entry entry : source.entries()) {
+                fileOps.view(source.sourceFs(), entry);
             }
-        } catch (Exception ex) {
-            error("Failed Viewing file", ex);
-        }
+            return null;
+        }, ignored -> {});
     }
 
     public void calculateDirSpace() {
@@ -1062,389 +1108,104 @@ public class Commander {
     @FXML
     public void editFile() {
         logger.info("Edit (F4)");
-
-        try {
-            List<FileItem> fileItems = filesPanesHelper.getSelectedItems();
-            VFileSystem fs = filesPanesHelper.getFocusedFileSystem();
-            
-            if (fs instanceof FtpFileSystem) {
-                BackgroundTasks.run(() -> {
-                    try {
-                        for (FileItem fileItem : fileItems) {
-                            if (org.chaiware.acommander.helpers.FileHelper.isTextFile(fileItem, fs)) {
-                                fileOps.edit(fileItem);
-                            } else {
-                                Platform.runLater(() -> showError("Edit File", "Cannot edit binary file: " + fileItem.getName()));
-                            }
-                        }
-                    } catch (Exception e) {
-                        Platform.runLater(() -> error("Failed Editing file", e));
-                    }
-                });
-            } else {
-                for (FileItem fileItem : fileItems) {
-                    if (org.chaiware.acommander.helpers.FileHelper.isTextFile(fileItem, fs)) {
-                        fileOps.edit(fileItem);
-                    } else {
-                        showError("Edit File", "Cannot edit binary file: " + fileItem.getName());
-                    }
+        List<FileItem> items = fileOps.filterValidItems(new ArrayList<>(filesPanesHelper.getSelectedItems()));
+        ClipboardTransfer.State source = captureSelection(false);
+        runFileOperation("Edit", List.of(source.sourceFs()), false, () -> {
+            List<String> binary = new ArrayList<>();
+            for (int i = 0; i < items.size(); i++) {
+                if (FileHelper.isTextFile(items.get(i), source.sourceFs())) {
+                    fileOps.edit(source.sourceFs(), source.entries().get(i));
+                } else {
+                    binary.add(items.get(i).getName());
                 }
             }
-        } catch (Exception ex) {
-            error("Failed Editing file", ex);
-        }
+            return binary;
+        }, binary -> {
+            if (!binary.isEmpty()) {
+                showError("Edit File", "Cannot edit binary file: " + String.join(", ", binary));
+            }
+        });
     }
 
     @FXML
     public void copyFile() {
         logger.info("Copy (F5)");
-
-        try {
-            List<FileItem> selectedItems = new ArrayList<>(fileOps.filterValidItems(filesPanesHelper.getSelectedItems()));
-            if (selectedItems.isEmpty()) {
-                return;
-            }
-
-            String targetFolderSnapshot = filesPanesHelper.getUnfocusedPath();
-            String sourceFolderSnapshot = filesPanesHelper.getFocusedPath();
-            VFileSystem fs = filesPanesHelper.getFocusedFileSystem();
-            VFileSystem targetFs = filesPanesHelper.getUnfocusedFileSystem();
-            boolean duplicateInSameFolder = ClipboardTransfer.isSameFolder(
-                    fs,
-                    targetFs,
-                    sourceFolderSnapshot,
-                    targetFolderSnapshot
-            );
-
-            if (duplicateInSameFolder) {
-                if (fs instanceof FtpFileSystem) {
-                    BackgroundTasks.run(() -> {
-                        try {
-                            List<ClipboardTransfer.Entry> pastedSelections = new ArrayList<>();
-                            for (FileItem selectedItem : selectedItems) {
-                                String duplicateName = ClipboardTransfer.duplicateName(selectedItem.getName(), targetFs, targetFolderSnapshot);
-                                String sourceInternalPath = fs.getInternalPath(selectedItem);
-                                String targetInternalPath = ClipboardTransfer.targetInternalPath(targetFs, targetFolderSnapshot, duplicateName, selectedItem.isDirectory());
-                                fs.copy(sourceInternalPath, targetFs, targetInternalPath);
-                                pastedSelections.add(new ClipboardTransfer.Entry(duplicateName, selectedItem.isDirectory(), sourceInternalPath));
-                            }
-                            Platform.runLater(() -> {
-                                filesPanesHelper.refreshFileListViews();
-                                for (ClipboardTransfer.Entry entry : pastedSelections) {
-                                    filesPanesHelper.selectFileItem(false, ClipboardTransfer.selectionProbe(targetFs, targetFolderSnapshot, entry));
-                                }
-                            });
-                        } catch (Exception e) {
-                            Platform.runLater(() -> error("Failed Duplicating file", e));
-                        }
-                    });
-                } else {
-                    for (FileItem selectedItem : selectedItems) {
-                        String duplicateName = ClipboardTransfer.duplicateName(selectedItem.getName(), targetFs, targetFolderSnapshot);
-                        String sourceInternalPath = fs.getInternalPath(selectedItem);
-                        String targetInternalPath = ClipboardTransfer.targetInternalPath(targetFs, targetFolderSnapshot, duplicateName, selectedItem.isDirectory());
-                        fs.copy(sourceInternalPath, targetFs, targetInternalPath);
-                        filesPanesHelper.selectFileItem(false, ClipboardTransfer.selectionProbe(targetFs, targetFolderSnapshot, new ClipboardTransfer.Entry(duplicateName, selectedItem.isDirectory(), sourceInternalPath)));
-                    }
-                    filesPanesHelper.refreshFileListViews();
-                }
-                return;
-            }
-            
-            if (fs instanceof FtpFileSystem) {
-                BackgroundTasks.run(() -> {
-                    try {
-                        if (selectedItems.size() > 1) {
-                            fileOps.copyBatch(selectedItems, targetFolderSnapshot);
-                        } else {
-                            fileOps.copy(selectedItems.getFirst(), targetFolderSnapshot);
-                        }
-                    } catch (Exception e) {
-                        Platform.runLater(() -> error("Failed Copying file", e));
-                    }
-                }).thenRun(() -> Platform.runLater(() -> {
-                    for (FileItem selectedItem : selectedItems) {
-                        filesPanesHelper.selectFileItem(false, targetFolderSnapshot, selectedItem.getName());
-                    }
-                }));
-            } else {
-                if (selectedItems.size() > 1) {
-                    fileOps.copyBatch(selectedItems, targetFolderSnapshot);
-                    for (FileItem selectedItem : selectedItems) {
-                        filesPanesHelper.selectFileItem(false, targetFolderSnapshot, selectedItem.getName());
-                    }
-                    return;
-                }
-
-                for (FileItem selectedItem : selectedItems) {
-                    fileOps.copy(selectedItem, targetFolderSnapshot);
-                    filesPanesHelper.selectFileItem(false, targetFolderSnapshot, selectedItem.getName());
-                }
-            }
-        } catch (Exception e) {
-            error("Failed Copying file", e);
-        }
+        ClipboardTransfer.State source = captureSelection(false);
+        transfer("Copy", source, otherSide(source.sourceSide()), result -> {});
     }
 
+    /** Alt+F6: copies the selection into its own folder under duplicate names. */
     @FXML
     public void duplicateFile() {
         logger.info("Duplicate");
-
-        try {
-            List<FileItem> selectedItems = new ArrayList<>(fileOps.filterValidItems(filesPanesHelper.getSelectedItems()));
-            if (selectedItems.isEmpty()) {
-                return;
-            }
-
-            String targetFolder = filesPanesHelper.getFocusedPath();
-            VFileSystem fs = filesPanesHelper.getFocusedFileSystem();
-
-            if (fs instanceof FtpFileSystem) {
-                BackgroundTasks.run(() -> {
-                    try {
-                        for (FileItem selectedItem : selectedItems) {
-                            String duplicateName = ClipboardTransfer.duplicateName(selectedItem.getName(), fs, targetFolder);
-                            String sourceInternalPath = fs.getInternalPath(selectedItem);
-                            // FTP uses forward slashes
-                            int lastSeparator = Math.max(sourceInternalPath.lastIndexOf('/'), sourceInternalPath.lastIndexOf('\\'));
-                            String targetInternalPath = sourceInternalPath.substring(0, lastSeparator + 1) + duplicateName;
-                            fs.copy(sourceInternalPath, fs, targetInternalPath);
-                        }
-                    } catch (Exception e) {
-                        Platform.runLater(() -> error("Failed Duplicating file", e));
-                    }
-                }).thenRun(() -> Platform.runLater(() -> {
-                    filesPanesHelper.refreshFileListViews();
-                }));
-            } else {
-                // Use simple VFileSystem copy for local files
-                for (FileItem selectedItem : selectedItems) {
-                    String duplicateName = ClipboardTransfer.duplicateName(selectedItem.getName(), fs, targetFolder);
-                    String sourceInternalPath = fs.getInternalPath(selectedItem);
-                    // Local filesystem uses backslashes - use Path for robustness
-                    java.nio.file.Path sourcePath = java.nio.file.Paths.get(sourceInternalPath);
-                    java.nio.file.Path targetPath = sourcePath.resolveSibling(duplicateName);
-                    fs.copy(sourceInternalPath, fs, targetPath.toString());
-                }
-                filesPanesHelper.refreshFileListViews();
-            }
-        } catch (Exception e) {
-            error("Failed Duplicating file", e);
-        }
+        ClipboardTransfer.State source = captureSelection(false);
+        transfer("Duplicate", source, source.sourceSide(), result -> {});
     }
 
     @FXML
     public void moveFile() {
         logger.info("Move (F6)");
-
-        try {
-            List<FileItem> selectedItems = new ArrayList<>(fileOps.filterValidItems(filesPanesHelper.getSelectedItems()));
-            if (selectedItems.isEmpty()) {
-                return;
-            }
-            int sourceSelectionIndexAfterMove = getFocusedSelectionIndexAfterRemoval();
-
-            String targetFolderSnapshot = filesPanesHelper.getUnfocusedPath();
-            VFileSystem fs = filesPanesHelper.getFocusedFileSystem();
-            VFileSystem targetFs = filesPanesHelper.getUnfocusedFileSystem();
-            logger.debug(
-                    "Move requested: {} item(s), sourceFs={}, targetFs={}, target={}",
-                    selectedItems.size(),
-                    fs == null ? "<null>" : fs.getIdentifier(),
-                    targetFs == null ? "<null>" : targetFs.getIdentifier(),
-                    targetFolderSnapshot
-            );
-
-            if (selectedItems.size() > 1) {
-                BackgroundTasks.run(() -> {
-                    try {
-                        fileOps.moveBatch(selectedItems, targetFolderSnapshot);
-                    } catch (Exception e) {
-                        throw new CompletionException(e);
-                    }
-                }).thenRun(() -> Platform.runLater(() -> {
-                    selectFocusedItemByIndex(sourceSelectionIndexAfterMove);
-                    for (FileItem selectedItem : selectedItems) {
-                        filesPanesHelper.selectFileItem(false, targetFolderSnapshot, selectedItem.getName());
-                    }
-                })).exceptionally(ex -> {
-                    Platform.runLater(() -> error("Failed Moving file", ex instanceof Exception ? (Exception) ex : new Exception(ex)));
-                    return null;
-                });
-                return;
-            }
-
-            if (fs instanceof FtpFileSystem) {
-                BackgroundTasks.run(() -> {
-                    try {
-                        for (FileItem selectedItem : selectedItems) {
-                            fileOps.move(selectedItem, targetFolderSnapshot);
-                        }
-                    } catch (Exception e) {
-                        Platform.runLater(() -> error("Failed Moving file", e));
-                    }
-                }).thenRun(() -> Platform.runLater(() -> {
-                    selectFocusedItemByIndex(sourceSelectionIndexAfterMove);
-                    for (FileItem selectedItem : selectedItems) {
-                        filesPanesHelper.selectFileItem(false, targetFolderSnapshot, selectedItem.getName());
-                    }
-                }));
-            } else {
-                for (FileItem selectedItem : selectedItems) {
-                    fileOps.move(selectedItem, targetFolderSnapshot);
-
-                    selectFocusedItemByIndex(sourceSelectionIndexAfterMove);
-                    filesPanesHelper.selectFileItem(false, targetFolderSnapshot, selectedItem.getName());
-                }
-            }
-        } catch (Exception ex) {
-            error("Failed Moving file", ex);
-        }
-    }
-
-    private int getFocusedSelectionIndexAfterRemoval() {
-        ListView<FileItem> focusedList = filesPanesHelper.getFileList(true);
-        int selectedIndex = focusedList.getSelectionModel().getSelectedIndex();
-        return Math.max(selectedIndex, 0);
-    }
-
-    private void selectFocusedItemByIndex(int preferredIndex) {
-        ListView<FileItem> focusedList = filesPanesHelper.getFileList(true);
-        int size = focusedList.getItems().size();
-        if (size == 0) {
-            return;
-        }
-        int index = Math.min(Math.max(preferredIndex, 0), size - 1);
-        focusedList.getSelectionModel().clearAndSelect(index);
-        focusedList.getFocusModel().focus(index);
+        ClipboardTransfer.State source = captureSelection(true);
+        int nextIndex = Math.max(filesPanesHelper.getFileList(true).getSelectionModel().getSelectedIndex(), 0);
+        transfer("Move", source, otherSide(source.sourceSide()),
+                result -> filesPanesHelper.selectIndex(source.sourceSide(), source.sourceFolder(), nextIndex));
     }
 
     @FXML
     public void makeDirectory() {
         logger.info("Create Directory (F7)");
-
-        try {
-            Optional<String> result = getUserFeedback("", "Make Directory", "New Directory Name");
-            if (result.isPresent()) { // if user dismisses the dialog it won't create a directory...
-                String dirName = result.get();
-                String focusedPath = filesPanesHelper.getFocusedPath();
-                VFileSystem fs = filesPanesHelper.getFocusedFileSystem();
-                
-                if (fs instanceof FtpFileSystem) {
-                    BackgroundTasks.run(() -> {
-                        try {
-                            fileOps.mkdir(focusedPath, dirName);
-                        } catch (Exception e) {
-                            Platform.runLater(() -> error("Failed Creating Directory", e));
-                        }
-                    }).thenRun(() -> Platform.runLater(() -> filesPanesHelper.selectFileItem(true, focusedPath, dirName)));
-                } else {
-                    fileOps.mkdir(focusedPath, dirName);
-                    filesPanesHelper.selectFileItem(true, focusedPath, dirName);
-                }
-            }
-        } catch (Exception e) {
-            error("Failed Creating Directory", e);
-        }
+        getUserFeedback("", "Make Directory", "New Directory Name").ifPresent(name ->
+                createInFocusedPane("Create Directory", name, (fs, folder) -> fileOps.mkdir(fs, folder, name)));
     }
 
     public void makeFile() {
         logger.info("Create File (ALT+F7)");
+        getUserFeedback("", "Make File", "New File Name").ifPresent(name ->
+                createInFocusedPane("Create File", name, (fs, folder) -> fileOps.mkFile(fs, folder, name)));
+    }
 
-        try {
-            Optional<String> result = getUserFeedback("", "Make File", "New File Name");
-            if (result.isPresent()) {// if user dismisses the dialog it won't create a file...
-                String fileName = result.get();
-                String focusedPath = filesPanesHelper.getFocusedPath();
-                VFileSystem fs = filesPanesHelper.getFocusedFileSystem();
-                
-                if (fs instanceof FtpFileSystem) {
-                    BackgroundTasks.run(() -> {
-                        try {
-                            fileOps.mkFile(focusedPath, fileName);
-                        } catch (Exception e) {
-                            Platform.runLater(() -> error("Failed Creating File", e));
-                        }
-                    }).thenRun(() -> Platform.runLater(() -> filesPanesHelper.selectFileItem(true, focusedPath, fileName)));
-                } else {
-                    fileOps.mkFile(focusedPath, fileName);
-                    filesPanesHelper.selectFileItem(true, focusedPath, fileName);
-                }
-            }
-        } catch (Exception e) {
-            error("Failed Creating File", e);
-        }
+    private interface FolderWork {
+        void run(VFileSystem fs, String folder) throws IOException;
+    }
+
+    private void createInFocusedPane(String title, String name, FolderWork work) {
+        FilesPanesHelper.FocusSide side = filesPanesHelper.getFocusedSide();
+        VFileSystem fs = filesPanesHelper.getFileSystem(side);
+        String folder = filesPanesHelper.getPath(side);
+        runFileOperation(title, List.of(fs), true, () -> {
+            work.run(fs, folder);
+            return null;
+        }, ignored -> filesPanesHelper.selectNames(side, folder, List.of(name)));
     }
 
     @FXML
     public void deleteFile() {
         logger.info("Delete (F8/DEL)");
-        try {
-            List<FileItem> selectedItems = new ArrayList<>(fileOps.filterValidItems(filesPanesHelper.getSelectedItems()));
-            if (selectedItems.isEmpty()) {
-                return;
-            }
-            int selectionIndexBeforeDelete = filesPanesHelper.getFileList(true).getSelectionModel().getSelectedIndex();
-            
-            VFileSystem fs = filesPanesHelper.getFocusedFileSystem();
-            if (fs instanceof FtpFileSystem) {
-                BackgroundTasks.run(() -> {
-                    try {
-                        fileOps.delete(selectedItems);
-                    } catch (Exception e) {
-                        Platform.runLater(() -> error("Failed to delete", e));
-                    }
-                }).thenRun(() -> Platform.runLater(() -> {
-                    selectItemAboveDeleted(selectionIndexBeforeDelete);
-                }));
-            } else {
-                fileOps.delete(selectedItems);
-                selectItemAboveDeleted(selectionIndexBeforeDelete);
-            }
-        } catch (Exception ex) {
-            error("Failed to delete", ex);
+        ClipboardTransfer.State source = captureSelection(false);
+        if (source.entries().isEmpty()) {
+            return;
         }
+        int previousIndex = filesPanesHelper.getFileList(true).getSelectionModel().getSelectedIndex();
+        runFileOperation("Delete", List.of(source.sourceFs()), true,
+                () -> fileOps.delete(source.sourceFs(), source.entries()),
+                failed -> {
+                    filesPanesHelper.selectIndex(source.sourceSide(), source.sourceFolder(), previousIndex - 1);
+                    if (!failed.isEmpty() && !(source.sourceFs() instanceof LocalFileSystem)) {
+                        showError("Delete", "Could not delete: " + failed.stream()
+                                .map(ClipboardTransfer.Entry::name).collect(java.util.stream.Collectors.joining(", ")));
+                    }
+                });
     }
 
     public void deleteWipe() {
         logger.info("Delete & Wipe (Shift+F8/DEL)");
-        try {
-            List<FileItem> selectedItems = new ArrayList<>(fileOps.filterValidItems(filesPanesHelper.getSelectedItems()));
-            if (selectedItems.isEmpty()) {
-                return;
-            }
-            int selectionIndexBeforeDelete = filesPanesHelper.getFileList(true).getSelectionModel().getSelectedIndex();
-
-            VFileSystem fs = filesPanesHelper.getFocusedFileSystem();
-            if (fs instanceof FtpFileSystem) {
-                BackgroundTasks.run(() -> {
-                    try {
-                        fileOps.wipeDelete(selectedItems);
-                    } catch (Exception e) {
-                        Platform.runLater(() -> error("Failed to delete", e));
-                    }
-                }).thenRun(() -> Platform.runLater(() -> {
-                    selectItemAboveDeleted(selectionIndexBeforeDelete);
-                }));
-            } else {
-                fileOps.wipeDelete(selectedItems);
-                selectItemAboveDeleted(selectionIndexBeforeDelete);
-            }
-        } catch (Exception ex) {
-            error("Failed to delete", ex);
-        }
-    }
-
-    private void selectItemAboveDeleted(int previousSelectionIndex) {
-        ListView<FileItem> focusedList = filesPanesHelper.getFileList(true);
-        if (focusedList.getItems().isEmpty()) {
+        List<FileItem> selectedItems = fileOps.filterValidItems(new ArrayList<>(filesPanesHelper.getSelectedItems()));
+        if (selectedItems.isEmpty()) {
             return;
         }
-        int targetIndex = Math.max(0, previousSelectionIndex - 1);
-        int boundedIndex = Math.min(targetIndex, focusedList.getItems().size() - 1);
-        focusedList.getSelectionModel().clearAndSelect(boundedIndex);
-        focusedList.getFocusModel().focus(boundedIndex);
-        focusedList.scrollTo(boundedIndex);
+        int previousIndex = filesPanesHelper.getFileList(true).getSelectionModel().getSelectedIndex();
+        fileOps.wipeDelete(selectedItems);
+        filesPanesHelper.selectIndex(filesPanesHelper.getFocusedSide(), filesPanesHelper.getFocusedPath(), previousIndex - 1);
     }
 
     @FXML
@@ -3167,77 +2928,38 @@ public class Commander {
             showToast("Clipboard is empty");
             return;
         }
-
-        FilesPanesHelper.FocusSide targetSide = filesPanesHelper.getFocusedSide();
-        VFileSystem targetFs = filesPanesHelper.getFileSystem(targetSide);
-        String targetFolder = filesPanesHelper.getPath(targetSide);
-        boolean isCut = clipboardTransferState.cut();
-
-        if (targetFs == null) {
-            showError("Paste", "No target location is selected.");
-            return;
-        }
-        if (targetFs.isReadOnly()) {
+        ClipboardTransfer.State state = clipboardTransferState;
+        VFileSystem targetFs = filesPanesHelper.getFocusedFileSystem();
+        if (targetFs != null && targetFs.isReadOnly()) {
             showReadOnlyLocationWarning();
             return;
         }
-        if (isCut && clipboardTransferState.sourceFs().isReadOnly()) {
+        if (state.cut() && state.sourceFs().isReadOnly()) {
             showError("Paste", "Cannot move from a read-only source location.");
             return;
         }
-        if (isCut
-                && targetSide == clipboardTransferState.sourceSide()
-                && Objects.equals(targetFolder, clipboardTransferState.sourceFolder())) {
-            showToast("Cannot paste cut items into the same folder");
-            return;
-        }
-
-        ClipboardTransfer.State state = clipboardTransferState;
-        BackgroundTasks.run(() -> {
-            ClipboardTransfer.PasteResult result = ClipboardTransfer.paste(state, targetFs, targetFolder);
-
-            Platform.runLater(() -> {
-                filesPanesHelper.refreshFileListViews();
-                for (ClipboardTransfer.Entry entry : result.pasted()) {
-                    filesPanesHelper.selectFileItem(true, ClipboardTransfer.selectionProbe(targetFs, targetFolder, entry));
-                }
-
-                int successCount = result.pasted().size();
-                if (successCount <= 0) {
-                    showError("Paste", "Failed to paste selected items.");
-                    return;
-                }
-
-                clipboardTransferState = null;
-                commandPaletteController.refresh();
-
-                if (result.failed().isEmpty()) {
-                    showToast("Pasted " + successCount + " file(s)");
-                } else {
-                    showToast("Pasted " + successCount + " of " + state.entries().size() + " file(s)");
-                }
-            });
+        transfer("Paste", state, filesPanesHelper.getFocusedSide(), result -> {
+            int successCount = result.pasted().size();
+            if (successCount == 0) {
+                return;
+            }
+            clipboardTransferState = null;
+            commandPaletteController.refresh();
+            showToast(result.failed().isEmpty()
+                    ? "Pasted " + successCount + " file(s)"
+                    : "Pasted " + successCount + " of " + state.entries().size() + " file(s)");
         });
     }
 
     private void setClipboardTransferState(boolean cut) {
-        List<FileItem> selectedItems = new ArrayList<>(fileOps.filterValidItems(filesPanesHelper.getSelectedItems()));
-        if (selectedItems.isEmpty()) {
+        ClipboardTransfer.State state = captureSelection(cut);
+        if (state.entries().isEmpty()) {
             showToast("No files selected");
             return;
         }
-
-        FilesPanesHelper.FocusSide sourceSide = filesPanesHelper.getFocusedSide();
-        VFileSystem sourceFs = filesPanesHelper.getFileSystem(sourceSide);
-        String sourceFolder = filesPanesHelper.getPath(sourceSide);
-
-        List<ClipboardTransfer.Entry> entries = selectedItems.stream()
-                .map(item -> new ClipboardTransfer.Entry(item.getName(), item.isDirectory(), sourceFs.getInternalPath(item)))
-                .toList();
-
-        clipboardTransferState = new ClipboardTransfer.State(entries, cut, sourceSide, sourceFs, sourceFolder);
+        clipboardTransferState = state;
         commandPaletteController.refresh();
-        showToast((cut ? "Cut " : "Copied ") + entries.size() + " file(s)");
+        showToast((cut ? "Cut " : "Copied ") + state.entries().size() + " file(s)");
     }
 
     private void showToast(String message) {

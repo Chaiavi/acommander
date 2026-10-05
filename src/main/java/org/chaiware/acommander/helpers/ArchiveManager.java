@@ -66,6 +66,12 @@ public class ArchiveManager {
      */
     public void closeArchive(ArchiveSession session) throws IOException {
         logger.info("Closing archive session: {}", session.getArchivePath());
+        try {
+            session.awaitIdle();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new IOException("Interrupted while waiting for operations on " + session.getArchivePath(), e);
+        }
         Path tempFolder = session.getTempFolder();
         if (session.getMode() == ArchiveMode.READ_WRITE && session.isNeedsRepack()) {
             try {

@@ -1,6 +1,7 @@
 package org.chaiware.acommander.services;
 
 import org.chaiware.acommander.commands.ExternalToolRunner;
+import org.chaiware.acommander.config.ActionDefinition;
 import org.chaiware.acommander.config.AppConfig;
 import org.chaiware.acommander.config.AppRegistry;
 import org.chaiware.acommander.helpers.AppTempDir;
@@ -23,6 +24,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.*;
@@ -32,68 +35,100 @@ class FileOperationsTest {
     @TempDir
     Path tempDir;
 
-    private final FilesPanesHelper panes = mock(FilesPanesHelper.class);
+    private final LocalFileSystem local = new LocalFileSystem("");
     private FileOperations operations;
 
     @BeforeEach
     void setUp() {
-        VFileSystem localFs = new LocalFileSystem("");
-        when(panes.getFocusedFileSystem()).thenReturn(localFs);
-        when(panes.getUnfocusedFileSystem()).thenReturn(localFs);
         AppConfig config = new AppConfig();
         config.setActions(List.of());
-        operations = new FileOperations(panes, new AppRegistry(config), new ExternalToolRunner(() -> {}));
+        operations = new FileOperations(new AppRegistry(config), new ExternalToolRunner(() -> {}));
+    }
+
+    private ClipboardTransfer.State capture(boolean cut, VFileSystem fs, Path folder, Path... items) {
+        return ClipboardTransfer.capture(java.util.Arrays.stream(items).map(FileItem::new).toList(), cut,
+                FilesPanesHelper.FocusSide.LEFT, fs, folder.toString());
     }
 
     @Test
-    void renameRenamesSingleFile() throws Exception {
+    void renameRenamesInItsFolder() throws Exception {
         Path file = Files.writeString(tempDir.resolve("old.txt"), "rename");
 
-        operations.rename(List.of(new FileItem(file)), "new.txt");
+        operations.rename(local, capture(false, local, tempDir, file).entries().getFirst(), "new.txt");
 
         assertThat(file).doesNotExist();
-        assertThat(tempDir.resolve("new.txt")).exists();
-        verify(panes).refreshFileListViews();
+        assertThat(tempDir.resolve("new.txt")).hasContent("rename");
     }
 
     @Test
-    void moveOnTheSameDriveMovesTheFile() throws Exception {
-        Path targetDir = Files.createDirectory(tempDir.resolve("target"));
-        Path file = Files.writeString(tempDir.resolve("move.txt"), "move");
+    void moveOnTheSameDriveMovesEveryItem() {
+        Path targetDir = tempDir.resolve("target");
+        Path first = write("one.txt", "first");
+        Path second = write("two.txt", "second");
+        targetDir.toFile().mkdir();
 
-        operations.move(new FileItem(file), targetDir.toString());
+        ClipboardTransfer.PasteResult result = operations.transfer(capture(true, local, tempDir, first, second), local, targetDir.toString());
 
-        assertThat(file).doesNotExist();
-        assertThat(targetDir.resolve("move.txt")).exists();
-        verify(panes).refreshFileListViews();
-    }
-
-    @Test
-    void moveBatchMovesEveryFile() throws Exception {
-        Path targetDir = Files.createDirectory(tempDir.resolve("target"));
-        Path first = Files.writeString(tempDir.resolve("one.txt"), "first");
-        Path second = Files.writeString(tempDir.resolve("two.txt"), "second");
-
-        operations.moveBatch(List.of(new FileItem(first), new FileItem(second)), targetDir.toString());
-
+        assertThat(result.failed()).isEmpty();
         assertThat(first).doesNotExist();
-        assertThat(second).doesNotExist();
         assertThat(targetDir.resolve("one.txt")).hasContent("first");
         assertThat(targetDir.resolve("two.txt")).hasContent("second");
     }
 
     @Test
-    void mkdirAndMkFileCreateInTheFolder() throws Exception {
-        operations.mkdir(tempDir.toString(), "created");
-        operations.mkFile(tempDir.toString(), "file.txt");
+    void copyIntoItsOwnFolderGetsADuplicateName() {
+        Path file = write("sample.txt", "data");
 
-        assertThat(tempDir.resolve("created")).isDirectory();
-        assertThat(tempDir.resolve("file.txt")).isRegularFile();
-        verify(panes, times(2)).refreshFileListViews();
+        ClipboardTransfer.PasteResult result = operations.transfer(capture(false, local, tempDir, file), local, tempDir.toString());
+
+        assertThat(result.pasted()).extracting(ClipboardTransfer.Entry::name).containsExactly("sample_copy.txt");
+        assertThat(tempDir.resolve("sample_copy.txt")).hasContent("data");
+        assertThat(file).hasContent("data");
     }
 
     @Test
-    void mkdirOnFtpCreatesInTheCurrentSubfolder() throws Exception {
+    void localCopyIsOneFastCopyRunAndListsWhatItSkipped() {
+        Path targetDir = tempDir.resolve("target");
+        targetDir.toFile().mkdir();
+        Path copied = write("copied.txt", "x");
+        Path skipped = write("skipped.txt", "y");
+        List<List<String>> commands = new ArrayList<>();
+        ExternalToolRunner fastCopy = new ExternalToolRunner(() -> {}) {
+            @Override
+            public CompletableFuture<List<String>> runExecutable(List<String> command, boolean changesFiles, Set<Integer> accepted) {
+                commands.add(command);
+                write("target/copied.txt", "x");
+                return CompletableFuture.completedFuture(List.of());
+            }
+        };
+        ActionDefinition copy = new ActionDefinition();
+        copy.setId("copy");
+        copy.setPath("apps/copy/fcp.exe");
+        copy.setArgs(List.of("/cmd=force_copy", "${selectedFiles}", "/to=${targetFolder}"));
+        AppConfig config = new AppConfig();
+        config.setActions(List.of(copy));
+
+        ClipboardTransfer.PasteResult result = new FileOperations(new AppRegistry(config), fastCopy)
+                .transfer(capture(false, local, tempDir, copied, skipped), local, targetDir.toString());
+
+        assertThat(commands).hasSize(1);
+        assertThat(commands.getFirst()).contains(copied.toString(), skipped.toString(), "/to=" + targetDir + "\\");
+        assertThat(result.pasted()).extracting(ClipboardTransfer.Entry::name).containsExactly("copied.txt");
+        assertThat(result.failed()).extracting(ClipboardTransfer.Entry::name).containsExactly("skipped.txt");
+        assertThat(result.firstFailure()).hasMessageContaining("skipped.txt");
+    }
+
+    @Test
+    void mkdirAndMkFileCreateInTheFolder() throws Exception {
+        operations.mkdir(local, tempDir.toString(), "created");
+        operations.mkFile(local, tempDir.toString(), "file.txt");
+
+        assertThat(tempDir.resolve("created")).isDirectory();
+        assertThat(tempDir.resolve("file.txt")).isRegularFile();
+    }
+
+    @Test
+    void mkdirOnFtpCreatesInTheGivenSubfolder() throws Exception {
         List<String> commands = new ArrayList<>();
         FtpFileSystem ftp = new FtpFileSystem(FtpConnectionOptions.builder()
                 .host("ftp.example.com").port(21).username("u").password("mock").build()) {
@@ -103,22 +138,26 @@ class FileOperationsTest {
                 return List.of();
             }
         };
-        ftp.listContents("/pub");
-        when(panes.getFocusedFileSystem()).thenReturn(ftp);
 
-        operations.mkdir("/pub", "created");
+        operations.mkdir(ftp, "/pub", "created");
 
         assertThat(commands).anyMatch(command -> command.endsWith("MKD /pub/created"));
     }
 
     @Test
-    void deleteSkipsTheParentEntry() throws Exception {
-        Path file = Files.writeString(tempDir.resolve("gone.txt"), "x");
+    void deleteSkipsTheParentEntryAndReturnsTheFailures() throws Exception {
+        Path file = write("gone.txt", "x");
+        ClipboardTransfer.State selection = ClipboardTransfer.capture(
+                List.of(new FileItem(tempDir, ".."), new FileItem(file)), false, FilesPanesHelper.FocusSide.LEFT, local, tempDir.toString());
 
-        operations.delete(List.of(new FileItem(tempDir, ".."), new FileItem(file)));
-
+        assertThat(operations.delete(local, selection.entries())).isEmpty();
         assertThat(file).doesNotExist();
         assertThat(tempDir).exists();
+
+        VFileSystem failing = mock(VFileSystem.class);
+        doThrow(new java.io.IOException("denied")).when(failing).delete("/locked.txt");
+        ClipboardTransfer.Entry locked = new ClipboardTransfer.Entry("locked.txt", false, "/locked.txt");
+        assertThat(operations.delete(failing, List.of(locked))).containsExactly(locked);
     }
 
     @Test
@@ -135,15 +174,22 @@ class FileOperationsTest {
         Path extracted = AppTempDir.createTempDirectory("archive_test_");
         ArchiveFileSystem archive = new ArchiveFileSystem(
                 new ArchiveSession("a.zip", extracted, ArchiveMode.READ_WRITE), new ArchiveManager());
-        when(panes.getUnfocusedFileSystem()).thenReturn(archive);
         try {
-            operations.copy(new FileItem(source), extracted.toString());
+            operations.transfer(capture(false, local, source.getParent(), source), archive, extracted.toString());
 
             assertThat(extracted.resolve("dirA").resolve("inner.txt")).hasContent("x");
             assertThat(extracted.resolve("dirA").resolve("dirA")).doesNotExist();
         } finally {
             AppTempDir.release(extracted);
             FileHelper.deleteQuietly(extracted);
+        }
+    }
+
+    private Path write(String relative, String content) {
+        try {
+            return Files.writeString(tempDir.resolve(relative), content);
+        } catch (java.io.IOException e) {
+            throw new java.io.UncheckedIOException(e);
         }
     }
 }

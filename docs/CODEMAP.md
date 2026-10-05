@@ -62,8 +62,8 @@ Adding or renaming an action id? Check each of these:
 | `rename` (F2, Shift+F6) | `renameFile` | `FileOperations.rename` → single: VFS, many: `multiRename` | `multi_rename/Renamer.exe` |
 | `view` (F3) | `viewFile` / `calculateDirSpace` (folder) | `FileOperations.view` / `FileHelper.folderSize` | `view/UniversalViewer/Viewer.exe` |
 | `edit` (F4) | `editFile` | `FileOperations.edit` | `edit/Notepad4.exe` |
-| `copy` (F5) | `copyFile` | `FileOperations.copy` / `copyBatch` (local: FastCopy, else VFS `copy`) | `copy/fcp.exe` (FastCopy) |
-| `move` (F6) | `moveFile` | `FileOperations.move` / `moveBatch` (same drive or VFS: rename) | `copy/fcp.exe` |
+| `copy` (F5) | `copyFile` → `transfer` | `ClipboardTransfer.capture`, `FileOperations.transfer` (local: one FastCopy run + arrival check, else VFS `copy`) | `copy/fcp.exe` (FastCopy) |
+| `move` (F6) | `moveFile` → `transfer` | `FileOperations.transfer` (same drive: rename; across drives: FastCopy per item; VFS otherwise) | `copy/fcp.exe` |
 | `duplicate` (Alt+F6) | `duplicateFile` | `ClipboardTransfer.duplicateName`, VFS `copy` | — |
 | `copySelection` / `cutSelection` / `pasteSelection` | `copySelectionToClipboard`, `cutSelectionToClipboard`, `pasteClipboardSelection` | `services/ClipboardTransfer` (state, paste loop, duplicate names, target paths) | — |
 | `mkdir` (F7) / `mkfile` (Alt+F7) | `makeDirectory` / `makeFile` | `FileOperations.mkdir` / `mkFile` (VFS) | — |
@@ -211,7 +211,7 @@ Not actions, but often asked for:
 ### `helpers/`
 | File | Role |
 |---|---|
-| `FilesPanesHelper` | Two panes: focus side, current `VFileSystem` per side, path (`getPath(side)`), listing, sort state, selection, archive enter/exit. `selectFileItem(focused, folder, name)` selects a result by name (FTP-safe). Inner `ArchiveFolder` (combo entry for archive/FTP panes), `FilePane`. |
+| `FilesPanesHelper` | Two panes: focus side, current `VFileSystem` per side, path (`getPath(side)`), listing, sort state, selection, archive enter/exit. `selectNames(side, folder, names)` / `selectIndex(side, folder, i)` select a result only while that pane still shows that folder; `selectFileItem(focused, folder, name)` selects by name (FTP-safe). Inner `ArchiveFolder` (combo entry for archive/FTP panes), `FilePane`. |
 | `PaneSorter` | Pane order: `..` first, folders first, then the column (`SortColumn`, `SortState.toggle`), then `compareNaturalNames` (file2 before file10). |
 | `ArchiveManager` | Opens an archive by extracting to a temp folder (`7z.exe`), repacks on close if modified. A failed repack copies the edits to a new `<archive>.recovered-<stamp>` folder and throws a message naming it; if that fails too, the extracted folder stays (retained) and the message names it. |
 | `FileAttributesHelper` | Read/apply R/H/S/A attributes (NIO, `attrib` fallback). |
@@ -245,7 +245,7 @@ Not actions, but often asked for:
 | `FileItem` | A row: `Path` (null on FTP), display name, size, date, directory flag. `extension()` (lower case, no dot) and `allFilesWithExtension` back every file-type check. |
 | `Folder`, `Drive`, `WindowsFolder` | Path-combo entries. |
 | `ArchiveMode` | Read-write vs read-only archive extensions (browsable); `isUnpackable` adds the unpack-only ones (enables unpack). |
-| `ArchiveSession` | Open archive: temp folder, mode, needs-repack, parent/child for nested dirs. |
+| `ArchiveSession` | Open archive: temp folder, mode, needs-repack, parent/child for nested dirs; `acquire` / `release` by running operations, `awaitIdle` before a repack. |
 
 ### `palette/`
 | File | Role |
@@ -258,8 +258,8 @@ Not actions, but often asked for:
 | `FolderComparer` | Compare Folders: only-left / only-right / different (size, date, contents via `Files.mismatch`) marks per top-level item; `key(path)` looks a pane item up. |
 | `ImageConversionService` | caesiumclt command from an `ImageConversionRequest`; finds the first output file to select. |
 | `AudioConversionService` | Runs sndfile-convert (faad/faac for AAC/M4A) per file through an injected runner; stages non-ASCII paths; collision policy; encoding choices for the dialog. |
-| `ClipboardTransfer` | Copy/cut/paste between panes on any VFS: clipboard `State`, `paste` (move or copy, per-item failures), `duplicateName` (`_copy`, `_copy_2`, …), `isSameFolder`, `targetInternalPath`. F5 into the same folder uses it too. |
-| `FileOperations` | Rename, copy / move (+ batches; FastCopy for local, VFS otherwise; `verifyBatchCopy`), delete / wipe / unlock, new folder / file, view / edit (temp copy for archive/FTP, saved back), terminal, explorer; `filterValidItems` drops "..". |
+| `ClipboardTransfer` | Copy/cut/paste between panes on any VFS: `capture` (the selection with full paths, read on the FX thread), clipboard `State`, `paste` (move or copy, per-item failures), `duplicateName` (`_copy`, `_copy_2`, …), `isSameFolder`, `targetInternalPath`. |
+| `FileOperations` | Takes the captured file system and paths, never the panes: `transfer` (F5, F6, Alt+F6, Ctrl+V; FastCopy local to local with `toolTarget` = target folder + `\`), rename, delete / wipe / unlock, new folder / file, view / edit (temp copy for archive/FTP, saved back), terminal, explorer; `filterValidItems` drops "..". `Commander.runFileOperation` runs it in the background and refreshes once. |
 | `ArchiveOperations` | Pack (non-local items staged under their own names), Unpack and Extract All (`unpackWith`; remote sides through temp copies). |
 | `PdfOperations` | Merge, extract pages, page count with pdftk on ASCII temp copies; results saved to any pane type; `parsePageExpression`, `validateExtractRequest`. |
 | `PdfExtractOptions` | Record: extract all / page expression / pages per PDF. |
@@ -305,5 +305,5 @@ Under `src/test/java/org/chaiware/acommander/`, same package as the class tested
 `actions/` ActionMatcher, ActionPriorityEngine, ActionRegistry, BuiltinAction, ActionRulesSnapshot (FTP / read-only / palette
 rules per action vs `src/test/resources/action-rules-snapshot.txt`) · `commands/` ExternalToolRunner · `config/` ActionScope, AppConfigLoader, AppRegistryShortcutMatching · `dialog/` DialogTheme, MetadataFormDialog · `helpers/` AppTempDir, AppVersion, ArchiveManager, AudioConversionSupport, AudioMetadataSupport,
 BugReportUrl, ExecutableCompressionSupport, ExternalProgressController, FileAttributesHelper, FileHelper, FileIcons, FilesPanesHelper, IncrementalFilter, ImageConversionSupport, ImageMetadataSupport, PaneSorter, SettingsStore, VideoMetadataSupport · `model/` ArchiveMode,
-FileItem · `services/` ArchiveOperations, AudioConversionService, ClipboardTransfer, FileOperations, FolderComparer, ImageConversionService, PdfOperations · `tools/` BundledTool, BundledToolCommands, ToolCommandBuilder, ProcessRunner · `vfs/` ArchiveFileSystem, FtpFileSystem, LocalFileSystem · root: ArchitectureRules (process / background / temp-file / app-path / version / fire-and-forget / no file walking or hashing in `Commander` rules), CommanderCopy, `CodeMapTest` (fails when a main
+FileItem · `services/` ArchiveOperations, AudioConversionService, ClipboardTransfer, FileOperations, FolderComparer, ImageConversionService, PdfOperations · `tools/` BundledTool, BundledToolCommands, ToolCommandBuilder, ProcessRunner · `vfs/` ArchiveFileSystem, FtpFileSystem, LocalFileSystem · root: ArchitectureRules (process / background / temp-file / app-path / version / fire-and-forget / no file walking or hashing in `Commander` rules), `CodeMapTest` (fails when a main
 class or an apps.json action is missing from this file).

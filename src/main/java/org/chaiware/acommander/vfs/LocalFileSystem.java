@@ -72,6 +72,10 @@ public class LocalFileSystem implements VFileSystem {
     @Override
     public void delete(String internalPath) throws IOException {
         Path path = Paths.get(internalPath);
+        // A blank or relative path resolves against the app's folder; deleting that would wipe the app.
+        if (!path.isAbsolute() || path.getParent() == null) {
+            throw new IOException("Refusing to delete '" + internalPath + "': not a full path below a drive");
+        }
         if (Files.isDirectory(path)) {
             try (var walk = Files.walk(path)) {
                 walk.sorted(java.util.Comparator.reverseOrder())

@@ -146,6 +146,48 @@ public class FilesPanesHelper {
                 : new FileItem(Path.of(folder, name)));
     }
 
+    /**
+     * Selects the items named {@code names} on {@code side}, but only while that pane still shows {@code folder}: an
+     * operation that ends after the user moved on must not change their selection.
+     */
+    public void selectNames(FocusSide side, String folder, Collection<String> names) {
+        if (!Platform.isFxApplicationThread()) {
+            Platform.runLater(() -> selectNames(side, folder, names));
+            return;
+        }
+        if (names.isEmpty() || !samePath(getPath(side), folder)) {
+            return;
+        }
+        ListView<FileItem> list = filePanes.get(side).getFileListView();
+        Set<String> wanted = new HashSet<>(names);
+        int[] indices = java.util.stream.IntStream.range(0, list.getItems().size())
+                .filter(i -> wanted.contains(list.getItems().get(i).getPresentableFilename()))
+                .toArray();
+        if (indices.length == 0) {
+            return;
+        }
+        list.getSelectionModel().clearSelection();
+        list.getSelectionModel().selectIndices(indices[0], indices);
+        list.getFocusModel().focus(indices[0]);
+        list.scrollTo(indices[0]);
+    }
+
+    /** Selects row {@code index} (kept in range) on {@code side} while that pane still shows {@code folder}. */
+    public void selectIndex(FocusSide side, String folder, int index) {
+        if (!Platform.isFxApplicationThread()) {
+            Platform.runLater(() -> selectIndex(side, folder, index));
+            return;
+        }
+        ListView<FileItem> list = filePanes.get(side).getFileListView();
+        if (list.getItems().isEmpty() || !samePath(getPath(side), folder)) {
+            return;
+        }
+        int bounded = Math.min(Math.max(index, 0), list.getItems().size() - 1);
+        list.getSelectionModel().clearAndSelect(bounded);
+        list.getFocusModel().focus(bounded);
+        list.scrollTo(bounded);
+    }
+
     /** Sets the current file list's path */
     public void setFileListPath(FocusSide focusSide, String path) {
         setFileListPath(focusSide, path, null);

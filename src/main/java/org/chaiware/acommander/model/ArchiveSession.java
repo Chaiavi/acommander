@@ -25,6 +25,31 @@ public class ArchiveSession {
 
     private final ArchiveSession root;       // Pointer to the root session which holds shared state
     private boolean needsRepack;             // True if archive needs to be repacked on exit (only relevant in root)
+    private int users;                       // Operations still reading or writing the extracted folder (root only)
+
+    /** An operation starts using the extracted folder; closing the archive waits until it {@link #release}s. */
+    public void acquire() {
+        synchronized (root) {
+            root.users++;
+        }
+    }
+
+    public void release() {
+        synchronized (root) {
+            root.users--;
+            root.notifyAll();
+        }
+    }
+
+    /** Blocks while an operation still uses the extracted folder, so a repack never packs a half-copied file. */
+    // ponytail: blocks the caller (sometimes the FX thread) for the rest of that operation; close off-thread if it hurts.
+    public void awaitIdle() throws InterruptedException {
+        synchronized (root) {
+            while (root.users > 0) {
+                root.wait();
+            }
+        }
+    }
 
     public ArchiveSession(String archivePath, Path tempFolder, ArchiveMode mode) {
         this.archivePath = archivePath;

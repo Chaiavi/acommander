@@ -52,6 +52,21 @@ class ClipboardTransferTest {
     }
 
     @Test
+    void captureReadsFullPathsNowAndDropsTheParentEntry() {
+        FtpFileSystem ftp = new FtpFileSystem(org.chaiware.acommander.vfs.FtpConnectionOptions.builder()
+                .host("ftp.example.com").username("u").password("mock").build());
+        ftp.setCurrentPath("/pub");
+
+        ClipboardTransfer.State state = ClipboardTransfer.capture(List.of(
+                new FileItem(null, "..", 0, 0, true),
+                new FileItem(null, "a.txt", 1, 0, false)), true, FilesPanesHelper.FocusSide.RIGHT, ftp, "/pub");
+        ftp.setCurrentPath("/elsewhere");
+
+        assertThat(state.entries()).containsExactly(new ClipboardTransfer.Entry("a.txt", false, "/pub/a.txt"));
+        assertThat(state.cut()).isTrue();
+    }
+
+    @Test
     void localFoldersCompareIgnoringCaseAndTrailingSeparator() {
         LocalFileSystem local = new LocalFileSystem(dir.toString());
         assertThat(ClipboardTransfer.isSameFolder(local, local, dir.toString() + "\\", dir.toString().toUpperCase())).isTrue();

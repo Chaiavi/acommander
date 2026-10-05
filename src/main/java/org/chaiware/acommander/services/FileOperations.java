@@ -5,12 +5,11 @@ import org.chaiware.acommander.config.ActionDefinition;
 import org.chaiware.acommander.config.AppRegistry;
 import org.chaiware.acommander.helpers.AppTempDir;
 import org.chaiware.acommander.helpers.FileHelper;
-import org.chaiware.acommander.helpers.FilesPanesHelper;
 import org.chaiware.acommander.model.FileItem;
+import org.chaiware.acommander.services.ClipboardTransfer.Entry;
+import org.chaiware.acommander.services.ClipboardTransfer.PasteResult;
 import org.chaiware.acommander.tools.ProcessRunner;
 import org.chaiware.acommander.tools.ToolCommandBuilder;
-import org.chaiware.acommander.vfs.ArchiveFileSystem;
-import org.chaiware.acommander.vfs.FtpFileSystem;
 import org.chaiware.acommander.vfs.LocalFileSystem;
 import org.chaiware.acommander.vfs.VFileSystem;
 import org.slf4j.Logger;
@@ -28,18 +27,17 @@ import java.util.concurrent.CompletionException;
 import java.util.stream.Collectors;
 
 /**
- * Rename, copy, move, delete, new folder / file, view, edit, terminal and explorer on the panes. Local copies and
- * cross-drive moves run the apps.json tools (FastCopy); archive and FTP panes go through the VFS.
+ * Rename, copy, move, delete, new folder / file, view, edit, terminal and explorer. Every method gets the file system
+ * and paths the user picked when the operation started ({@link ClipboardTransfer#capture}), never the panes, so
+ * switching panes while it runs changes nothing. The blocking ones run off the FX thread; the caller refreshes.
  */
 public class FileOperations {
     private static final Logger log = LoggerFactory.getLogger(FileOperations.class);
 
-    private final FilesPanesHelper panes;
     private final AppRegistry registry;
     private final ExternalToolRunner runner;
 
-    public FileOperations(FilesPanesHelper panes, AppRegistry registry, ExternalToolRunner runner) {
-        this.panes = panes;
+    public FileOperations(AppRegistry registry, ExternalToolRunner runner) {
         this.registry = registry;
         this.runner = runner;
     }
@@ -49,32 +47,22 @@ public class FileOperations {
         return items.stream().filter(item -> !isParentEntry(item)).collect(Collectors.toList());
     }
 
-    /** One item is renamed in place; several open the multi-rename tool. */
-    public void rename(List<FileItem> items, String newFilename) throws IOException {
-        List<FileItem> validItems = filterValidItems(items);
-        if (validItems.isEmpty()) {
-            return;
-        }
-        if (validItems.size() > 1) {
-            runner.reportFailure(runner.runExecutable(command("multiRename", Map.of(), fullPaths(validItems)), true), "Multi Rename");
-            return;
-        }
-        FileItem item = validItems.getFirst();
-        VFileSystem fs = panes.getFocusedFileSystem();
-        String oldInternalPath = fs.getInternalPath(item);
-        int lastSeparator = oldInternalPath.lastIndexOf(fs.getSeparator());
+    /** Renames {@code entry} in its folder. Blocking. */
+    public void rename(VFileSystem fs, Entry entry, String newFilename) throws IOException {
+        String oldInternalPath = entry.sourceInternalPath();
+        int lastSeparator = Math.max(oldInternalPath.lastIndexOf('/'), oldInternalPath.lastIndexOf('\\'));
         fs.rename(oldInternalPath, oldInternalPath.substring(0, lastSeparator + 1) + newFilename);
-        panes.refreshFileListViews();
-        log.debug("Renamed: {} to {}", item.getName(), newFilename);
+        log.debug("Renamed: {} to {}", entry.name(), newFilename);
     }
 
-    /** Opens the viewer; an archive or FTP file is viewed from a temp copy. */
-    public void view(FileItem item) throws IOException {
-        if (isParentEntry(item)) {
-            return;
-        }
-        VFileSystem fs = panes.getFocusedFileSystem();
-        Path fileToView = localCopy(fs, item, "acommander_view_");
+    /** Opens the multi-rename tool on local items. */
+    public void multiRename(List<FileItem> items) {
+        runner.reportFailure(runner.runExecutable(command("multiRename", Map.of(), fullPaths(filterValidItems(items))), true), "Multi Rename");
+    }
+
+    /** Opens the viewer; an archive or FTP file is viewed from a temp copy. Blocking while that copy is made. */
+    public void view(VFileSystem fs, Entry entry) throws IOException {
+        Path fileToView = localCopy(fs, entry, "acommander_view_");
         boolean isTemp = !(fs instanceof LocalFileSystem);
         runner.reportFailure(runner.runExecutable(command("view", Map.of(), List.of(fileToView.toString())), false)
                 .thenRun(() -> {
@@ -82,24 +70,20 @@ public class FileOperations {
                         FileHelper.deleteQuietly(fileToView);
                     }
                 }), "View");
-        log.debug("Viewed: {}", item.getName());
+        log.debug("Viewed: {}", entry.name());
     }
 
     /**
      * Opens the editor; an archive or FTP file is edited in a temp copy that is saved back when the editor closes.
      * Until then the copy is kept across exits ({@link AppTempDir#retain}), and it stays if saving back fails.
      */
-    public void edit(FileItem item) throws IOException {
-        if (isParentEntry(item)) {
-            return;
-        }
-        VFileSystem fs = panes.getFocusedFileSystem();
-        Path fileToEdit = localCopy(fs, item, "acommander_edit_");
+    public void edit(VFileSystem fs, Entry entry) throws IOException {
+        Path fileToEdit = localCopy(fs, entry, "acommander_edit_");
         boolean isTemp = !(fs instanceof LocalFileSystem);
         if (isTemp) {
             AppTempDir.retain(fileToEdit);
         }
-        String internalPath = fs.getInternalPath(item);
+        String internalPath = entry.sourceInternalPath();
         runner.reportFailure(runner.runExecutable(command("edit", Map.of(), List.of(fileToEdit.toString())), false)
                 .thenRun(() -> {
                     if (isTemp) {
@@ -114,152 +98,106 @@ public class FileOperations {
                     }
                     fs.markModified();
                 }), "Edit");
-        log.debug("Edited: {}", item.getName());
+        log.debug("Edited: {}", entry.name());
     }
 
-    public void copy(FileItem item, String targetFolder) throws IOException {
-        if (isParentEntry(item)) {
-            return;
+    /**
+     * Copies (or, for a cut, moves) every entry of {@code source} into {@code targetFolder}. Blocking. Local to local
+     * runs FastCopy (a move on one drive is a rename); archive and FTP sides go through the VFS, and a copy into its
+     * own folder gets {@link ClipboardTransfer#duplicateName duplicate names}. A failed item is listed, the rest run.
+     */
+    public PasteResult transfer(ClipboardTransfer.State source, VFileSystem targetFs, String targetFolder) {
+        boolean bothLocal = source.sourceFs() instanceof LocalFileSystem && targetFs instanceof LocalFileSystem;
+        if (!bothLocal || ClipboardTransfer.isSameFolder(source.sourceFs(), targetFs, source.sourceFolder(), targetFolder)) {
+            return ClipboardTransfer.paste(source, targetFs, targetFolder);
         }
-        if (viaVfs()) {
-            vfsCopy(item, targetFolder);
-        } else {
-            copyWithTool(item, targetFolder);
-        }
-        log.debug("Copied: {} To: {}", item, targetFolder);
+        return source.cut() ? moveLocal(source.entries(), targetFolder) : copyLocal(source.entries(), targetFolder);
     }
 
-    /** Copies several items; local to local is one tool run, anything else goes item by item and names the failures. */
-    public void copyBatch(List<FileItem> items, String targetFolder) throws Exception {
-        List<FileItem> validItems = filterValidItems(items);
-        if (validItems.isEmpty()) {
-            return;
+    /** One FastCopy run for all entries, then a check: FastCopy can exit 0 and still skip files. */
+    private PasteResult copyLocal(List<Entry> entries, String targetFolder) {
+        List<String> sources = entries.stream().map(Entry::sourceInternalPath).toList();
+        try {
+            runner.runExecutable(command("copy", Map.of("${targetFolder}", toolTarget(targetFolder)), sources), false).join();
+        } catch (CompletionException e) {
+            return new PasteResult(List.of(), entries, unwrap(e));
         }
-        boolean viaVfs = viaVfs();
-        if (!viaVfs && validItems.size() > 1) {
-            List<String> command = command("copy", Map.of("${targetFolder}", toolTarget(targetFolder)), fullPaths(validItems));
-            log.debug("Built batch copy command: {}", command);
-            runner.reportFailure(runner.runExecutable(command, true).thenAccept(output -> {
-                markTargetArchiveForRepack(targetFolder);
-                verifyBatchCopy(validItems, targetFolder, command);
-                log.debug("Copied {} items To: {} using command", validItems.size(), targetFolder);
-            }), "Copy");
-            return;
-        }
+        return checkArrived(entries, targetFolder, "The copy tool reported success, but these are missing in ");
+    }
 
-        // Item by item: no command-line length limit, and one bad name doesn't stop the rest
-        List<String> failedNames = new ArrayList<>();
+    /** Item by item: a rename on the same drive, FastCopy across drives. */
+    private PasteResult moveLocal(List<Entry> entries, String targetFolder) {
+        List<Entry> moved = new ArrayList<>();
+        List<Entry> failed = new ArrayList<>();
         Exception firstFailure = null;
-        for (FileItem item : validItems) {
+        LocalFileSystem local = new LocalFileSystem("");
+        for (Entry entry : entries) {
             try {
-                if (viaVfs) {
-                    vfsCopy(item, targetFolder);
+                if (sameDrive(entry.sourceInternalPath(), targetFolder)) {
+                    local.move(entry.sourceInternalPath(), local, Paths.get(targetFolder, entry.name()).toString());
                 } else {
-                    copyWithTool(item, targetFolder);
+                    runner.runExecutable(command("move", Map.of("${targetFolder}", toolTarget(targetFolder)),
+                            List.of(entry.sourceInternalPath())), false).join();
                 }
+                moved.add(entry);
             } catch (Exception e) {
-                log.error("Failed to copy item: {}", item.getName(), e);
-                failedNames.add(item.getName());
-                if (firstFailure == null) {
-                    firstFailure = e;
-                }
+                Exception cause = unwrap(e);
+                log.error("Move failed: {} -> {}", entry.sourceInternalPath(), targetFolder, cause);
+                failed.add(entry);
+                firstFailure = firstFailure == null ? cause : firstFailure;
             }
         }
-        if (!failedNames.isEmpty()) {
-            throw new Exception("Failed copying " + failedNames.size() + " item(s): " + String.join(", ", failedNames), firstFailure);
-        }
-        log.debug("Copied {} items To: {}", validItems.size(), targetFolder);
+        PasteResult arrived = checkArrived(moved, targetFolder, "The move tool reported success, but these are missing in ");
+        failed.addAll(arrived.failed());
+        return new PasteResult(arrived.pasted(), failed, firstFailure != null ? firstFailure : arrived.firstFailure());
     }
 
-    /** Same drive and VFS moves are renames; a local cross-drive move runs the move tool in the background. */
-    public void move(FileItem item, String targetFolder) throws IOException {
-        if (isParentEntry(item)) {
-            return;
+    private static PasteResult checkArrived(List<Entry> entries, String targetFolder, String message) {
+        Path target = Paths.get(targetFolder);
+        List<Entry> arrived = new ArrayList<>();
+        List<Entry> missing = new ArrayList<>();
+        for (Entry entry : entries) {
+            (Files.exists(target.resolve(entry.name())) ? arrived : missing).add(entry);
         }
-        if (viaVfs() || sameDrive(item, targetFolder)) {
-            vfsMove(item, targetFolder);
-            return;
+        if (missing.isEmpty()) {
+            return new PasteResult(arrived, missing, null);
         }
-        runner.reportFailure(runner.runExecutable(command("move", Map.of("${targetFolder}", toolTarget(targetFolder)), List.of(item.getFullPath())), true)
-                .thenAccept(output -> log.debug("Moved: {} To: {}", item, targetFolder)), "Move");
+        String names = missing.stream().map(Entry::name).collect(Collectors.joining(", "));
+        log.error("{}{}: {}", message, targetFolder, names);
+        return new PasteResult(arrived, missing, new IOException(message + targetFolder + ": " + names));
     }
 
-    /** Moves several items one by one, waiting for each; throws naming every item that failed. */
-    public void moveBatch(List<FileItem> items, String targetFolder) throws Exception {
-        List<FileItem> validItems = filterValidItems(items);
-        if (validItems.isEmpty()) {
-            log.debug("Move batch skipped: no valid items");
-            return;
-        }
-        log.info("Starting move batch: {} item(s), target={}", validItems.size(), targetFolder);
-        List<String> failedNames = new ArrayList<>();
-        Exception firstFailure = null;
-        boolean viaVfs = viaVfs();
-        for (FileItem item : validItems) {
-            try {
-                if (viaVfs || sameDrive(item, targetFolder)) {
-                    vfsMove(item, targetFolder);
-                } else {
-                    runner.runExecutable(command("move", Map.of("${targetFolder}", toolTarget(targetFolder)), List.of(item.getFullPath())), true).join();
-                }
-            } catch (CompletionException ex) {
-                Throwable cause = ex.getCause() == null ? ex : ex.getCause();
-                log.error("Move batch item failed: {} -> {}", item.getFullPath(), targetFolder, cause);
-                failedNames.add(item.getName());
-                if (firstFailure == null) {
-                    firstFailure = cause instanceof Exception causeException ? causeException : ex;
-                }
-            } catch (Exception ex) {
-                log.error("Move batch item failed: {} -> {}", item.getFullPath(), targetFolder, ex);
-                failedNames.add(item.getName());
-                if (firstFailure == null) {
-                    firstFailure = ex;
-                }
-            }
-        }
-        panes.refreshFileListViews();
-        if (!failedNames.isEmpty()) {
-            throw new Exception("Failed moving " + failedNames.size() + " item(s): " + String.join(", ", failedNames), firstFailure);
-        }
-        log.info("Move batch completed successfully: {} item(s) moved to {}", validItems.size(), targetFolder);
-    }
-
-    public void mkdir(String parentDir, String newDirName) throws IOException {
-        VFileSystem fs = panes.getFocusedFileSystem();
+    public void mkdir(VFileSystem fs, String parentDir, String newDirName) throws IOException {
         fs.makeDirectory(ClipboardTransfer.targetInternalPath(fs, parentDir, newDirName, true));
-        panes.refreshFileListViews();
         log.debug("Created Directory: {}", newDirName);
     }
 
-    public void mkFile(String parentDir, String newFileName) throws IOException {
-        VFileSystem fs = panes.getFocusedFileSystem();
+    public void mkFile(VFileSystem fs, String parentDir, String newFileName) throws IOException {
         fs.makeFile(ClipboardTransfer.targetInternalPath(fs, parentDir, newFileName, false));
-        panes.refreshFileListViews();
         log.debug("Created File: {}", newFileName);
     }
 
-    /** Deletes through the VFS; local items that fail (locked) go to the unlock-and-delete tool. */
-    public void delete(List<FileItem> items) {
-        List<FileItem> validItems = filterValidItems(items);
-        VFileSystem fs = panes.getFocusedFileSystem();
-        if (validItems.isEmpty() || fs == null) {
-            return;
-        }
-        List<FileItem> failedDeletes = new ArrayList<>();
-        for (FileItem item : validItems) {
+    /**
+     * Deletes the entries through the VFS. Blocking. Local items that fail (locked) go to the unlock-and-delete tool;
+     * returns the ones that failed.
+     */
+    public List<Entry> delete(VFileSystem fs, List<Entry> entries) {
+        List<Entry> failed = new ArrayList<>();
+        for (Entry entry : entries) {
             try {
-                fs.delete(fs.getInternalPath(item));
-                log.info("Deleted: {}", item.getFullPath());
+                fs.delete(entry.sourceInternalPath());
+                log.info("Deleted: {}", entry.sourceInternalPath());
             } catch (Exception e) {
-                log.error("Failed deleting: {}", item.getFullPath(), e);
-                failedDeletes.add(item);
+                log.error("Failed deleting: {}", entry.sourceInternalPath(), e);
+                failed.add(entry);
             }
         }
-        if (!failedDeletes.isEmpty() && fs instanceof LocalFileSystem) {
-            log.info("Failed to delete {} files, attempting to unlock them so you can delete them all", failedDeletes.size());
-            runner.reportFailure(runner.runExecutable(command("unlockDelete", Map.of(), fullPaths(failedDeletes)), true), "Unlock and Delete");
+        if (!failed.isEmpty() && fs instanceof LocalFileSystem) {
+            log.info("Failed to delete {} files, attempting to unlock them so you can delete them all", failed.size());
+            runner.reportFailure(runner.runExecutable(command("unlockDelete", Map.of(),
+                    failed.stream().map(Entry::sourceInternalPath).toList()), true), "Unlock and Delete");
         }
-        panes.refreshFileListViews();
+        return failed;
     }
 
     /** Overwrites, then deletes (SDelete). */
@@ -311,32 +249,6 @@ public class FileOperations {
         runner.reportFailure(runner.runExecutable(List.of("explorer.exe", target.getAbsolutePath()), false, Set.of(1)), "Open Explorer");
     }
 
-    private boolean viaVfs() {
-        VFileSystem sourceFs = panes.getFocusedFileSystem();
-        VFileSystem targetFs = panes.getUnfocusedFileSystem();
-        return sourceFs instanceof ArchiveFileSystem || targetFs instanceof ArchiveFileSystem
-                || sourceFs instanceof FtpFileSystem || targetFs instanceof FtpFileSystem;
-    }
-
-    private void vfsCopy(FileItem item, String targetFolder) throws IOException {
-        VFileSystem sourceFs = panes.getFocusedFileSystem();
-        VFileSystem targetFs = panes.getUnfocusedFileSystem();
-        sourceFs.copy(sourceFs.getInternalPath(item), targetFs, ClipboardTransfer.targetInternalPath(targetFs, targetFolder, item.getName(), item.isDirectory()));
-        panes.refreshFileListViews();
-    }
-
-    private void vfsMove(FileItem item, String targetFolder) throws IOException {
-        VFileSystem sourceFs = panes.getFocusedFileSystem();
-        VFileSystem targetFs = panes.getUnfocusedFileSystem();
-        sourceFs.move(sourceFs.getInternalPath(item), targetFs, ClipboardTransfer.targetInternalPath(targetFs, targetFolder, item.getName(), item.isDirectory()));
-        panes.refreshFileListViews();
-    }
-
-    private void copyWithTool(FileItem item, String targetFolder) {
-        List<String> command = command("copy", Map.of("${targetFolder}", toolTarget(targetFolder)), List.of(item.getFullPath()));
-        runner.reportFailure(runner.runExecutable(command, true).thenRun(() -> markTargetArchiveForRepack(targetFolder)), "Copy");
-    }
-
     /**
      * FastCopy's /to= folder with a trailing backslash: without it, FastCopy copies or moves a single folder's
      * contents into the target instead of the folder itself.
@@ -345,58 +257,30 @@ public class FileOperations {
         return targetFolder.endsWith("\\") ? targetFolder : targetFolder + "\\";
     }
 
-    /** Marks an archive for repack when {@code targetFolder} is inside its extracted temp folder. */
-    private void markTargetArchiveForRepack(String targetFolder) {
-        for (FilesPanesHelper.FocusSide side : FilesPanesHelper.FocusSide.values()) {
-            if (panes.getFileSystem(side) instanceof ArchiveFileSystem archiveFs
-                    && targetFolder.startsWith(archiveFs.getSession().getTempFolderPath().toString())) {
-                archiveFs.markModified();
-                return;
-            }
-        }
-    }
-
-    /** The copy tool can exit 0 and still skip files; throws naming the ones missing in {@code targetFolder}. */
-    private static void verifyBatchCopy(List<FileItem> copiedItems, String targetFolder, List<String> command) {
-        Path targetPath;
+    private static boolean sameDrive(String sourcePath, String targetFolder) {
         try {
-            targetPath = Paths.get(targetFolder);
-        } catch (Exception ex) {
-            log.warn("Skipping batch copy verification due to invalid target path: {}", targetFolder, ex);
-            return;
-        }
-        List<String> missing = copiedItems.stream()
-                .map(FileItem::getName)
-                .filter(name -> !Files.exists(targetPath.resolve(name)))
-                .toList();
-        if (!missing.isEmpty()) {
-            log.error("Batch copy reported success but {} item(s) are missing in target. target={} missing={} command={}",
-                    missing.size(), targetFolder, missing, command);
-            throw new IllegalStateException("The copy tool reported success, but these are missing in " + targetFolder
-                    + ": " + String.join(", ", missing));
-        }
-    }
-
-    private static boolean sameDrive(FileItem item, String targetFolder) {
-        try {
-            return item.getPath().getRoot().toString().equalsIgnoreCase(Paths.get(targetFolder).getRoot().toString());
+            return Paths.get(sourcePath).getRoot().toString().equalsIgnoreCase(Paths.get(targetFolder).getRoot().toString());
         } catch (Exception e) {
             return false;
         }
     }
 
-    private static Path localCopy(VFileSystem fs, FileItem item, String prefix) throws IOException {
+    private static Exception unwrap(Exception e) {
+        return e instanceof CompletionException && e.getCause() instanceof Exception cause ? cause : e;
+    }
+
+    private static Path localCopy(VFileSystem fs, Entry entry, String prefix) throws IOException {
         if (fs instanceof LocalFileSystem) {
-            return item.getPath().toAbsolutePath();
+            return Path.of(entry.sourceInternalPath()).toAbsolutePath();
         }
-        Path copy = AppTempDir.createTempFile(prefix, "_" + item.getName());
-        fs.copy(fs.getInternalPath(item), new LocalFileSystem(""), copy.toString());
+        Path copy = AppTempDir.createTempFile(prefix, "_" + entry.name());
+        fs.copy(entry.sourceInternalPath(), new LocalFileSystem(""), copy.toString());
         return copy;
     }
 
     private List<String> command(String actionId, Map<String, String> values, List<String> selectedFiles) {
         ActionDefinition action = registry.requireAction(actionId);
-        return ToolCommandBuilder.buildCommand(action.getPath(), action.getArgs(), panes, values, selectedFiles);
+        return ToolCommandBuilder.buildCommand(action.getPath(), action.getArgs(), null, values, selectedFiles);
     }
 
     private static List<String> fullPaths(List<FileItem> items) {

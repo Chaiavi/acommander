@@ -43,4 +43,28 @@ class ArchiveFileSystemTest {
             Files.deleteIfExists(extracted);
         }
     }
+
+    @Test
+    void closingWaitsUntilARunningOperationReleasesTheArchive() throws Exception {
+        Path extracted = AppTempDir.createTempDirectory("archive_test_");
+        ArchiveSession root = new ArchiveSession("photos.zip", extracted, ArchiveMode.READ_WRITE);
+        ArchiveSession child = root.createChild("sub");
+        child.acquire();
+
+        Thread closer = Thread.ofVirtual().start(() -> {
+            try {
+                new ArchiveManager().closeArchive(root);
+            } catch (IOException e) {
+                throw new java.io.UncheckedIOException(e);
+            }
+        });
+        closer.join(300);
+        assertThat(closer.isAlive()).as("close waits for the operation").isTrue();
+        assertThat(extracted).exists();
+
+        child.release();
+        closer.join(5000);
+        assertThat(closer.isAlive()).isFalse();
+        assertThat(extracted).doesNotExist();
+    }
 }

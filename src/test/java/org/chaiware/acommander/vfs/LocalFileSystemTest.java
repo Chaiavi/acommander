@@ -40,4 +40,13 @@ class LocalFileSystemTest {
         assertThatThrownBy(() -> new LocalFileSystem("C:\\").listContents("C:\\bad*?name"))
                 .isInstanceOf(IOException.class);
     }
+
+    @Test
+    void deleteRefusesABlankOrRelativePath() {
+        // "" is the app's own folder: an FTP item (no path) handed to a local pane must never delete it
+        assertThatThrownBy(() -> new LocalFileSystem("").delete("")).isInstanceOf(IOException.class);
+        assertThatThrownBy(() -> new LocalFileSystem("").delete("config")).isInstanceOf(IOException.class);
+        assertThatThrownBy(() -> new LocalFileSystem("").delete("C:\\")).isInstanceOf(IOException.class);
+        assertThat(Path.of("config")).exists();
+    }
 }
