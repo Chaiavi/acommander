@@ -379,7 +379,7 @@ Rechecked after Phase 9 (2026-10-05). Gate findings:
   helper whose doc comment says why it exists: names from an FTP server are untrusted, and `\` is a separator only
   on Windows, so a name that is harmless on the server can climb out of the local target folder. Test the check and
   a recursive download with such a child.
-- [ ] 10.3 Command injection in Open Terminal (F9). `FileOperations.openTerminal` runs
+- [x] 10.3 Command injection in Open Terminal (F9; #164). `FileOperations.openTerminal` runs
   `cmd /c start powershell -NoExit -Command "cd '<path>'"`: a `'` breaks the PowerShell string and `&` breaks cmd
   (Java quotes only arguments with spaces), so folder `a';calc;'` or `a&calc` runs calc. Fix (no env var, no
   escaping): the folder becomes the process working directory and the command is a constant.

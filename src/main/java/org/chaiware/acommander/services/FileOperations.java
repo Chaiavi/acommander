@@ -7,6 +7,7 @@ import org.chaiware.acommander.helpers.AppTempDir;
 import org.chaiware.acommander.helpers.FileHelper;
 import org.chaiware.acommander.helpers.FilesPanesHelper;
 import org.chaiware.acommander.model.FileItem;
+import org.chaiware.acommander.tools.ProcessRunner;
 import org.chaiware.acommander.tools.ToolCommandBuilder;
 import org.chaiware.acommander.vfs.ArchiveFileSystem;
 import org.chaiware.acommander.vfs.FtpFileSystem;
@@ -16,6 +17,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.file.Files;
@@ -263,16 +265,26 @@ public class FileOperations {
         log.debug("Deleted & Wiped: {}", validItems.stream().map(FileItem::getName).collect(Collectors.joining(", ")));
     }
 
-    public void openTerminal(String openHerePath) {
-        List<String> command = List.of("cmd", "/c", "start", "powershell", "-NoExit", "-Command", "cd '" + openHerePath + "'");
-        runner.runExecutable(command, false)
-                .thenAccept(output -> log.debug("Opened Powershell Here: {}", openHerePath))
-                .exceptionally(throwable -> {
-                    log.warn("PowerShell failed, trying Command Prompt: {}", throwable.getMessage());
-                    List<String> fallbackCommand = List.of("cmd", "/c", "start", "cmd", "/k", "cd /d " + openHerePath);
-                    runner.reportFailure(runner.runExecutable(fallbackCommand, false), "Open Terminal");
-                    return null;
-                });
+    /** Opens PowerShell in {@code folder}; the folder is only the working directory, so its name can't run as code. */
+    public void openTerminal(String folder) throws IOException {
+        // Java gives a GUI app's console children no window: a hidden PowerShell starts the visible one.
+        ProcessRunner.of("powershell", "-NoProfile", "-Command", "Start-Process powershell -ArgumentList '-NoExit'")
+                .directory(new File(folder))
+                .launch();
+        log.debug("Opened PowerShell Here: {}", folder);
+    }
+
+    /** Opens the hosts file in the apps.json editor as administrator (UAC prompt). */
+    public void openHostsFile() throws IOException {
+        Path hosts = Path.of(System.getenv().getOrDefault("SystemRoot", "C:\\Windows"), "System32", "drivers", "etc", "hosts");
+        if (!Files.isRegularFile(hosts)) {
+            throw new FileNotFoundException("Could not find the hosts file at " + hosts);
+        }
+        ActionDefinition editAction = registry.findAction("edit")
+                .orElseThrow(() -> new IllegalStateException("Missing action config: edit"));
+        String args = String.join(" ", editAction.getArgs()).replace("${selectedFile}", hosts.toString());
+        ProcessRunner.of("powershell", "-NoProfile", "-Command",
+                "Start-Process -FilePath '" + editAction.getPath() + "' -ArgumentList '" + args + "' -Verb RunAs").launch();
     }
 
     /** Opens Explorer on the folder (a file's own folder); explorer.exe exits 1 even when it worked. */
