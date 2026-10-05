@@ -58,6 +58,8 @@ public final class FtpConnectDialog {
         protocolCombo.setMaxWidth(Double.MAX_VALUE);
         TextField nameField = tip(new TextField(), "Name shown in Saved Connections; the host is used when blank.");
         nameField.setPromptText("Connection Name (optional)");
+        CheckBox trustCheckBox = tip(new CheckBox("Trust Any Certificate"),
+                "Skip checking the server's TLS certificate or SSH key; tick only for a self-signed server you trust.");
         CheckBox saveCheckBox = tip(new CheckBox("Save for Next Time"), "Add this connection to Saved Connections.");
         saveCheckBox.setSelected(true);
 
@@ -75,6 +77,7 @@ public final class FtpConnectDialog {
             userField.setText(option.getUsername());
             passField.setText(option.getPassword());
             nameField.setText(option.getName());
+            trustCheckBox.setSelected(option.isTrustAnyCertificate());
             saveCheckBox.setSelected(true);
         });
         removeSavedButton.setOnAction(e -> {
@@ -111,7 +114,8 @@ public final class FtpConnectDialog {
         grid.addRow(4, new Label("Password:"), passField);
         grid.addRow(5, new Label("Protocol:"), protocolCombo);
         grid.addRow(6, new Label("Name:"), nameField);
-        grid.add(saveCheckBox, 1, 7);
+        grid.add(trustCheckBox, 1, 7);
+        grid.add(saveCheckBox, 1, 8);
         dialog.add(grid, validationLabel);
         dialog.dialog().setOnShown(event -> Platform.runLater(hostField::requestFocus));
 
@@ -128,6 +132,7 @@ public final class FtpConnectDialog {
                     .name(nameField.getText().isBlank() ? host : nameField.getText().trim())
                     .protocol(protocol)
                     .autoDiscover(autoDiscover)
+                    .trustAnyCertificate(trustCheckBox.isSelected())
                     .build();
             return new Result(options, saveCheckBox.isSelected());
         });

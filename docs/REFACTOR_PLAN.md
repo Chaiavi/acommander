@@ -391,11 +391,14 @@ Rechecked after Phase 9 (2026-10-05). Gate findings:
   error. `openHostsFile` has no untrusted input (fixed hosts paths, the user's own apps.json): keep its command, but
   move it into `FileOperations` so `-Command` stays out of `Commander` (10.9). Test: smoke only (a unit test would
   open a real window).
-- [ ] 10.4 TLS certificates and SFTP host keys are never checked (new). `createBaseCurlCommand` always adds `-k`, so
+- [x] 10.4 TLS certificates and SFTP host keys are never checked (new; #165). `createBaseCurlCommand` always adds `-k`, so
   anyone on the network path can pose as the server and read the password. Fix: drop `-k`; add a per-connection
   "Trust Any Certificate" checkbox (off, with a tooltip) to `FtpConnectDialog`, saved with the connection, for
   self-signed servers. Auto-discover follows the same flag. User-visible: F1 help + README. Note: an existing
-  connection to a self-signed server fails until the box is ticked; the error should say so.
+  connection to a self-signed server fails until the box is ticked; the error should say so. Found while doing it:
+  the bundled curl (LibreSSL) has a built-in CA list, so valid FTPS certificates pass; a refused certificate is exit
+  60; SFTP with no `.ssh\known_hosts` file is exit 2 before connecting. Auto-discover stops on exit 60 instead of
+  falling back to plain FTP (it would send the password in clear); exit 2 can't be told apart, so SFTP falls through.
 - [ ] 10.5 FTP password at rest: encrypt with DPAPI through PowerShell (decision 1; needs `ProcessRunner.stdin` from
   10.1). Today it is plain text in `acommander.properties`.
   1. New `tools/Dpapi`: `protect(List<String>)` and `unprotect(List<String>)`, one hidden

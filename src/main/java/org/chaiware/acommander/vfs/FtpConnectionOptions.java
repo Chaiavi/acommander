@@ -40,6 +40,8 @@ public class FtpConnectionOptions {
     private Protocol protocol = Protocol.FTP;
     @Builder.Default
     private boolean autoDiscover = false;
+    /** Skips curl's TLS certificate and SSH host key checks, for self-signed servers. */
+    private boolean trustAnyCertificate;
 
     public String getUrl() {
         return String.format("%s://%s:%d", protocol.getScheme(), host, port);

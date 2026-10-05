@@ -29,7 +29,7 @@ class SettingsStoreTest {
         store.setLastSelectionPattern("*.jpg");
         store.setBookmarks(Map.of("work", "C:\\work"));
         FtpConnectionOptions ftp = FtpConnectionOptions.builder().name("home").host("nas").port(2121)
-                .username("me").password("pw").protocol(FtpConnectionOptions.Protocol.SFTP).build();
+                .username("me").password("pw").protocol(FtpConnectionOptions.Protocol.SFTP).trustAnyCertificate(true).build();
         store.setFtpConnections(Map.of("home", ftp));
         store.save();
 

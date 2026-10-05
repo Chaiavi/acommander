@@ -27,6 +27,10 @@ import java.util.regex.Pattern;
 
 public class FtpFileSystem implements VFileSystem {
     private static final Logger logger = LoggerFactory.getLogger(FtpFileSystem.class);
+    private static final int CURL_FAILED_INIT = 2; // SFTP without a known_hosts file to check the host key
+    private static final int CURL_PEER_FAILED_VERIFICATION = 60;
+    private static final String TRUST_HINT = "The server's certificate or SSH key could not be verified (SFTP checks"
+            + " .ssh\\known_hosts); tick Trust Any Certificate in the connection dialog if you trust this server";
     private final FtpConnectionOptions options;
     private final String curlPath;
     private String currentInternalPath = "/";
@@ -85,20 +89,17 @@ public class FtpFileSystem implements VFileSystem {
         this.curlPath = BundledTool.CURL.path().toString();
     }
 
-    /**
-     * Tests the connection with the current protocol settings.
-     * Returns true if the connection is successful, false otherwise.
-     */
-    public boolean testConnection() {
+    /** Curl's exit code for a connection test; -1 if curl could not run. */
+    public int testConnection() {
         try {
             List<String> command = createBaseCurlCommand();
             command.add(options.getFullUrl("/"));
             command.add("--list-only");
             
-            return ProcessRunner.of(command).stdin(curlConfig()).mergeStderr().run().succeeded();
+            return ProcessRunner.of(command).stdin(curlConfig()).mergeStderr().run().exitCode();
         } catch (Exception e) {
             logger.debug("Connection test failed for {}: {}", options.getUrl(), e.getMessage());
-            return false;
+            return -1;
         }
     }
 
@@ -288,6 +289,10 @@ public class FtpFileSystem implements VFileSystem {
 
     private String getCurlErrorMessage(int exitCode, List<String> output) {
         String descriptiveError = CURL_ERROR_CODES.getOrDefault(exitCode, "Unknown error (" + exitCode + ")");
+        if (!options.isTrustAnyCertificate() && (exitCode == CURL_PEER_FAILED_VERIFICATION
+                || exitCode == CURL_FAILED_INIT && options.getProtocol() == FtpConnectionOptions.Protocol.SFTP)) {
+            descriptiveError += ". " + TRUST_HINT;
+        }
         String curlOutput = String.join(" ", output).trim();
         if (curlOutput.isEmpty()) {
             return descriptiveError;
@@ -668,7 +673,7 @@ public class FtpFileSystem implements VFileSystem {
      * Tries FTPS first, then SFTP/SSH, then FTP.
      * Returns a new FtpConnectionOptions with the discovered protocol, or null if none work.
      */
-    public static FtpConnectionOptions autoDiscoverProtocol(FtpConnectionOptions baseOptions) {
+    public static FtpConnectionOptions autoDiscoverProtocol(FtpConnectionOptions baseOptions) throws IOException {
         logger.info("Auto-discovering protocol for {}:{} (trying FTPS first, then SFTP/SSH, then FTP)",
             baseOptions.getHost(), baseOptions.getPort());
 
@@ -680,39 +685,38 @@ public class FtpFileSystem implements VFileSystem {
         };
 
         for (FtpConnectionOptions.Protocol protocol : protocolsToTry) {
-            try {
-                // Use the protocol's default port if the provided port is the standard FTP port (21)
-                // or if it matches the current protocol's default port
-                int port = baseOptions.getPort();
-                if (port == 21 || port == protocol.getDefaultPort()) {
-                    port = protocol.getDefaultPort();
-                }
-
-                logger.debug("Trying protocol {} on port {} for {}:{}", 
-                    protocol, port, baseOptions.getHost(), baseOptions.getPort());
-
-                FtpConnectionOptions testOptions = FtpConnectionOptions.builder()
-                    .name(baseOptions.getName())
-                    .host(baseOptions.getHost())
-                    .port(port)
-                    .username(baseOptions.getUsername())
-                    .password(baseOptions.getPassword())
-                    .protocol(protocol)
-                    .build();
-
-                FtpFileSystem testFs = new FtpFileSystem(testOptions);
-                if (testFs.testConnection()) {
-                    logger.info("Auto-discovery successful: {} works for {}:{}", 
-                        protocol, baseOptions.getHost(), baseOptions.getPort());
-                    return testOptions;
-                } else {
-                    logger.debug("Protocol {} connection test failed for {}:{}", 
-                        protocol, baseOptions.getHost(), baseOptions.getPort());
-                }
-            } catch (Exception e) {
-                logger.debug("Protocol {} failed for {}:{} - {}", 
-                    protocol, baseOptions.getHost(), baseOptions.getPort(), e.getMessage());
+            // Use the protocol's default port if the provided port is the standard FTP port (21)
+            // or if it matches the current protocol's default port
+            int port = baseOptions.getPort();
+            if (port == 21 || port == protocol.getDefaultPort()) {
+                port = protocol.getDefaultPort();
             }
+
+            logger.debug("Trying protocol {} on port {} for {}:{}",
+                protocol, port, baseOptions.getHost(), baseOptions.getPort());
+
+            FtpConnectionOptions testOptions = FtpConnectionOptions.builder()
+                .name(baseOptions.getName())
+                .host(baseOptions.getHost())
+                .port(port)
+                .username(baseOptions.getUsername())
+                .password(baseOptions.getPassword())
+                .protocol(protocol)
+                .trustAnyCertificate(baseOptions.isTrustAnyCertificate())
+                .build();
+
+            int exitCode = new FtpFileSystem(testOptions).testConnection();
+            if (exitCode == 0) {
+                logger.info("Auto-discovery successful: {} works for {}:{}",
+                    protocol, baseOptions.getHost(), baseOptions.getPort());
+                return testOptions;
+            }
+            if (exitCode == CURL_PEER_FAILED_VERIFICATION) {
+                // The server speaks this secure protocol; falling back to plain FTP would send the password in clear.
+                throw new IOException(protocol + ": " + TRUST_HINT + ".");
+            }
+            logger.debug("Protocol {} connection test failed for {}:{} (curl exit {})",
+                protocol, baseOptions.getHost(), baseOptions.getPort(), exitCode);
         }
 
         logger.warn("Auto-discovery failed: No protocol (FTPS/SFTP/SSH/FTP) worked for {}:{}",
@@ -738,7 +742,9 @@ public class FtpFileSystem implements VFileSystem {
         command.add("-K");
         command.add("-");
         command.add("-s"); // silent
-        command.add("-k"); // insecure - skip SSL/TLS certificate verification
+        if (options.isTrustAnyCertificate()) {
+            command.add("--insecure");
+        }
 
         // Add protocol-specific options
         switch (options.getProtocol()) {
@@ -749,9 +755,6 @@ public class FtpFileSystem implements VFileSystem {
                 command.add("--ssl-reqd");
             }
             case SFTP -> {
-                // SFTP uses different authentication method in curl
-                // For password auth, we use --pass option
-                // -k already added above for insecure mode
             }
         }
 

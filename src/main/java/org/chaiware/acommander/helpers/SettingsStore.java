@@ -139,6 +139,7 @@ public class SettingsStore {
                 }
                 case "username" -> builder.username(value);
                 case "password" -> builder.password(value);
+                case "trustAnyCertificate" -> builder.trustAnyCertificate(Boolean.parseBoolean(value));
                 case "protocol" -> {
                     try {
                         builder.protocol(FtpConnectionOptions.Protocol.valueOf(value));
@@ -163,6 +164,7 @@ public class SettingsStore {
             properties.setProperty(prefix + "username", options.getUsername());
             properties.setProperty(prefix + "password", options.getPassword());
             properties.setProperty(prefix + "protocol", options.getProtocol().name());
+            properties.setProperty(prefix + "trustAnyCertificate", String.valueOf(options.isTrustAnyCertificate()));
         });
     }
 }

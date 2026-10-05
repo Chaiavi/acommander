@@ -83,6 +83,18 @@ class FtpFileSystemTest {
     }
 
     @Test
+    void certificatesAreCheckedUnlessTheConnectionTrustsAny() {
+        FtpConnectionOptions options = FtpConnectionOptions.builder()
+                .host(MOCK_HOST).username("u").password(MOCK_PASSWORD).protocol(FtpConnectionOptions.Protocol.FTPS).build();
+
+        List<String> strict = new FtpFileSystem(options).createBaseCurlCommand();
+        List<String> trusting = new FtpFileSystem(options.toBuilder().trustAnyCertificate(true).build()).createBaseCurlCommand();
+
+        assertFalse(strict.contains("-k") || strict.contains("--insecure"));
+        assertTrue(trusting.contains("--insecure"));
+    }
+
+    @Test
     void downloadTargetMustStayInsideItsFolder() throws IOException {
         FtpFileSystem.requireInsideTargetFolder("C:\\t\\sub\\file.txt");
         FtpFileSystem.requireInsideTargetFolder("sub\\file.txt");
