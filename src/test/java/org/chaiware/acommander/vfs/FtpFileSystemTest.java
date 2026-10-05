@@ -2,9 +2,11 @@ package org.chaiware.acommander.vfs;
 
 import org.chaiware.acommander.model.FileItem;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 import java.io.IOException;
 import java.lang.reflect.Method;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -78,6 +80,40 @@ class FtpFileSystemTest {
         assertTrue(fs.createBaseCurlCommand().stream().noneMatch(arg -> arg.contains("a\\ss")));
         assertEquals("user = \"user:p\\\"a\\\\ss\"\n", fs.curlConfig());
         assertFalse(options.toString().contains("a\\ss"));
+    }
+
+    @Test
+    void downloadTargetMustStayInsideItsFolder() throws IOException {
+        FtpFileSystem.requireInsideTargetFolder("C:\\t\\sub\\file.txt");
+        FtpFileSystem.requireInsideTargetFolder("sub\\file.txt");
+
+        assertThrows(IOException.class, () -> FtpFileSystem.requireInsideTargetFolder("C:\\t\\..\\..\\x"));
+        assertThrows(IOException.class, () -> FtpFileSystem.requireInsideTargetFolder("sub\\..\\..\\x"));
+        assertThrows(IOException.class, () -> FtpFileSystem.requireInsideTargetFolder("C:\\t\\a:stream"));
+    }
+
+    @Test
+    void recursiveDownloadRefusesAChildNamedToClimbOut(@TempDir Path dir) {
+        FtpConnectionOptions options = FtpConnectionOptions.builder()
+                .host(MOCK_HOST).port(21).username("u").password(MOCK_PASSWORD).build();
+        List<String> commands = new ArrayList<>();
+        FtpFileSystem fs = new FtpFileSystem(options) {
+            @Override
+            public List<String> runCurl(List<String> command) {
+                String cmdStr = String.join(" ", command);
+                commands.add(cmdStr);
+                if (cmdStr.contains("/folder/")) {
+                    return List.of("-rw-r--r--    1 u u  5 Mar 01 16:39 ..\\..\\evil.txt");
+                }
+                return List.of("drwxr-xr-x    2 u u 4096 Mar 01 16:39 folder");
+            }
+        };
+
+        IOException error = assertThrows(IOException.class,
+                () -> fs.copy("/folder", new LocalFileSystem(""), dir.resolve("folder").toString()));
+
+        assertTrue(error.getMessage().contains("evil.txt"));
+        assertTrue(commands.stream().noneMatch(c -> c.contains(" -o ")));
     }
 
     @Test

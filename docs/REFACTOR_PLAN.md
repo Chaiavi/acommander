@@ -367,7 +367,10 @@ Rechecked after Phase 9 (2026-10-05). Gate findings:
   `@ToString.Exclude` on `FtpConnectionOptions.password` (`@Data` prints it). Test (`FtpFileSystemTest`, recording
   subclass): no command element contains the password; the config text does, escaped. Dropped: "guard remote names
   starting with `-`": every remote name goes into a URL or a `-Q` value, never a bare argument.
-- [ ] 10.2 FTP names from the server (path traversal). A Unix server may list `..\..\x` (legal there); on Windows `\`
+- [x] 10.2 FTP names from the server (path traversal; #163). Done differently: the check guards the two download
+  sinks (`FtpFileSystem.copyFile`, `copyDirectoryRecursive`) on the joined target path, not the name in
+  `ClipboardTransfer.targetInternalPath`: F7 makes nested `a\b` folders through that join. Original text:
+  A Unix server may list `..\..\x` (legal there); on Windows `\`
   is a separator, so a download writes outside the target folder (e.g. into Startup). The names reach disk at two
   joins: `ClipboardTransfer.targetInternalPath` (top level of F5, F6 and paste since 9.2) and
   `FtpFileSystem.copyDirectoryRecursive` (child names; `copyFile`'s archive branch then resolves them on the temp

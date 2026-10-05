@@ -11,6 +11,7 @@ import org.slf4j.LoggerFactory;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
@@ -465,6 +466,9 @@ public class FtpFileSystem implements VFileSystem {
     }
 
     private void copyFile(String sourceInternalPath, VFileSystem targetFs, String targetInternalPath) throws IOException {
+        if (!(targetFs instanceof FtpFileSystem)) {
+            requireInsideTargetFolder(targetInternalPath);
+        }
         if (targetFs instanceof LocalFileSystem) {
             // Download from FTP to local
             logger.debug("Downloading {} to {}", sourceInternalPath, targetInternalPath);
@@ -507,6 +511,9 @@ public class FtpFileSystem implements VFileSystem {
     }
 
     private void copyDirectoryRecursive(String sourceInternalPath, VFileSystem targetFs, String targetInternalPath) throws IOException {
+        if (!(targetFs instanceof FtpFileSystem)) {
+            requireInsideTargetFolder(targetInternalPath);
+        }
         // Create target directory
         targetFs.makeDirectory(targetInternalPath);
 
@@ -524,6 +531,23 @@ public class FtpFileSystem implements VFileSystem {
             } else {
                 copyFile(subSource, targetFs, subTarget);
             }
+        }
+    }
+
+    /**
+     * Guards every download to disk. File names come from the FTP server and are untrusted: a Unix server may list a
+     * file named {@code ..\..\x}, harmless there, but on Windows {@code \} is a path separator, so joined onto the
+     * target folder it writes outside it (e.g. into Startup). A {@code :} would write an NTFS alternate data stream.
+     */
+    static void requireInsideTargetFolder(String localPath) throws IOException {
+        try {
+            for (Path part : Path.of(localPath)) {
+                if (part.toString().equals(".") || part.toString().equals("..")) {
+                    throw new IOException("Unsafe file name from the FTP server: " + localPath);
+                }
+            }
+        } catch (InvalidPathException e) {
+            throw new IOException("Unsafe file name from the FTP server: " + localPath, e);
         }
     }
 
