@@ -820,7 +820,8 @@ public class Commander {
             } else if (FileIcons.isExecutableExtension(extension)) {
                 try {
                     List<String> command = switch (extension) {
-                        case "bat", "cmd" -> List.of("cmd.exe", "/c", selectedItem.getFullPath());
+                        // ShellExecute, as Explorer does; cmd.exe /c would run any & or %VAR% in the name
+                        case "bat", "cmd" -> List.of("rundll32.exe", "shell32.dll,ShellExec_RunDLL", selectedItem.getFullPath());
                         case "ps1" -> List.of("powershell.exe", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", selectedItem.getFullPath());
                         default -> List.of(selectedItem.getFullPath());
                     };
@@ -868,22 +869,10 @@ public class Commander {
         }
 
         try {
-            // Shell fallback that uses the current Windows file association.
-            ProcessRunner.of("cmd.exe", "/c", "start", "", "\"" + fullPath + "\"").launch();
-            return;
+            // Shell fallback that uses the current Windows file association (Desktop.open refuses executables).
+            ProcessRunner.of("rundll32.exe", "shell32.dll,ShellExec_RunDLL", fullPath).launch();
         } catch (IOException shellEx) {
-            logger.warn("Windows shell fallback failed for {}, trying Open With dialog", selectedItem.getName(), shellEx);
-        }
-
-        try {
-            // Last resort: prompt the user to choose an application.
-            ProcessRunner.of("rundll32.exe", "shell32.dll,OpenAs_RunDLL", fullPath).launch();
-        } catch (IOException openAsEx) {
-            if (fromArchive) {
-                logger.error("Failed opening file in archive: {}", selectedItem.getName(), openAsEx);
-            } else {
-                logger.error("Failed opening: {}", selectedItem.getName(), openAsEx);
-            }
+            logger.error("Failed opening{}: {}", fromArchive ? " file in archive" : "", selectedItem.getName(), shellEx);
         }
     }
     

@@ -418,8 +418,13 @@ Rechecked after Phase 9 (2026-10-05). Gate findings:
   User-visible: F1 help + README. Test: `SettingsStoreTest` with a Mockito `Dpapi` (load doesn't decrypt; unlock
   decrypts once; an unchanged save doesn't encrypt; a plain key migrates; a failed decrypt gives an empty password).
   `DpapiTest`: real round trip with `"`, `\`, `'` and non-ASCII (CI is `windows-latest`).
-- [ ] 10.6 `cmd.exe` with file names on Enter (low: the user is already running a script). `enterSelectedItem` runs
-  `.bat` / `.cmd` as `cmd.exe /c <path>`, so `&`, `^`, `%VAR%` in the name run as commands. Fix: send them to
+- [x] 10.6 `cmd.exe` with file names on Enter (#167; low: the user is already running a script). `enterSelectedItem` runs
+  `.bat` / `.cmd` as `cmd.exe /c <path>`, so `&`, `^`, `%VAR%` in the name run as commands. Done differently:
+  `Desktop.open` refuses executables ("Unsupported URI content"), so `.bat` / `.cmd` and the open fallback both run
+  `rundll32 shell32.dll,ShellExec_RunDLL <path>` (ShellExecute, as Explorer does; checked from javaw: `a&calc.bat`
+  runs in its own console, no calc). The `OpenAs_RunDLL` branch was dead (ShellExecute already shows Windows' Open
+  With prompt for an unassociated file) and is gone. `.ps1` stays (`-File` takes the path literally). Original plan:
+  send them to
   `openFileWithSystemDefault` (`Desktop.open` = ShellExecute, as Explorer does; the script gets its own console
   instead of running hidden behind the progress bar). `.ps1` stays (`-File` takes the path literally). Delete that
   method's `cmd.exe /c start "" "<path>"` fallback: `%VAR%` still expands inside the quotes, and the next fallback
