@@ -359,7 +359,7 @@ Rechecked after Phase 9 (2026-10-05). Gate findings:
   through PowerShell (picked over Credential Manager, in-process DPAPI via FFM that needs JDK 25 + Gradle 9.1, and a
   master password); 10.7 my call (app-PID watch).
 
-- [ ] 10.1 FTP password off the curl command line (live leak; merges old 10.1 + 10.2). A failing FTP command makes
+- [x] 10.1 FTP password off the curl command line (#162; live leak; merges old 10.1 + 10.2). A failing FTP command makes
   the listener in `Commander.buildExternalCommandListener` log the full curl command, `-u user:pass` included, at
   WARN; any user can also read it in Task Manager. Fix: `ProcessRunner.stdin(String)` (written, then closed);
   `createBaseCurlCommand` adds `-K -` instead of `-u`, and `runCurl` and `testConnection` (it calls `ProcessRunner`

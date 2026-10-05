@@ -2,6 +2,7 @@ package org.chaiware.acommander.vfs;
 
 import lombok.Builder;
 import lombok.Data;
+import lombok.ToString;
 
 @Data
 @Builder(toBuilder = true)
@@ -33,6 +34,7 @@ public class FtpConnectionOptions {
     @Builder.Default
     private int port = 21;
     private String username;
+    @ToString.Exclude
     private String password;
     @Builder.Default
     private Protocol protocol = Protocol.FTP;

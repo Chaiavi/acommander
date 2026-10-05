@@ -42,6 +42,11 @@ class ProcessRunnerTest {
     }
 
     @Test
+    void writesStdin() throws Exception {
+        assertThat(ProcessRunner.of("findstr", "x").stdin("ax\nb\n").run().stdout()).containsExactly("ax");
+    }
+
+    @Test
     void tracksProcessOnlyWhileRunning() throws Exception {
         Set<Process> tracker = ConcurrentHashMap.newKeySet();
 

@@ -70,6 +70,17 @@ class FtpFileSystemTest {
     }
 
     @Test
+    void loginGoesToCurlOnStdinNotOnTheCommandLine() {
+        FtpConnectionOptions options = FtpConnectionOptions.builder()
+                .host(MOCK_HOST).username("user").password("p\"a\\ss").build();
+        FtpFileSystem fs = new FtpFileSystem(options);
+
+        assertTrue(fs.createBaseCurlCommand().stream().noneMatch(arg -> arg.contains("a\\ss")));
+        assertEquals("user = \"user:p\\\"a\\\\ss\"\n", fs.curlConfig());
+        assertFalse(options.toString().contains("a\\ss"));
+    }
+
+    @Test
     void testGetParent() {
         FtpConnectionOptions options = FtpConnectionOptions.builder()
                 .host(MOCK_HOST).port(21).username("u").password(MOCK_PASSWORD).build();

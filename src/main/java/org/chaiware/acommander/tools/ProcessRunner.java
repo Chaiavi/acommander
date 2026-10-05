@@ -20,6 +20,7 @@ public final class ProcessRunner {
     private Charset charset = StandardCharsets.UTF_8;
     private boolean mergeStderr;
     private Set<Process> tracker;
+    private String stdin;
 
     private ProcessRunner(List<String> command) {
         this.command = List.copyOf(command);
@@ -54,6 +55,12 @@ public final class ProcessRunner {
         return this;
     }
 
+    /** Small text {@link #run()} writes to stdin before reading output; keeps secrets off the command line. */
+    public ProcessRunner stdin(String text) {
+        this.stdin = text;
+        return this;
+    }
+
     /** Runs to completion and returns the exit code with stdout and stderr lines. */
     public Result run() throws IOException, InterruptedException {
         Process process = builder().redirectErrorStream(mergeStderr).start();
@@ -62,7 +69,11 @@ public final class ProcessRunner {
         }
         boolean finished = false;
         try {
-            process.getOutputStream().close();
+            try (var in = process.getOutputStream()) {
+                if (stdin != null) {
+                    in.write(stdin.getBytes(charset));
+                }
+            }
             FutureTask<List<String>> stderr = new FutureTask<>(() -> readLines(process.getErrorStream()));
             if (mergeStderr) {
                 stderr.run();

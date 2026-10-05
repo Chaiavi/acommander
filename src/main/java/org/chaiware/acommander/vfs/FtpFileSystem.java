@@ -94,7 +94,7 @@ public class FtpFileSystem implements VFileSystem {
             command.add(options.getFullUrl("/"));
             command.add("--list-only");
             
-            return ProcessRunner.of(command).mergeStderr().run().succeeded();
+            return ProcessRunner.of(command).stdin(curlConfig()).mergeStderr().run().succeeded();
         } catch (Exception e) {
             logger.debug("Connection test failed for {}: {}", options.getUrl(), e.getMessage());
             return false;
@@ -295,7 +295,7 @@ public class FtpFileSystem implements VFileSystem {
     }
 
     public List<String> runCurl(List<String> command) throws IOException {
-        logger.debug("Executing FTP command: {}", obfuscateCommand(command));
+        logger.debug("Executing FTP command: {}", String.join(" ", command));
         if (externalCommandListener != null) {
             externalCommandListener.onCommandStarted(command);
         }
@@ -304,7 +304,7 @@ public class FtpFileSystem implements VFileSystem {
         List<String> output = new ArrayList<>();
         try {
             try {
-                ProcessRunner.Result result = ProcessRunner.of(command).mergeStderr().run();
+                ProcessRunner.Result result = ProcessRunner.of(command).stdin(curlConfig()).mergeStderr().run();
                 output = result.stdout();
                 exitCode = result.exitCode();
                 if (exitCode != 0) {
@@ -326,24 +326,6 @@ public class FtpFileSystem implements VFileSystem {
             }
             throw e;
         }
-    }
-
-    private String obfuscateCommand(List<String> command) {
-        List<String> obfuscated = new ArrayList<>();
-        for (int i = 0; i < command.size(); i++) {
-            String arg = command.get(i);
-            if (i > 0 && "-u".equals(command.get(i - 1))) {
-                int colon = arg.indexOf(':');
-                if (colon >= 0) {
-                    obfuscated.add(arg.substring(0, colon + 1) + "********");
-                } else {
-                    obfuscated.add("********");
-                }
-            } else {
-                obfuscated.add(arg);
-            }
-        }
-        return String.join(" ", obfuscated);
     }
 
     @Override
@@ -725,11 +707,12 @@ public class FtpFileSystem implements VFileSystem {
     @Override
     public void markModified() {}
 
+    /** Every curl command reads the login from stdin ({@link #curlConfig()}), never from its arguments. */
     public List<String> createBaseCurlCommand() {
         List<String> command = new ArrayList<>();
         command.add(curlPath);
-        command.add("-u");
-        command.add(options.getUsername() + ":" + options.getPassword());
+        command.add("-K");
+        command.add("-");
         command.add("-s"); // silent
         command.add("-k"); // insecure - skip SSL/TLS certificate verification
 
@@ -749,6 +732,12 @@ public class FtpFileSystem implements VFileSystem {
         }
 
         return command;
+    }
+
+    /** The curl config (read by {@code -K -}) holding the login, quoted as curl's config syntax requires. */
+    String curlConfig() {
+        String login = options.getUsername() + ":" + options.getPassword();
+        return "user = \"" + login.replace("\\", "\\\\").replace("\"", "\\\"") + "\"\n";
     }
 
     public String getParent(String path) {
