@@ -510,25 +510,24 @@ public class FilesPanesHelper {
             return;
         }
         ListView<FileItem> listView = getFileList(true);
-        List<FileItem> allItems = new ArrayList<>(listView.getItems());
-        // Skip ".." parent folder entry
-        allItems.removeIf(item -> "..".equals(item.getPresentableFilename()));
-        
-        ObservableList<Integer> selectedIndices = listView.getSelectionModel().getSelectedIndices();
-        List<Integer> newSelection = new ArrayList<>();
-        
-        for (int i = 0; i < allItems.size(); i++) {
-            int actualIndex = listView.getItems().indexOf(allItems.get(i));
-            if (actualIndex >= 0 && !selectedIndices.contains(actualIndex)) {
-                newSelection.add(actualIndex);
-            }
-        }
-        
+        int[] indices = invertedIndices(listView.getItems(), listView.getSelectionModel().getSelectedIndices());
         listView.getSelectionModel().clearSelection();
-        if (!newSelection.isEmpty()) {
-            int[] indices = newSelection.stream().mapToInt(Integer::intValue).toArray();
+        if (indices.length > 0) {
             listView.getSelectionModel().selectIndices(-1, indices);
         }
+    }
+
+    /** Indices of {@code items} not in {@code selected}, skipping ".."; one pass over the list. */
+    static int[] invertedIndices(List<FileItem> items, Collection<Integer> selected) {
+        Set<Integer> selectedSet = new HashSet<>(selected);
+        int[] result = new int[items.size()];
+        int count = 0;
+        for (int i = 0; i < items.size(); i++) {
+            if (!selectedSet.contains(i) && !"..".equals(items.get(i).getPresentableFilename())) {
+                result[count++] = i;
+            }
+        }
+        return Arrays.copyOf(result, count);
     }
 
     /** Selects items matching the given pattern (glob or regex) */
