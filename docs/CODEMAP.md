@@ -271,7 +271,7 @@ Not actions, but often asked for:
 | `BundledTool` | Every tool under `apps/` the code runs directly (7z, curl, exiv2, rg, rhash, …) → `path()`. Tools of apps.json actions are listed there instead. `BundledToolTest` checks both lists are on disk. |
 | `BundledToolCommands` | Argument lists + option types for rhash (checksum), file (analyze), ExamDiff (compare files), ripgrep (find by name / in files, `foundFiles`) and the 7-Zip split size. |
 | `Dpapi` | Windows DPAPI (current user) through one hidden PowerShell run per batch, base64 lines on stdin/stdout. Encrypts the saved FTP passwords for `SettingsStore`. |
-| `FilePropertiesLauncher` | Opens the Windows Properties dialog of a path: writes a VBS script to the temp dir, runs it with `wscript.exe`. |
+| `FilePropertiesLauncher` | Opens the Windows Properties dialog of a path: writes a VBS script to the temp dir, runs it with `wscript.exe`; the script quits when the app's process is gone. |
 | `ProcessRunner` | The one way to start a process: `run()` drains stdout/stderr (merged or apart) and returns `Result`; `launch()` for GUI tools; `trackIn` for the Stop button; `stdin` keeps secrets off the command line. |
 
 ### `vfs/` — pane file systems

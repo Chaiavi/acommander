@@ -429,7 +429,7 @@ Rechecked after Phase 9 (2026-10-05). Gate findings:
   instead of running hidden behind the progress bar). `.ps1` stays (`-File` takes the path literally). Delete that
   method's `cmd.exe /c start "" "<path>"` fallback: `%VAR%` still expands inside the quotes, and the next fallback
   (Open With dialog) already covers a file with no associated app.
-- [ ] 10.7 File Properties leaks `wscript.exe` (not security). The script sleeps forever so the dialog stays open
+- [x] 10.7 File Properties leaks `wscript.exe` (#168; not security). The script sleeps forever so the dialog stays open
   (the dialog belongs to the script's process and closes when it exits); every Alt+Enter leaves one `wscript.exe`
   until logoff. Fix: pass the app's PID (`ProcessHandle.current().pid()`) as a second argument; the loop checks
   every 2 s through WMI (`Win32_Process where ProcessId=…`) and quits when the app is gone. Chosen over watching
