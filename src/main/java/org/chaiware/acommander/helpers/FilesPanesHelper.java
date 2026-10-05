@@ -17,6 +17,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Path;
 import java.util.*;
 
 import static org.chaiware.acommander.helpers.FilesPanesHelper.FocusSide.LEFT;
@@ -135,6 +136,14 @@ public class FilesPanesHelper {
         }
         getFileList(isFocused).getSelectionModel().clearSelection();
         getFileList(isFocused).getSelectionModel().select(fileItem);
+    }
+
+    /** Selects {@code name} in {@code folder} on that pane, also after its next refresh (items match by equality). */
+    public void selectFileItem(boolean isFocused, String folder, String name) {
+        VFileSystem fs = isFocused ? getFocusedFileSystem() : getUnfocusedFileSystem();
+        selectFileItem(isFocused, fs instanceof FtpFileSystem
+                ? new FileItem(null, name, 0, 0, false) // FTP items have no path, only a name
+                : new FileItem(Path.of(folder, name)));
     }
 
     /** Sets the current file list's path */

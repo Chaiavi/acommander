@@ -34,7 +34,7 @@ public final class PaneSorter {
         Comparator<FileItem> byColumn = switch (state.column()) {
             case NAME -> byName;
             case SIZE -> Comparator.comparingLong(item -> item.isDirectory() ? 0L : item.getSizeInBytes());
-            case MODIFIED -> Comparator.comparingLong(PaneSorter::modified);
+            case MODIFIED -> Comparator.comparingLong(FileItem::modifiedMillis);
         };
         if (!state.ascending()) {
             byColumn = byColumn.reversed();
@@ -115,13 +115,6 @@ public final class PaneSorter {
             return lengthCompare;
         }
         return left.compareTo(right);
-    }
-
-    private static long modified(FileItem item) {
-        if (item.getLastModified() != null) {
-            return item.getLastModified();
-        }
-        return item.getFile() != null ? item.getFile().lastModified() : 0L;
     }
 
     private static boolean isParentEntry(FileItem item) {

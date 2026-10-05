@@ -670,20 +670,14 @@ public class Commander {
     }
 
     private void applyFolderCompareStyle(FilesPanesHelper.FocusSide side, FileItem item, ListCell<FileItem> cell) {
-        if (item == null || "..".equals(item.getPresentableFilename())) {
+        if (item == null || item.getPath() == null || "..".equals(item.getPresentableFilename())) {
             return;
         }
         Map<String, FolderComparer.Mark> marks = folderCompareMarks.get(side);
         if (marks == null || marks.isEmpty()) {
             return;
         }
-        String key;
-        try {
-            key = FolderComparer.key(item.getFile().toPath());
-        } catch (InvalidPathException | SecurityException e) {
-            return;
-        }
-        FolderComparer.Mark mark = marks.get(key);
+        FolderComparer.Mark mark = marks.get(FolderComparer.key(item.getPath()));
         if (mark == null) {
             return;
         }
@@ -856,9 +850,8 @@ public class Commander {
     }
 
     private void openFileWithSystemDefault(FileItem selectedItem, boolean fromArchive) {
-        File file = selectedItem.getFile();
-        String fullPath = file.getAbsolutePath();
-
+        File file = selectedItem.getPath().toFile();
+        String fullPath = selectedItem.getFullPath();
         try {
             getDesktop().open(file);
             return;
@@ -947,7 +940,7 @@ public class Commander {
             if (!Files.exists(configFile)) {
                 Files.createFile(configFile);
             }
-            FileItem selectedItem = new FileItem(configFile.toFile(), configFile.getFileName().toString());
+            FileItem selectedItem = new FileItem(configFile, configFile.getFileName().toString());
             restoreFileListFocusAfterSettingsEdit = true;
             fileOps.edit(selectedItem);
         } catch (Exception ex) {
@@ -1011,35 +1004,11 @@ public class Commander {
                             } catch (Exception e) {
                                 Platform.runLater(() -> error("Failed Renaming file/s", e));
                             }
-                        }).thenRun(() -> Platform.runLater(() -> {
-                            String currentPath = filesPanesHelper.getFocusedPath();
-                            String separator = fs.getSeparator();
-                            
-                            String newPath;
-                            if (currentPath.endsWith(separator) || currentPath.isEmpty()) {
-                                newPath = currentPath + newName;
-                            } else {
-                                newPath = currentPath + separator + newName;
-                            }
-                            
-                            FileItem renamedFileItem = new FileItem(new File(newPath), newName, selectedItem.getSizeInBytes(), selectedItem.getLastModified() != null ? selectedItem.getLastModified() : -1, selectedItem.isDirectory());
-                            filesPanesHelper.selectFileItem(true, renamedFileItem);
-                        }));
+                        }).thenRun(() -> Platform.runLater(() ->
+                                filesPanesHelper.selectFileItem(true, filesPanesHelper.getFocusedPath(), newName)));
                     } else {
                         fileOps.rename(Collections.singletonList(selectedItem), newName);
-                        
-                        String currentPath = filesPanesHelper.getFocusedPath();
-                        String separator = fs.getSeparator();
-                        
-                        String newPath;
-                        if (currentPath.endsWith(separator) || currentPath.isEmpty()) {
-                            newPath = currentPath + newName;
-                        } else {
-                            newPath = currentPath + separator + newName;
-                        }
-                        
-                        FileItem renamedFileItem = new FileItem(new File(newPath), newName, selectedItem.getSizeInBytes(), selectedItem.getLastModified() != null ? selectedItem.getLastModified() : -1, selectedItem.isDirectory());
-                        filesPanesHelper.selectFileItem(true, renamedFileItem);
+                        filesPanesHelper.selectFileItem(true, filesPanesHelper.getFocusedPath(), newName);
                     }
                 }
             } else // Multi files selected (multi rename)
@@ -1083,7 +1052,7 @@ public class Commander {
             logger.error("Error: Trying to calculate size of a file and not a folder ??");
             return;
         }
-        Path folder = selectedItem.getFile().toPath();
+        Path folder = selectedItem.getPath();
         runWithProgress("Calculating size of " + selectedItem.getName(),
                 () -> FileHelper.folderSize(folder),
                 size -> {
@@ -1203,33 +1172,22 @@ public class Commander {
                     }
                 }).thenRun(() -> Platform.runLater(() -> {
                     for (FileItem selectedItem : selectedItems) {
-                        File target = selectedItem.isDirectory()
-                                ? new File(targetFolderSnapshot + "\\" + selectedItem.getName())
-                                : new File(targetFolderSnapshot, selectedItem.getName());
-                        filesPanesHelper.selectFileItem(false, new FileItem(target));
+                        filesPanesHelper.selectFileItem(false, targetFolderSnapshot, selectedItem.getName());
                     }
                 }));
             } else {
                 if (selectedItems.size() > 1) {
                     fileOps.copyBatch(selectedItems, targetFolderSnapshot);
                     for (FileItem selectedItem : selectedItems) {
-                        File target = new File(targetFolderSnapshot, selectedItem.getName());
-                        filesPanesHelper.selectFileItem(false, new FileItem(target));
+                        filesPanesHelper.selectFileItem(false, targetFolderSnapshot, selectedItem.getName());
                     }
                     return;
                 }
 
                 for (FileItem selectedItem : selectedItems) {
                     String targetFolder = filesPanesHelper.getUnfocusedPath();
-                    if (selectedItem.isDirectory())
-                        targetFolder += "\\" + selectedItem.getName();
-                    fileOps.copy(selectedItem, targetFolder);
-
-                    // taking care of the selected files
-                    File target = selectedItem.isDirectory()
-                            ? new File(targetFolder)
-                            : new File(targetFolder, selectedItem.getName());
-                    filesPanesHelper.selectFileItem(false, new FileItem(target));
+                    fileOps.copy(selectedItem, selectedItem.isDirectory() ? targetFolder + "\\" + selectedItem.getName() : targetFolder);
+                    filesPanesHelper.selectFileItem(false, targetFolder, selectedItem.getName());
                 }
             }
         } catch (Exception e) {
@@ -1316,8 +1274,7 @@ public class Commander {
                 }).thenRun(() -> Platform.runLater(() -> {
                     selectFocusedItemByIndex(sourceSelectionIndexAfterMove);
                     for (FileItem selectedItem : selectedItems) {
-                        File target = new File(targetFolderSnapshot, selectedItem.getName());
-                        filesPanesHelper.selectFileItem(false, new FileItem(target));
+                        filesPanesHelper.selectFileItem(false, targetFolderSnapshot, selectedItem.getName());
                     }
                 })).exceptionally(ex -> {
                     Platform.runLater(() -> error("Failed Moving file", ex instanceof Exception ? (Exception) ex : new Exception(ex)));
@@ -1338,8 +1295,7 @@ public class Commander {
                 }).thenRun(() -> Platform.runLater(() -> {
                     selectFocusedItemByIndex(sourceSelectionIndexAfterMove);
                     for (FileItem selectedItem : selectedItems) {
-                        File target = new File(targetFolderSnapshot, selectedItem.getName());
-                        filesPanesHelper.selectFileItem(false, new FileItem(target));
+                        filesPanesHelper.selectFileItem(false, targetFolderSnapshot, selectedItem.getName());
                     }
                 }));
             } else {
@@ -1347,8 +1303,7 @@ public class Commander {
                     fileOps.move(selectedItem, targetFolderSnapshot);
 
                     selectFocusedItemByIndex(sourceSelectionIndexAfterMove);
-                    File target = new File(targetFolderSnapshot, selectedItem.getName());
-                    filesPanesHelper.selectFileItem(false, new FileItem(target));
+                    filesPanesHelper.selectFileItem(false, targetFolderSnapshot, selectedItem.getName());
                 }
             }
         } catch (Exception ex) {
@@ -1391,14 +1346,10 @@ public class Commander {
                         } catch (Exception e) {
                             Platform.runLater(() -> error("Failed Creating Directory", e));
                         }
-                    }).thenRun(() -> Platform.runLater(() -> {
-                        FileItem newFolder = new FileItem(new File(focusedPath + "\\" + dirName));
-                        filesPanesHelper.selectFileItem(true, newFolder);
-                    }));
+                    }).thenRun(() -> Platform.runLater(() -> filesPanesHelper.selectFileItem(true, focusedPath, dirName)));
                 } else {
                     fileOps.mkdir(focusedPath, dirName);
-                    FileItem newFolder = new FileItem(new File(focusedPath + "\\" + dirName));
-                    filesPanesHelper.selectFileItem(true, newFolder);
+                    filesPanesHelper.selectFileItem(true, focusedPath, dirName);
                 }
             }
         } catch (Exception e) {
@@ -1423,14 +1374,10 @@ public class Commander {
                         } catch (Exception e) {
                             Platform.runLater(() -> error("Failed Creating File", e));
                         }
-                    }).thenRun(() -> Platform.runLater(() -> {
-                        FileItem newFile = new FileItem(new File(focusedPath + "\\" + fileName));
-                        filesPanesHelper.selectFileItem(true, newFile);
-                    }));
+                    }).thenRun(() -> Platform.runLater(() -> filesPanesHelper.selectFileItem(true, focusedPath, fileName)));
                 } else {
                     fileOps.mkFile(focusedPath, fileName);
-                    FileItem newFile = new FileItem(new File(focusedPath + "\\" + fileName));
-                    filesPanesHelper.selectFileItem(true, newFile);
+                    filesPanesHelper.selectFileItem(true, focusedPath, fileName);
                 }
             }
         } catch (Exception e) {
@@ -1556,7 +1503,7 @@ public class Commander {
             return;
         }
         FoundFilesDialog.show(dialogOwner(), currentThemeMode.styleClass, files).ifPresent(selectedFile -> {
-            filesPanesHelper.setFocusedFileListPath(selectedFile.getFile().getParent());
+            filesPanesHelper.setFocusedFileListPath(selectedFile.getPath().getParent().toString());
             filesPanesHelper.selectFileItem(true, selectedFile);
             requestFocusedFileListFocus();
         });
@@ -1598,10 +1545,9 @@ public class Commander {
                     : firstFilename + ".zip";
             Optional<String> result = getUserFeedback(zipFilename, "Pack to zip", "Zip filename");
             if (result.isPresent()) {
-                String filenameWithPath = filesPanesHelper.getUnfocusedPath() + "\\" + result.get();
-                archiveOps.pack(selectedItems, filenameWithPath);
-                FileItem packedFile = new FileItem(new File(filenameWithPath));
-                filesPanesHelper.selectFileItem(false, packedFile);
+                String targetFolder = filesPanesHelper.getUnfocusedPath();
+                archiveOps.pack(selectedItems, targetFolder + "\\" + result.get());
+                filesPanesHelper.selectFileItem(false, targetFolder, result.get());
             } else
                 logger.info("User cancelled the packing");
         } catch (Exception e) {
@@ -1627,7 +1573,7 @@ public class Commander {
                 return;
             }
 
-            long originalFileSize = selectedItem.getFile().length();
+            long originalFileSize = selectedItem.getSizeInBytes();
             Optional<String> splitArg = SplitSizeDialog.show(dialogOwner(), currentThemeMode.styleClass,
                     selectedItem.getName(), originalFileSize);
             if (splitArg.isEmpty()) {
@@ -1636,7 +1582,8 @@ public class Commander {
             }
 
             String outputFilename = buildSplitArchiveName(selectedItem.getName());
-            String outputArchivePath = filesPanesHelper.getUnfocusedPath() + "\\" + outputFilename;
+            String targetFolder = filesPanesHelper.getUnfocusedPath();
+            String outputArchivePath = targetFolder + "\\" + outputFilename;
             String sevenZipPath = BundledTool.SEVEN_ZIP.path().toString();
 
             List<String> command = List.of(
@@ -1649,7 +1596,7 @@ public class Commander {
             );
 
             runExternalReported(command, true, "Split File");
-            filesPanesHelper.selectFileItem(false, new FileItem(new File(outputArchivePath)));
+            filesPanesHelper.selectFileItem(false, targetFolder, outputFilename);
         } catch (Exception ex) {
             error("Failed splitting large file", ex);
         }
@@ -1709,7 +1656,7 @@ public class Commander {
         Path firstFound = ImageConversionService.findFirstConverted(
                 selectedItems.stream().map(FileItem::getName).toList(), outputFolder, options);
         if (firstFound != null) {
-            filesPanesHelper.selectFileItem(false, new FileItem(firstFound.toFile()));
+            filesPanesHelper.selectFileItem(false, new FileItem(firstFound));
         }
         requestUnfocusedFileListFocus();
     }
@@ -1767,7 +1714,7 @@ public class Commander {
                 .thenAccept(firstConverted -> Platform.runLater(() -> {
                     filesPanesHelper.refreshFileListViews();
                     if (firstConverted != null) {
-                        filesPanesHelper.selectFileItem(false, new FileItem(firstConverted.toFile()));
+                        filesPanesHelper.selectFileItem(false, new FileItem(firstConverted));
                     }
                     requestUnfocusedFileListFocus();
                 }))
@@ -1896,7 +1843,7 @@ public class Commander {
         runExternal(fallbackCommand, false)
                 .thenAccept(fallbackOutput -> {
                     try {
-                        String fallbackText = sanitizeFileAnalysisOutput(fallbackOutput, new FileItem(finalStagedFile.toFile()));
+                        String fallbackText = sanitizeFileAnalysisOutput(fallbackOutput, new FileItem(finalStagedFile));
                         if (isFileAnalysisFailure(fallbackText) || fallbackText.isBlank()) {
                             logger.error(
                                     "Analyze File fallback failed for {} using {}: {}",
@@ -2041,7 +1988,7 @@ public class Commander {
                         String algorithm = options.get().algorithmLabel();
                         ChecksumResultDialog.show(dialogOwner(), currentThemeMode.styleClass, "Checksum File",
                                 selectedItem.getName(), algorithm, checksumValue,
-                                BundledToolCommands.checksumOutputPath(selectedItem.getFile().getParentFile().toPath(),
+                                BundledToolCommands.checksumOutputPath(selectedItem.getPath().getParent(),
                                         selectedItem.getName(), algorithm, false));
                     }
                     requestFocusedFileListFocus();
@@ -2095,7 +2042,7 @@ public class Commander {
                         String algorithm = options.get().algorithmLabel();
                         ChecksumResultDialog.show(dialogOwner(), currentThemeMode.styleClass, "Checksum Folder Contents",
                                 selectedItem.getName(), algorithm, resultText,
-                                BundledToolCommands.checksumOutputPath(selectedItem.getFile().toPath(),
+                                BundledToolCommands.checksumOutputPath(selectedItem.getPath(),
                                         selectedItem.getName(), algorithm, true));
                     }
                     requestFocusedFileListFocus();
@@ -2165,12 +2112,10 @@ public class Commander {
                 }
                 // Use safe File constructor to handle path separators correctly
                 String parentDir = filesPanesHelper.getUnfocusedPath();
-                FileItem mergedFile = new FileItem(new File(parentDir, filename));
                 logger.debug("Parent dir: '{}'", parentDir);
                 logger.debug("Filename: '{}'", filename);
-                logger.debug("Merged file full path: {}", mergedFile.getFullPath());
                 pdfOps.merge(selectedItems, parentDir, filename);
-                filesPanesHelper.selectFileItem(false, mergedFile);
+                filesPanesHelper.selectFileItem(false, parentDir, filename);
             } else
                 logger.info("User cancelled the packing");
         } catch (Exception e) {
@@ -2332,8 +2277,8 @@ public class Commander {
             }
 
             FileItem selectedItem = selectedItems.getFirst();
-            File selectedFile = selectedItem.getFile();
-            if (selectedFile == null || !selectedFile.exists()) {
+            Path selectedFile = selectedItem.getPath();
+            if (selectedFile == null || !Files.exists(selectedFile)) {
                 logger.warn("File Properties failed: selected item is missing. item={}", selectedItem.getFullPath());
                 showError("File Properties", "Selected item does not exist on disk.");
                 return;
@@ -2345,8 +2290,8 @@ public class Commander {
                 return;
             }
 
-            logger.info("Opening properties for {}: {}", selectedItem.isDirectory() ? "folder" : "file", selectedFile.getAbsolutePath());
-            FilePropertiesLauncher.open(selectedFile.toPath());
+            logger.info("Opening properties for {}: {}", selectedItem.isDirectory() ? "folder" : "file", selectedFile);
+            FilePropertiesLauncher.open(selectedFile);
         } catch (Exception ex) {
             error("Failed opening file properties", ex);
         }
@@ -2363,7 +2308,7 @@ public class Commander {
 
             Optional<FileAttributesHelper.AttributeChangeRequest> request = AttributesDialog.show(dialogOwner(),
                     currentThemeMode.styleClass, selectedItems.size(),
-                    attributesHelper.readExistingAttributes(selectedItems.getFirst().getFile().toPath()));
+                    attributesHelper.readExistingAttributes(selectedItems.getFirst().getPath()));
             if (request.isEmpty()) {
                 return;
             }
@@ -2371,7 +2316,7 @@ public class Commander {
             List<String> failures = new ArrayList<>();
             for (FileItem selectedItem : selectedItems) {
                 try {
-                    attributesHelper.applyAttributesWithFallback(selectedItem.getFile().toPath(), request.get());
+                    attributesHelper.applyAttributesWithFallback(selectedItem.getPath(), request.get());
                 } catch (Exception ex) {
                     logger.warn("Failed changing attributes for {}", selectedItem.getFullPath(), ex);
                     failures.add(selectedItem.getName() + ": " + ex.getMessage());
@@ -2411,12 +2356,12 @@ public class Commander {
         if (selectedItems.isEmpty() || selectedItems.getFirst().isDirectory()) {
             return;
         }
-        File file = selectedItems.getFirst().getFile();
-        if (file == null || !file.exists()) {
+        Path path = selectedItems.getFirst().getPath();
+        if (path == null || !Files.exists(path)) {
             return;
         }
         try {
-            if (editor.edit(dialogOwner(), currentThemeMode.styleClass, file)) {
+            if (editor.edit(dialogOwner(), currentThemeMode.styleClass, path.toFile())) {
                 filesPanesHelper.refreshFileListViews();
             }
         } catch (Exception ex) {
@@ -2459,10 +2404,11 @@ public class Commander {
                 () -> {
                     int successCount = 0;
                     for (FileItem item : selectedItems) {
-                        File file = item.getFile();
-                        if (item.isDirectory() || file == null || !file.exists()) {
+                        Path path = item.getPath();
+                        if (item.isDirectory() || path == null || !Files.exists(path)) {
                             continue;
                         }
+                        File file = path.toFile();
                         try {
                             if (removeOne.remove(file)) {
                                 logger.info("Removed metadata from: {}", file.getAbsolutePath());
@@ -2555,12 +2501,12 @@ public class Commander {
 
             List<File> files = new ArrayList<>();
             for (FileItem selectedItem : selectedItems) {
-                File file = selectedItem.getFile();
-                if (file == null || !file.exists()) {
+                Path path = selectedItem.getPath();
+                if (path == null || !Files.exists(path)) {
                     showError("Compress Executable", "One or more selected files do not exist on disk.");
                     return;
                 }
-                files.add(file);
+                files.add(path.toFile());
             }
 
             if (files.isEmpty()) {

@@ -20,8 +20,8 @@ class AudioConversionSupportTest {
         Path audio = Files.createTempFile(tempDir, "sound", ".wav");
         Path text = Files.createTempFile(tempDir, "notes", ".txt");
 
-        Assertions.assertThat(AudioConversionSupport.areAllConvertibleAudio(List.of(new FileItem(audio.toFile())))).isTrue();
-        Assertions.assertThat(AudioConversionSupport.areAllConvertibleAudio(List.of(new FileItem(text.toFile())))).isFalse();
+        Assertions.assertThat(AudioConversionSupport.areAllConvertibleAudio(List.of(new FileItem(audio)))).isTrue();
+        Assertions.assertThat(AudioConversionSupport.areAllConvertibleAudio(List.of(new FileItem(text)))).isFalse();
     }
 
     @Test
@@ -30,8 +30,8 @@ class AudioConversionSupportTest {
         Path text = Files.createTempFile(tempDir, "notes", ".txt");
 
         Assertions.assertThat(AudioConversionSupport.areAllConvertibleAudio(List.of(
-                new FileItem(audio.toFile()),
-                new FileItem(text.toFile())
+                new FileItem(audio),
+                new FileItem(text)
         ))).isFalse();
     }
 
@@ -39,7 +39,7 @@ class AudioConversionSupportTest {
     void exposesCommonAudioTargets() throws IOException {
         Path audio = Files.createTempFile(tempDir, "sound", ".wav");
 
-        List<String> targets = AudioConversionSupport.targetFormatsForSelection(List.of(new FileItem(audio.toFile())));
+        List<String> targets = AudioConversionSupport.targetFormatsForSelection(List.of(new FileItem(audio)));
 
         Assertions.assertThat(targets).contains("wav", "flac", "ogg", "opus", "mp3");
     }

@@ -3,9 +3,11 @@ package org.chaiware.acommander.vfs;
 import org.chaiware.acommander.helpers.FileHelper;
 import org.chaiware.acommander.model.FileItem;
 
-import java.io.File;
 import java.io.IOException;
+import java.nio.file.DirectoryIteratorException;
+import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
+import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
@@ -34,20 +36,32 @@ public class LocalFileSystem implements VFileSystem {
 
     @Override
     public List<FileItem> listContents(String internalPath) throws IOException {
-        File folder = new File(internalPath);
-        File[] files = folder.listFiles();
+        Path folder;
+        try {
+            folder = Path.of(internalPath);
+        } catch (InvalidPathException e) {
+            throw new IOException("Not a valid folder: " + internalPath, e);
+        }
         List<FileItem> items = new ArrayList<>();
-
-        if (folder.getParentFile() != null) {
+        if (folder.getParent() != null) {
             items.add(new FileItem(folder, ".."));
         }
-
-        if (files != null) {
-            for (File f : files) {
-                items.add(new FileItem(f));
-            }
-        }
+        addEntries(folder, items);
         return items;
+    }
+
+    /**
+     * Adds each entry of {@code folder}; an unreadable or missing folder adds none. Entries come straight from the
+     * directory listing, so a name Windows would reject when parsed (bad media) still lists.
+     */
+    static void addEntries(Path folder, List<FileItem> items) {
+        try (DirectoryStream<Path> entries = Files.newDirectoryStream(folder)) {
+            for (Path entry : entries) {
+                items.add(new FileItem(entry));
+            }
+        } catch (IOException | DirectoryIteratorException e) {
+            // The pane shows whatever was read before the failure.
+        }
     }
 
     @Override

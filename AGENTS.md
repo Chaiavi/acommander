@@ -142,6 +142,8 @@ All actions and external tools live in `config/apps.json`; shortcuts are declare
 - `Commander` doesn't walk folders, hash files or read settings itself; `ArchitectureRulesTest` fails on
   `Files.walk/list`, `MessageDigest` or a `Properties` variable there.
 - New storage types implement `VFileSystem` and are wired through `VfsManager`.
+- To select an item after an operation, call `FilesPanesHelper.selectFileItem(focused, folder, name)`. Never build
+  the probe with `Path.of`: FTP names and bad-media names hold `:*?` and throw `InvalidPathException`.
 - Metadata editing: `*MetadataSupport` runs the external tool, `*MetadataDialog` collects input; refresh the pane after.
 - Tool-output parsers are tested on real output. Capture it in a temp folder: a jpg from PowerShell
   `System.Drawing.Bitmap` tagged with `apps/image_metadata/exiv2.exe -M"set Exif.Image.Make X"`; id3.exe tags an

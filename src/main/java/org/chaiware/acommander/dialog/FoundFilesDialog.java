@@ -7,7 +7,7 @@ import javafx.scene.input.MouseButton;
 import javafx.stage.Window;
 import org.chaiware.acommander.model.FileItem;
 
-import java.io.File;
+import java.nio.file.Path;
 import java.util.List;
 import java.util.Optional;
 
@@ -23,7 +23,7 @@ public final class FoundFilesDialog {
                 "Files Found", "Go to File", "Show the selected file in the focused pane.");
 
         ListView<FileItem> fileList = tip(new ListView<>(), "Files that contain the text; double-click one to go to it.");
-        fileList.getItems().setAll(files.stream().map(filename -> new FileItem(new File(filename))).toList());
+        fileList.getItems().setAll(files.stream().map(filename -> new FileItem(Path.of(filename))).toList());
         fileList.setCellFactory(list -> new ListCell<>() {
             @Override
             protected void updateItem(FileItem item, boolean empty) {

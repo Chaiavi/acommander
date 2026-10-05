@@ -3,7 +3,9 @@ package org.chaiware.acommander.model;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 
-import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
@@ -13,43 +15,45 @@ import java.util.Locale;
 import java.util.function.Predicate;
 
 @Getter
-@EqualsAndHashCode(of = {"file", "presentableFilename"})
+@EqualsAndHashCode(of = {"path", "presentableFilename"})
 public class FileItem {
-    private final File file;
+    /** Null on FTP panes: the item is only a name there, the pane knows the folder. */
+    private final Path path;
     private String presentableFilename;
     private long size = -1;
     private Long lastModified = null;
     private boolean isDirectory = false;
 
-    public FileItem(File file) {
-        this.file = file;
-        this.presentableFilename = file.getName();
-        this.isDirectory = file != null && file.isDirectory();
+    public FileItem(Path path) {
+        this.path = path;
+        this.presentableFilename = fileName(path);
+        this.isDirectory = Files.isDirectory(path);
     }
 
-    public FileItem(File folder, String filenameStr) {
+    public FileItem(Path folder, String filenameStr) {
         this(folder);
         this.presentableFilename = filenameStr;
     }
 
-    public FileItem(File file, String presentableFilename, long size, long lastModified) {
-        this(file, presentableFilename, size, lastModified, file != null && file.isDirectory());
-    }
-
-    public FileItem(File file, String presentableFilename, long size, long lastModified, boolean isDirectory) {
-        this.file = file;
+    public FileItem(Path path, String presentableFilename, long size, long lastModified, boolean isDirectory) {
+        this.path = path;
         this.presentableFilename = presentableFilename;
         this.size = size;
         this.lastModified = lastModified;
         this.isDirectory = isDirectory;
     }
 
+    private static String fileName(Path path) {
+        Path name = path.getFileName();
+        return name == null ? "" : name.toString();
+    }
+
     public String getName() {
-        return file != null ? file.getName() : presentableFilename;
+        return path != null ? fileName(path) : presentableFilename;
     }
 
     public String getFullPath() {
-        return file != null ? file.getAbsolutePath() : "";
+        return path != null ? path.toAbsolutePath().toString() : "";
     }
 
     /** Lower-case extension without the dot; "" when the name has none. */
@@ -88,26 +92,33 @@ public class FileItem {
 
     public long getSizeInBytes() {
         if (size != -1 && (size != 0 || isDirectory())) return size;
-        if (file != null && !isDirectory())
-            return file.length();
+        if (path != null && !isDirectory()) {
+            try {
+                return Files.size(path);
+            } catch (IOException | RuntimeException e) {
+                return 0;
+            }
+        }
 
         return size == -1 ? 0 : size;
+    }
+
+    /** The listed time, else the time on disk; 0 when unknown. */
+    public long modifiedMillis() {
+        if (lastModified != null) return lastModified;
+        if (path == null) return 0;
+        try {
+            return Files.getLastModifiedTime(path).toMillis();
+        } catch (IOException | RuntimeException e) {
+            return 0;
+        }
     }
 
     public String getDate() {
         if ("..".equals(getPresentableFilename())) return "";
 
         try {
-            long modifiedMillis;
-            if (lastModified != null) {
-                modifiedMillis = lastModified;
-            } else if (file != null) {
-                // Avoid Path parsing here: corrupted/bad media can surface names that are invalid on Windows.
-                modifiedMillis = file.lastModified();
-            } else {
-                return "";
-            }
-
+            long modifiedMillis = modifiedMillis();
             if (modifiedMillis <= 0) {
                 return "";
             }

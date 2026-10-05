@@ -22,14 +22,14 @@ class FileHelperTest {
     void isTextFile_returnsTrueForEmptyFile() throws IOException {
         Path file = tempDir.resolve("empty.txt");
         Files.createFile(file);
-        assertTrue(FileHelper.isTextFile(new FileItem(file.toFile())));
+        assertTrue(FileHelper.isTextFile(new FileItem(file)));
     }
 
     @Test
     void isTextFile_returnsTrueForSimpleText() throws IOException {
         Path file = tempDir.resolve("text.txt");
         Files.writeString(file, "Hello, World!");
-        assertTrue(FileHelper.isTextFile(new FileItem(file.toFile())));
+        assertTrue(FileHelper.isTextFile(new FileItem(file)));
     }
 
     @Test
@@ -39,7 +39,7 @@ class FileHelperTest {
             fos.write(new byte[]{(byte) 0xFF, (byte) 0xFE});
             fos.write("Hello".getBytes());
         }
-        assertTrue(FileHelper.isTextFile(new FileItem(file.toFile())));
+        assertTrue(FileHelper.isTextFile(new FileItem(file)));
     }
 
     @Test
@@ -48,7 +48,7 @@ class FileHelperTest {
         try (FileOutputStream fos = new FileOutputStream(file.toFile())) {
             fos.write(new byte[]{'T', 'e', 'x', 't', 0, 'B', 'i', 'n'});
         }
-        assertFalse(FileHelper.isTextFile(new FileItem(file.toFile())));
+        assertFalse(FileHelper.isTextFile(new FileItem(file)));
     }
 
     @Test
@@ -61,12 +61,12 @@ class FileHelperTest {
             }
             fos.write(data);
         }
-        assertFalse(FileHelper.isTextFile(new FileItem(file.toFile())));
+        assertFalse(FileHelper.isTextFile(new FileItem(file)));
     }
 
     @Test
     void isTextFile_returnsFalseForDirectory() {
-        assertFalse(FileHelper.isTextFile(new FileItem(tempDir.toFile())));
+        assertFalse(FileHelper.isTextFile(new FileItem(tempDir)));
     }
 
     @Test

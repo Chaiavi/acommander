@@ -26,7 +26,7 @@ class ToolCommandBuilderTest {
     void buildCommandExpandsPlaceholdersAndSelectedFilesToken() throws Exception {
         FilesPanesHelper panesHelper = mock(FilesPanesHelper.class);
         Path selected = Files.createTempFile(tempDir, "file", ".txt");
-        FileItem selectedItem = new FileItem(selected.toFile());
+        FileItem selectedItem = new FileItem(selected);
 
         when(panesHelper.getSelectedItems()).thenReturn(List.of(selectedItem));
         when(panesHelper.getFocusedPath()).thenReturn("C:\\focused");
@@ -52,8 +52,8 @@ class ToolCommandBuilderTest {
     void buildCommandOmitsParentFolderFromSelectedFiles() throws Exception {
         FilesPanesHelper panesHelper = mock(FilesPanesHelper.class);
         Path selected = Files.createTempFile(tempDir, "file", ".txt");
-        FileItem parent = new FileItem(tempDir.toFile(), "..");
-        FileItem selectedItem = new FileItem(selected.toFile());
+        FileItem parent = new FileItem(tempDir, "..");
+        FileItem selectedItem = new FileItem(selected);
 
         when(panesHelper.getSelectedItems()).thenReturn(List.of(parent, selectedItem));
         when(panesHelper.getFocusedPath()).thenReturn("C:\\focused");
@@ -79,8 +79,8 @@ class ToolCommandBuilderTest {
         Path second = Files.createTempFile(tempDir, "file two", ".txt");
 
         when(panesHelper.getSelectedItems()).thenReturn(List.of(
-                new FileItem(first.toFile()),
-                new FileItem(second.toFile())
+                new FileItem(first),
+                new FileItem(second)
         ));
         when(panesHelper.getFocusedPath()).thenReturn("C:\\focused");
         when(panesHelper.getUnfocusedPath()).thenReturn("C:\\target");
@@ -102,7 +102,7 @@ class ToolCommandBuilderTest {
         FilesPanesHelper panesHelper = mock(FilesPanesHelper.class);
         Path selected = Files.createTempFile(tempDir, "file one", ".txt");
 
-        when(panesHelper.getSelectedItems()).thenReturn(List.of(new FileItem(selected.toFile())));
+        when(panesHelper.getSelectedItems()).thenReturn(List.of(new FileItem(selected)));
         when(panesHelper.getFocusedPath()).thenReturn("C:\\focused path");
         when(panesHelper.getUnfocusedPath()).thenReturn("C:\\target path");
 

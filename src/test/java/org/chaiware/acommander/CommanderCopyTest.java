@@ -31,7 +31,7 @@ class CommanderCopyTest {
 
         FilesPanesHelper panesHelper = mock(FilesPanesHelper.class);
         VFileSystem localFs = new LocalFileSystem("");
-        when(panesHelper.getSelectedItems()).thenReturn(List.of(new FileItem(sourceFile.toFile())));
+        when(panesHelper.getSelectedItems()).thenReturn(List.of(new FileItem(sourceFile)));
         when(panesHelper.getFocusedPath()).thenReturn(tempDir.toString());
         when(panesHelper.getUnfocusedPath()).thenReturn(tempDir.toString());
         when(panesHelper.getFocusedFileSystem()).thenReturn(localFs);

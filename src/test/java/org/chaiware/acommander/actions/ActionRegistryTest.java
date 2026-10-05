@@ -29,8 +29,8 @@ class ActionRegistryTest {
 
         FilesPanesHelper panesHelper = mock(FilesPanesHelper.class);
         when(panesHelper.getSelectedItems()).thenReturn(List.of(
-                new FileItem(image.toFile()),
-                new FileItem(text.toFile())
+                new FileItem(image),
+                new FileItem(text)
         ));
 
         Commander commander = new Commander();
@@ -55,8 +55,8 @@ class ActionRegistryTest {
 
         FilesPanesHelper panesHelper = mock(FilesPanesHelper.class);
         when(panesHelper.getSelectedItems()).thenReturn(List.of(
-                new FileItem(audio.toFile()),
-                new FileItem(text.toFile())
+                new FileItem(audio),
+                new FileItem(text)
         ));
 
         Commander commander = new Commander();
@@ -81,8 +81,8 @@ class ActionRegistryTest {
 
         FilesPanesHelper panesHelper = mock(FilesPanesHelper.class);
         when(panesHelper.getSelectedItems()).thenReturn(List.of(
-                new FileItem(audio.toFile()),
-                new FileItem(text.toFile())
+                new FileItem(audio),
+                new FileItem(text)
         ));
 
         Commander commander = new Commander();
@@ -99,7 +99,7 @@ class ActionRegistryTest {
 
         Assertions.assertThat(action.isEnabled(context)).isFalse();
 
-        when(panesHelper.getSelectedItems()).thenReturn(List.of(new FileItem(audio.toFile())));
+        when(panesHelper.getSelectedItems()).thenReturn(List.of(new FileItem(audio)));
         Assertions.assertThat(action.isEnabled(context)).isTrue();
     }
 
@@ -110,8 +110,8 @@ class ActionRegistryTest {
 
         FilesPanesHelper panesHelper = mock(FilesPanesHelper.class);
         when(panesHelper.getSelectedItems()).thenReturn(List.of(
-                new FileItem(video.toFile()),
-                new FileItem(text.toFile())
+                new FileItem(video),
+                new FileItem(text)
         ));
 
         Commander commander = new Commander();
@@ -128,7 +128,7 @@ class ActionRegistryTest {
 
         Assertions.assertThat(action.isEnabled(context)).isFalse();
 
-        when(panesHelper.getSelectedItems()).thenReturn(List.of(new FileItem(video.toFile())));
+        when(panesHelper.getSelectedItems()).thenReturn(List.of(new FileItem(video)));
         Assertions.assertThat(action.isEnabled(context)).isTrue();
     }
 
@@ -209,8 +209,8 @@ class ActionRegistryTest {
 
         FilesPanesHelper panesHelper = mock(FilesPanesHelper.class);
         when(panesHelper.getSelectedItems()).thenReturn(List.of(
-                new FileItem(exe.toFile()),
-                new FileItem(dll.toFile())
+                new FileItem(exe),
+                new FileItem(dll)
         ));
 
         Commander commander = new Commander();
@@ -228,8 +228,8 @@ class ActionRegistryTest {
         Assertions.assertThat(action.isEnabled(context)).isTrue();
 
         when(panesHelper.getSelectedItems()).thenReturn(List.of(
-                new FileItem(exe.toFile()),
-                new FileItem(text.toFile())
+                new FileItem(exe),
+                new FileItem(text)
         ));
         Assertions.assertThat(action.isEnabled(context)).isFalse();
     }

@@ -10,6 +10,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
@@ -104,7 +105,7 @@ public final class ClipboardTransfer {
 
     public static String targetInternalPath(VFileSystem targetFs, String targetFolder, String name, boolean directory) {
         if (targetFs instanceof LocalFileSystem) {
-            return targetFs.getInternalPath(new FileItem(new File(targetFolder, name)));
+            return targetFs.getInternalPath(new FileItem(Path.of(targetFolder, name)));
         }
         String separator = targetFs.getSeparator();
         String base = targetFolder == null || targetFolder.isBlank() ? separator : targetFolder;
@@ -112,13 +113,13 @@ public final class ClipboardTransfer {
         if (targetFs instanceof FtpFileSystem ftpFileSystem) {
             return ftpFileSystem.sanitizePath(fullPath);
         }
-        return targetFs.getInternalPath(new FileItem(new File(fullPath), name, 0, 0, directory));
+        return targetFs.getInternalPath(new FileItem(Path.of(fullPath), name, 0, 0, directory));
     }
 
     /** An item equal to the pasted one, to select it in the refreshed pane. */
     public static FileItem selectionProbe(VFileSystem targetFs, String targetFolder, Entry entry) {
         if (targetFs instanceof LocalFileSystem) {
-            return new FileItem(new File(targetFolder, entry.name()));
+            return new FileItem(Path.of(targetFolder, entry.name()));
         }
         return new FileItem(null, entry.name(), 0, 0, entry.directory());
     }

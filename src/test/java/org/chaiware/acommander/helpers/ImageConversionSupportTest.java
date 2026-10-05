@@ -20,8 +20,8 @@ class ImageConversionSupportTest {
         Path image = Files.createTempFile(tempDir, "photo", ".png");
         Path text = Files.createTempFile(tempDir, "notes", ".txt");
 
-        Assertions.assertThat(ImageConversionSupport.areAllConvertibleImages(List.of(new FileItem(image.toFile())))).isTrue();
-        Assertions.assertThat(ImageConversionSupport.areAllConvertibleImages(List.of(new FileItem(text.toFile())))).isFalse();
+        Assertions.assertThat(ImageConversionSupport.areAllConvertibleImages(List.of(new FileItem(image)))).isTrue();
+        Assertions.assertThat(ImageConversionSupport.areAllConvertibleImages(List.of(new FileItem(text)))).isFalse();
     }
 
     @Test
@@ -30,8 +30,8 @@ class ImageConversionSupportTest {
         Path text = Files.createTempFile(tempDir, "notes", ".txt");
 
         Assertions.assertThat(ImageConversionSupport.areAllConvertibleImages(List.of(
-                new FileItem(image.toFile()),
-                new FileItem(text.toFile())
+                new FileItem(image),
+                new FileItem(text)
         ))).isFalse();
     }
 
@@ -39,7 +39,7 @@ class ImageConversionSupportTest {
     void includesCurrentFormatForSingleSelectionTargets() throws IOException {
         Path image = Files.createTempFile(tempDir, "photo", ".png");
 
-        List<String> targets = ImageConversionSupport.targetFormatsForSelection(List.of(new FileItem(image.toFile())));
+        List<String> targets = ImageConversionSupport.targetFormatsForSelection(List.of(new FileItem(image)));
 
         Assertions.assertThat(targets).contains("png");
         Assertions.assertThat(targets).contains("jpeg", "webp", "gif", "tiff");

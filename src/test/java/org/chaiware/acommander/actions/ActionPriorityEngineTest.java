@@ -47,7 +47,7 @@ class ActionPriorityEngineTest {
 
         Path mp3 = Files.createTempFile(tempDir, "track", ".mp3");
         FilesPanesHelper panesHelper = mock(FilesPanesHelper.class);
-        when(panesHelper.getSelectedItems()).thenReturn(List.of(new FileItem(mp3.toFile())));
+        when(panesHelper.getSelectedItems()).thenReturn(List.of(new FileItem(mp3)));
 
         Commander commander = new Commander();
         commander.filesPanesHelper = panesHelper;
@@ -73,8 +73,8 @@ class ActionPriorityEngineTest {
         Path wav = Files.createTempFile(tempDir, "track2", ".wav");
         FilesPanesHelper panesHelper = mock(FilesPanesHelper.class);
         when(panesHelper.getSelectedItems()).thenReturn(List.of(
-                new FileItem(mp3.toFile()),
-                new FileItem(wav.toFile())
+                new FileItem(mp3),
+                new FileItem(wav)
         ));
 
         Commander commander = new Commander();

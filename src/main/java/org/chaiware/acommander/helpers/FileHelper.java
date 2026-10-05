@@ -6,9 +6,8 @@ import org.chaiware.acommander.vfs.VFileSystem;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.UncheckedIOException;
 import java.nio.file.CopyOption;
 import java.nio.file.FileVisitResult;
@@ -40,10 +39,10 @@ public class FileHelper {
             return false;
         }
 
-        File file;
+        Path file;
         if (fs instanceof LocalFileSystem) {
-            file = fileItem.getFile();
-            if (file == null || !file.exists() || !file.canRead()) {
+            file = fileItem.getPath();
+            if (file == null || !Files.isReadable(file)) {
                 return false;
             }
         } else {
@@ -59,7 +58,7 @@ public class FileHelper {
 
         byte[] buffer = new byte[8192];
         int read;
-        try (FileInputStream inputStream = new FileInputStream(fileItem.getFile())) {
+        try (InputStream inputStream = Files.newInputStream(file)) {
             read = inputStream.read(buffer);
         } catch (IOException ex) {
             logger.debug("Failed reading file while checking if it is text: {}", fileItem.getFullPath(), ex);

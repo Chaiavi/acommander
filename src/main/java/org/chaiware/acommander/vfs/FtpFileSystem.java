@@ -567,15 +567,6 @@ public class FtpFileSystem implements VFileSystem {
             return sanitizePath(name);
         }
 
-        // For local files that might have been created as "pseudo-files"
-        if (item.getFile() != null) {
-            String absPath = item.getFile().getAbsolutePath();
-            if (absPath.contains(urlPrefix)) {
-                int index = absPath.indexOf(urlPrefix) + urlPrefix.length();
-                return sanitizePath(absPath.substring(index));
-            }
-        }
-
         // Otherwise, append to current path
         String path = currentInternalPath;
         if (!path.endsWith("/")) {

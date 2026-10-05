@@ -334,9 +334,10 @@ Smoke items: sort by each header, enter/leave nested archive folders, select by 
 
 - [x] 9.1 Decided by the code: FTP items already have `file == null` (name only, path from the pane), so `FileItem`
   can hold a nullable `Path` for local and archive items.
-- [ ] 9.2 `FileItem` holds `Path`; temporary `getFile()`; migrate the 29 `getFile()` call sites (rechecked after
-  Phase 5: `Commander` 10, `CommandsAdvancedImpl` 8, `FtpFileSystem` 7, `FileHelper` 2, `CommandsSimpleImpl` 1,
-  `FilesPanesHelper` 1; the commands ones move with Phase 7); delete `getFile()`.
+- [x] 9.2 Done. `FileItem` holds a nullable `Path`; `getFile()` and the `File` constructors are gone. Local and
+  archive listings use `Files.newDirectoryStream` (bad-media names still list). Every "select the result" site goes
+  through `FilesPanesHelper.selectFileItem(focused, folder, name)`, which builds a null-path probe on FTP (FTP names
+  may hold `:*?`, which `Path.of` rejects). Metadata APIs keep `File` via `.toFile()` at the call.
 
 Smoke items: the full checklist, plus Hebrew file and folder names.
 

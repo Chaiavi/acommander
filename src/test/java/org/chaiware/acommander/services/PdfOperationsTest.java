@@ -70,7 +70,7 @@ class PdfOperationsTest {
         FakeRunner runner = new FakeRunner();
 
         new PdfOperations(panes, new AppRegistry(config), runner)
-                .merge(List.of(new FileItem(first.toFile()), new FileItem(second.toFile())), targetDir.toString(), "merged.pdf");
+                .merge(List.of(new FileItem(first), new FileItem(second)), targetDir.toString(), "merged.pdf");
 
         assertThat(runner.inputs).hasSize(2).allSatisfy(input -> assertThat(input).exists());
         runner.finishMerge();

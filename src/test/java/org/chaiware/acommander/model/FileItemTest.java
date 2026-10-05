@@ -16,7 +16,7 @@ class FileItemTest {
     @Test
     void returnsBlankSizeForZeroLengthFile() throws IOException {
         Path file = Files.createTempFile(tempDir, "empty", ".txt");
-        FileItem item = new FileItem(file.toFile());
+        FileItem item = new FileItem(file);
 
         Assertions.assertThat(item.getHumanReadableSize()).isEqualTo("");
     }
@@ -25,11 +25,11 @@ class FileItemTest {
     void formatsBytesAndKilobytesForFiles() throws IOException {
         Path bytesFile = Files.createTempFile(tempDir, "bytes", ".bin");
         Files.write(bytesFile, new byte[512]);
-        FileItem bytesItem = new FileItem(bytesFile.toFile());
+        FileItem bytesItem = new FileItem(bytesFile);
 
         Path kbFile = Files.createTempFile(tempDir, "kb", ".bin");
         Files.write(kbFile, new byte[1536]);
-        FileItem kbItem = new FileItem(kbFile.toFile());
+        FileItem kbItem = new FileItem(kbFile);
 
         Assertions.assertThat(bytesItem.getHumanReadableSize()).isEqualTo("512 B");
         Assertions.assertThat(kbItem.getHumanReadableSize()).isEqualTo("1.5 KB");
@@ -38,7 +38,7 @@ class FileItemTest {
     @Test
     void directorySizeUsesProvidedSize() throws IOException {
         Path dir = Files.createTempDirectory(tempDir, "dir");
-        FileItem item = new FileItem(dir.toFile());
+        FileItem item = new FileItem(dir);
         item.setSize(2048);
 
         Assertions.assertThat(item.getHumanReadableSize()).isEqualTo("2 KB");
@@ -81,7 +81,7 @@ class FileItemTest {
     @Test
     void parentFolderDateIsBlank() throws IOException {
         Path dir = Files.createTempDirectory(tempDir, "dir");
-        FileItem parent = new FileItem(dir.toFile(), "..");
+        FileItem parent = new FileItem(dir, "..");
 
         Assertions.assertThat(parent.getDate()).isEqualTo("");
     }
@@ -89,15 +89,24 @@ class FileItemTest {
     @Test
     void toStringUsesPresentableFilename() throws IOException {
         Path dir = Files.createTempDirectory(tempDir, "dir");
-        FileItem parent = new FileItem(dir.toFile(), "..");
+        FileItem parent = new FileItem(dir, "..");
 
         Assertions.assertThat(parent.toString()).isEqualTo("..");
     }
 
     @Test
-    void malformedPathDateIsBlank() {
-        FileItem malformed = new FileItem(new java.io.File("E:\\DCIM\\102NCD90\\J*??bad"));
+    void vanishedFileHasBlankDateAndNoSize() {
+        FileItem gone = new FileItem(tempDir.resolve("gone.txt"));
 
-        Assertions.assertThat(malformed.getDate()).isEqualTo("");
+        Assertions.assertThat(gone.getDate()).isEqualTo("");
+        Assertions.assertThat(gone.getSizeInBytes()).isZero();
+    }
+
+    @Test
+    void modifiedMillisPrefersTheListedTime() throws IOException {
+        Path file = Files.createTempFile(tempDir, "f", ".txt");
+
+        Assertions.assertThat(new FileItem(file, "f.txt", 1, 42, false).modifiedMillis()).isEqualTo(42);
+        Assertions.assertThat(new FileItem(file).modifiedMillis()).isEqualTo(Files.getLastModifiedTime(file).toMillis());
     }
 }

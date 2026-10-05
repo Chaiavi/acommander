@@ -4,6 +4,7 @@ import org.chaiware.acommander.commands.ExternalToolRunner;
 import org.chaiware.acommander.config.ActionDefinition;
 import org.chaiware.acommander.config.AppRegistry;
 import org.chaiware.acommander.helpers.AppTempDir;
+import org.chaiware.acommander.helpers.FileHelper;
 import org.chaiware.acommander.helpers.FilesPanesHelper;
 import org.chaiware.acommander.model.FileItem;
 import org.chaiware.acommander.tools.ToolCommandBuilder;
@@ -71,12 +72,12 @@ public class FileOperations {
             return;
         }
         VFileSystem fs = panes.getFocusedFileSystem();
-        File fileToView = localCopy(fs, item, "acommander_view_");
+        Path fileToView = localCopy(fs, item, "acommander_view_");
         boolean isTemp = !(fs instanceof LocalFileSystem);
-        runner.reportFailure(runner.runExecutable(command("view", Map.of(), List.of(fileToView.getAbsolutePath())), false)
+        runner.reportFailure(runner.runExecutable(command("view", Map.of(), List.of(fileToView.toString())), false)
                 .thenRun(() -> {
                     if (isTemp) {
-                        fileToView.delete();
+                        FileHelper.deleteQuietly(fileToView);
                     }
                 }), "View");
         log.debug("Viewed: {}", item.getName());
@@ -88,19 +89,19 @@ public class FileOperations {
             return;
         }
         VFileSystem fs = panes.getFocusedFileSystem();
-        File fileToEdit = localCopy(fs, item, "acommander_edit_");
+        Path fileToEdit = localCopy(fs, item, "acommander_edit_");
         boolean isTemp = !(fs instanceof LocalFileSystem);
         String internalPath = fs.getInternalPath(item);
-        runner.reportFailure(runner.runExecutable(command("edit", Map.of(), List.of(fileToEdit.getAbsolutePath())), false)
+        runner.reportFailure(runner.runExecutable(command("edit", Map.of(), List.of(fileToEdit.toString())), false)
                 .thenRun(() -> {
                     if (isTemp) {
                         try {
-                            new LocalFileSystem("").copy(fileToEdit.getAbsolutePath(), fs, internalPath);
+                            new LocalFileSystem("").copy(fileToEdit.toString(), fs, internalPath);
                         } catch (IOException e) {
                             throw new UncheckedIOException("Your edit could not be saved to " + internalPath
                                     + ". The edited copy stays at " + fileToEdit + " until ACommander closes.", e);
                         }
-                        fileToEdit.delete();
+                        FileHelper.deleteQuietly(fileToEdit);
                     }
                     fs.markModified();
                 }), "Edit");
@@ -301,14 +302,14 @@ public class FileOperations {
     private void vfsCopy(FileItem item, String targetFolder) throws IOException {
         VFileSystem sourceFs = panes.getFocusedFileSystem();
         VFileSystem targetFs = panes.getUnfocusedFileSystem();
-        sourceFs.copy(sourceFs.getInternalPath(item), targetFs, targetFs.getInternalPath(new FileItem(new File(targetFolder, item.getName()))));
+        sourceFs.copy(sourceFs.getInternalPath(item), targetFs, ClipboardTransfer.targetInternalPath(targetFs, targetFolder, item.getName(), item.isDirectory()));
         panes.refreshFileListViews();
     }
 
     private void vfsMove(FileItem item, String targetFolder) throws IOException {
         VFileSystem sourceFs = panes.getFocusedFileSystem();
         VFileSystem targetFs = panes.getUnfocusedFileSystem();
-        sourceFs.move(sourceFs.getInternalPath(item), targetFs, targetFs.getInternalPath(new FileItem(new File(targetFolder, item.getName()))));
+        sourceFs.move(sourceFs.getInternalPath(item), targetFs, ClipboardTransfer.targetInternalPath(targetFs, targetFolder, item.getName(), item.isDirectory()));
         panes.refreshFileListViews();
     }
 
@@ -351,18 +352,18 @@ public class FileOperations {
 
     private static boolean sameDrive(FileItem item, String targetFolder) {
         try {
-            return item.getFile().toPath().getRoot().toString().equalsIgnoreCase(Paths.get(targetFolder).getRoot().toString());
+            return item.getPath().getRoot().toString().equalsIgnoreCase(Paths.get(targetFolder).getRoot().toString());
         } catch (Exception e) {
             return false;
         }
     }
 
-    private static File localCopy(VFileSystem fs, FileItem item, String prefix) throws IOException {
+    private static Path localCopy(VFileSystem fs, FileItem item, String prefix) throws IOException {
         if (fs instanceof LocalFileSystem) {
-            return item.getFile();
+            return item.getPath().toAbsolutePath();
         }
-        File copy = AppTempDir.createTempFile(prefix, "_" + item.getName()).toFile();
-        fs.copy(fs.getInternalPath(item), new LocalFileSystem(""), copy.getAbsolutePath());
+        Path copy = AppTempDir.createTempFile(prefix, "_" + item.getName());
+        fs.copy(fs.getInternalPath(item), new LocalFileSystem(""), copy.toString());
         return copy;
     }
 

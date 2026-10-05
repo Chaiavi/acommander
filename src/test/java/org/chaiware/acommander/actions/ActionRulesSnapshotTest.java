@@ -117,7 +117,7 @@ class ActionRulesSnapshotTest {
     private Map<String, List<FileItem>> samples() throws IOException {
         Map<String, List<FileItem>> samples = new LinkedHashMap<>();
         samples.put("none", List.of());
-        samples.put("dir", List.of(new FileItem(Files.createDirectory(tempDir.resolve("folder")).toFile())));
+        samples.put("dir", List.of(new FileItem(Files.createDirectory(tempDir.resolve("folder")))));
         for (String ext : List.of("txt", "png", "jpg", "wav", "mp3", "mp4", "pdf", "zip", "exe")) {
             samples.put(ext, List.of(file("one." + ext)));
         }
@@ -132,7 +132,7 @@ class ActionRulesSnapshotTest {
         if (!Files.exists(path)) {
             Files.writeString(path, "sample");
         }
-        return new FileItem(path.toFile());
+        return new FileItem(path);
     }
 
     private static VFileSystem writable() {

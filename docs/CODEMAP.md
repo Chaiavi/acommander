@@ -211,7 +211,7 @@ Not actions, but often asked for:
 ### `helpers/`
 | File | Role |
 |---|---|
-| `FilesPanesHelper` | Two panes: focus side, current `VFileSystem` per side, path (`getPath(side)`), listing, sort state, selection, archive enter/exit. Inner `ArchiveFolder` (combo entry for archive/FTP panes), `FilePane`. |
+| `FilesPanesHelper` | Two panes: focus side, current `VFileSystem` per side, path (`getPath(side)`), listing, sort state, selection, archive enter/exit. `selectFileItem(focused, folder, name)` selects a result by name (FTP-safe). Inner `ArchiveFolder` (combo entry for archive/FTP panes), `FilePane`. |
 | `PaneSorter` | Pane order: `..` first, folders first, then the column (`SortColumn`, `SortState.toggle`), then `compareNaturalNames` (file2 before file10). |
 | `ArchiveManager` | Opens an archive by extracting to a temp folder (`7z.exe`), repacks on close if modified. A failed repack copies the edits to `<archive>.recovered-<stamp>` and throws a message naming it. |
 | `FileAttributesHelper` | Read/apply R/H/S/A attributes (NIO, `attrib` fallback). |
@@ -242,7 +242,7 @@ Not actions, but often asked for:
 ### `model/`
 | File | Role |
 |---|---|
-| `FileItem` | A row: `File`, display name, size, date, directory flag. `extension()` (lower case, no dot) and `allFilesWithExtension` back every file-type check. |
+| `FileItem` | A row: `Path` (null on FTP), display name, size, date, directory flag. `extension()` (lower case, no dot) and `allFilesWithExtension` back every file-type check. |
 | `Folder`, `Drive`, `WindowsFolder` | Path-combo entries. |
 | `ArchiveMode` | Read-write vs read-only archive extensions (browsable); `isUnpackable` adds the unpack-only ones (enables unpack). |
 | `ArchiveSession` | Open archive: temp folder, mode, needs-repack, parent/child for nested dirs. |
@@ -278,7 +278,7 @@ Not actions, but often asked for:
 |---|---|
 | `VFileSystem` | Interface: list, copy/move across FS, delete, rename, mkdir, `close` (an archive repacks there). |
 | `VfsManager` | Creates local/FTP FS; opens archives (`openArchive`). |
-| `LocalFileSystem` | Disk. Archive files are virtual folders. |
+| `LocalFileSystem` | Disk. Archive files are virtual folders. `addEntries` lists through a `DirectoryStream`, so bad-media names still list. |
 | `ArchiveFileSystem` | Inside an archive's temp folder; marks modified for repack. |
 | `FtpFileSystem` | FTP/FTPS/SFTP through `curl.exe`; `autoDiscoverProtocol`, `sanitizePath`. |
 | `FtpConnectionOptions` | Host, port, user, protocol, URL building. |
@@ -304,5 +304,5 @@ Under `src/test/java/org/chaiware/acommander/`, same package as the class tested
 `actions/` ActionMatcher, ActionPriorityEngine, ActionRegistry, BuiltinAction, ActionRulesSnapshot (FTP / read-only / palette
 rules per action vs `src/test/resources/action-rules-snapshot.txt`) · `commands/` ExternalToolRunner · `config/` ActionScope, AppConfigLoader, AppRegistryShortcutMatching · `dialog/` DialogTheme, MetadataFormDialog · `helpers/` AppTempDir, AppVersion, ArchiveManager, AudioConversionSupport, AudioMetadataSupport,
 BugReportUrl, ExecutableCompressionSupport, ExternalProgressController, FileAttributesHelper, FileHelper, FileIcons, IncrementalFilter, ImageConversionSupport, ImageMetadataSupport, PaneSorter, SettingsStore, VideoMetadataSupport · `model/` ArchiveMode,
-FileItem · `services/` ArchiveOperations, AudioConversionService, ClipboardTransfer, FileOperations, FolderComparer, ImageConversionService, PdfOperations · `tools/` BundledTool, BundledToolCommands, ToolCommandBuilder, ProcessRunner · `vfs/` FtpFileSystem · root: ArchitectureRules (process / background / temp-file / app-path / version / fire-and-forget / no file walking or hashing in `Commander` rules), CommanderCopy, `CodeMapTest` (fails when a main
+FileItem · `services/` ArchiveOperations, AudioConversionService, ClipboardTransfer, FileOperations, FolderComparer, ImageConversionService, PdfOperations · `tools/` BundledTool, BundledToolCommands, ToolCommandBuilder, ProcessRunner · `vfs/` FtpFileSystem, LocalFileSystem · root: ArchitectureRules (process / background / temp-file / app-path / version / fire-and-forget / no file walking or hashing in `Commander` rules), CommanderCopy, `CodeMapTest` (fails when a main
 class or an apps.json action is missing from this file).

@@ -56,18 +56,9 @@ public class ArchiveFileSystem implements VFileSystem {
             tempPath = tempPath.resolve(cleanPath);
         }
         
-        File folder = tempPath.toFile();
-        File[] files = folder.listFiles();
         List<FileItem> items = new ArrayList<>();
-
-        // Add ".." entry
-        items.add(new FileItem(folder, ".."));
-
-        if (files != null) {
-            for (File f : files) {
-                items.add(new FileItem(f));
-            }
-        }
+        items.add(new FileItem(tempPath, ".."));
+        LocalFileSystem.addEntries(tempPath, items);
         return items;
     }
 

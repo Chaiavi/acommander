@@ -88,7 +88,7 @@ public class ArchiveOperations {
             if (uploadRequired) {
                 try {
                     new LocalFileSystem("").copy(finalLocalArchivePath, targetFs,
-                            targetFs.getInternalPath(new FileItem(new File(archivePath))));
+                            targetFs.getInternalPath(new FileItem(Path.of(archivePath))));
                 } catch (IOException e) {
                     throw new UncheckedIOException("The archive was created but could not be uploaded to " + archivePath, e);
                 }
@@ -125,11 +125,11 @@ public class ArchiveOperations {
         VFileSystem sourceFs = panes.getFocusedFileSystem();
         VFileSystem targetFs = panes.getUnfocusedFileSystem();
 
-        File archiveToUnpack = selectedItem.getFile();
+        Path archiveToUnpack = selectedItem.getPath();
         boolean isTempArchive = !(sourceFs instanceof LocalFileSystem);
         if (isTempArchive) {
-            archiveToUnpack = AppTempDir.createTempFile("acommander_unpack_", "_" + selectedItem.getName()).toFile();
-            sourceFs.copy(sourceFs.getInternalPath(selectedItem), new LocalFileSystem(""), archiveToUnpack.getAbsolutePath());
+            archiveToUnpack = AppTempDir.createTempFile("acommander_unpack_", "_" + selectedItem.getName());
+            sourceFs.copy(sourceFs.getInternalPath(selectedItem), new LocalFileSystem(""), archiveToUnpack.toString());
         }
 
         String localDestPath = destinationPath;
@@ -141,9 +141,9 @@ public class ArchiveOperations {
 
         ActionDefinition action = registry.requireAction(actionId);
         List<String> command = ToolCommandBuilder.buildCommand(action.getPath(), action.getArgs(), panes,
-                Map.of("${destinationPath}", localDestPath), List.of(archiveToUnpack.getAbsolutePath()));
+                Map.of("${destinationPath}", localDestPath), List.of(archiveToUnpack.toAbsolutePath().toString()));
 
-        File finalArchive = archiveToUnpack;
+        Path finalArchive = archiveToUnpack;
         Path finalTempDestDir = tempDestDir;
         runner.reportFailure(runner.runExecutable(command, true).thenRun(() -> {
             if (finalTempDestDir != null) {
@@ -160,7 +160,7 @@ public class ArchiveOperations {
                 FileHelper.deleteQuietly(finalTempDestDir);
             }
             if (isTempArchive) {
-                finalArchive.delete();
+                FileHelper.deleteQuietly(finalArchive);
             }
             panes.refreshFileListViews();
         }), title);

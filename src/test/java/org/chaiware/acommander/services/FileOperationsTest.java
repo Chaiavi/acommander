@@ -43,7 +43,7 @@ class FileOperationsTest {
     void renameRenamesSingleFile() throws Exception {
         Path file = Files.writeString(tempDir.resolve("old.txt"), "rename");
 
-        operations.rename(List.of(new FileItem(file.toFile())), "new.txt");
+        operations.rename(List.of(new FileItem(file)), "new.txt");
 
         assertThat(file).doesNotExist();
         assertThat(tempDir.resolve("new.txt")).exists();
@@ -55,7 +55,7 @@ class FileOperationsTest {
         Path targetDir = Files.createDirectory(tempDir.resolve("target"));
         Path file = Files.writeString(tempDir.resolve("move.txt"), "move");
 
-        operations.move(new FileItem(file.toFile()), targetDir.toString());
+        operations.move(new FileItem(file), targetDir.toString());
 
         assertThat(file).doesNotExist();
         assertThat(targetDir.resolve("move.txt")).exists();
@@ -68,7 +68,7 @@ class FileOperationsTest {
         Path first = Files.writeString(tempDir.resolve("one.txt"), "first");
         Path second = Files.writeString(tempDir.resolve("two.txt"), "second");
 
-        operations.moveBatch(List.of(new FileItem(first.toFile()), new FileItem(second.toFile())), targetDir.toString());
+        operations.moveBatch(List.of(new FileItem(first), new FileItem(second)), targetDir.toString());
 
         assertThat(first).doesNotExist();
         assertThat(second).doesNotExist();
@@ -109,7 +109,7 @@ class FileOperationsTest {
     void deleteSkipsTheParentEntry() throws Exception {
         Path file = Files.writeString(tempDir.resolve("gone.txt"), "x");
 
-        operations.delete(List.of(new FileItem(tempDir.toFile(), ".."), new FileItem(file.toFile())));
+        operations.delete(List.of(new FileItem(tempDir, ".."), new FileItem(file)));
 
         assertThat(file).doesNotExist();
         assertThat(tempDir).exists();
