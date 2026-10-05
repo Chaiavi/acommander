@@ -7,7 +7,7 @@ Tick a step when its commit lands. Line numbers are approximate; search the symb
 
 ## Decisions
 
-1. FTP password at rest: encrypt with Windows DPAPI (`jna-platform` `Crypt32Util`).
+1. FTP password at rest: not stored at all (user, 2026-10-05; replaces DPAPI via `jna-platform`). No new dependency.
 2. `File` → `Path` migration is in scope (Phase 9).
 3. One commit per step; push at the end of each phase.
 4. Security is last. Earlier phases keep security-relevant behaviour identical (e.g. curl args).
@@ -354,8 +354,8 @@ Rechecked after Phase 9 (2026-10-05). Gate findings:
   (7.1). The repo's `logs/` holds no leaked password (checked).
 - New: curl always runs with `-k` (10.4). The old 10.7's security part is done in Phase 8 (`FilePropertiesLauncher`:
   static script, path as an argument, file under `AppTempDir`); only the `wscript.exe` leak is left (10.7).
-- Decision 1 (`jna-platform`) now buys two steps: DPAPI (10.5) and an in-process Properties dialog (10.7). Confirm
-  it before 10.5.
+- Final choices (user, 2026-10-05): 10.1, 10.2, 10.4, 10.6 approved as written; 10.3 without env vars; 10.5 without
+  a dependency (passwords are no longer saved); 10.7 my call (app-PID watch).
 
 - [ ] 10.1 FTP password off the curl command line (live leak; merges old 10.1 + 10.2). A failing FTP command makes
   the listener in `Commander.buildExternalCommandListener` log the full curl command, `-u user:pass` included, at
@@ -370,49 +370,58 @@ Rechecked after Phase 9 (2026-10-05). Gate findings:
   joins: `ClipboardTransfer.targetInternalPath` (top level of F5, F6 and paste since 9.2) and
   `FtpFileSystem.copyDirectoryRecursive` (child names; `copyFile`'s archive branch then resolves them on the temp
   folder). Fix: one check at both joins when the target is not FTP: the name is not `.` / `..` and has no `\`, `/`
-  or `:` (`:` would write an NTFS stream through curl `-o`). Fail the copy with the name. Test the check and a
-  recursive download with such a child.
+  or `:` (`:` would write an NTFS stream through curl `-o`). Fail the copy with the name. Put the check in one static
+  helper whose doc comment says why it exists: names from an FTP server are untrusted, and `\` is a separator only
+  on Windows, so a name that is harmless on the server can climb out of the local target folder. Test the check and
+  a recursive download with such a child.
 - [ ] 10.3 Command injection in Open Terminal (F9). `FileOperations.openTerminal` runs
   `cmd /c start powershell -NoExit -Command "cd '<path>'"`: a `'` breaks the PowerShell string and `&` breaks cmd
-  (Java quotes only arguments with spaces), so folder `a';calc;'` or `a&calc` runs calc. Fix: no path on any command
-  line. Add `ProcessRunner.env(name, value)` and run
-  `cmd /c start powershell -NoExit -Command "Set-Location -LiteralPath $env:ACOMMANDER_HERE"`. `cmd /c start` stays:
-  it is what gives a console its own window from a GUI parent. Delete the `cmd /k cd /d` fallback (cmd expands
-  `%VAR%` even from an env value; PowerShell ships with every supported Windows). An env value, unlike a working
-  directory, keeps UNC folders working. Same pattern for `Commander.openHostsFile` (`Start-Process -FilePath
-  $env:… -ArgumentList $env:… -Verb RunAs`; resolve the editor with `AppPaths.resolve`); move it next to
-  `openTerminal` in `FileOperations` so one test covers both. Test: the built command holds no part of the folder.
+  (Java quotes only arguments with spaces), so folder `a';calc;'` or `a&calc` runs calc. Fix (no env var, no
+  escaping): the folder becomes the process working directory and the command is a constant.
+  `ProcessRunner.of("powershell", "-NoProfile", "-Command", "Start-Process powershell -ArgumentList '-NoExit'")
+  .directory(folder).launch()`. The hidden PowerShell is needed because Java starts a console child without a
+  window; `Start-Process` gives the terminal its own window (as `cmd /c start` did) and passes the working
+  directory on. No cmd at all, so no `&` / `%VAR%` parsing, and UNC folders work (cmd refuses a UNC working
+  directory). Delete the `cmd /k cd /d` fallback. A folder that is not on disk (FTP pane) fails at start: show the
+  error. `openHostsFile` has no untrusted input (fixed hosts paths, the user's own apps.json): keep its command, but
+  move it into `FileOperations` so `-Command` stays out of `Commander` (10.9). Test: smoke only (a unit test would
+  open a real window).
 - [ ] 10.4 TLS certificates and SFTP host keys are never checked (new). `createBaseCurlCommand` always adds `-k`, so
   anyone on the network path can pose as the server and read the password. Fix: drop `-k`; add a per-connection
   "Trust Any Certificate" checkbox (off, with a tooltip) to `FtpConnectDialog`, saved with the connection, for
   self-signed servers. Auto-discover follows the same flag. User-visible: F1 help + README. Note: an existing
   connection to a self-signed server fails until the box is ticked; the error should say so.
-- [ ] 10.5 FTP password at rest. Plain text in `acommander.properties` (`SettingsStore.ftpConnections`). Encrypt with
-  DPAPI (`jna-platform` `Crypt32Util.cryptProtectData`; decision 1); store `passwordDpapi` (base64), migrate a plain
-  `password` key on load and remove it; a decrypt failure (other user / PC) asks for the password. JNA unpacks
-  `jnidispatch.dll` into a temp dir: point `jna.tmpdir` under `AppTempDir` (`ArchitectureRulesTest` temp rule).
-  Check that the `dist` runtime loads it. Test: round trip and migration in `SettingsStoreTest` (CI is
-  `windows-latest`, so DPAPI runs there). No-dependency fallback if decision 1 is reversed: PowerShell
-  `ConvertFrom-SecureString` with the password on stdin (10.1), about 0.5 s per save and per connect.
+- [ ] 10.5 FTP password at rest: stop saving it (decision 1). Today it is plain text in `acommander.properties`.
+  `SettingsStore.setFtpConnections` no longer writes `password` and `ftpConnections()` ignores it. On load, if any
+  old `ftp.*.password` key exists, save once so the plain text is gone from disk. The password stays in memory for
+  the session (the `ftpConnections` map), so a reconnect in the same run is prefilled. `FtpConnectDialog`: picking
+  a saved connection with no password focuses the password field; the Save checkbox tooltip says the password is
+  not saved. User-visible: F1 help + README. Test (`SettingsStoreTest`): a save writes no password; a file with an
+  old password key loads without it and the rewrite drops it.
 - [ ] 10.6 `cmd.exe` with file names on Enter (low: the user is already running a script). `enterSelectedItem` runs
   `.bat` / `.cmd` as `cmd.exe /c <path>`, so `&`, `^`, `%VAR%` in the name run as commands. Fix: send them to
   `openFileWithSystemDefault` (`Desktop.open` = ShellExecute, as Explorer does; the script gets its own console
   instead of running hidden behind the progress bar). `.ps1` stays (`-File` takes the path literally). Delete that
   method's `cmd.exe /c start "" "<path>"` fallback: `%VAR%` still expands inside the quotes, and the next fallback
   (Open With dialog) already covers a file with no associated app.
-- [ ] 10.7 File Properties leaks `wscript.exe` (not security). The script sleeps forever so the dialog stays open;
-  every Alt+Enter leaves one `wscript.exe` until logoff. With `jna-platform`: `ShellExecuteEx` with verb
-  `properties` and `SEE_MASK_INVOKEIDLIST` shows the dialog inside the app; delete the script. Spike it first.
-  Without JNA: pass the app's PID and end the loop when that process is gone.
+- [ ] 10.7 File Properties leaks `wscript.exe` (not security). The script sleeps forever so the dialog stays open
+  (the dialog belongs to the script's process and closes when it exits); every Alt+Enter leaves one `wscript.exe`
+  until logoff. Fix: pass the app's PID (`ProcessHandle.current().pid()`) as a second argument; the loop checks
+  every 2 s through WMI (`Win32_Process where ProcessId=…`) and quits when the app is gone. Chosen over watching
+  the window: VBScript cannot see windows, and a PowerShell poll is slower to open and unproven. Mark the ceiling
+  with a `ponytail:` comment (one idle `wscript.exe` per open dialog until the app exits; in-process
+  `ShellExecuteEx` would need JNA). Smoke: Alt+Enter twice, close the app, then no `wscript.exe` is left.
 - [x] 10.8 Bug report URL parameters are encoded (`BugReportUrl`, #144; labels are constants).
 - [ ] 10.9 `ArchitectureRulesTest` locks the above: no `"-u"` and no `"-k"` in `FtpFileSystem` (`"-k"` is a different
-  flag for `file.exe` in `BundledToolCommands`); `"/c"` only in `FileOperations` (the `start powershell` line);
-  `"-Command"` only there and in `ComboBoxSetup`.
+  flag for `file.exe` in `BundledToolCommands`); no `"/c"` anywhere in `src/main` (10.3 and 10.6 remove the last
+  ones); `"-Command"` only in `FileOperations` and `ComboBoxSetup`.
 
 Smoke items: FTP connect (password with `"` and `\`), browse, copy both ways, a wrong password (then check `logs/`
 holds no password), an FTPS server with a self-signed certificate (box off fails clearly, box on works); F9 in
-folders `a';calc;'` and `a&calc` and on a UNC path; Open Hosts File; Enter on `a&calc.bat`; Alt+Enter twice, then
-Task Manager shows no `wscript.exe`.
+folders `a';calc;'` and `a&calc` and on a UNC path (opens there, no calc); Open Hosts File; Enter on `a&calc.bat`
+(runs in its own console, no calc); restart the app, reconnect a saved connection (asks for the password) and check
+`acommander.properties` holds no `password` key; Alt+Enter twice, close the app, then Task Manager shows no
+`wscript.exe`.
 
 ## Found Along the Way
 
