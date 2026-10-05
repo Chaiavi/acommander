@@ -51,6 +51,42 @@ class ArchiveManagerTest {
         assertThat(extracted).doesNotExist();
     }
 
+    @Test
+    void recoveryNeverWritesIntoOrDeletesAnExistingRecoveryFolder() throws IOException {
+        Path extracted = extractedFolderWithEdits();
+        Path archive = tempDir.resolve("photos.zip");
+        Path earlier = Files.createDirectory(tempDir.resolve("photos.zip.recovered-STAMP"));
+        Files.writeString(earlier.resolve("older.txt"), "older edit");
+
+        Path recovered = ArchiveManager.recoverEdits(extracted, archive, "STAMP");
+
+        assertThat(recovered.getFileName()).hasToString("photos.zip.recovered-STAMP-2");
+        assertThat(recovered.resolve("sub").resolve("edited.txt")).hasContent("my edit");
+        assertThat(earlier.resolve("older.txt")).hasContent("older edit");
+        assertThat(earlier.resolve("sub")).doesNotExist();
+    }
+
+    @Test
+    void whenTheEditsCannotBeCopiedOutTheExtractedFolderStays() throws IOException {
+        Path extracted = extractedFolderWithEdits();
+        // A file where the archive's folder and the home folder should be: neither repack nor recovery can write
+        Path notAFolder = Files.writeString(tempDir.resolve("not-a-folder"), "x");
+        ArchiveSession session = new ArchiveSession(notAFolder.resolve("photos.zip").toString(), extracted, ArchiveMode.READ_WRITE);
+        session.setNeedsRepack(true);
+        String home = System.getProperty("user.home");
+        System.setProperty("user.home", notAFolder.toString());
+        try {
+            assertThatThrownBy(() -> new ArchiveManager().closeArchive(session))
+                    .isInstanceOf(IOException.class)
+                    .hasMessageContaining("could not be copied out")
+                    .hasMessageContaining(extracted.toString());
+        } finally {
+            System.setProperty("user.home", home);
+        }
+
+        assertThat(extracted.resolve("sub").resolve("edited.txt")).hasContent("my edit");
+    }
+
     private Path extractedFolderWithEdits() throws IOException {
         Path extracted = Files.createDirectories(tempDir.resolve("extracted").resolve("sub"));
         Files.writeString(extracted.resolve("edited.txt"), "my edit");

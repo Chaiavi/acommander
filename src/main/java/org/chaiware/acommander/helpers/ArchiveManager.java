@@ -9,6 +9,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -60,7 +61,8 @@ public class ArchiveManager {
     
     /**
      * Closes an archive session: repacks a changed read-write archive, then deletes the extracted folder.
-     * If the repack fails, the edited files are copied out first and the exception says where.
+     * If the repack fails, the edited files are copied out first and the exception says where. If that fails too,
+     * the extracted folder stays, also across restarts ({@link AppTempDir#retain}), and the exception names it.
      */
     public void closeArchive(ArchiveSession session) throws IOException {
         logger.info("Closing archive session: {}", session.getArchivePath());
@@ -76,37 +78,62 @@ public class ArchiveManager {
                 } catch (IOException recoveryError) {
                     repackError.addSuppressed(recoveryError);
                     throw new IOException("Changes could not be saved into " + archive.getFileName()
-                            + " and could not be copied out. Copy them from " + tempFolder
-                            + " before closing ACommander.", repackError);
+                            + " and could not be copied out. They are kept in " + tempFolder
+                            + ", also after ACommander closes.", repackError);
                 }
-                FileHelper.deleteQuietly(tempFolder);
+                discard(tempFolder);
                 throw new IOException("Changes could not be saved into " + archive.getFileName()
                         + ". Your edited files were copied to " + recovered, repackError);
             }
         }
-        FileHelper.deleteQuietly(tempFolder);
+        discard(tempFolder);
     }
 
-    /** Copies the edited files next to the archive (or to the home folder) as {@code <archive>.recovered-<stamp>}. */
+    private static void discard(Path tempFolder) {
+        FileHelper.deleteQuietly(tempFolder);
+        AppTempDir.release(tempFolder);
+    }
+
+    /**
+     * Copies the edited files next to the archive (or to the home folder) as {@code <archive>.recovered-<stamp>}, in a
+     * folder this call creates, so a failed copy never deletes an existing one.
+     */
     static Path recoverEdits(Path tempFolder, Path archive, String stamp) throws IOException {
         String name = archive.getFileName() + ".recovered-" + stamp;
-        List<Path> targets = new ArrayList<>();
+        List<Path> parents = new ArrayList<>();
         if (archive.getParent() != null) {
-            targets.add(archive.getParent().resolve(name));
+            parents.add(archive.getParent());
         }
-        targets.add(Paths.get(System.getProperty("user.home")).resolve(name));
+        parents.add(Paths.get(System.getProperty("user.home")));
         IOException lastError = null;
-        for (Path target : targets) {
+        for (Path parent : parents) {
+            Path target = null;
             try {
+                target = createNewFolder(parent, name);
                 FileHelper.copyTree(tempFolder, target, java.nio.file.StandardCopyOption.COPY_ATTRIBUTES);
                 logger.warn("Repack failed; edited files copied to {}", target);
                 return target;
             } catch (IOException e) {
                 lastError = e;
-                FileHelper.deleteQuietly(target);
+                if (target != null) {
+                    FileHelper.deleteQuietly(target);
+                }
             }
         }
         throw lastError;
+    }
+
+    private static Path createNewFolder(Path parent, String name) throws IOException {
+        Files.createDirectories(parent);
+        for (int attempt = 1; ; attempt++) {
+            try {
+                return Files.createDirectory(parent.resolve(attempt == 1 ? name : name + "-" + attempt));
+            } catch (FileAlreadyExistsException e) {
+                if (attempt == 100) {
+                    throw e;
+                }
+            }
+        }
     }
     
     /**

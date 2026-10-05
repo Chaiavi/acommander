@@ -85,7 +85,10 @@ public class FileOperations {
         log.debug("Viewed: {}", item.getName());
     }
 
-    /** Opens the editor; an archive or FTP file is edited in a temp copy that is saved back when the editor closes. */
+    /**
+     * Opens the editor; an archive or FTP file is edited in a temp copy that is saved back when the editor closes.
+     * Until then the copy is kept across exits ({@link AppTempDir#retain}), and it stays if saving back fails.
+     */
     public void edit(FileItem item) throws IOException {
         if (isParentEntry(item)) {
             return;
@@ -93,6 +96,9 @@ public class FileOperations {
         VFileSystem fs = panes.getFocusedFileSystem();
         Path fileToEdit = localCopy(fs, item, "acommander_edit_");
         boolean isTemp = !(fs instanceof LocalFileSystem);
+        if (isTemp) {
+            AppTempDir.retain(fileToEdit);
+        }
         String internalPath = fs.getInternalPath(item);
         runner.reportFailure(runner.runExecutable(command("edit", Map.of(), List.of(fileToEdit.toString())), false)
                 .thenRun(() -> {
@@ -101,9 +107,10 @@ public class FileOperations {
                             new LocalFileSystem("").copy(fileToEdit.toString(), fs, internalPath);
                         } catch (IOException e) {
                             throw new UncheckedIOException("Your edit could not be saved to " + internalPath
-                                    + ". The edited copy stays at " + fileToEdit + " until ACommander closes.", e);
+                                    + ". The edited copy is kept at " + fileToEdit + ", also after ACommander closes.", e);
                         }
                         FileHelper.deleteQuietly(fileToEdit);
+                        AppTempDir.release(fileToEdit);
                     }
                     fs.markModified();
                 }), "Edit");

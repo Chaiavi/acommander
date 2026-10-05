@@ -213,11 +213,11 @@ Not actions, but often asked for:
 |---|---|
 | `FilesPanesHelper` | Two panes: focus side, current `VFileSystem` per side, path (`getPath(side)`), listing, sort state, selection, archive enter/exit. `selectFileItem(focused, folder, name)` selects a result by name (FTP-safe). Inner `ArchiveFolder` (combo entry for archive/FTP panes), `FilePane`. |
 | `PaneSorter` | Pane order: `..` first, folders first, then the column (`SortColumn`, `SortState.toggle`), then `compareNaturalNames` (file2 before file10). |
-| `ArchiveManager` | Opens an archive by extracting to a temp folder (`7z.exe`), repacks on close if modified. A failed repack copies the edits to `<archive>.recovered-<stamp>` and throws a message naming it. |
+| `ArchiveManager` | Opens an archive by extracting to a temp folder (`7z.exe`), repacks on close if modified. A failed repack copies the edits to a new `<archive>.recovered-<stamp>` folder and throws a message naming it; if that fails too, the extracted folder stays (retained) and the message names it. |
 | `FileAttributesHelper` | Read/apply R/H/S/A attributes (NIO, `attrib` fallback). |
 | `FileHelper` | `isTextFile` sniffing; `folderSize` (skips unreadable entries); `copyTree`; `deleteQuietly` (best-effort temp tree delete). |
 | `BackgroundTasks` | The one background executor (virtual threads): `run`, `supply`. Never use `CompletableFuture.runAsync` without it. |
-| `AppTempDir` | Every temp file/folder goes under `%TEMP%/acommander-<pid>`: `createTempFile`, `createTempDirectory`. Deleted on exit; `deleteStaleRoots` (run at startup by `Main`) removes roots of dead runs. |
+| `AppTempDir` | Every temp file/folder goes under `%TEMP%/acommander-<pid>`: `createTempFile`, `createTempDirectory`. Deleted on exit; `deleteStaleRoots` (run at startup by `Main`) removes roots of dead runs. `retain` / `release`: a root holding unsaved edits (a changed archive, an F4 copy of an FTP/archive file) gets a `KEEP-unsaved-edits.txt` marker and survives both. |
 | `AppPaths` | The app root (`user.dir`), `config(name)`, `resolve(relative)`. The only reader of `user.dir`. |
 | `SettingsStore` | `config/acommander.properties`: typed get/set (pane folders, theme, last selection pattern, bookmarks, FTP connections), save via temp file + atomic move; an unreadable file is moved to `.unreadable`. FTP passwords are stored DPAPI-encrypted (`passwordDpapi`), decrypted by `unlockFtpPasswords` when the FTP dialog opens. `Commander.loadSettings` / `saveSettings`; reloaded when the Settings editor closes. |
 | `AppVersion` | Running version from `app-version.properties`, which the build fills from `appVersion` in `build.gradle`. |
@@ -280,7 +280,7 @@ Not actions, but often asked for:
 | `VFileSystem` | Interface: list, copy/move across FS, delete, rename, mkdir, `close` (an archive repacks there). |
 | `VfsManager` | Creates local/FTP FS; opens archives (`openArchive`). |
 | `LocalFileSystem` | Disk. Archive files are virtual folders. `addEntries` lists through a `DirectoryStream`, so bad-media names still list. |
-| `ArchiveFileSystem` | Inside an archive's temp folder; marks modified for repack. |
+| `ArchiveFileSystem` | Inside an archive's temp folder; the first change marks it for repack and retains the folder (`AppTempDir.retain`). |
 | `FtpFileSystem` | FTP/FTPS/SFTP through `curl.exe`; `autoDiscoverProtocol`, `sanitizePath`. |
 | `FtpConnectionOptions` | Host, port, user, protocol, URL building. |
 
@@ -305,5 +305,5 @@ Under `src/test/java/org/chaiware/acommander/`, same package as the class tested
 `actions/` ActionMatcher, ActionPriorityEngine, ActionRegistry, BuiltinAction, ActionRulesSnapshot (FTP / read-only / palette
 rules per action vs `src/test/resources/action-rules-snapshot.txt`) · `commands/` ExternalToolRunner · `config/` ActionScope, AppConfigLoader, AppRegistryShortcutMatching · `dialog/` DialogTheme, MetadataFormDialog · `helpers/` AppTempDir, AppVersion, ArchiveManager, AudioConversionSupport, AudioMetadataSupport,
 BugReportUrl, ExecutableCompressionSupport, ExternalProgressController, FileAttributesHelper, FileHelper, FileIcons, IncrementalFilter, ImageConversionSupport, ImageMetadataSupport, PaneSorter, SettingsStore, VideoMetadataSupport · `model/` ArchiveMode,
-FileItem · `services/` ArchiveOperations, AudioConversionService, ClipboardTransfer, FileOperations, FolderComparer, ImageConversionService, PdfOperations · `tools/` BundledTool, BundledToolCommands, ToolCommandBuilder, ProcessRunner · `vfs/` FtpFileSystem, LocalFileSystem · root: ArchitectureRules (process / background / temp-file / app-path / version / fire-and-forget / no file walking or hashing in `Commander` rules), CommanderCopy, `CodeMapTest` (fails when a main
+FileItem · `services/` ArchiveOperations, AudioConversionService, ClipboardTransfer, FileOperations, FolderComparer, ImageConversionService, PdfOperations · `tools/` BundledTool, BundledToolCommands, ToolCommandBuilder, ProcessRunner · `vfs/` ArchiveFileSystem, FtpFileSystem, LocalFileSystem · root: ArchitectureRules (process / background / temp-file / app-path / version / fire-and-forget / no file walking or hashing in `Commander` rules), CommanderCopy, `CodeMapTest` (fails when a main
 class or an apps.json action is missing from this file).

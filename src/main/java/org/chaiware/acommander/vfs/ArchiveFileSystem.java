@@ -1,5 +1,6 @@
 package org.chaiware.acommander.vfs;
 
+import org.chaiware.acommander.helpers.AppTempDir;
 import org.chaiware.acommander.helpers.ArchiveManager;
 import org.chaiware.acommander.helpers.FileHelper;
 import org.chaiware.acommander.model.ArchiveMode;
@@ -186,8 +187,14 @@ public class ArchiveFileSystem implements VFileSystem {
 
     @Override
     public void markModified() {
-        if (!isReadOnly()) {
-            session.setNeedsRepack(true);
+        if (isReadOnly() || session.isNeedsRepack()) {
+            return;
+        }
+        session.setNeedsRepack(true);
+        try {
+            AppTempDir.retain(session.getTempFolder());
+        } catch (IOException e) {
+            logger.warn("Could not mark {} as holding unsaved edits", session.getTempFolder(), e);
         }
     }
 
