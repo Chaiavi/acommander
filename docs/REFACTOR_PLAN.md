@@ -7,7 +7,8 @@ Tick a step when its commit lands. Line numbers are approximate; search the symb
 
 ## Decisions
 
-1. FTP password at rest: not stored at all (user, 2026-10-05; replaces DPAPI via `jna-platform`). No new dependency.
+1. FTP password at rest: Windows DPAPI through a hidden PowerShell call (user, 2026-10-05; replaces `jna-platform`).
+   No new dependency.
 2. `File` → `Path` migration is in scope (Phase 9).
 3. One commit per step; push at the end of each phase.
 4. Security is last. Earlier phases keep security-relevant behaviour identical (e.g. curl args).
@@ -354,8 +355,9 @@ Rechecked after Phase 9 (2026-10-05). Gate findings:
   (7.1). The repo's `logs/` holds no leaked password (checked).
 - New: curl always runs with `-k` (10.4). The old 10.7's security part is done in Phase 8 (`FilePropertiesLauncher`:
   static script, path as an argument, file under `AppTempDir`); only the `wscript.exe` leak is left (10.7).
-- Final choices (user, 2026-10-05): 10.1, 10.2, 10.4, 10.6 approved as written; 10.3 without env vars; 10.5 without
-  a dependency (passwords are no longer saved); 10.7 my call (app-PID watch).
+- Final choices (user, 2026-10-05): 10.1, 10.2, 10.4, 10.6 approved as written; 10.3 without env vars; 10.5 DPAPI
+  through PowerShell (picked over Credential Manager, in-process DPAPI via FFM that needs JDK 25 + Gradle 9.1, and a
+  master password); 10.7 my call (app-PID watch).
 
 - [ ] 10.1 FTP password off the curl command line (live leak; merges old 10.1 + 10.2). A failing FTP command makes
   the listener in `Commander.buildExternalCommandListener` log the full curl command, `-u user:pass` included, at
@@ -391,13 +393,25 @@ Rechecked after Phase 9 (2026-10-05). Gate findings:
   "Trust Any Certificate" checkbox (off, with a tooltip) to `FtpConnectDialog`, saved with the connection, for
   self-signed servers. Auto-discover follows the same flag. User-visible: F1 help + README. Note: an existing
   connection to a self-signed server fails until the box is ticked; the error should say so.
-- [ ] 10.5 FTP password at rest: stop saving it (decision 1). Today it is plain text in `acommander.properties`.
-  `SettingsStore.setFtpConnections` no longer writes `password` and `ftpConnections()` ignores it. On load, if any
-  old `ftp.*.password` key exists, save once so the plain text is gone from disk. The password stays in memory for
-  the session (the `ftpConnections` map), so a reconnect in the same run is prefilled. `FtpConnectDialog`: picking
-  a saved connection with no password focuses the password field; the Save checkbox tooltip says the password is
-  not saved. User-visible: F1 help + README. Test (`SettingsStoreTest`): a save writes no password; a file with an
-  old password key loads without it and the rewrite drops it.
+- [ ] 10.5 FTP password at rest: encrypt with DPAPI through PowerShell (decision 1; needs `ProcessRunner.stdin` from
+  10.1). Today it is plain text in `acommander.properties`.
+  1. New `tools/Dpapi`: `protect(List<String>)` and `unprotect(List<String>)`, one hidden
+     `powershell -NoProfile -NonInteractive -Command <constant script>` per batch. Data goes over stdin and stdout as
+     base64 lines: no secret on the command line, and the console code page can't mangle non-ASCII. The script uses
+     `[Security.Cryptography.ProtectedData]`, scope CurrentUser; a line that fails to decrypt comes back empty.
+  2. `SettingsStore` takes a `Dpapi` and stores `ftp.<name>.passwordDpapi`. Load does not decrypt (no PowerShell at
+     startup): saved connections come back without a password and the store keeps their cipher.
+     `unlockFtpPasswords(map)` decrypts all of them in one call; `Commander` calls it before showing
+     `FtpConnectDialog` (about 0.5 s, first open per session only). A failed decrypt (other Windows user or PC)
+     leaves the password empty; picking that connection focuses the password field.
+  3. Save reuses the kept cipher for unchanged passwords and encrypts only new or changed ones, in one call, so a
+     bookmark save never starts PowerShell. If encrypting fails, keep the previous cipher and show a toast; never
+     write plain text.
+  4. Migration: an old plain `ftp.*.password` key is read as the password; `Commander` saves once after load, which
+     encrypts it and drops the plain key.
+  User-visible: F1 help + README. Test: `SettingsStoreTest` with a Mockito `Dpapi` (load doesn't decrypt; unlock
+  decrypts once; an unchanged save doesn't encrypt; a plain key migrates; a failed decrypt gives an empty password).
+  `DpapiTest`: real round trip with `"`, `\`, `'` and non-ASCII (CI is `windows-latest`).
 - [ ] 10.6 `cmd.exe` with file names on Enter (low: the user is already running a script). `enterSelectedItem` runs
   `.bat` / `.cmd` as `cmd.exe /c <path>`, so `&`, `^`, `%VAR%` in the name run as commands. Fix: send them to
   `openFileWithSystemDefault` (`Desktop.open` = ShellExecute, as Explorer does; the script gets its own console
@@ -414,13 +428,13 @@ Rechecked after Phase 9 (2026-10-05). Gate findings:
 - [x] 10.8 Bug report URL parameters are encoded (`BugReportUrl`, #144; labels are constants).
 - [ ] 10.9 `ArchitectureRulesTest` locks the above: no `"-u"` and no `"-k"` in `FtpFileSystem` (`"-k"` is a different
   flag for `file.exe` in `BundledToolCommands`); no `"/c"` anywhere in `src/main` (10.3 and 10.6 remove the last
-  ones); `"-Command"` only in `FileOperations` and `ComboBoxSetup`.
+  ones); `"-Command"` only in `FileOperations`, `ComboBoxSetup` and `Dpapi`.
 
 Smoke items: FTP connect (password with `"` and `\`), browse, copy both ways, a wrong password (then check `logs/`
 holds no password), an FTPS server with a self-signed certificate (box off fails clearly, box on works); F9 in
 folders `a';calc;'` and `a&calc` and on a UNC path (opens there, no calc); Open Hosts File; Enter on `a&calc.bat`
-(runs in its own console, no calc); restart the app, reconnect a saved connection (asks for the password) and check
-`acommander.properties` holds no `password` key; Alt+Enter twice, close the app, then Task Manager shows no
+(runs in its own console, no calc); restart the app, reconnect a saved connection (password is prefilled) and check `acommander.properties` holds only
+`passwordDpapi`, no `password` key; Alt+Enter twice, close the app, then Task Manager shows no
 `wscript.exe`.
 
 ## Found Along the Way
