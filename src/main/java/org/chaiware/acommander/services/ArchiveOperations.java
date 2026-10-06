@@ -14,7 +14,6 @@ import org.chaiware.acommander.vfs.VFileSystem;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -123,12 +122,11 @@ public class ArchiveOperations {
                     Map.of("${destinationPath}", localDest.toString()),
                     List.of(archiveToUnpack.toAbsolutePath().toString())), false).join();
             if (!local) {
-                File[] files = localDest.toFile().listFiles();
-                try {
-                    if (files != null) {
-                        for (File f : files) {
-                            uploadRecursive(f, targetFs, destinationFolder);
-                        }
+                try (var unpacked = java.nio.file.Files.list(localDest)) {
+                    for (Path item : unpacked.toList()) {
+                        String name = item.getFileName().toString();
+                        new LocalFileSystem("").copy(item.toString(), targetFs, ClipboardTransfer.targetInternalPath(
+                                targetFs, destinationFolder, name, java.nio.file.Files.isDirectory(item)));
                     }
                 } catch (IOException e) {
                     throw new IOException("The files were unpacked but could not be uploaded to " + destinationFolder, e);
@@ -137,21 +135,6 @@ public class ArchiveOperations {
             log.debug("{} done for: {}", actionId, archive.name());
         } finally {
             tempPaths.forEach(FileHelper::deleteQuietly);
-        }
-    }
-
-    private static void uploadRecursive(File source, VFileSystem targetFs, String targetInternalDir) throws IOException {
-        String targetPath = targetInternalDir + (targetInternalDir.endsWith("/") || targetInternalDir.endsWith("\\") ? "" : "/") + source.getName();
-        if (source.isDirectory()) {
-            targetFs.makeDirectory(targetPath);
-            File[] children = source.listFiles();
-            if (children != null) {
-                for (File child : children) {
-                    uploadRecursive(child, targetFs, targetPath);
-                }
-            }
-        } else {
-            new LocalFileSystem("").copy(source.getAbsolutePath(), targetFs, targetPath);
         }
     }
 }

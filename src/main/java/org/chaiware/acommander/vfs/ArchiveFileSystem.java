@@ -2,7 +2,6 @@ package org.chaiware.acommander.vfs;
 
 import org.chaiware.acommander.helpers.AppTempDir;
 import org.chaiware.acommander.helpers.ArchiveManager;
-import org.chaiware.acommander.helpers.FileHelper;
 import org.chaiware.acommander.model.ArchiveMode;
 import org.chaiware.acommander.model.ArchiveSession;
 import org.chaiware.acommander.model.FileItem;
@@ -14,7 +13,6 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -104,40 +102,10 @@ public class ArchiveFileSystem implements VFileSystem {
         }
     }
 
+    /** The extracted folder is on disk, so this is a local copy from it, to any target. */
     @Override
     public void copy(String sourceInternalPath, VFileSystem targetFs, String targetInternalPath) throws IOException {
-        Path source = session.getTempFolder().resolve(sourceInternalPath);
-        if (targetFs instanceof ArchiveFileSystem targetArchiveFs && targetArchiveFs.session.getTempFolder().equals(this.session.getTempFolder())) {
-            Path target = session.getTempFolder().resolve(targetInternalPath);
-            if (Files.isDirectory(source)) {
-                FileHelper.copyTree(source, target, StandardCopyOption.REPLACE_EXISTING);
-            } else {
-                Files.copy(source, target, StandardCopyOption.REPLACE_EXISTING);
-            }
-            markModified();
-        } else if (targetFs instanceof LocalFileSystem) {
-            Path target = Paths.get(targetInternalPath);
-            if (Files.isDirectory(source)) {
-                FileHelper.copyTree(source, target, StandardCopyOption.REPLACE_EXISTING);
-            } else {
-                Files.copy(source, target, StandardCopyOption.REPLACE_EXISTING);
-            }
-        } else if (targetFs instanceof ArchiveFileSystem targetArchiveFs) {
-            Path target = targetArchiveFs.session.getTempFolder().resolve(targetInternalPath);
-            if (Files.isDirectory(source)) {
-                FileHelper.copyTree(source, target, StandardCopyOption.REPLACE_EXISTING);
-            } else {
-                Files.copy(source, target, StandardCopyOption.REPLACE_EXISTING);
-            }
-            targetArchiveFs.markModified();
-        } else if (targetFs instanceof FtpFileSystem targetFtpFs) {
-            // Upload from archive to FTP
-            List<String> uploadCmd = targetFtpFs.createBaseCurlCommand();
-            uploadCmd.add("-T");
-            uploadCmd.add(source.toString());
-            uploadCmd.add(targetFtpFs.getOptions().getFullUrl(targetInternalPath));
-            targetFtpFs.runCurl(uploadCmd);
-        }
+        new LocalFileSystem("").copy(session.getTempFolder().resolve(sourceInternalPath).toString(), targetFs, targetInternalPath);
     }
 
     @Override

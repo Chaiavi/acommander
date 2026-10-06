@@ -279,9 +279,9 @@ Not actions, but often asked for:
 |---|---|
 | `VFileSystem` | Interface: list, copy/move across FS, delete, rename, mkdir, `close` (an archive repacks there). |
 | `VfsManager` | Creates local/FTP FS; opens archives (`openArchive`). |
-| `LocalFileSystem` | Disk. Archive files are virtual folders. `addEntries` lists through a `DirectoryStream`, so bad-media names still list. |
+| `LocalFileSystem` | Disk. Archive files are virtual folders. `addEntries` lists through a `DirectoryStream`, so bad-media names still list. `copy` is the one disk-to-anywhere copy (archives reuse it); to FTP it calls `FtpFileSystem.upload`. |
 | `ArchiveFileSystem` | Inside an archive's temp folder; the first change marks it for repack and retains the folder (`AppTempDir.retain`). |
-| `FtpFileSystem` | FTP/FTPS/SFTP through `curl.exe`; `autoDiscoverProtocol`, `sanitizePath`. |
+| `FtpFileSystem` | FTP/FTPS/SFTP through `curl.exe`; `upload(path, target)` is the only upload (files and folder trees); SFTP gets curl's SFTP quote commands; `autoDiscoverProtocol`, `sanitizePath`. |
 | `FtpConnectionOptions` | Host, port, user, protocol, URL building. |
 
 ## 6. Resources and Runtime Files

@@ -10,9 +10,12 @@ import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.InvalidPathException;
+import java.nio.file.LinkOption;
 import java.nio.file.Path;
+import java.nio.file.attribute.BasicFileAttributes;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
@@ -24,6 +27,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Stream;
 
 public class FtpFileSystem implements VFileSystem {
     private static final Logger logger = LoggerFactory.getLogger(FtpFileSystem.class);
@@ -355,7 +359,7 @@ public class FtpFileSystem implements VFileSystem {
         List<String> command = createBaseCurlCommand();
         command.add(options.getUrl() + "/");
         command.add("-Q");
-        command.add("DELE " + ftpPath);
+        command.add(quote("DELE", "rm", ftpPath));
 
         try {
             runCurl(command);
@@ -373,7 +377,7 @@ public class FtpFileSystem implements VFileSystem {
             List<String> command = createBaseCurlCommand();
             command.add(options.getUrl() + "/");
             command.add("-Q");
-            command.add("RMD " + ftpPath);
+            command.add(quote("RMD", "rmdir", ftpPath));
             runCurl(command);
             logger.debug("Successfully deleted empty directory (RMD) {}", ftpPath);
             return;
@@ -405,7 +409,7 @@ public class FtpFileSystem implements VFileSystem {
                 List<String> delCmd = createBaseCurlCommand();
                 delCmd.add(options.getUrl() + "/");
                 delCmd.add("-Q");
-                delCmd.add("DELE " + sanitizePath(childPath));
+                delCmd.add(quote("DELE", "rm", sanitizePath(childPath)));
                 runCurl(delCmd);
             }
         }
@@ -414,7 +418,7 @@ public class FtpFileSystem implements VFileSystem {
         List<String> finalRmdCmd = createBaseCurlCommand();
         finalRmdCmd.add(options.getUrl() + "/");
         finalRmdCmd.add("-Q");
-        finalRmdCmd.add("RMD " + ftpPath);
+        finalRmdCmd.add(quote("RMD", "rmdir", ftpPath));
         runCurl(finalRmdCmd);
         logger.debug("Successfully deleted directory recursively (RMD) {}", ftpPath);
     }
@@ -493,14 +497,8 @@ public class FtpFileSystem implements VFileSystem {
             // Copy between FTP servers (or same server)
             File tempFile = AppTempDir.createTempFile("acommander_ftp_transfer", ".tmp").toFile();
             try {
-                // 1. Download to local temp
                 this.copyFile(sourceInternalPath, new LocalFileSystem(""), tempFile.getAbsolutePath());
-                // 2. Upload from local temp to target FTP
-                List<String> uploadCmd = targetFtpFs.createBaseCurlCommand();
-                uploadCmd.add("-T");
-                uploadCmd.add(tempFile.getAbsolutePath());
-                uploadCmd.add(targetFtpFs.options.getFullUrl(targetInternalPath));
-                targetFtpFs.runCurl(uploadCmd);
+                targetFtpFs.upload(tempFile.toPath(), targetInternalPath);
             } finally {
                 tempFile.delete();
             }
@@ -603,9 +601,13 @@ public class FtpFileSystem implements VFileSystem {
         List<String> command = createBaseCurlCommand();
         command.add(options.getUrl() + "/");
         command.add("-Q");
-        command.add("RNFR " + oldFtpPath);
-        command.add("-Q");
-        command.add("RNTO " + newFtpPath);
+        if (isSftp()) {
+            command.add("rename " + sftpPath(oldFtpPath) + " " + sftpPath(newFtpPath));
+        } else {
+            command.add("RNFR " + oldFtpPath);
+            command.add("-Q");
+            command.add("RNTO " + newFtpPath);
+        }
         runCurl(command);
     }
 
@@ -617,25 +619,83 @@ public class FtpFileSystem implements VFileSystem {
         // Use the root URL to ensure curl doesn't fail if the parent path is not a file
         command.add(options.getUrl() + "/");
         command.add("-Q");
-        command.add("MKD " + ftpPath);
+        command.add(quote("MKD", "mkdir", ftpPath));
         runCurl(command);
     }
 
     @Override
     public void makeFile(String internalPath) throws IOException {
-        String ftpPath = sanitizePath(internalPath);
-        logger.info("Creating empty FTP file: {}", ftpPath);
-        // Create empty file locally and upload
-        File tempFile = AppTempDir.createTempFile("acommander_empty", ".tmp").toFile();
+        Path empty = AppTempDir.createTempFile("acommander_empty", ".tmp");
         try {
-            List<String> command = createBaseCurlCommand();
-            command.add("-T");
-            command.add(tempFile.getAbsolutePath());
-            command.add(options.getFullUrl(ftpPath));
-            runCurl(command);
+            upload(empty, internalPath);
         } finally {
-            tempFile.delete();
+            Files.deleteIfExists(empty);
         }
+    }
+
+    /**
+     * The one way a local file or folder tree reaches the server, at exactly {@code targetPath}. Folders are created
+     * parents first (an existing one is merged into); links are refused, not followed out of the tree.
+     */
+    public void upload(Path source, String targetPath) throws IOException {
+        String target = sanitizePath(targetPath);
+        if (!Files.isDirectory(source, LinkOption.NOFOLLOW_LINKS)) {
+            uploadFile(source, target);
+            return;
+        }
+        logger.info("Uploading folder {} to {}", source, target);
+        try (Stream<Path> tree = Files.walk(source)) {
+            for (Path path : (Iterable<Path>) tree::iterator) {
+                BasicFileAttributes attributes = Files.readAttributes(path, BasicFileAttributes.class, LinkOption.NOFOLLOW_LINKS);
+                String remote = path.equals(source) ? target
+                        : target + "/" + source.relativize(path).toString().replace('\\', '/');
+                if (attributes.isSymbolicLink() || attributes.isOther()) {
+                    throw new IOException("Links are not uploaded: " + path);
+                } else if (attributes.isDirectory()) {
+                    makeDirectoryIfMissing(remote);
+                } else {
+                    uploadFile(path, remote);
+                }
+            }
+        } catch (UncheckedIOException e) {
+            throw e.getCause();
+        }
+    }
+
+    private void uploadFile(Path source, String target) throws IOException {
+        logger.debug("Uploading {} to {}", source, target);
+        List<String> command = createBaseCurlCommand();
+        command.add("-T");
+        command.add(source.toString());
+        command.add(options.getFullUrl(target));
+        runCurl(command);
+    }
+
+    /** MKD fails both on a folder that exists and on a real problem; a listing tells them apart. */
+    private void makeDirectoryIfMissing(String path) throws IOException {
+        try {
+            makeDirectory(path);
+        } catch (IOException mkdirFailed) {
+            try {
+                listContents(path);
+            } catch (IOException notThere) {
+                mkdirFailed.addSuppressed(notThere);
+                throw mkdirFailed;
+            }
+        }
+    }
+
+    private boolean isSftp() {
+        return options.getProtocol() == FtpConnectionOptions.Protocol.SFTP;
+    }
+
+    /** A curl -Q command: the FTP verb, or for SFTP curl's own verb with the path quoted (it may hold spaces). */
+    private String quote(String ftpVerb, String sftpVerb, String path) {
+        return isSftp() ? sftpVerb + " " + sftpPath(path) : ftpVerb + " " + path;
+    }
+
+    private static String sftpPath(String path) {
+        return "\"" + path.replace("\\", "\\\\").replace("\"", "\\\"") + "\"";
     }
 
     public String sanitizePath(String path) {

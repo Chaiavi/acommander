@@ -649,4 +649,71 @@ class FtpFileSystemTest {
                 new FtpFileSystem(options.toBuilder().protocol(FtpConnectionOptions.Protocol.FTPS).build()).getIdentifier());
         assertFalse(left.getIdentifier().contains(MOCK_PASSWORD));
     }
+
+    private static FtpFileSystem recording(FtpConnectionOptions.Protocol protocol, List<String> commands) {
+        return new FtpFileSystem(FtpConnectionOptions.builder()
+                .host(MOCK_HOST).port(21).username("u").password(MOCK_PASSWORD).protocol(protocol).build()) {
+            @Override
+            public List<String> runCurl(List<String> command) {
+                commands.add(String.join(" ", command));
+                return List.of();
+            }
+        };
+    }
+
+    @Test
+    void uploadingAFolderCreatesItsFoldersFirstAndKeepsEmptyOnes(@TempDir Path dir) throws IOException {
+        Path folder = java.nio.file.Files.createDirectories(dir.resolve("my dir").resolve("sub"));
+        java.nio.file.Files.createDirectories(dir.resolve("my dir").resolve("empty").resolve("deeper"));
+        java.nio.file.Files.writeString(dir.resolve("my dir").resolve("top.txt"), "t");
+        java.nio.file.Files.writeString(folder.resolve("inner.txt"), "i");
+        List<String> commands = new ArrayList<>();
+
+        recording(FtpConnectionOptions.Protocol.FTP, commands).upload(dir.resolve("my dir"), "/pub/my dir");
+
+        List<String> created = commands.stream().filter(c -> c.contains("MKD")).map(c -> c.substring(c.indexOf("MKD"))).toList();
+        assertEquals(List.of("MKD /pub/my dir", "MKD /pub/my dir/empty", "MKD /pub/my dir/empty/deeper", "MKD /pub/my dir/sub"),
+                created.stream().sorted().toList());
+        assertTrue(commands.stream().anyMatch(c -> c.contains("-T") && c.endsWith("/pub/my dir/top.txt")));
+        assertTrue(commands.stream().anyMatch(c -> c.contains("-T") && c.endsWith("/pub/my dir/sub/inner.txt")));
+        assertTrue(commands.indexOf(commands.stream().filter(c -> c.endsWith("MKD /pub/my dir/sub")).findFirst().orElseThrow())
+                < commands.indexOf(commands.stream().filter(c -> c.endsWith("/sub/inner.txt")).findFirst().orElseThrow()),
+                "a folder exists before its files are uploaded");
+    }
+
+    @Test
+    void uploadingAFileIsOneTransferToTheExactTarget(@TempDir Path dir) throws IOException {
+        Path file = java.nio.file.Files.writeString(dir.resolve("a.txt"), "x");
+        List<String> commands = new ArrayList<>();
+
+        recording(FtpConnectionOptions.Protocol.FTP, commands).upload(file, "/pub/b.txt");
+
+        assertEquals(1, commands.size());
+        assertTrue(commands.getFirst().contains("-T " + file) && commands.getFirst().endsWith("ftp://ftp.example.com:21/pub/b.txt"));
+    }
+
+    @Test
+    void localAndArchiveCopiesToFtpUploadWholeFolders(@TempDir Path dir) throws IOException {
+        Path folder = java.nio.file.Files.createDirectories(dir.resolve("dirA"));
+        java.nio.file.Files.writeString(folder.resolve("inner.txt"), "x");
+        List<String> commands = new ArrayList<>();
+
+        new LocalFileSystem("").copy(folder.toString(), recording(FtpConnectionOptions.Protocol.FTP, commands), "/pub/dirA");
+
+        assertTrue(commands.stream().anyMatch(c -> c.endsWith("MKD /pub/dirA")));
+        assertTrue(commands.stream().anyMatch(c -> c.contains("-T") && c.endsWith("/pub/dirA/inner.txt")));
+    }
+
+    @Test
+    void sftpGetsCurlsSftpCommandsNotFtpOnes() throws IOException {
+        List<String> commands = new ArrayList<>();
+        FtpFileSystem sftp = recording(FtpConnectionOptions.Protocol.SFTP, commands);
+
+        sftp.makeDirectory("/pub/new dir");
+        sftp.rename("/pub/a.txt", "/pub/b.txt");
+
+        assertTrue(commands.get(0).endsWith("-Q mkdir \"/pub/new dir\""), commands.get(0));
+        assertTrue(commands.get(1).endsWith("-Q rename \"/pub/a.txt\" \"/pub/b.txt\""), commands.get(1));
+        assertTrue(commands.stream().noneMatch(c -> c.contains("MKD") || c.contains("RNFR")));
+    }
 }

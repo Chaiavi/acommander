@@ -125,13 +125,9 @@ public class LocalFileSystem implements VFileSystem {
             }
             archiveFs.markModified();
         } else if (targetFs instanceof FtpFileSystem targetFtpFs) {
-            // Upload to FTP
-            targetInternalPath = targetFtpFs.sanitizePath(targetInternalPath);
-            List<String> uploadCmd = targetFtpFs.createBaseCurlCommand();
-            uploadCmd.add("-T");
-            uploadCmd.add(sourceInternalPath);
-            uploadCmd.add(targetFtpFs.getOptions().getFullUrl(targetInternalPath));
-            targetFtpFs.runCurl(uploadCmd);
+            targetFtpFs.upload(source, targetInternalPath);
+        } else {
+            throw new IOException("Can't copy to " + targetFs.getDisplayName());
         }
     }
 
