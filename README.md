@@ -362,7 +362,7 @@ You only need this to change the code. To use the app, [download a release](#-do
 ```
 acommander/
 ├── apps/                    Bundled external tools
-├── config/                  apps.json, user properties, F1 help page (f1-help.html)
+├── config/                  apps.json, user properties
 ├── docs/                    CODEMAP.md — where each feature lives in the code
 ├── src/
 │   ├── main/

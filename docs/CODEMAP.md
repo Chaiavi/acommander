@@ -48,7 +48,7 @@ Adding or renaming an action id? Check each of these:
 | `actions/BuiltinAction` + `ActionExecutor.handler()` | builtin id → `Commander` method (a missing case does not compile) |
 | `ActionRegistry.toAppAction()` | Dynamic palette labels (`fileProperties`, `duplicate`) |
 | `Commander.updateBottomButtons()` | Bottom F-key button labels (actions come from apps.json shortcuts) |
-| `config/f1-help.html`, `README.md` shortcuts table | Manual docs for shortcuts |
+| `README.md` shortcuts table | Manual docs for shortcuts (the F1 help is built from apps.json) |
 
 ## 3. Feature → Code
 
@@ -56,7 +56,7 @@ Adding or renaming an action id? Check each of these:
 
 | Action id (apps.json) | `Commander` method | Logic / runs via | Tool |
 |---|---|---|---|
-| `help` (F1) | `help`, `openFullHelp` | `dialog/HelpDialog`, `helpers/HelpTopics` (rows from apps.json `label` / `shortcut` / `description`, sections from `category`) | "Open Full Help in Browser" opens `config/f1-help.html` with the default browser |
+| `help` (F1) | `help` | `dialog/HelpDialog`, `helpers/HelpTopics` (rows from apps.json `label` / `shortcut` / `description`, sections from `category`) | |
 | `settings` | `openSettings` | `FileOperations.edit` | edits `config/acommander.properties` |
 | `rename` (F2, Shift+F6) | `renameFile` | `FileOperations.rename` → single: VFS, many: `multiRename` | `multi_rename/Renamer.exe` |
 | `view` (F3) | `viewFile` / `calculateDirSpace` (folder) | `FileOperations.view` / `FileHelper.folderSize` | `view/UniversalViewer/Viewer.exe` |
@@ -196,7 +196,7 @@ Not actions, but often asked for:
 | `TextPromptDialog` | One-line text prompt with a preselected range (rename selects the name without its extension). |
 | `FindInFilesDialog` / `FoundFilesDialog` | Find in Files options; the found files list (Enter / double-click goes to one). |
 | `BookmarkPickerDialog` | Pick a bookmark by name (Go / Remove). |
-| `HelpDialog` | F1: collapsible section per category of every key and action (`HelpTopics`); the filter opens matching sections; tips, Open Full Help in Browser. |
+| `HelpDialog` | F1: collapsible section per category of every key and action (`HelpTopics`); the filter opens matching sections; tips. |
 | `ReportBugDialog` | Bug report form → prefilled GitHub issue URL. |
 | `ImageConversionDialog` / `AudioConversionDialog` | Conversion options → `ImageConversionRequest` / `AudioConversionRequest`. |
 | `ExecutableCompressionDialog` | UPX compress level or decompress → `UpxAction`. |
@@ -296,7 +296,6 @@ Not actions, but often asked for:
 | `src/main/resources/styles/app-theme.css` | All styling; dark/light via `theme-dark` / `theme-light` root classes. |
 | `src/main/resources/logback.xml` | Logs to `logs/`. |
 | `config/apps.json` | Actions, shortcuts, tool paths (read from `user.dir`). |
-| `config/f1-help.html` | F1 help page. |
 | `config/acommander.properties` | Per-user state (gitignored), read and written only by `SettingsStore`: `left_folder`, `right_folder`, `theme_mode`, `bookmark.*`, `ftp.*`, `last_selection_pattern`. |
 | `apps/` | Bundled tools; table in README "External Tools Bundled". |
 | `build.gradle` | Build, `shadowJar` (copies the release files to `build/libs/`), launch4j, `dist` (`releaseResources` = what ships from `config/` and `apps/`; `verifyDistribution` checks the ZIP), `seedUniExtractIni`. |

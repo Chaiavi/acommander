@@ -1002,15 +1002,7 @@ public class Commander {
     public void help() {
         logger.info("Help (F1)");
         HelpDialog.show(dialogOwner(), currentThemeMode.styleClass, "A Commander " + AppVersion.current() + " Help",
-                HelpTopics.entries(appRegistry.actions()), this::openFullHelp);
-    }
-
-    private void openFullHelp() {
-        try {
-            getDesktop().open(AppPaths.config("f1-help.html").toFile());
-        } catch (Exception ex) {
-            error("Failed opening the help page in the browser", ex);
-        }
+                HelpTopics.entries(appRegistry.actions()));
     }
 
     public void openSettings() {

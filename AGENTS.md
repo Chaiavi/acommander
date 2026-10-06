@@ -43,8 +43,8 @@ written. Read the task and the code it touches and trace the real flow first, th
 When a task changed files, finish by committing and pushing to `origin/main` without asking.
 
 1. User-visible change (action, shortcut, feature, bundled tool, behaviour; added, changed or removed) → update
-   [config/f1-help.html](config/f1-help.html) and [README.md](README.md) in the same commit. `DocsShortcutsTest`
-   fails the build if an `apps.json` shortcut is missing from either; features and descriptions are on you.
+   [README.md](README.md) in the same commit (the F1 help is built from `apps.json`). `DocsShortcutsTest` fails the
+   build if an `apps.json` shortcut is missing from it; features and descriptions are on you.
 2. Code changes: `.\gradlew.bat build` must pass first. If it fails, fix it; don't commit a broken build.
 3. Commit only the files you changed, by path: `git add <new files>` then `git commit -m "..." -- <file> <file>`
    (a commit pathspec rejects untracked files). Other agent sessions may have uncommitted work in the same tree;
@@ -111,7 +111,7 @@ lessons about this repo in the files above, not in memory.
   be unit-tested.
 - Read [docs/CODEMAP.md](docs/CODEMAP.md) to find code instead of reading `Commander`. When you add, move, rename or
   delete a class, action, bundled tool or `Commander` feature method, update the map in the same change.
-- `config/apps.json` and `config/f1-help.html` are read from `user.dir`, not the classpath. `shadowJar` copies
+- `config/apps.json` is read from `user.dir`, not the classpath. `shadowJar` copies
   `config/` and `apps/` into `build/libs/`.
 - Packages: `actions/` dispatch + matching, `config/` apps.json loading (`AppRegistry`, `AppConfigLoader`),
   `keybinding/` key handlers, `palette/` Command Palette, `tools/ToolCommandBuilder` placeholder expansion,
@@ -134,7 +134,7 @@ All actions and external tools live in `config/apps.json`; shortcuts are declare
      (the switch won't compile without it; `BuiltinActionTest` checks apps.json ↔ enum).
   3. Run the build: `ActionRulesSnapshotTest` fails and writes `build/action-rules-snapshot.actual.txt`. Check the new
      line, then copy the file over `src/test/resources/action-rules-snapshot.txt`.
-  4. New shortcut → also update `config/f1-help.html` and the README shortcuts table (`DocsShortcutsTest` checks).
+  4. New shortcut → also update the README shortcuts table (`DocsShortcutsTest` checks).
      A shortcut on F1–F12 (with or without Alt/Shift) also drives that bottom button.
   5. Add the row to the feature table in [docs/CODEMAP.md](docs/CODEMAP.md).
 
@@ -193,7 +193,7 @@ All actions and external tools live in `config/apps.json`; shortcuts are declare
 - IntelliJ: after a clean build, debugger errors → **File → Invalidate Caches → Invalidate and Restart**. LSP errors in
   `Commander.java` (e.g. "getPath() undefined for Folder") are false positives if Gradle builds.
 - Universal Viewer (`BundledTool.VIEWER`) renders HTML with legacy IE: CSS variables, flexbox and web fonts are
-  ignored, so a styled page like `f1-help.html` shows as plain black text on white. Open HTML with the default
+  ignored, so a styled page shows as plain black text on white. Open HTML with the default
   browser (`Desktop.open`). To screenshot it, use
   `SetProcessDPIAware` + `Graphics.CopyFromScreen`; `PrintWindow` returns a black page for the embedded browser.
 - `Desktop.open` throws "Unsupported URI content" for executables (`.bat`, `.exe`); use ShellExec_RunDLL (above).

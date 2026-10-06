@@ -31,7 +31,7 @@ public final class HelpDialog {
     private HelpDialog() {
     }
 
-    public static void show(Window owner, String themeClass, String title, List<Entry> entries, Runnable openFullHelp) {
+    public static void show(Window owner, String themeClass, String title, List<Entry> entries) {
         Dialog<Void> dialog = new Dialog<>();
         dialog.setTitle(title);
         dialog.setHeaderText(null);
@@ -48,8 +48,6 @@ public final class HelpDialog {
         TextField filter = tip(new TextField(), "Type words to show only the matching keys and actions.");
         filter.setPromptText("Filter, e.g. copy, F5, pdf");
         HBox.setHgrow(filter, Priority.ALWAYS);
-        Button fullHelp = tip(new Button("Open Full Help in Browser"), "Open the full help page in your web browser.");
-        fullHelp.setOnAction(event -> openFullHelp.run());
 
         Map<String, List<Entry>> categories = HelpTopics.byCategory(entries);
         Map<String, TitledPane> sections = new LinkedHashMap<>();
@@ -88,7 +86,7 @@ public final class HelpDialog {
         VBox tips = new VBox(2);
         HelpTopics.TIPS.forEach(text -> tips.getChildren().add(new Label("•  " + text)));
 
-        HBox filterRow = new HBox(8, new Label("Filter:"), filter, fullHelp);
+        HBox filterRow = new HBox(8, new Label("Filter:"), filter);
         filterRow.setAlignment(Pos.CENTER_LEFT);
         VBox content = new VBox(10, heading, filterRow, scroll, tips);
         content.setPadding(new Insets(12));
