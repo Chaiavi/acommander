@@ -36,7 +36,7 @@ public final class AboutDialog {
         tip((Button) dialog.getDialogPane().lookupButton(closeType), "Close this window.");
 
         ImageView icon = new ImageView(new Image(AboutDialog.class.getResourceAsStream("/icon.png"), 48, 48, true, true));
-        Label name = new Label("A Commander");
+        Label name = new Label("A Commander (NC Clone)");
         name.setStyle("-fx-font-size: 18px; -fx-font-weight: bold;");
         HBox title = new HBox(12, icon, new VBox(2, name, new Label("Version " + version)));
         title.setAlignment(Pos.CENTER_LEFT);
