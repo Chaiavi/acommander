@@ -397,7 +397,10 @@ public class Commander {
         clearFolderCompareHighlights(false);
         VFileSystem fsAfterSwitch = filesPanesHelper.getFileSystem(side);
         if (fsAfterSwitch instanceof LocalFileSystem) {
-            filesPanesHelper.setFileListPath(side, path);
+            // setFileListPath sets the combo too; that echo must not list the folder a second time
+            if (fsAfterSwitch != currentFs || !filesPanesHelper.isAt(side, path)) {
+                filesPanesHelper.setFileListPath(side, path);
+            }
         } else {
             filesPanesHelper.refreshFileListView(side);
         }
