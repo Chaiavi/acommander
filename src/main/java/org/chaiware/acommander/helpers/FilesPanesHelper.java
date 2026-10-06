@@ -33,6 +33,7 @@ public class FilesPanesHelper {
     private final Map<FocusSide, SortState> sortStates = new EnumMap<>(FocusSide.class);
     private final Map<FocusSide, VFileSystem> fileSystems = new EnumMap<>(FocusSide.class);
     private final Map<FocusSide, String> currentInternalPaths = new EnumMap<>(FocusSide.class);
+    private final Map<FocusSide, Loads> loads = new EnumMap<>(FocusSide.class);
     private FocusSide focusedSide;
     private ExternalCommandListener externalCommandListener;
 
@@ -72,18 +73,8 @@ public class FilesPanesHelper {
 
     public void setFileSystem(FocusSide side, VFileSystem fs, String initialPath) throws IOException {
         logger.info("Switching {} pane to file system: {}", side, fs.getIdentifier());
-        
-        // Try to list the initial path before fully switching
-        if (initialPath != null) {
-            fs.listContents(initialPath);
-        } else {
-            fs.listContents("/"); // Default check
-        }
-
         VFileSystem oldFs = fileSystems.put(side, fs);
-        if (fs != null) {
-            fs.setExternalCommandListener(externalCommandListener);
-        }
+        fs.setExternalCommandListener(externalCommandListener);
 
         if (initialPath != null) {
             setFileListPath(side, initialPath);
@@ -101,6 +92,8 @@ public class FilesPanesHelper {
         filePanes.put(RIGHT, new FilePane(rightFileList, rightPathComboBox));
         sortStates.put(LEFT, SortState.DEFAULT);
         sortStates.put(RIGHT, SortState.DEFAULT);
+        loads.put(LEFT, new Loads());
+        loads.put(RIGHT, new Loads());
         
         // Initialize with default local file systems
         fileSystems.put(LEFT, vfsManager.createLocalFileSystem(""));
@@ -134,8 +127,12 @@ public class FilesPanesHelper {
             Platform.runLater(() -> selectFileItem(isFocused, fileItem));
             return;
         }
-        getFileList(isFocused).getSelectionModel().clearSelection();
-        getFileList(isFocused).getSelectionModel().select(fileItem);
+        FocusSide side = isFocused ? focusedSide : otherSide(focusedSide);
+        whenShown(side, () -> {
+            ListView<FileItem> list = filePanes.get(side).getFileListView();
+            list.getSelectionModel().clearSelection();
+            list.getSelectionModel().select(fileItem);
+        });
     }
 
     /** Selects {@code name} in {@code folder} on that pane, also after its next refresh (items match by equality). */
@@ -155,21 +152,23 @@ public class FilesPanesHelper {
             Platform.runLater(() -> selectNames(side, folder, names));
             return;
         }
-        if (names.isEmpty() || !samePath(getPath(side), folder)) {
-            return;
-        }
-        ListView<FileItem> list = filePanes.get(side).getFileListView();
-        Set<String> wanted = new HashSet<>(names);
-        int[] indices = java.util.stream.IntStream.range(0, list.getItems().size())
-                .filter(i -> wanted.contains(list.getItems().get(i).getPresentableFilename()))
-                .toArray();
-        if (indices.length == 0) {
-            return;
-        }
-        list.getSelectionModel().clearSelection();
-        list.getSelectionModel().selectIndices(indices[0], indices);
-        list.getFocusModel().focus(indices[0]);
-        list.scrollTo(indices[0]);
+        whenShown(side, () -> {
+            if (names.isEmpty() || !samePath(getPath(side), folder)) {
+                return;
+            }
+            ListView<FileItem> list = filePanes.get(side).getFileListView();
+            Set<String> wanted = new HashSet<>(names);
+            int[] indices = java.util.stream.IntStream.range(0, list.getItems().size())
+                    .filter(i -> wanted.contains(list.getItems().get(i).getPresentableFilename()))
+                    .toArray();
+            if (indices.length == 0) {
+                return;
+            }
+            list.getSelectionModel().clearSelection();
+            list.getSelectionModel().selectIndices(indices[0], indices);
+            list.getFocusModel().focus(indices[0]);
+            list.scrollTo(indices[0]);
+        });
     }
 
     /** Selects row {@code index} (kept in range) on {@code side} while that pane still shows {@code folder}. */
@@ -178,14 +177,16 @@ public class FilesPanesHelper {
             Platform.runLater(() -> selectIndex(side, folder, index));
             return;
         }
-        ListView<FileItem> list = filePanes.get(side).getFileListView();
-        if (list.getItems().isEmpty() || !samePath(getPath(side), folder)) {
-            return;
-        }
-        int bounded = Math.min(Math.max(index, 0), list.getItems().size() - 1);
-        list.getSelectionModel().clearAndSelect(bounded);
-        list.getFocusModel().focus(bounded);
-        list.scrollTo(bounded);
+        whenShown(side, () -> {
+            ListView<FileItem> list = filePanes.get(side).getFileListView();
+            if (list.getItems().isEmpty() || !samePath(getPath(side), folder)) {
+                return;
+            }
+            int bounded = Math.min(Math.max(index, 0), list.getItems().size() - 1);
+            list.getSelectionModel().clearAndSelect(bounded);
+            list.getFocusModel().focus(bounded);
+            list.scrollTo(bounded);
+        });
     }
 
     /** Sets the current file list's path */
@@ -221,11 +222,8 @@ public class FilesPanesHelper {
             }
         }
 
-        if (!selectItemByPresentableFilename(focusSide, preferredSelectionName)) {
-            ensureFirstEntrySelected(focusSide);
-        }
+        selectNameOrFirst(focusSide, preferredSelectionName);
     }
-    
     /**
      * Enters an archive. For read-write archives, extracts to temp folder.
      * For read-only archives, also extracts but marks as read-only.
@@ -238,8 +236,6 @@ public class FilesPanesHelper {
         Platform.runLater(() -> {
             ComboBox<Folder> pathComboBox = filePanes.get(focusSide).getPathComboBox();
             pathComboBox.setValue(new ArchiveFolder(fs.getDisplayName()));
-
-            refreshFileListView(focusSide);
             ensureFirstEntrySelected(focusSide);
         });
 
@@ -280,7 +276,7 @@ public class FilesPanesHelper {
             pathComboBox.setValue(new ArchiveFolder(newFs.getDisplayName()));
             
             refreshFileListView(focusSide);
-            ensureFirstEntrySelected(focusSide);
+            selectNameOrFirst(focusSide, null);
         });
         
         logger.debug("Entered archive subdirectory: {}", dirName);
@@ -311,9 +307,7 @@ public class FilesPanesHelper {
                 pathComboBox.setValue(new ArchiveFolder(parentFs.getDisplayName()));
 
                 refreshFileListView(focusSide);
-                if (!selectItemByPresentableFilename(focusSide, childDirName)) {
-                    ensureFirstEntrySelected(focusSide);
-                }
+                selectNameOrFirst(focusSide, childDirName);
             });
         }
 
@@ -377,54 +371,72 @@ public class FilesPanesHelper {
             Platform.runLater(this::refreshFileListViews);
             return;
         }
-        FileItem focusedSelectedItem = getFileList(true).getSelectionModel().getSelectedItem();
-        FileItem nonFocusedSelectedItem = getFileList(false).getSelectionModel().getSelectedItem();
         refreshFileListView(LEFT);
         refreshFileListView(RIGHT);
-        selectFileItem(true, focusedSelectedItem);
-        selectFileItem(false, nonFocusedSelectedItem);
     }
 
     /**
-     * Loads the files in the path into the ListView.
-     * For archives, loads from the temp folder.
+     * Lists the pane's folder in the background and shows it on the FX thread; for archives, the temp folder. Only
+     * the newest request per pane is shown, so a slow listing can never replace a newer one. Moving to another folder
+     * empties the pane at once (nothing stale to act on); refreshing the same folder keeps its rows and selection.
+     * Safe to call from any thread.
      */
     public void refreshFileListView(FocusSide focusSide) {
         if (!Platform.isFxApplicationThread()) {
             Platform.runLater(() -> refreshFileListView(focusSide));
             return;
         }
-
-        ListView<FileItem> listView = filePanes.get(focusSide).getFileListView();
-        FileItem previouslySelected = listView.getSelectionModel().getSelectedItem();
-
-        ObservableList<FileItem> items = listView.getItems();
-        items.clear();
-
         VFileSystem fs = fileSystems.get(focusSide);
-        try {
-            String path = currentInternalPaths.get(focusSide);
-            if (path == null) {
-                path = filePanes.get(focusSide).getPath();
-            }
-            logger.debug("Refreshing file list using VFS {}: {}", fs.getIdentifier(), path);
-            List<FileItem> contents = fs.listContents(path);
-            if (fs instanceof FtpFileSystem ftpFs) {
-                ftpFs.setCurrentPath(path);
-            }
-            items.addAll(contents);
-            logger.debug("Loaded {} items using VFS", contents.size());
-        } catch (IOException e) {
-            logger.error("Failed to list contents of {} using {}: {}", filePanes.get(focusSide).getPath(), fs.getIdentifier(), e.getMessage());
+        String path = currentInternalPaths.get(focusSide) != null ? currentInternalPaths.get(focusSide)
+                : filePanes.get(focusSide).getPath();
+        SortState sort = sortState(focusSide);
+        Loads paneLoads = loads.get(focusSide);
+        ListView<FileItem> listView = filePanes.get(focusSide).getFileListView();
+        boolean sameFolder = paneLoads.shows(fs, path);
+        if (!sameFolder) {
+            listView.getItems().clear();
         }
+        long load = paneLoads.start();
+        logger.debug("Listing {} on {} (load {})", path, fs.getIdentifier(), load);
+        BackgroundTasks.supply(() -> {
+            try {
+                return PaneSorter.sort(fs.listContents(path), sort);
+            } catch (IOException e) {
+                throw new java.io.UncheckedIOException(e);
+            }
+        }).whenComplete((contents, failure) -> Platform.runLater(() -> {
+            if (!paneLoads.isLatest(load)) {
+                return;
+            }
+            List<FileItem> shown = List.of();
+            if (failure != null) {
+                logger.error("Failed to list contents of {} using {}: {}", path, fs.getIdentifier(), failure.getMessage());
+                if (sameFolder) {
+                    paneLoads.shown(load, fs, path);
+                    return;
+                }
+            } else {
+                if (fs instanceof FtpFileSystem ftpFs) {
+                    ftpFs.setCurrentPath(path);
+                }
+                shown = sort.equals(sortState(focusSide)) ? contents : PaneSorter.sort(contents, sortState(focusSide));
+            }
+            FileItem previouslySelected = listView.getSelectionModel().getSelectedItem();
+            listView.getItems().setAll(shown);
+            if (previouslySelected != null) {
+                listView.getSelectionModel().select(previouslySelected);
+            }
+            if (listView.getSelectionModel().getSelectedIndex() < 0 && !shown.isEmpty()) {
+                listView.getSelectionModel().selectFirst();
+                listView.getFocusModel().focus(0);
+            }
+            paneLoads.shown(load, fs, path);
+        }));
+    }
 
-        applySort(focusSide);
-        if (previouslySelected != null) {
-            listView.getSelectionModel().select(previouslySelected);
-        }
-        if (listView.getSelectionModel().getSelectedIndex() < 0) {
-            ensureFirstEntrySelected(focusSide);
-        }
+    /** Runs {@code action} now, or once the pane shows its newest listing. FX thread only. */
+    private void whenShown(FocusSide side, Runnable action) {
+        loads.get(side).whenShown(action);
     }
 
     public void ensureFirstEntrySelected(FocusSide focusSide) {
@@ -432,12 +444,14 @@ public class FilesPanesHelper {
             Platform.runLater(() -> ensureFirstEntrySelected(focusSide));
             return;
         }
-        ListView<FileItem> listView = filePanes.get(focusSide).getFileListView();
-        if (listView.getItems().isEmpty()) {
-            return;
-        }
-        listView.getSelectionModel().selectFirst();
-        listView.getFocusModel().focus(0);
+        whenShown(focusSide, () -> {
+            ListView<FileItem> listView = filePanes.get(focusSide).getFileListView();
+            if (listView.getItems().isEmpty()) {
+                return;
+            }
+            listView.getSelectionModel().selectFirst();
+            listView.getFocusModel().focus(0);
+        });
     }
 
     public void toggleSort(FocusSide focusSide, SortColumn column) {
@@ -457,6 +471,7 @@ public class FilesPanesHelper {
         return sortStates.getOrDefault(focusSide, SortState.DEFAULT);
     }
 
+    /** Re-sorts what the pane shows; a listing still loading sorts itself when it arrives. */
     private void applySort(FocusSide focusSide) {
         if (!Platform.isFxApplicationThread()) {
             Platform.runLater(() -> applySort(focusSide));
@@ -464,6 +479,67 @@ public class FilesPanesHelper {
         }
         ObservableList<FileItem> items = filePanes.get(focusSide).getFileListView().getItems();
         items.setAll(PaneSorter.sort(items, sortState(focusSide)));
+    }
+
+    /** After the newest listing is shown: selects {@code filename}, else the first row. */
+    private void selectNameOrFirst(FocusSide focusSide, String filename) {
+        whenShown(focusSide, () -> {
+            if (!selectItemByPresentableFilename(focusSide, filename)) {
+                ListView<FileItem> listView = filePanes.get(focusSide).getFileListView();
+                if (!listView.getItems().isEmpty()) {
+                    listView.getSelectionModel().clearAndSelect(0);
+                    listView.getFocusModel().focus(0);
+                }
+            }
+        });
+    }
+
+    private static FocusSide otherSide(FocusSide side) {
+        return side == LEFT ? RIGHT : LEFT;
+    }
+
+    /**
+     * One pane's listings: a number per request, so only the newest is shown, and the actions waiting for it. FX
+     * thread only; no JavaFX types, so it is unit-tested.
+     */
+    static final class Loads {
+        private long started;
+        private long shownLoad;
+        private VFileSystem shownFs;
+        private String shownPath;
+        private final List<Runnable> waiting = new ArrayList<>();
+
+        long start() {
+            return ++started;
+        }
+
+        boolean isLatest(long load) {
+            return load == started;
+        }
+
+        /** True when the pane already shows {@code path} on {@code fs}, so a refresh can keep its rows meanwhile. */
+        boolean shows(VFileSystem fs, String path) {
+            return shownFs == fs && Objects.equals(shownPath, path);
+        }
+
+        void shown(long load, VFileSystem fs, String path) {
+            shownLoad = load;
+            shownFs = fs;
+            shownPath = path;
+            if (isLatest(load)) {
+                List<Runnable> ready = new ArrayList<>(waiting);
+                waiting.clear();
+                ready.forEach(Runnable::run);
+            }
+        }
+
+        void whenShown(Runnable action) {
+            if (shownLoad == started) {
+                action.run();
+            } else {
+                waiting.add(action);
+            }
+        }
     }
 
     private boolean selectItemByPresentableFilename(FocusSide focusSide, String filename) {

@@ -213,7 +213,7 @@ Not actions, but often asked for:
 ### `helpers/`
 | File | Role |
 |---|---|
-| `FilesPanesHelper` | Two panes: focus side, current `VFileSystem` per side, path (`getPath(side)`), listing, sort state, selection, archive enter/exit. `selectNames(side, folder, names)` / `selectIndex(side, folder, i)` select a result only while that pane still shows that folder; `selectFileItem(focused, folder, name)` selects by name (FTP-safe). Inner `ArchiveFolder` (combo entry for archive/FTP panes), `FilePane`. |
+| `FilesPanesHelper` | Two panes: focus side, current `VFileSystem` per side, path (`getPath(side)`), listing, sort state, selection, archive enter/exit. `refreshFileListView` lists and sorts in the background; `Loads` (per pane) shows only the newest listing and runs selections (`selectNames`, `selectIndex`, `selectFileItem`, `ensureFirstEntrySelected`) once it is shown, only while the pane still shows that folder. Inner `ArchiveFolder` (combo entry for archive/FTP panes), `FilePane`. |
 | `PaneSorter` | Pane order: `..` first, folders first, then the column (`SortColumn`, `SortState.toggle`), then `compareNaturalNames` (file2 before file10). |
 | `ArchiveManager` | Opens an archive by extracting to a temp folder (`7z.exe`), repacks on close if modified. A failed repack copies the edits to a new `<archive>.recovered-<stamp>` folder and throws a message naming it; if that fails too, the extracted folder stays (retained) and the message names it. |
 | `FileAttributesHelper` | Read/apply R/H/S/A attributes (NIO, `attrib` fallback). |
