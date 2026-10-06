@@ -204,6 +204,24 @@
     -fx-border-width: 2;
 }
 
+/* The right-drag Copy Here / Move Here menu; Modena would paint it with the pane's dark inner background */
+.file-pane .context-menu {
+    -fx-background-color: -ac-button-border, -ac-button-bg;
+    -fx-background-insets: 0, 1;
+}
+
+.file-pane .context-menu .menu-item .label {
+    -fx-text-fill: -ac-button-text;
+}
+
+.file-pane .context-menu .menu-item:focused {
+    -fx-background-color: -ac-select-active-bg;
+}
+
+.file-pane .context-menu .menu-item:focused .label {
+    -fx-text-fill: -ac-select-active-text;
+}
+
 .file-cell-row {
     -fx-font-family: "JetBrains Mono";
     -fx-font-size: 14px;
