@@ -4,7 +4,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.Properties;
 
-/** The running app's version, written into {@code app-version.properties} by the build from {@code appVersion}. */
+/** The running app's version from {@code app-version.properties}, the only place it is written. */
 public final class AppVersion {
     private static final String CURRENT = load();
 
@@ -23,8 +23,7 @@ public final class AppVersion {
             Properties properties = new Properties();
             properties.load(in);
             String version = properties.getProperty("version", "").trim();
-            // An unexpanded "${appVersion}" means the resource was copied without the Gradle build.
-            return version.isEmpty() || version.contains("$") ? "dev" : version;
+            return version.isEmpty() ? "dev" : version;
         } catch (IOException e) {
             return "dev";
         }

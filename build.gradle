@@ -1,6 +1,5 @@
 buildscript {
     ext {
-        appVersion = '4.5'
         shadowPluginVersion = '9.3.1'
         launch4jPluginVersion = '4.0.0'
 
@@ -60,14 +59,11 @@ application {
     mainClass = 'org.chaiware.acommander.Launcher'
 }
 
-// appVersion is the only place the version is written; the app reads it from app-version.properties.
+// The version is written only in app-version.properties, so IDE launches (which skip Gradle) read it too.
+def versionProperties = new Properties()
+file('src/main/resources/app-version.properties').withInputStream { versionProperties.load(it) }
+ext.appVersion = versionProperties.getProperty('version').trim()
 def appVersionValue = appVersion
-tasks.named('processResources') {
-    inputs.property('appVersion', appVersionValue)
-    filesMatching('app-version.properties') {
-        expand(appVersion: appVersionValue)
-    }
-}
 
 shadowJar {
     archiveBaseName = 'acommander'

@@ -38,7 +38,7 @@ class ArchitectureRulesTest {
     @Test
     void versionIsNeverHardCoded() throws IOException {
         assertThat(violations("(?i)version\\w*\\s*=\\s*\"\\d+\\.\\d"))
-                .as("read the version with helpers/AppVersion; build.gradle appVersion is the only source").isEmpty();
+                .as("read the version with helpers/AppVersion; app-version.properties is the only source").isEmpty();
     }
 
     @Test
