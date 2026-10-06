@@ -182,6 +182,9 @@ All actions and external tools live in `config/apps.json`; shortcuts are declare
 - `ActionRulesSnapshotTest` diff flips many actions to `ftp=yes | writes=none`: a new gate in
   `ActionExecutor.execute` runs before the FTP / read-only gates and returns first (its mocks have no selection).
   Put new gates after those two.
+- `build` hangs in `:test` with no output: a `Commander` field initializer started a process (`new ComboBoxSetup()`
+  runs PowerShell, which never returns under Gradle). `ActionRulesSnapshotTest` runs `new Commander()`, so its field
+  initializers run in tests. Create such objects in `initialize()`. To find a hang, run `jstack <Gradle Test Executor pid>`.
 - Gradle warns "Deprecated Gradle features were used" (`Configuration.setVisible`, `build.gradle` at
   `apply plugin: 'edu.sc.seis.launch4j'`). It comes from the Launch4j plugin 4.0.0, not our script; it breaks in
   Gradle 11 unless the plugin ships a fix. Check `--warning-mode all` for any other source before ignoring it.
