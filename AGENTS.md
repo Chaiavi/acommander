@@ -188,6 +188,9 @@ All actions and external tools live in `config/apps.json`; shortcuts are declare
   `git commit -m` without a pathspec.
 - IntelliJ: after a clean build, debugger errors → **File → Invalidate Caches → Invalidate and Restart**. LSP errors in
   `Commander.java` (e.g. "getPath() undefined for Folder") are false positives if Gradle builds.
+- Universal Viewer (`BundledTool.VIEWER`) renders HTML with legacy IE: CSS variables, flexbox and web fonts are
+  ignored, so `f1-help.html` shows as plain black text on white, not its dark design. To screenshot it, use
+  `SetProcessDPIAware` + `Graphics.CopyFromScreen`; `PrintWindow` returns a black page for the embedded browser.
 - `Desktop.open` throws "Unsupported URI content" for executables (`.bat`, `.exe`); use ShellExec_RunDLL (above).
 - A console program started from the app gets no window (the app has no console). To give it one, have a hidden
   `powershell -Command "Start-Process ..."` start it (`FileOperations.openTerminal`). Check such process tricks
