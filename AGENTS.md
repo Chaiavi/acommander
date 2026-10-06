@@ -171,6 +171,9 @@ All actions and external tools live in `config/apps.json`; shortcuts are declare
 
 - `apps/extract_all/UniExtract/UniExtract.ini` is gitignored because UniExtract rewrites it on every run. Edit defaults
   in `UniExtract.default.ini`; the `seedUniExtractIni` Gradle task copies it into place when missing.
+- `ActionRulesSnapshotTest` diff flips many actions to `ftp=yes | writes=none`: a new gate in
+  `ActionExecutor.execute` runs before the FTP / read-only gates and returns first (its mocks have no selection).
+  Put new gates after those two.
 - Eclipse files (`.classpath`, `.project`, `.factorypath`, `.settings/`) are gitignored and regenerated from
   `build.gradle`; never commit them.
 - `config/acommander.properties` is per-user runtime state (gitignored). Never commit it.
