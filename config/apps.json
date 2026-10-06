@@ -8,7 +8,7 @@
       "label": "Ant Renamer",
       "type": "external",
       "path": "apps/multi_rename/Renamer.exe",
-      "args": ["-af", "${selectedFilesJoined}"],
+      "args": ["-af", "${selectedFiles}"],
       "refreshAfter": true,
       "contexts": [
         "filePane",

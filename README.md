@@ -245,7 +245,6 @@ Every action is **data-driven**. Add, remove, or reconfigure tools without touch
 | `${selectedFile}`                           | First selected file path                               |
 | `${selectedFileQuoted}`                     | First selected file path (quoted)                      |
 | `${selectedFiles}`                          | All selected file paths as separate args               |
-| `${selectedFilesJoined}`                    | All selected file paths as quoted, comma-joined string |
 | `${selectedName}`                           | Selected item name                                     |
 | `${focusedPath}` / `${focusedPathQuoted}`   | Focused pane path                                      |
 | `${targetFolder}` / `${targetFolderQuoted}` | Opposite pane path                                     |

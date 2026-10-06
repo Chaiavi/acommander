@@ -13,7 +13,6 @@ public class ToolCommandBuilder {
     private static final String SELECTED_FILE_QUOTED = "${selectedFileQuoted}";
     private static final String SELECTED_FILES = "${selectedFiles}";
     private static final String SELECTED_FILES_QUOTED = "${selectedFilesQuoted}";
-    private static final String SELECTED_FILES_JOINED = "${selectedFilesJoined}";
     private static final String OUTPUT_PDF = "${outputPdf}";
     private static final String OUTPUT_PDF_QUOTED = "${outputPdfQuoted}";
     private static final String FOCUSED_PATH = "${focusedPath}";
@@ -101,9 +100,6 @@ public class ToolCommandBuilder {
         String selectedFile = selectedFiles.isEmpty() ? "" : selectedFiles.getFirst();
         String focusedPath = filesPanesHelper == null ? "" : nullToEmpty(filesPanesHelper.getFocusedPath());
         String targetFolder = filesPanesHelper == null ? "" : nullToEmpty(filesPanesHelper.getUnfocusedPath());
-        String selectedFilesJoined = selectedFiles.stream()
-                .map(filePath -> "\"" + filePath + "\"")
-                .collect(Collectors.joining(","));
         String selectedFilesQuoted = selectedFiles.stream()
                 .map(ToolCommandBuilder::quote)
                 .collect(Collectors.joining(" "));
@@ -114,7 +110,6 @@ public class ToolCommandBuilder {
         values.put(SELECTED_FILE_QUOTED, quote(selectedFile));
         values.put(SELECTED_FILES, String.join(" ", selectedFiles));
         values.put(SELECTED_FILES_QUOTED, selectedFilesQuoted);
-        values.put(SELECTED_FILES_JOINED, selectedFilesJoined);
         values.put(FOCUSED_PATH, focusedPath);
         values.put(FOCUSED_PATH_QUOTED, quote(focusedPath));
         values.put(TARGET_FOLDER, targetFolder);

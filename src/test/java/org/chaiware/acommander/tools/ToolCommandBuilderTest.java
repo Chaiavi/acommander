@@ -73,7 +73,7 @@ class ToolCommandBuilderTest {
     }
 
     @Test
-    void resolveTemplateQuotesSelectedFilesJoined() throws Exception {
+    void resolveTemplateQuotesSelectedFiles() throws Exception {
         FilesPanesHelper panesHelper = mock(FilesPanesHelper.class);
         Path first = Files.createTempFile(tempDir, "file one", ".txt");
         Path second = Files.createTempFile(tempDir, "file two", ".txt");
@@ -86,7 +86,7 @@ class ToolCommandBuilderTest {
         when(panesHelper.getUnfocusedPath()).thenReturn("C:\\target");
 
         String rendered = ToolCommandBuilder.resolveTemplate(
-                "files=${selectedFilesJoined}",
+                "files=${selectedFilesQuoted}",
                 panesHelper,
                 null,
                 null
