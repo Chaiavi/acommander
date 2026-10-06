@@ -207,6 +207,8 @@ All actions and external tools live in `config/apps.json`; shortcuts are declare
   ignored, so a styled page shows as plain black text on white. Open HTML with the default
   browser (`Desktop.open`). To screenshot it, use
   `SetProcessDPIAware` + `Graphics.CopyFromScreen`; `PrintWindow` returns a black page for the embedded browser.
+- A `ContextMenu`/popup shown on a node takes CSS from that node: on a `.file-pane` it gets the dark pane background
+  but Modena's dark text (unreadable). Style it under `.file-pane .context-menu` in `app-theme.css` with `-ac-*` colors.
 - `Desktop.open` throws "Unsupported URI content" for executables (`.bat`, `.exe`); use ShellExec_RunDLL (above).
 - Drag and drop on Windows: JavaFX reports a plain drag and a Shift+drag the same way (both MOVE; only Ctrl = COPY,
   Alt or Ctrl+Shift = LINK; see openjfx `GlassDnD.cpp`), and a `DragEvent` carries no key state. Don't build on Shift.
