@@ -6,6 +6,7 @@ import lombok.Getter;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.attribute.BasicFileAttributes;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
@@ -24,10 +25,20 @@ public class FileItem {
     private Long lastModified = null;
     private boolean isDirectory = false;
 
+    /** Reads the metadata once now; the pane, sort and footer then never touch the disk for it. */
     public FileItem(Path path) {
         this.path = path;
         this.presentableFilename = fileName(path);
-        this.isDirectory = Files.isDirectory(path);
+        try {
+            BasicFileAttributes attributes = Files.readAttributes(path, BasicFileAttributes.class);
+            this.isDirectory = attributes.isDirectory();
+            this.size = isDirectory ? -1 : attributes.size();
+            this.lastModified = attributes.lastModifiedTime().toMillis();
+        } catch (IOException | RuntimeException e) {
+            // Gone or unreadable: no size, no date
+            this.size = 0;
+            this.lastModified = 0L;
+        }
     }
 
     public FileItem(Path folder, String filenameStr) {
@@ -90,28 +101,14 @@ public class FileItem {
         this.size = sizeInBytes;
     }
 
+    /** The size read when the item was listed; a folder's is 0 until F3 sums it. */
     public long getSizeInBytes() {
-        if (size != -1 && (size != 0 || isDirectory())) return size;
-        if (path != null && !isDirectory()) {
-            try {
-                return Files.size(path);
-            } catch (IOException | RuntimeException e) {
-                return 0;
-            }
-        }
-
-        return size == -1 ? 0 : size;
+        return Math.max(size, 0);
     }
 
-    /** The listed time, else the time on disk; 0 when unknown. */
+    /** The time read when the item was listed; 0 when unknown. */
     public long modifiedMillis() {
-        if (lastModified != null) return lastModified;
-        if (path == null) return 0;
-        try {
-            return Files.getLastModifiedTime(path).toMillis();
-        } catch (IOException | RuntimeException e) {
-            return 0;
-        }
+        return lastModified == null ? 0 : lastModified;
     }
 
     public String getDate() {

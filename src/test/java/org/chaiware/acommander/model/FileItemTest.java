@@ -109,4 +109,22 @@ class FileItemTest {
         Assertions.assertThat(new FileItem(file, "f.txt", 1, 42, false).modifiedMillis()).isEqualTo(42);
         Assertions.assertThat(new FileItem(file).modifiedMillis()).isEqualTo(Files.getLastModifiedTime(file).toMillis());
     }
+
+    @Test
+    void metadataIsReadOnceWhenListedNotWhenShownOrSorted() throws IOException {
+        Path empty = Files.createFile(tempDir.resolve("empty.txt"));
+        Path file = Files.writeString(tempDir.resolve("file.txt"), "12345");
+        FileItem emptyItem = new FileItem(empty);
+        FileItem fileItem = new FileItem(file);
+        long listedTime = fileItem.modifiedMillis();
+
+        // Changing or deleting the files afterwards does not reach the listed items: rows, sort and footer stay put
+        Files.writeString(empty, "now with content");
+        Files.delete(file);
+
+        Assertions.assertThat(emptyItem.getSizeInBytes()).isZero();
+        Assertions.assertThat(fileItem.getSizeInBytes()).isEqualTo(5);
+        Assertions.assertThat(fileItem.modifiedMillis()).isEqualTo(listedTime).isPositive();
+        Assertions.assertThat(fileItem.isDirectory()).isFalse();
+    }
 }
