@@ -3,7 +3,6 @@ package org.chaiware.acommander.keybinding;
 import javafx.scene.input.KeyEvent;
 import org.chaiware.acommander.Commander;
 import org.chaiware.acommander.actions.ActionExecutor;
-import org.chaiware.acommander.actions.SelectionRule;
 import org.chaiware.acommander.config.ActionDefinition;
 import org.chaiware.acommander.config.ActionScope;
 import org.chaiware.acommander.config.AppRegistry;
@@ -33,15 +32,7 @@ public class FilePaneKeyHandlerImpl implements IKeyHandler {
         ActionDefinition action = appRegistry.matchShortcut(ActionScope.FILE_PANE, event).orElse(null);
         if (action != null) {
             commander.clearCharFilter();
-            SelectionRule rule = SelectionRule.fromString(action.getSelection());
-            if (rule.isSatisfied(commander.filesPanesHelper.getSelectedItems())) {
-                String builtin = action.getBuiltin() == null ? action.getId() : action.getBuiltin();
-                if ("view".equals(builtin) && commander.filesPanesHelper.getSelectedItem().isDirectory()) {
-                    commander.calculateDirSpace();
-                } else {
-                    actionExecutor.execute(action);
-                }
-            }
+            actionExecutor.execute(action);
             return true;
         }
 

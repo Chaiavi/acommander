@@ -80,7 +80,7 @@
       "shortcut": "F3",
       "aliases": ["preview"],
       "contexts": ["filePane", "commandPalette"],
-      "selection": "single",
+      "selection": "any",
       "type": "builtin",
       "path": "apps/view/UniversalViewer/Viewer.exe",
       "args": ["${selectedFile}"]
@@ -93,7 +93,7 @@
       "shortcut": "F4",
       "aliases": ["notepad"],
       "contexts": ["filePane", "commandPalette"],
-      "selection": "single",
+      "selection": "any",
       "type": "builtin",
       "path": "apps/edit/Notepad4.exe",
       "args": ["${selectedFile}"]

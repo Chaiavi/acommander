@@ -606,6 +606,12 @@ public class FilesPanesHelper {
         return getFileList(true).getSelectionModel().getSelectedItems();
     }
 
+    /** The item under the cursor of the focused pane, which may differ from the selection (NC-style F3/F4). */
+    public FileItem getCursorItem() {
+        FileItem focused = getFileList(true).getFocusModel().getFocusedItem();
+        return focused != null ? focused : getSelectedItem();
+    }
+
     /** Selects all items in the focused file pane */
     public void selectAllItems() {
         if (!Platform.isFxApplicationThread()) {

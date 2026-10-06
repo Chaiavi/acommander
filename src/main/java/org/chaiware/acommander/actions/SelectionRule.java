@@ -41,4 +41,22 @@ public enum SelectionRule {
             case SINGLE_OR_MULTIPLE_FILES -> count >= 1 && selectedItems.stream().allMatch(item -> !item.isDirectory());
         };
     }
+
+    /** Why {@code label} can't run on {@code selectedItems}, or null when it can. */
+    public String blockedMessage(String label, List<FileItem> selectedItems) {
+        if (isSatisfied(selectedItems)) {
+            return null;
+        }
+        String needs = switch (this) {
+            case NONE -> throw new IllegalStateException("NONE is always satisfied");
+            case ANY -> "at least one selected item";
+            case SINGLE -> "exactly one selected item";
+            case MULTI -> "two or more selected items";
+            case SINGLE_FILE -> "exactly one selected file";
+            case SINGLE_FOLDER -> "exactly one selected folder";
+            case SINGLE_OR_MULTIPLE_FILES -> "selected files only, no folders";
+        };
+        int count = selectedItems == null ? 0 : selectedItems.size();
+        return label + " needs " + needs + " (" + count + " selected)";
+    }
 }

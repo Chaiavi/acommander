@@ -34,6 +34,14 @@ public class ActionExecutor {
             return;
         }
 
+        String blocked = SelectionRule.fromString(action.getSelection())
+                .blockedMessage(action.getLabel(), commander.filesPanesHelper.getSelectedItems());
+        if (blocked != null) {
+            logger.info("Blocked action {}: {}", action.getId(), blocked);
+            commander.showToast(blocked);
+            return;
+        }
+
         String type = action.getType();
         if ("external".equalsIgnoreCase(type)) {
             executeExternal(action);

@@ -223,7 +223,7 @@ Every action is **data-driven**. Add, remove, or reconfigure tools without touch
 | `shortcut`     | —        | Keyboard shortcut string                           |
 | `aliases`      | —        | Palette search aliases                             |
 | `contexts`     | —        | `global` · `filePane` · `commandPalette`           |
-| `selection`    | —        | `none` · `single` · `multi` · `any` · `singleFile` |
+| `selection`    | —        | `none` · `single` · `multi` · `any` · `singleFile` · `singleFolder` · `singleOrMultipleFiles`; otherwise the action is blocked with a message |
 | `type`         | —        | `builtin` (default) or `external`                  |
 | `builtin`      | —        | Override builtin handler id                        |
 | `path`         | External | Executable path                                    |

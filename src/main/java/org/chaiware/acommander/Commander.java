@@ -974,9 +974,12 @@ public class Commander {
     }
 
     private ClipboardTransfer.State captureSelection(boolean cut) {
+        return capture(new ArrayList<>(filesPanesHelper.getSelectedItems()), cut);
+    }
+
+    private ClipboardTransfer.State capture(List<FileItem> items, boolean cut) {
         FilesPanesHelper.FocusSide side = filesPanesHelper.getFocusedSide();
-        return ClipboardTransfer.capture(new ArrayList<>(filesPanesHelper.getSelectedItems()), cut, side,
-                filesPanesHelper.getFileSystem(side), filesPanesHelper.getPath(side));
+        return ClipboardTransfer.capture(items, cut, side, filesPanesHelper.getFileSystem(side), filesPanesHelper.getPath(side));
     }
 
     private static FilesPanesHelper.FocusSide otherSide(FilesPanesHelper.FocusSide side) {
@@ -1087,7 +1090,15 @@ public class Commander {
     @FXML
     public void viewFile() {
         logger.info("View (F3)");
-        ClipboardTransfer.State source = captureSelection(false);
+        FileItem item = filesPanesHelper.getCursorItem();
+        if (item == null) {
+            return;
+        }
+        if (item.isDirectory()) {
+            calculateDirSpace(item);
+            return;
+        }
+        ClipboardTransfer.State source = capture(List.of(item), false);
         runFileOperation("View", List.of(source.sourceFs()), false, () -> {
             for (ClipboardTransfer.Entry entry : source.entries()) {
                 fileOps.view(source.sourceFs(), entry);
@@ -1096,14 +1107,8 @@ public class Commander {
         }, ignored -> {});
     }
 
-    public void calculateDirSpace() {
+    private void calculateDirSpace(FileItem selectedItem) {
         logger.info("calculateDirSpace (F3 (on folder))");
-
-        FileItem selectedItem = filesPanesHelper.getSelectedItem();
-        if (selectedItem == null || !selectedItem.isDirectory()) {
-            logger.error("Error: Trying to calculate size of a file and not a folder ??");
-            return;
-        }
         Path folder = selectedItem.getPath();
         runWithProgress("Calculating size of " + selectedItem.getName(),
                 () -> FileHelper.folderSize(folder),
@@ -1117,8 +1122,12 @@ public class Commander {
     @FXML
     public void editFile() {
         logger.info("Edit (F4)");
-        List<FileItem> items = fileOps.filterValidItems(new ArrayList<>(filesPanesHelper.getSelectedItems()));
-        ClipboardTransfer.State source = captureSelection(false);
+        FileItem item = filesPanesHelper.getCursorItem();
+        if (item == null) {
+            return;
+        }
+        List<FileItem> items = fileOps.filterValidItems(List.of(item));
+        ClipboardTransfer.State source = capture(List.of(item), false);
         runFileOperation("Edit", List.of(source.sourceFs()), false, () -> {
             List<String> binary = new ArrayList<>();
             for (int i = 0; i < items.size(); i++) {
@@ -2925,7 +2934,7 @@ public class Commander {
         showToast((cut ? "Cut " : "Copied ") + state.entries().size() + " file(s)");
     }
 
-    private void showToast(String message) {
+    public void showToast(String message) {
         if (!Platform.isFxApplicationThread()) {
             Platform.runLater(() -> showToast(message));
             return;

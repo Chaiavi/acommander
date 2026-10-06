@@ -18,7 +18,7 @@ deleteKey | ftp=yes | writes=source | palette=n/a
 deleteWipe | ftp=no | writes=source | palette=-+++++++++++++
 deleteWipeKey | ftp=no | writes=source | palette=n/a
 duplicate | ftp=yes | writes=source | palette=-+++++++++++++
-edit | ftp=yes | writes=source | palette=-++++++++++---
+edit | ftp=yes | writes=source | palette=-+++++++++++++
 editAudioMetadata | ftp=no | writes=source | palette=------+-------
 editImageMetadata | ftp=no | writes=source | palette=---++---------
 editVideoMetadata | ftp=no | writes=source | palette=-------+------
@@ -66,5 +66,5 @@ toggleDarkMode | ftp=yes | writes=none | palette=++++++++++++++
 unlockDelete | ftp=no | writes=source | palette=n/a
 unpack | ftp=no | writes=target | palette=---------+----
 unselectAll | ftp=yes | writes=none | palette=-+++++++++++++
-view | ftp=yes | writes=none | palette=-++++++++++---
+view | ftp=yes | writes=none | palette=-+++++++++++++
 wipeDelete | ftp=no | writes=source | palette=n/a

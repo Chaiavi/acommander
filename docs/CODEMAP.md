@@ -17,11 +17,11 @@ key press on Scene
       COMMAND_PALETTE→ CommandPaletteKeyHandlerImpl
       not handled    → GlobalKeyHandlerImpl     shortcuts with scope global, Tab, Alt/Shift/Ctrl → bottom button labels
   → AppRegistry.matchShortcut(scope, event)     finds the ActionDefinition from config/apps.json
-  → SelectionRule.isSatisfied(selection)        `selection` field: none/single/multi/any/singleFile
   → ActionExecutor.execute(action)
       1. FTP pane?        apps.json `ftp: true` or rejected
       2. Read-only pane?  apps.json `writes`: source = focused pane, target = other pane, both
-      3. type external →  executeExternal: optional prompt → ToolCommandBuilder.buildCommand → commander.runExternal
+      3. Selection?       apps.json `selection` (SelectionRule.blockedMessage) or a toast says why it was blocked
+      4. type external →  executeExternal: optional prompt → ToolCommandBuilder.buildCommand → commander.runExternal
          type builtin  →  BuiltinAction.fromId(`builtin` or `id`) → ActionExecutor.handler: exhaustive switch → a public Commander method
   → Commander.<method>()  reads selection, shows dialogs
   → services/FileOperations, ArchiveOperations, PdfOperations, another service or helper/*Support class, or a bundled exe
@@ -47,7 +47,6 @@ Adding or renaming an action id? Check each of these:
 | `src/test/resources/action-rules-snapshot.txt` | Expected rules per action; `ActionRulesSnapshotTest` writes the actual table to `build/` when they differ |
 | `actions/BuiltinAction` + `ActionExecutor.handler()` | builtin id → `Commander` method (a missing case does not compile) |
 | `ActionRegistry.toAppAction()` | Dynamic palette labels (`fileProperties`, `duplicate`) |
-| `FilePaneKeyHandlerImpl.handle()` | F3 on a folder runs `calculateDirSpace` instead of `view` |
 | `Commander.updateBottomButtons()` | Bottom F-key button labels (actions come from apps.json shortcuts) |
 | `config/f1-help.html`, `README.md` shortcuts table | Manual docs for shortcuts |
 
