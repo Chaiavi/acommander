@@ -39,6 +39,7 @@ Thumbs.db
 /build_and_test.bat
 /build_script.bat
 /apps/copy/FastCopy2.ini
+/apps/multi_rename/Renamer.xml
 /IMPLEMENTATION_REPORT.md
 /run_build.py
 /verify_changes.py

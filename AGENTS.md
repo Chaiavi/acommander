@@ -175,10 +175,10 @@ All actions and external tools live in `config/apps.json`; shortcuts are declare
 
 ## Pitfalls
 
-- Running Ant Renamer rewrites the tracked `apps/multi_rename/Renamer.xml` (a `Date=` stamp). After a probe run,
-  `git restore` it; don't commit it.
-- `apps/extract_all/UniExtract/UniExtract.ini` is gitignored because UniExtract rewrites it on every run. Edit defaults
-  in `UniExtract.default.ini`; the `seedUniExtractIni` Gradle task copies it into place when missing.
+- `UniExtract.ini` and `Renamer.xml` (Ant Renamer) are gitignored because the tools rewrite them on every run. Edit
+  defaults in `UniExtract.default.ini` / `Renamer.default.xml`; the `seedToolSettings` Gradle task copies a missing
+  one into place and the release ships the templates. A new tool that does this: add it to `toolSettingsTemplates`
+  in `build.gradle` and to `.gitignore`.
 - `ActionRulesSnapshotTest` diff flips many actions to `ftp=yes | writes=none`: a new gate in
   `ActionExecutor.execute` runs before the FTP / read-only gates and returns first (its mocks have no selection).
   Put new gates after those two.
