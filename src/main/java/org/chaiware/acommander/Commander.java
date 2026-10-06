@@ -1001,12 +1001,15 @@ public class Commander {
     @FXML
     public void help() {
         logger.info("Help (F1)");
+        HelpDialog.show(dialogOwner(), currentThemeMode.styleClass, "A Commander " + AppVersion.current() + " Help",
+                HelpTopics.entries(appRegistry.actions()), this::openFullHelp);
+    }
 
+    private void openFullHelp() {
         try {
-            // Open help file using the internal UniversalViewer
-            ProcessRunner.of(BundledTool.VIEWER.path().toString(), AppPaths.config("f1-help.html").toString()).launch();
+            getDesktop().open(AppPaths.config("f1-help.html").toFile());
         } catch (Exception ex) {
-            error("Failed Viewing help file", ex);
+            error("Failed opening the help page in the browser", ex);
         }
     }
 

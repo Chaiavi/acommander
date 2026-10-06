@@ -126,7 +126,8 @@ All actions and external tools live in `config/apps.json`; shortcuts are declare
 
 - External tool, no Java: `type: "external"`, `path` to an exe under `apps/`, placeholders in `args`.
 - Builtin:
-  1. Add to `config/apps.json` with `type: "builtin"` and `contexts`, plus its rules: `ftp: true` if it works on FTP
+  1. Add to `config/apps.json` with `type: "builtin"`, `contexts` and a one-sentence `description` (the F1 help
+     shows it; `HelpTopicsTest` fails without it), plus its rules: `ftp: true` if it works on FTP
      panes, `writes` if it writes files, `fileTypes` / `requires` if the palette should offer it only sometimes
      (README "Fields" table).
   2. Add a `BuiltinAction` constant and its case in `ActionExecutor.handler()` calling a new method in `Commander`
@@ -192,7 +193,8 @@ All actions and external tools live in `config/apps.json`; shortcuts are declare
 - IntelliJ: after a clean build, debugger errors → **File → Invalidate Caches → Invalidate and Restart**. LSP errors in
   `Commander.java` (e.g. "getPath() undefined for Folder") are false positives if Gradle builds.
 - Universal Viewer (`BundledTool.VIEWER`) renders HTML with legacy IE: CSS variables, flexbox and web fonts are
-  ignored, so `f1-help.html` shows as plain black text on white, not its dark design. To screenshot it, use
+  ignored, so a styled page like `f1-help.html` shows as plain black text on white. Open HTML with the default
+  browser (`Desktop.open`). To screenshot it, use
   `SetProcessDPIAware` + `Graphics.CopyFromScreen`; `PrintWindow` returns a black page for the embedded browser.
 - `Desktop.open` throws "Unsupported URI content" for executables (`.bat`, `.exe`); use ShellExec_RunDLL (above).
 - A console program started from the app gets no window (the app has no console). To give it one, have a hidden

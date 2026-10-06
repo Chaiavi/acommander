@@ -34,6 +34,10 @@ public class AppRegistry {
         }
     }
 
+    public List<ActionDefinition> actions() {
+        return actions;
+    }
+
     public List<ActionDefinition> actionsForScope(ActionScope scope) {
         return actionsByScope.getOrDefault(scope, List.of());
     }

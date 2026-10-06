@@ -2,6 +2,7 @@
   "actions": [
     {
       "id": "multiRename",
+      "description": "Renames many files at once with Ant Renamer.",
       "writes": "source",
       "label": "Ant Renamer",
       "type": "external",
@@ -34,6 +35,7 @@
     },
     {
       "id": "help",
+      "description": "Shows this help: every shortcut and action.",
       "ftp": true,
       "label": "Help",
       "shortcut": "F1",
@@ -44,6 +46,7 @@
     },
     {
       "id": "settings",
+      "description": "Opens your settings file in the editor; changes apply when you close it.",
       "ftp": true,
       "label": "Settings",
       "aliases": ["preferences", "options", "settings"],
@@ -53,6 +56,7 @@
     },
     {
       "id": "rename",
+      "description": "Renames the selected item in place; with several selected, opens Ant Renamer.",
       "ftp": true,
       "writes": "source",
       "label": "Rename",
@@ -75,6 +79,7 @@
     },
     {
       "id": "view",
+      "description": "Views the selected files; on a folder, calculates its size.",
       "ftp": true,
       "label": "View",
       "shortcut": "F3",
@@ -87,6 +92,7 @@
     },
     {
       "id": "edit",
+      "description": "Opens the selected files in the text editor.",
       "ftp": true,
       "writes": "source",
       "label": "Edit",
@@ -100,6 +106,7 @@
     },
     {
       "id": "copy",
+      "description": "Copies the selected items to the other pane.",
       "ftp": true,
       "writes": "target",
       "label": "Copy",
@@ -114,6 +121,7 @@
     },
     {
       "id": "duplicate",
+      "description": "Copies the selected file into the same folder under a new name.",
       "ftp": true,
       "writes": "source",
       "label": "Duplicate",
@@ -127,6 +135,7 @@
     },
     {
       "id": "copySelection",
+      "description": "Puts the selected items on the clipboard to paste elsewhere.",
       "ftp": true,
       "label": "Copy",
       "shortcut": "Ctrl+C",
@@ -138,6 +147,7 @@
     },
     {
       "id": "cutSelection",
+      "description": "Puts the selected items on the clipboard to move them when pasted.",
       "ftp": true,
       "label": "Cut",
       "shortcut": "Ctrl+X",
@@ -149,6 +159,7 @@
     },
     {
       "id": "pasteSelection",
+      "description": "Pastes the clipboard files into the focused pane.",
       "ftp": true,
       "writes": "source",
       "requires": ["clipboardHasFiles"],
@@ -168,6 +179,7 @@
     },
     {
       "id": "move",
+      "description": "Moves the selected items to the other pane.",
       "ftp": true,
       "writes": "both",
       "label": "Move",
@@ -182,6 +194,7 @@
     },
     {
       "id": "mkdir",
+      "description": "Creates a new folder in the focused pane.",
       "ftp": true,
       "writes": "source",
       "label": "Create Directory",
@@ -193,6 +206,7 @@
     },
     {
       "id": "mkfile",
+      "description": "Creates a new empty file in the focused pane.",
       "ftp": true,
       "writes": "source",
       "label": "Create File",
@@ -204,6 +218,7 @@
     },
     {
       "id": "delete",
+      "description": "Deletes the selected items; offers to unlock files that are in use.",
       "ftp": true,
       "writes": "source",
       "label": "Delete",
@@ -226,6 +241,7 @@
     },
     {
       "id": "deleteWipe",
+      "description": "Overwrites and deletes the selected items so they can't be recovered.",
       "writes": "source",
       "label": "Delete & Wipe",
       "shortcut": "Shift+F8",
@@ -246,6 +262,7 @@
     },
     {
       "id": "terminal",
+      "description": "Opens a terminal in the focused pane's folder.",
       "label": "Open Terminal Here",
       "shortcut": "F9",
       "aliases": ["shell", "cmd", "powershell"],
@@ -255,6 +272,7 @@
     },
     {
       "id": "explorer",
+      "description": "Opens Windows Explorer in the focused pane's folder.",
       "label": "Open Explorer Here",
       "shortcut": "Alt+F9",
       "aliases": ["open folder"],
@@ -264,6 +282,7 @@
     },
     {
       "id": "search",
+      "description": "Finds files by name; wildcards like *.txt work.",
       "label": "Search for Files",
       "shortcut": "F10",
       "aliases": ["find", "grep"],
@@ -273,6 +292,7 @@
     },
     {
       "id": "findInFiles",
+      "description": "Finds the files that contain a text.",
       "label": "Find in Files",
       "shortcut": "Alt+F10",
       "aliases": ["search text", "content search", "ripgrep"],
@@ -291,6 +311,7 @@
     },
     {
       "id": "pack",
+      "description": "Packs the selected items into a zip in the other pane.",
       "writes": "target",
       "label": "Pack to Zip",
       "shortcut": "F11",
@@ -304,6 +325,7 @@
     },
     {
       "id": "splitLargeFile",
+      "description": "Splits one large file into parts of a size you choose.",
       "writes": "target",
       "label": "Split a Large File",
       "shortcut": "Alt+F11",
@@ -314,6 +336,7 @@
     },
     {
       "id": "convertMediaFile",
+      "description": "Converts the selected images or audio files to another format.",
       "writes": "target",
       "fileTypes": ["convertibleImage", "convertibleAudio"],
       "label": "Convert Media File",
@@ -325,6 +348,7 @@
     },
     {
       "id": "convertGraphicsFiles",
+      "description": "Converts or compresses the selected images.",
       "writes": "target",
       "fileTypes": ["convertibleImage"],
       "label": "Convert Graphics Files",
@@ -341,6 +365,7 @@
     },
     {
       "id": "convertAudioFiles",
+      "description": "Converts the selected audio files to another format.",
       "writes": "target",
       "fileTypes": ["convertibleAudio"],
       "label": "Convert Audio Files",
@@ -365,6 +390,7 @@
     },
     {
       "id": "checksumFile",
+      "description": "Calculates checksums of the selected files.",
       "label": "Checksum File",
       "aliases": ["hash file", "rhash file", "file checksum"],
       "contexts": ["commandPalette"],
@@ -373,6 +399,7 @@
     },
     {
       "id": "checksumFolderContents",
+      "description": "Calculates checksums of every file in the selected folder.",
       "label": "Checksum Folder Contents",
       "aliases": ["hash folder", "rhash folder", "folder checksum"],
       "contexts": ["commandPalette"],
@@ -381,6 +408,7 @@
     },
     {
       "id": "analyzeFile",
+      "description": "Shows what kind of file it really is, whatever its extension.",
       "label": "Analyze File",
       "aliases": [
         "inspect file",
@@ -398,6 +426,7 @@
     },
     {
       "id": "unpack",
+      "description": "Unpacks the selected archives to the other pane.",
       "writes": "target",
       "fileTypes": ["archive"],
       "label": "Unpack",
@@ -418,6 +447,7 @@
     },
     {
       "id": "extractAll",
+      "description": "Extracts nearly any archive or installer with Universal Extractor.",
       "writes": "target",
       "fileTypes": ["archive"],
       "label": "Extract Anything",
@@ -438,6 +468,7 @@
     },
     {
       "id": "mergePdf",
+      "description": "Joins the selected PDFs into one PDF.",
       "writes": "target",
       "fileTypes": ["pdf"],
       "label": "Merge PDF Files",
@@ -461,6 +492,7 @@
     },
     {
       "id": "extractPdfPages",
+      "description": "Saves pages of a PDF as separate PDFs.",
       "writes": "target",
       "fileTypes": ["pdf"],
       "label": "Extract PDF Pages",
@@ -484,6 +516,7 @@
     },
     {
       "id": "compareFiles",
+      "description": "Compares the selected text files of both panes side by side.",
       "requires": ["textFileInEachPane"],
       "label": "Compare Files",
       "aliases": ["diff files", "file compare", "examdiff"],
@@ -493,6 +526,7 @@
     },
     {
       "id": "compareFolders",
+      "description": "Marks the files that differ between the two panes.",
       "label": "Compare Folders",
       "aliases": ["folder compare", "diff folders", "compare panel folders"],
       "contexts": ["commandPalette"],
@@ -501,6 +535,7 @@
     },
     {
       "id": "fileProperties",
+      "description": "Opens the Windows Properties dialog of the selected item.",
       "label": "File Properties",
       "shortcut": "Alt+Enter",
       "aliases": ["properties", "windows properties", "file info"],
@@ -510,6 +545,7 @@
     },
     {
       "id": "changeAttributes",
+      "description": "Sets the read-only, hidden, system and archive attributes.",
       "writes": "source",
       "label": "Change Attributes",
       "aliases": ["attributes", "attrib", "set attributes"],
@@ -519,6 +555,7 @@
     },
     {
       "id": "editImageMetadata",
+      "description": "Edits the EXIF, IPTC and XMP tags of an image.",
       "writes": "source",
       "fileTypes": ["imageWithMetadata"],
       "label": "Edit Image Metadata",
@@ -535,6 +572,7 @@
     },
     {
       "id": "removeImageMetadata",
+      "description": "Strips all metadata from the selected images.",
       "writes": "source",
       "fileTypes": ["imageWithMetadata"],
       "label": "Remove Image Metadata",
@@ -551,6 +589,7 @@
     },
     {
       "id": "editVideoMetadata",
+      "description": "Edits the tags of an MP4-family video.",
       "writes": "source",
       "fileTypes": ["videoWithMetadata"],
       "label": "Edit Video Metadata",
@@ -567,6 +606,7 @@
     },
     {
       "id": "removeVideoMetadata",
+      "description": "Strips all metadata from the selected videos.",
       "writes": "source",
       "fileTypes": ["videoWithMetadata"],
       "label": "Remove Video Metadata",
@@ -583,6 +623,7 @@
     },
     {
       "id": "editAudioMetadata",
+      "description": "Edits the ID3 tags of an audio file.",
       "writes": "source",
       "fileTypes": ["audioWithMetadata"],
       "label": "Edit Audio Metadata",
@@ -607,6 +648,7 @@
     },
     {
       "id": "removeAudioMetadata",
+      "description": "Strips all tags from the selected audio files.",
       "writes": "source",
       "fileTypes": ["audioWithMetadata"],
       "label": "Remove Audio Metadata",
@@ -631,6 +673,7 @@
     },
     {
       "id": "compressExecutable",
+      "description": "Compresses or decompresses EXE and DLL files with UPX.",
       "writes": "source",
       "fileTypes": ["executable"],
       "label": "Compress Executable",
@@ -647,6 +690,7 @@
     },
     {
       "id": "refresh",
+      "description": "Reloads both panes.",
       "ftp": true,
       "label": "Refresh Panels",
       "shortcut": "Ctrl+R",
@@ -657,6 +701,7 @@
     },
     {
       "id": "selectAll",
+      "description": "Selects every item in the pane.",
       "ftp": true,
       "label": "Select All",
       "shortcut": "Ctrl+A",
@@ -667,6 +712,7 @@
     },
     {
       "id": "unselectAll",
+      "description": "Clears the selection.",
       "ftp": true,
       "label": "Unselect All",
       "shortcut": "Ctrl+Shift+A",
@@ -677,6 +723,7 @@
     },
     {
       "id": "invertSelection",
+      "description": "Selects what is not selected and unselects the rest.",
       "ftp": true,
       "label": "Invert Selection",
       "shortcut": "Ctrl+I",
@@ -687,6 +734,7 @@
     },
     {
       "id": "selectByPattern",
+      "description": "Selects the items whose names match a wildcard or regex.",
       "ftp": true,
       "label": "Select by Pattern",
       "aliases": ["select pattern", "filter select", "mask select", "glob"],
@@ -696,6 +744,7 @@
     },
     {
       "id": "toggleDarkMode",
+      "description": "Switches between the dark and light theme.",
       "ftp": true,
       "label": "Toggle Dark Mode",
       "aliases": ["toggle theme", "switch theme"],
@@ -705,6 +754,7 @@
     },
     {
       "id": "sortByName",
+      "description": "Sorts by name; run it again to reverse the order.",
       "ftp": true,
       "label": "Sort by Name",
       "aliases": ["sort name", "name sort"],
@@ -714,6 +764,7 @@
     },
     {
       "id": "sortBySize",
+      "description": "Sorts by size; run it again to reverse the order.",
       "ftp": true,
       "label": "Sort by Size",
       "aliases": ["sort size", "size sort"],
@@ -723,6 +774,7 @@
     },
     {
       "id": "sortByDate",
+      "description": "Sorts by date; run it again to reverse the order.",
       "ftp": true,
       "label": "Sort by Date",
       "aliases": ["sort date", "sort modified", "date sort"],
@@ -732,6 +784,7 @@
     },
     {
       "id": "bookmarkThisPath",
+      "description": "Saves the focused pane's folder as a bookmark.",
       "label": "Bookmark this path",
       "aliases": ["save bookmark", "bookmark folder"],
       "contexts": ["global", "commandPalette"],
@@ -740,6 +793,7 @@
     },
     {
       "id": "gotoBookmark",
+      "description": "Opens a saved bookmark in the focused pane.",
       "ftp": true,
       "label": "Goto Bookmark",
       "aliases": ["go to bookmark", "jump bookmark"],
@@ -749,6 +803,7 @@
     },
     {
       "id": "removeBookmark",
+      "description": "Deletes a saved bookmark.",
       "ftp": true,
       "label": "Remove Bookmark",
       "aliases": ["delete bookmark"],
@@ -758,6 +813,7 @@
     },
     {
       "id": "openCommandPalette",
+      "description": "Finds and runs any action by typing part of its name.",
       "ftp": true,
       "label": "Command Palette",
       "shortcut": "Ctrl+Shift+P",
@@ -768,6 +824,7 @@
     },
     {
       "id": "leftPathCombo",
+      "description": "Opens the left pane's drive and folder list.",
       "ftp": true,
       "label": "Left Path",
       "shortcut": "Alt+F1",
@@ -778,6 +835,7 @@
     },
     {
       "id": "rightPathCombo",
+      "description": "Opens the right pane's drive and folder list.",
       "ftp": true,
       "label": "Right Path",
       "shortcut": "Alt+F2",
@@ -788,6 +846,7 @@
     },
     {
       "id": "syncToOtherPane",
+      "description": "Opens the focused pane's folder in the other pane too.",
       "label": "Same Folder on Other Panel",
       "aliases": ["sync panes", "mirror pane", "same folder"],
       "contexts": ["commandPalette"],
@@ -796,6 +855,7 @@
     },
     {
       "id": "ftpConnect",
+      "description": "Connects the focused pane to an FTP, FTPS or SFTP server.",
       "ftp": true,
       "label": "Connect to FTP/FTPS/SFTP-SSH",
       "aliases": ["ftp", "remote", "connect"],
@@ -805,6 +865,7 @@
     },
     {
       "id": "ftpDisconnect",
+      "description": "Closes the remote connection and returns to local files.",
       "ftp": true,
       "requires": ["focusedPaneIsFtp"],
       "label": "Disconnect from FTP/FTPS/SFTP-SSH",
@@ -815,6 +876,7 @@
     },
     {
       "id": "openHostsFile",
+      "description": "Opens the Windows hosts file in the editor as administrator.",
       "label": "Open hosts file",
       "aliases": [
         "hosts file",
@@ -831,6 +893,7 @@
     },
     {
       "id": "reportBug",
+      "description": "Opens a form to report a bug or ask a question on GitHub.",
       "ftp": true,
       "label": "Report Bug / Contact",
       "aliases": [

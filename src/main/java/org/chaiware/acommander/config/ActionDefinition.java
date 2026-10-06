@@ -8,6 +8,7 @@ import java.util.List;
 public class ActionDefinition {
     private String id;
     private String label;
+    private String description;
     private String shortcut;
     private List<String> aliases = new ArrayList<>();
     private List<String> contexts = new ArrayList<>();
@@ -66,6 +67,14 @@ public class ActionDefinition {
 
     public void setLabel(String label) {
         this.label = label;
+    }
+
+    public String getDescription() {
+        return description;
+    }
+
+    public void setDescription(String description) {
+        this.description = description;
     }
 
     public String getShortcut() {
