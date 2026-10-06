@@ -3,6 +3,7 @@
     {
       "id": "multiRename",
       "description": "Renames many files at once with Ant Renamer.",
+      "category": "File Operations",
       "writes": "source",
       "label": "Ant Renamer",
       "type": "external",
@@ -36,6 +37,7 @@
     {
       "id": "help",
       "description": "Shows this help: every shortcut and action.",
+      "category": "Getting Around",
       "ftp": true,
       "label": "Help",
       "shortcut": "F1",
@@ -47,6 +49,7 @@
     {
       "id": "settings",
       "description": "Opens your settings file in the editor; changes apply when you close it.",
+      "category": "Display & Settings",
       "ftp": true,
       "label": "Settings",
       "aliases": ["preferences", "options", "settings"],
@@ -57,6 +60,7 @@
     {
       "id": "rename",
       "description": "Renames the selected item in place; with several selected, opens Ant Renamer.",
+      "category": "File Operations",
       "ftp": true,
       "writes": "source",
       "label": "Rename",
@@ -80,6 +84,7 @@
     {
       "id": "view",
       "description": "Views the selected files; on a folder, calculates its size.",
+      "category": "File Operations",
       "ftp": true,
       "label": "View",
       "shortcut": "F3",
@@ -93,6 +98,7 @@
     {
       "id": "edit",
       "description": "Opens the selected files in the text editor.",
+      "category": "File Operations",
       "ftp": true,
       "writes": "source",
       "label": "Edit",
@@ -107,6 +113,7 @@
     {
       "id": "copy",
       "description": "Copies the selected items to the other pane.",
+      "category": "File Operations",
       "ftp": true,
       "writes": "target",
       "label": "Copy",
@@ -122,6 +129,7 @@
     {
       "id": "duplicate",
       "description": "Copies the selected file into the same folder under a new name.",
+      "category": "File Operations",
       "ftp": true,
       "writes": "source",
       "label": "Duplicate",
@@ -136,6 +144,7 @@
     {
       "id": "copySelection",
       "description": "Puts the selected items on the clipboard to paste elsewhere.",
+      "category": "File Operations",
       "ftp": true,
       "label": "Copy",
       "shortcut": "Ctrl+C",
@@ -148,6 +157,7 @@
     {
       "id": "cutSelection",
       "description": "Puts the selected items on the clipboard to move them when pasted.",
+      "category": "File Operations",
       "ftp": true,
       "label": "Cut",
       "shortcut": "Ctrl+X",
@@ -160,6 +170,7 @@
     {
       "id": "pasteSelection",
       "description": "Pastes the clipboard files into the focused pane.",
+      "category": "File Operations",
       "ftp": true,
       "writes": "source",
       "requires": ["clipboardHasFiles"],
@@ -180,6 +191,7 @@
     {
       "id": "move",
       "description": "Moves the selected items to the other pane.",
+      "category": "File Operations",
       "ftp": true,
       "writes": "both",
       "label": "Move",
@@ -195,6 +207,7 @@
     {
       "id": "mkdir",
       "description": "Creates a new folder in the focused pane.",
+      "category": "File Operations",
       "ftp": true,
       "writes": "source",
       "label": "Create Directory",
@@ -207,6 +220,7 @@
     {
       "id": "mkfile",
       "description": "Creates a new empty file in the focused pane.",
+      "category": "File Operations",
       "ftp": true,
       "writes": "source",
       "label": "Create File",
@@ -219,6 +233,7 @@
     {
       "id": "delete",
       "description": "Deletes the selected items; offers to unlock files that are in use.",
+      "category": "File Operations",
       "ftp": true,
       "writes": "source",
       "label": "Delete",
@@ -242,6 +257,7 @@
     {
       "id": "deleteWipe",
       "description": "Overwrites and deletes the selected items so they can't be recovered.",
+      "category": "File Operations",
       "writes": "source",
       "label": "Delete & Wipe",
       "shortcut": "Shift+F8",
@@ -263,6 +279,7 @@
     {
       "id": "terminal",
       "description": "Opens a terminal in the focused pane's folder.",
+      "category": "Tools",
       "label": "Open Terminal Here",
       "shortcut": "F9",
       "aliases": ["shell", "cmd", "powershell"],
@@ -273,6 +290,7 @@
     {
       "id": "explorer",
       "description": "Opens Windows Explorer in the focused pane's folder.",
+      "category": "Tools",
       "label": "Open Explorer Here",
       "shortcut": "Alt+F9",
       "aliases": ["open folder"],
@@ -283,6 +301,7 @@
     {
       "id": "search",
       "description": "Finds files by name; wildcards like *.txt work.",
+      "category": "Search & Compare",
       "label": "Search for Files",
       "shortcut": "F10",
       "aliases": ["find", "grep"],
@@ -293,6 +312,7 @@
     {
       "id": "findInFiles",
       "description": "Finds the files that contain a text.",
+      "category": "Search & Compare",
       "label": "Find in Files",
       "shortcut": "Alt+F10",
       "aliases": ["search text", "content search", "ripgrep"],
@@ -312,6 +332,7 @@
     {
       "id": "pack",
       "description": "Packs the selected items into a zip in the other pane.",
+      "category": "Archives & PDF",
       "writes": "target",
       "label": "Pack to Zip",
       "shortcut": "F11",
@@ -326,6 +347,7 @@
     {
       "id": "splitLargeFile",
       "description": "Splits one large file into parts of a size you choose.",
+      "category": "Archives & PDF",
       "writes": "target",
       "label": "Split a Large File",
       "shortcut": "Alt+F11",
@@ -337,6 +359,7 @@
     {
       "id": "convertMediaFile",
       "description": "Converts the selected images or audio files to another format.",
+      "category": "Media",
       "writes": "target",
       "fileTypes": ["convertibleImage", "convertibleAudio"],
       "label": "Convert Media File",
@@ -349,6 +372,7 @@
     {
       "id": "convertGraphicsFiles",
       "description": "Converts or compresses the selected images.",
+      "category": "Media",
       "writes": "target",
       "fileTypes": ["convertibleImage"],
       "label": "Convert Graphics Files",
@@ -366,6 +390,7 @@
     {
       "id": "convertAudioFiles",
       "description": "Converts the selected audio files to another format.",
+      "category": "Media",
       "writes": "target",
       "fileTypes": ["convertibleAudio"],
       "label": "Convert Audio Files",
@@ -391,6 +416,7 @@
     {
       "id": "checksumFile",
       "description": "Calculates checksums of the selected files.",
+      "category": "Search & Compare",
       "label": "Checksum File",
       "aliases": ["hash file", "rhash file", "file checksum"],
       "contexts": ["commandPalette"],
@@ -400,6 +426,7 @@
     {
       "id": "checksumFolderContents",
       "description": "Calculates checksums of every file in the selected folder.",
+      "category": "Search & Compare",
       "label": "Checksum Folder Contents",
       "aliases": ["hash folder", "rhash folder", "folder checksum"],
       "contexts": ["commandPalette"],
@@ -409,6 +436,7 @@
     {
       "id": "analyzeFile",
       "description": "Shows what kind of file it really is, whatever its extension.",
+      "category": "Search & Compare",
       "label": "Analyze File",
       "aliases": [
         "inspect file",
@@ -427,6 +455,7 @@
     {
       "id": "unpack",
       "description": "Unpacks the selected archives to the other pane.",
+      "category": "Archives & PDF",
       "writes": "target",
       "fileTypes": ["archive"],
       "label": "Unpack",
@@ -448,6 +477,7 @@
     {
       "id": "extractAll",
       "description": "Extracts nearly any archive or installer with Universal Extractor.",
+      "category": "Archives & PDF",
       "writes": "target",
       "fileTypes": ["archive"],
       "label": "Extract Anything",
@@ -469,6 +499,7 @@
     {
       "id": "mergePdf",
       "description": "Joins the selected PDFs into one PDF.",
+      "category": "Archives & PDF",
       "writes": "target",
       "fileTypes": ["pdf"],
       "label": "Merge PDF Files",
@@ -493,6 +524,7 @@
     {
       "id": "extractPdfPages",
       "description": "Saves pages of a PDF as separate PDFs.",
+      "category": "Archives & PDF",
       "writes": "target",
       "fileTypes": ["pdf"],
       "label": "Extract PDF Pages",
@@ -517,6 +549,7 @@
     {
       "id": "compareFiles",
       "description": "Compares the selected text files of both panes side by side.",
+      "category": "Search & Compare",
       "requires": ["textFileInEachPane"],
       "label": "Compare Files",
       "aliases": ["diff files", "file compare", "examdiff"],
@@ -527,6 +560,7 @@
     {
       "id": "compareFolders",
       "description": "Marks the files that differ between the two panes.",
+      "category": "Search & Compare",
       "label": "Compare Folders",
       "aliases": ["folder compare", "diff folders", "compare panel folders"],
       "contexts": ["commandPalette"],
@@ -536,6 +570,7 @@
     {
       "id": "fileProperties",
       "description": "Opens the Windows Properties dialog of the selected item.",
+      "category": "File Operations",
       "label": "File Properties",
       "shortcut": "Alt+Enter",
       "aliases": ["properties", "windows properties", "file info"],
@@ -546,6 +581,7 @@
     {
       "id": "changeAttributes",
       "description": "Sets the read-only, hidden, system and archive attributes.",
+      "category": "File Operations",
       "writes": "source",
       "label": "Change Attributes",
       "aliases": ["attributes", "attrib", "set attributes"],
@@ -556,6 +592,7 @@
     {
       "id": "editImageMetadata",
       "description": "Edits the EXIF, IPTC and XMP tags of an image.",
+      "category": "Media",
       "writes": "source",
       "fileTypes": ["imageWithMetadata"],
       "label": "Edit Image Metadata",
@@ -573,6 +610,7 @@
     {
       "id": "removeImageMetadata",
       "description": "Strips all metadata from the selected images.",
+      "category": "Media",
       "writes": "source",
       "fileTypes": ["imageWithMetadata"],
       "label": "Remove Image Metadata",
@@ -590,6 +628,7 @@
     {
       "id": "editVideoMetadata",
       "description": "Edits the tags of an MP4-family video.",
+      "category": "Media",
       "writes": "source",
       "fileTypes": ["videoWithMetadata"],
       "label": "Edit Video Metadata",
@@ -607,6 +646,7 @@
     {
       "id": "removeVideoMetadata",
       "description": "Strips all metadata from the selected videos.",
+      "category": "Media",
       "writes": "source",
       "fileTypes": ["videoWithMetadata"],
       "label": "Remove Video Metadata",
@@ -624,6 +664,7 @@
     {
       "id": "editAudioMetadata",
       "description": "Edits the ID3 tags of an audio file.",
+      "category": "Media",
       "writes": "source",
       "fileTypes": ["audioWithMetadata"],
       "label": "Edit Audio Metadata",
@@ -649,6 +690,7 @@
     {
       "id": "removeAudioMetadata",
       "description": "Strips all tags from the selected audio files.",
+      "category": "Media",
       "writes": "source",
       "fileTypes": ["audioWithMetadata"],
       "label": "Remove Audio Metadata",
@@ -674,6 +716,7 @@
     {
       "id": "compressExecutable",
       "description": "Compresses or decompresses EXE and DLL files with UPX.",
+      "category": "Archives & PDF",
       "writes": "source",
       "fileTypes": ["executable"],
       "label": "Compress Executable",
@@ -691,6 +734,7 @@
     {
       "id": "refresh",
       "description": "Reloads both panes.",
+      "category": "Getting Around",
       "ftp": true,
       "label": "Refresh Panels",
       "shortcut": "Ctrl+R",
@@ -702,6 +746,7 @@
     {
       "id": "selectAll",
       "description": "Selects every item in the pane.",
+      "category": "Selection",
       "ftp": true,
       "label": "Select All",
       "shortcut": "Ctrl+A",
@@ -713,6 +758,7 @@
     {
       "id": "unselectAll",
       "description": "Clears the selection.",
+      "category": "Selection",
       "ftp": true,
       "label": "Unselect All",
       "shortcut": "Ctrl+Shift+A",
@@ -724,6 +770,7 @@
     {
       "id": "invertSelection",
       "description": "Selects what is not selected and unselects the rest.",
+      "category": "Selection",
       "ftp": true,
       "label": "Invert Selection",
       "shortcut": "Ctrl+I",
@@ -735,6 +782,7 @@
     {
       "id": "selectByPattern",
       "description": "Selects the items whose names match a wildcard or regex.",
+      "category": "Selection",
       "ftp": true,
       "label": "Select by Pattern",
       "aliases": ["select pattern", "filter select", "mask select", "glob"],
@@ -745,6 +793,7 @@
     {
       "id": "toggleDarkMode",
       "description": "Switches between the dark and light theme.",
+      "category": "Display & Settings",
       "ftp": true,
       "label": "Toggle Dark Mode",
       "aliases": ["toggle theme", "switch theme"],
@@ -755,6 +804,7 @@
     {
       "id": "sortByName",
       "description": "Sorts by name; run it again to reverse the order.",
+      "category": "Display & Settings",
       "ftp": true,
       "label": "Sort by Name",
       "aliases": ["sort name", "name sort"],
@@ -765,6 +815,7 @@
     {
       "id": "sortBySize",
       "description": "Sorts by size; run it again to reverse the order.",
+      "category": "Display & Settings",
       "ftp": true,
       "label": "Sort by Size",
       "aliases": ["sort size", "size sort"],
@@ -775,6 +826,7 @@
     {
       "id": "sortByDate",
       "description": "Sorts by date; run it again to reverse the order.",
+      "category": "Display & Settings",
       "ftp": true,
       "label": "Sort by Date",
       "aliases": ["sort date", "sort modified", "date sort"],
@@ -785,6 +837,7 @@
     {
       "id": "bookmarkThisPath",
       "description": "Saves the focused pane's folder as a bookmark.",
+      "category": "Getting Around",
       "label": "Bookmark this path",
       "aliases": ["save bookmark", "bookmark folder"],
       "contexts": ["global", "commandPalette"],
@@ -794,6 +847,7 @@
     {
       "id": "gotoBookmark",
       "description": "Opens a saved bookmark in the focused pane.",
+      "category": "Getting Around",
       "ftp": true,
       "label": "Goto Bookmark",
       "aliases": ["go to bookmark", "jump bookmark"],
@@ -804,6 +858,7 @@
     {
       "id": "removeBookmark",
       "description": "Deletes a saved bookmark.",
+      "category": "Getting Around",
       "ftp": true,
       "label": "Remove Bookmark",
       "aliases": ["delete bookmark"],
@@ -814,6 +869,7 @@
     {
       "id": "openCommandPalette",
       "description": "Finds and runs any action by typing part of its name.",
+      "category": "Getting Around",
       "ftp": true,
       "label": "Command Palette",
       "shortcut": "Ctrl+Shift+P",
@@ -825,6 +881,7 @@
     {
       "id": "leftPathCombo",
       "description": "Opens the left pane's drive and folder list.",
+      "category": "Getting Around",
       "ftp": true,
       "label": "Left Path",
       "shortcut": "Alt+F1",
@@ -836,6 +893,7 @@
     {
       "id": "rightPathCombo",
       "description": "Opens the right pane's drive and folder list.",
+      "category": "Getting Around",
       "ftp": true,
       "label": "Right Path",
       "shortcut": "Alt+F2",
@@ -847,6 +905,7 @@
     {
       "id": "syncToOtherPane",
       "description": "Opens the focused pane's folder in the other pane too.",
+      "category": "Getting Around",
       "label": "Same Folder on Other Panel",
       "aliases": ["sync panes", "mirror pane", "same folder"],
       "contexts": ["commandPalette"],
@@ -856,6 +915,7 @@
     {
       "id": "ftpConnect",
       "description": "Connects the focused pane to an FTP, FTPS or SFTP server.",
+      "category": "Tools",
       "ftp": true,
       "label": "Connect to FTP/FTPS/SFTP-SSH",
       "aliases": ["ftp", "remote", "connect"],
@@ -866,6 +926,7 @@
     {
       "id": "ftpDisconnect",
       "description": "Closes the remote connection and returns to local files.",
+      "category": "Tools",
       "ftp": true,
       "requires": ["focusedPaneIsFtp"],
       "label": "Disconnect from FTP/FTPS/SFTP-SSH",
@@ -877,6 +938,7 @@
     {
       "id": "openHostsFile",
       "description": "Opens the Windows hosts file in the editor as administrator.",
+      "category": "Tools",
       "label": "Open hosts file",
       "aliases": [
         "hosts file",
@@ -894,6 +956,7 @@
     {
       "id": "reportBug",
       "description": "Opens a form to report a bug or ask a question on GitHub.",
+      "category": "Tools",
       "ftp": true,
       "label": "Report Bug / Contact",
       "aliases": [

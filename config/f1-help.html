@@ -159,6 +159,14 @@
         section:nth-child(9) { animation-delay: 0.4s; }
         section:nth-child(10) { animation-delay: 0.45s; }
 
+        /* ── Collapsible sections ── */
+        section:not(.open) { margin-bottom: 0.75rem; }
+        section:not(.open) > :not(h2) { display: none; }
+        section > h2 { cursor: pointer; user-select: none; border-radius: 8px; padding: 0.35rem 0.5rem; margin-left: -0.5rem; }
+        section > h2:hover, section > h2:focus-visible { background: var(--bg-card); outline: none; }
+        section > h2::after { content: '▸'; color: var(--text-dim); margin-left: auto; transition: transform 0.2s; }
+        section.open > h2::after { transform: rotate(90deg); }
+
         h2 {
           font-family: 'JetBrains Mono', monospace;
           font-size: 1.15rem;
@@ -718,5 +726,24 @@
     </footer>
 
 </div>
+<script>
+    // Each section starts collapsed; its heading opens and closes it (click, Enter or Space).
+    document.querySelectorAll('section > h2').forEach(function (heading) {
+        heading.tabIndex = 0;
+        heading.setAttribute('role', 'button');
+        heading.setAttribute('aria-expanded', 'false');
+        function toggle() {
+            var open = heading.parentElement.classList.toggle('open');
+            heading.setAttribute('aria-expanded', String(open));
+        }
+        heading.addEventListener('click', toggle);
+        heading.addEventListener('keydown', function (event) {
+            if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault();
+                toggle();
+            }
+        });
+    });
+</script>
 </body>
 </html>

@@ -44,7 +44,7 @@ class HelpTopicsTest {
 
     @Test
     void filterNeedsEveryWordInKeysActionDescriptionOrAliases() {
-        Entry pack = new Entry("F11", "Pack to Zip", "Packs the selected items.", List.of("archive"));
+        Entry pack = new Entry("Archives & PDF", "F11", "Pack to Zip", "Packs the selected items.", List.of("archive"));
 
         assertThat(HelpTopics.matches(pack, "")).isTrue();
         assertThat(HelpTopics.matches(pack, "f11 ZIP")).isTrue();
@@ -53,13 +53,30 @@ class HelpTopicsTest {
     }
 
     @Test
-    void everyActionShownInHelpHasADescription() throws IOException {
+    void everyActionShownInHelpHasADescriptionAndAKnownCategory() throws IOException {
         List<ActionDefinition> actions = new AppConfigLoader().load(Path.of("config", "apps.json")).getActions();
 
         assertThat(HelpTopics.entries(actions)).filteredOn(entry -> entry.description().isBlank())
                 .extracting(Entry::action)
                 .as("apps.json actions shown in F1 help without a \"description\"")
                 .isEmpty();
+        assertThat(HelpTopics.entries(actions)).filteredOn(entry -> !HelpTopics.CATEGORIES.contains(entry.category()))
+                .extracting(Entry::action)
+                .as("apps.json actions shown in F1 help without a \"category\" from HelpTopics.CATEGORIES")
+                .isEmpty();
+    }
+
+    @Test
+    void groupsByCategoryInSectionOrderKeepingRowOrder() {
+        List<Entry> entries = List.of(
+                new Entry("Media", "Command Palette", "Convert Audio Files", "", List.of()),
+                new Entry("Getting Around", "F1", "Help", "", List.of()),
+                new Entry("Media", "Command Palette", "Analyze", "", List.of()),
+                new Entry("Getting Around", "Ctrl+R", "Refresh Panels", "", List.of()));
+
+        assertThat(HelpTopics.byCategory(entries).keySet()).containsExactly("Getting Around", "Media");
+        assertThat(HelpTopics.byCategory(entries).get("Media")).extracting(Entry::action)
+                .containsExactly("Convert Audio Files", "Analyze");
     }
 
     private static List<Entry> actionRows(List<Entry> entries) {

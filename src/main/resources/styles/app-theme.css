@@ -427,6 +427,24 @@
     -fx-background-color: #2a3443;
 }
 
+.dialog-pane.theme-dark .titled-pane {
+    -fx-text-fill: #f3f7ff;
+}
+
+.dialog-pane.theme-dark .titled-pane > .title {
+    -fx-background-color: #344356;
+    -fx-border-color: #6f89aa;
+}
+
+.dialog-pane.theme-dark .titled-pane > .title > .arrow-button > .arrow {
+    -fx-background-color: #f3f7ff;
+}
+
+.dialog-pane.theme-dark .titled-pane > .content {
+    -fx-background-color: #2a3443;
+    -fx-border-color: #6f89aa;
+}
+
 .dialog-pane.theme-light {
     -fx-background-color: #c0c0c0;
 }

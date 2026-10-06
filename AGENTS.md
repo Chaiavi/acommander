@@ -126,8 +126,8 @@ All actions and external tools live in `config/apps.json`; shortcuts are declare
 
 - External tool, no Java: `type: "external"`, `path` to an exe under `apps/`, placeholders in `args`.
 - Builtin:
-  1. Add to `config/apps.json` with `type: "builtin"`, `contexts` and a one-sentence `description` (the F1 help
-     shows it; `HelpTopicsTest` fails without it), plus its rules: `ftp: true` if it works on FTP
+  1. Add to `config/apps.json` with `type: "builtin"`, `contexts`, a one-sentence `description` and a `category`
+     from `HelpTopics.CATEGORIES` (the F1 help shows both; `HelpTopicsTest` fails without them), plus its rules: `ftp: true` if it works on FTP
      panes, `writes` if it writes files, `fileTypes` / `requires` if the palette should offer it only sometimes
      (README "Fields" table).
   2. Add a `BuiltinAction` constant and its case in `ActionExecutor.handler()` calling a new method in `Commander`

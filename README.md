@@ -221,6 +221,7 @@ Every action is **data-driven**. Add, remove, or reconfigure tools without touch
 | `id`           | ✅        | Unique action id                                   |
 | `label`        | ✅        | Display name                                       |
 | `description`  | —        | One sentence shown in the F1 help                  |
+| `category`     | —        | F1 help section, one of `HelpTopics.CATEGORIES`    |
 | `shortcut`     | —        | Keyboard shortcut string                           |
 | `aliases`      | —        | Palette search aliases                             |
 | `contexts`     | —        | `global` · `filePane` · `commandPalette`           |

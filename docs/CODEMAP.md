@@ -56,7 +56,7 @@ Adding or renaming an action id? Check each of these:
 
 | Action id (apps.json) | `Commander` method | Logic / runs via | Tool |
 |---|---|---|---|
-| `help` (F1) | `help`, `openFullHelp` | `dialog/HelpDialog`, `helpers/HelpTopics` (rows from apps.json `label` / `shortcut` / `description`) | "Open Full Help in Browser" opens `config/f1-help.html` with the default browser |
+| `help` (F1) | `help`, `openFullHelp` | `dialog/HelpDialog`, `helpers/HelpTopics` (rows from apps.json `label` / `shortcut` / `description`, sections from `category`) | "Open Full Help in Browser" opens `config/f1-help.html` with the default browser |
 | `settings` | `openSettings` | `FileOperations.edit` | edits `config/acommander.properties` |
 | `rename` (F2, Shift+F6) | `renameFile` | `FileOperations.rename` → single: VFS, many: `multiRename` | `multi_rename/Renamer.exe` |
 | `view` (F3) | `viewFile` / `calculateDirSpace` (folder) | `FileOperations.view` / `FileHelper.folderSize` | `view/UniversalViewer/Viewer.exe` |
@@ -196,7 +196,7 @@ Not actions, but often asked for:
 | `TextPromptDialog` | One-line text prompt with a preselected range (rename selects the name without its extension). |
 | `FindInFilesDialog` / `FoundFilesDialog` | Find in Files options; the found files list (Enter / double-click goes to one). |
 | `BookmarkPickerDialog` | Pick a bookmark by name (Go / Remove). |
-| `HelpDialog` | F1: filterable table of every key and action (`HelpTopics`), tips, Open Full Help in Browser. |
+| `HelpDialog` | F1: collapsible section per category of every key and action (`HelpTopics`); the filter opens matching sections; tips, Open Full Help in Browser. |
 | `ReportBugDialog` | Bug report form → prefilled GitHub issue URL. |
 | `ImageConversionDialog` / `AudioConversionDialog` | Conversion options → `ImageConversionRequest` / `AudioConversionRequest`. |
 | `ExecutableCompressionDialog` | UPX compress level or decompress → `UpxAction`. |
@@ -223,7 +223,7 @@ Not actions, but often asked for:
 | `AppPaths` | The app root (`user.dir`), `config(name)`, `resolve(relative)`. The only reader of `user.dir`. |
 | `SettingsStore` | `config/acommander.properties`: typed get/set (pane folders, theme, last selection pattern, bookmarks, FTP connections), save via temp file + atomic move; an unreadable file is moved to `.unreadable`. FTP passwords are stored DPAPI-encrypted (`passwordDpapi`), decrypted by `unlockFtpPasswords` when the FTP dialog opens. `Commander.loadSettings` / `saveSettings`; reloaded when the Settings editor closes. |
 | `AppVersion` | Running version from `app-version.properties`, which the build fills from `appVersion` in `build.gradle`. |
-| `HelpTopics` | F1 help rows: fixed keys, apps.json actions (same handler's shortcuts merged, F-key order), palette-only actions; `matches` filter; tips. |
+| `HelpTopics` | F1 help rows: fixed keys, apps.json actions (same handler's shortcuts merged, F-key order), palette-only actions; `byCategory` sections in `CATEGORIES` order; `matches` filter; tips. |
 | `ImageConversionSupport`, `AudioConversionSupport` | Which files convert, target formats. |
 | `ImageMetadataSupport`, `VideoMetadataSupport`, `AudioMetadataSupport` | Which files the metadata editors accept; `remove(file)` strips all metadata (exiv2 / AtomicParsley / id3). Output parsers the dialogs use: `parsePrintAll` + `groupName` (exiv2), `parseTextData` (AtomicParsley), `parseQuery` (id3). Video and audio also `read` / `writeCommand` / `write` (id3 refuses text the Windows code page can't hold). `VideoMetadataSupport` also deletes the temp files AtomicParsley leaves. |
 | `ExecutableCompressionSupport` | Which files UPX accepts; `UpxAction` (level or decompress → flag), `upxCommand`, `percentChange`. |

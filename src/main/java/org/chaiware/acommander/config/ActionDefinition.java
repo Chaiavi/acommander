@@ -9,6 +9,7 @@ public class ActionDefinition {
     private String id;
     private String label;
     private String description;
+    private String category;
     private String shortcut;
     private List<String> aliases = new ArrayList<>();
     private List<String> contexts = new ArrayList<>();
@@ -75,6 +76,14 @@ public class ActionDefinition {
 
     public void setDescription(String description) {
         this.description = description;
+    }
+
+    public String getCategory() {
+        return category;
+    }
+
+    public void setCategory(String category) {
+        this.category = category;
     }
 
     public String getShortcut() {
