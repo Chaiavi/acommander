@@ -169,10 +169,14 @@ All actions and external tools live in `config/apps.json`; shortcuts are declare
   `System.Drawing.Bitmap` tagged with `apps/image_metadata/exiv2.exe -M"set Exif.Image.Make X"`; id3.exe tags an
   empty `.mp3`. AtomicParsley needs a real mp4.
 - Admin elevation: PowerShell `Start-Process -Verb RunAs`.
+- A bundled tool's command-line syntax is often only in its `.chm` help: `hh.exe -decompile <tempdir> <file.chm>`
+  gives plain HTML (Ant Renamer: `params_en.html`, `-af` takes each path as its own argument).
 - Logging: `logback.xml` writes to `logs/` (gitignored).
 
 ## Pitfalls
 
+- Running Ant Renamer rewrites the tracked `apps/multi_rename/Renamer.xml` (a `Date=` stamp). After a probe run,
+  `git restore` it; don't commit it.
 - `apps/extract_all/UniExtract/UniExtract.ini` is gitignored because UniExtract rewrites it on every run. Edit defaults
   in `UniExtract.default.ini`; the `seedUniExtractIni` Gradle task copies it into place when missing.
 - `ActionRulesSnapshotTest` diff flips many actions to `ftp=yes | writes=none`: a new gate in
