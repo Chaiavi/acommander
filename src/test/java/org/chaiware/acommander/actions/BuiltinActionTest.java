@@ -1,6 +1,5 @@
 package org.chaiware.acommander.actions;
 
-import org.chaiware.acommander.config.ActionDefinition;
 import org.chaiware.acommander.config.AppConfigLoader;
 import org.junit.jupiter.api.Test;
 

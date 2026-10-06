@@ -33,7 +33,6 @@ public class ImageMetadataDialog {
     private final Window owner;
     private final File imageFile;
     private final String themeClass;
-    @SuppressWarnings("unchecked")
 
     private TreeTableView<MetadataEntry> metadataTreeTable;
     private Button loadButton;
@@ -230,7 +229,6 @@ public class ImageMetadataDialog {
                     String oldValue = entry.getOriginalValue();
                     if (!Objects.equals(oldValue, newValue)) {
                         entry.setValue(newValue);
-                        entry.setModified(true);
                         upsertPendingModification(entry.getKey(), newValue);
                         setStatus("Pending: " + entry.getKey() + " = " + (newValue.isEmpty() ? "(empty)" : newValue));
                     }
@@ -895,7 +893,6 @@ public class ImageMetadataDialog {
         MetadataEntry existing = entriesByKey.get(key);
         if (existing != null) {
             existing.setValue(value);
-            existing.setModified(true);
             upsertPendingModification(key, value);
             metadataTypeCombo.setValue("All");
             rebuildTreeTable(null);
@@ -905,7 +902,6 @@ public class ImageMetadataDialog {
         }
 
         MetadataEntry entry = new MetadataEntry(key, selected.type(), value, "");
-        entry.setModified(true);
         entriesByKey.put(key, entry);
         allParsedEntries.add(entry);
         upsertPendingModification(key, value);
@@ -996,14 +992,12 @@ public class ImageMetadataDialog {
         private final javafx.beans.property.SimpleStringProperty type;
         private final javafx.beans.property.SimpleStringProperty value;
         private final String originalValue;
-        private boolean modified;
 
         public MetadataEntry(String key, String type, String value, String originalValue) {
             this.key = new javafx.beans.property.SimpleStringProperty(key);
             this.type = new javafx.beans.property.SimpleStringProperty(type);
             this.value = new javafx.beans.property.SimpleStringProperty(value);
             this.originalValue = originalValue;
-            this.modified = false;
         }
 
         public javafx.beans.property.StringProperty keyProperty() { return key; }
@@ -1014,11 +1008,9 @@ public class ImageMetadataDialog {
         public String getType() { return type.get(); }
         public String getValue() { return value.get(); }
         public String getOriginalValue() { return originalValue; }
-        public boolean isModified() { return modified; }
         public boolean isEditableEntry() { return key.get() != null && key.get().contains(".") && !type.get().isEmpty(); }
         
         public void setValue(String value) { this.value.set(value); }
-        public void setModified(boolean modified) { this.modified = modified; }
     }
 
     /**
