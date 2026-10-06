@@ -1,5 +1,6 @@
 package org.chaiware.acommander.vfs;
 
+import org.chaiware.acommander.commands.Operation;
 import org.chaiware.acommander.helpers.AppTempDir;
 import org.chaiware.acommander.helpers.ArchiveManager;
 import org.chaiware.acommander.model.ArchiveMode;
@@ -98,6 +99,7 @@ public class ArchiveFileSystem implements VFileSystem {
             rename(sourceInternalPath, targetInternalPath);
         } else {
             copy(sourceInternalPath, targetFs, targetInternalPath);
+            Operation.checkNotStopped();
             delete(sourceInternalPath);
         }
     }

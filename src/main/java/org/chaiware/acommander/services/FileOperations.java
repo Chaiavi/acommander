@@ -1,6 +1,7 @@
 package org.chaiware.acommander.services;
 
 import org.chaiware.acommander.commands.ExternalToolRunner;
+import org.chaiware.acommander.commands.Operation;
 import org.chaiware.acommander.config.ActionDefinition;
 import org.chaiware.acommander.config.AppRegistry;
 import org.chaiware.acommander.helpers.AppTempDir;
@@ -120,6 +121,7 @@ public class FileOperations {
         try {
             runner.runExecutable(command("copy", Map.of("${targetFolder}", toolTarget(targetFolder)), sources), false).join();
         } catch (CompletionException e) {
+            Operation.rethrowIfStopped(e);
             return new PasteResult(List.of(), entries, unwrap(e));
         }
         return checkArrived(entries, targetFolder, "The copy tool reported success, but these are missing in ");
@@ -132,6 +134,7 @@ public class FileOperations {
         Exception firstFailure = null;
         LocalFileSystem local = new LocalFileSystem("");
         for (Entry entry : entries) {
+            Operation.checkNotStopped();
             try {
                 if (sameDrive(entry.sourceInternalPath(), targetFolder)) {
                     local.move(entry.sourceInternalPath(), local, Paths.get(targetFolder, entry.name()).toString());
@@ -141,6 +144,7 @@ public class FileOperations {
                 }
                 moved.add(entry);
             } catch (Exception e) {
+                Operation.rethrowIfStopped(e);
                 Exception cause = unwrap(e);
                 log.error("Move failed: {} -> {}", entry.sourceInternalPath(), targetFolder, cause);
                 failed.add(entry);
@@ -184,10 +188,12 @@ public class FileOperations {
     public List<Entry> delete(VFileSystem fs, List<Entry> entries) {
         List<Entry> failed = new ArrayList<>();
         for (Entry entry : entries) {
+            Operation.checkNotStopped();
             try {
                 fs.delete(entry.sourceInternalPath());
                 log.info("Deleted: {}", entry.sourceInternalPath());
             } catch (Exception e) {
+                Operation.rethrowIfStopped(e);
                 log.error("Failed deleting: {}", entry.sourceInternalPath(), e);
                 failed.add(entry);
             }

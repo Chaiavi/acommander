@@ -3,6 +3,7 @@ package org.chaiware.acommander.tools;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 
+import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -48,10 +49,24 @@ class ProcessRunnerTest {
 
     @Test
     void tracksProcessOnlyWhileRunning() throws Exception {
-        Set<Process> tracker = ConcurrentHashMap.newKeySet();
+        Set<Process> tracked = ConcurrentHashMap.newKeySet();
+        List<Process> seen = new java.util.ArrayList<>();
+        ProcessRunner.Tracker tracker = new ProcessRunner.Tracker() {
+            @Override
+            public void attach(Process process) {
+                tracked.add(process);
+                seen.add(process);
+            }
+
+            @Override
+            public void detach(Process process) {
+                tracked.remove(process);
+            }
+        };
 
         ProcessRunner.of("cmd.exe", "/c", "exit 0").trackIn(tracker).run();
 
-        assertThat(tracker).isEmpty();
+        assertThat(seen).hasSize(1);
+        assertThat(tracked).isEmpty();
     }
 }

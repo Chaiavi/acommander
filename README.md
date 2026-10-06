@@ -59,7 +59,7 @@ command palette. Free and open source.**
 - **Command Palette** (`Ctrl+Shift+P`) with fuzzy search and aliases
 - **Data-driven action system** via `config/apps.json` — no recompilation needed for tool changes
 - Built-in and external actions with selection/context rules
-- External task **progress bar** with stop button
+- Background **progress bar** with a Stop button that ends the whole operation (no next item, no delete after a stopped copy)
 - **Persistent state** — left/right paths, theme mode, bookmarks and saved FTP connections in
   `config/acommander.properties` (the Settings action opens it; edits apply when the editor closes)
 - Sort by Name / Size / Modified (header click or palette actions)

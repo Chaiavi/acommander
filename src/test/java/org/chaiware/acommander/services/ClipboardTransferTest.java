@@ -1,5 +1,7 @@
 package org.chaiware.acommander.services;
 
+import org.chaiware.acommander.commands.Operation;
+import org.chaiware.acommander.commands.OperationStoppedException;
 import org.chaiware.acommander.helpers.FilesPanesHelper;
 import org.chaiware.acommander.model.FileItem;
 import org.chaiware.acommander.vfs.ArchiveFileSystem;
@@ -17,6 +19,7 @@ import java.util.List;
 import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
@@ -64,6 +67,50 @@ class ClipboardTransferTest {
 
         assertThat(state.entries()).containsExactly(new ClipboardTransfer.Entry("a.txt", false, "/pub/a.txt"));
         assertThat(state.cut()).isTrue();
+    }
+
+    @Test
+    void stopEndsTheBatchBeforeTheNextItem() throws Exception {
+        VFileSystem source = mock(VFileSystem.class);
+        doAnswer(invocation -> {
+            Operation.stopAll();
+            return null;
+        }).when(source).copy(eq("/first.txt"), any(), anyString());
+        LocalFileSystem target = new LocalFileSystem(dir.toString());
+        ClipboardTransfer.State state = new ClipboardTransfer.State(
+                List.of(new ClipboardTransfer.Entry("first.txt", false, "/first.txt"),
+                        new ClipboardTransfer.Entry("second.txt", false, "/second.txt")),
+                false, FilesPanesHelper.FocusSide.LEFT, source, "/");
+
+        Operation operation = Operation.start();
+        try {
+            assertThatThrownBy(() -> operation.run(() -> ClipboardTransfer.paste(state, target, dir.toString())))
+                    .isInstanceOf(OperationStoppedException.class);
+        } finally {
+            operation.finish();
+        }
+        verify(source, never()).copy(eq("/second.txt"), any(), anyString());
+    }
+
+    @Test
+    void aMoveStoppedDuringTheCopyKeepsItsSource() throws Exception {
+        Path file = Files.writeString(dir.resolve("keep.txt"), "x");
+        FtpFileSystem target = mock(FtpFileSystem.class);
+        doAnswer(invocation -> {
+            Operation.stopAll();
+            return null;
+        }).when(target).upload(any(), anyString());
+
+        Operation operation = Operation.start();
+        try {
+            assertThatThrownBy(() -> operation.run(() -> {
+                new LocalFileSystem("").move(file.toString(), target, "/pub/keep.txt");
+                return null;
+            })).isInstanceOf(OperationStoppedException.class);
+        } finally {
+            operation.finish();
+        }
+        assertThat(file).hasContent("x");
     }
 
     @Test

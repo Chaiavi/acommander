@@ -9,17 +9,23 @@ import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.FutureTask;
 
 /** Runs an external program and always drains its output, so a full stdout/stderr pipe can never hang it. */
 public final class ProcessRunner {
+    /** Gets each started process until it ends, so a Stop button can kill it. */
+    public interface Tracker {
+        void attach(Process process);
+
+        void detach(Process process);
+    }
+
     private final List<String> command;
     private File directory;
     private Charset charset = StandardCharsets.UTF_8;
     private boolean mergeStderr;
-    private Set<Process> tracker;
+    private Tracker tracker;
     private String stdin;
 
     private ProcessRunner(List<String> command) {
@@ -49,8 +55,8 @@ public final class ProcessRunner {
         return this;
     }
 
-    /** Keeps the process in {@code tracker} while it runs, so a Stop button can kill it. */
-    public ProcessRunner trackIn(Set<Process> tracker) {
+    /** Hands the process to {@code tracker} while it runs, so a Stop button can kill it; null tracks nothing. */
+    public ProcessRunner trackIn(Tracker tracker) {
         this.tracker = tracker;
         return this;
     }
@@ -65,7 +71,7 @@ public final class ProcessRunner {
     public Result run() throws IOException, InterruptedException {
         Process process = builder().redirectErrorStream(mergeStderr).start();
         if (tracker != null) {
-            tracker.add(process);
+            tracker.attach(process);
         }
         boolean finished = false;
         try {
@@ -89,7 +95,7 @@ public final class ProcessRunner {
             throw e.getCause() instanceof IOException io ? io : new IOException(e.getCause());
         } finally {
             if (tracker != null) {
-                tracker.remove(process);
+                tracker.detach(process);
             }
             if (!finished) {
                 process.destroyForcibly();

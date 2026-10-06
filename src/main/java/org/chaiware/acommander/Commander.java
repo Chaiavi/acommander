@@ -270,8 +270,8 @@ public class Commander {
 
     @FXML
     public void stopExternalTasks() {
-        int stopped = toolRunner.stopAll();
-        logger.info("Stop requested for running external tasks. Requested stops: {}", stopped);
+        int stopped = Operation.stopAll();
+        logger.info("Stop requested for {} running operation(s)", stopped);
         if (externalStopButton != null) {
             externalStopButton.setDisable(true);
         }
@@ -900,8 +900,13 @@ public class Commander {
 
     /** Like the Runnable form, but hands {@code work}'s result to {@code onSuccess}. Failures are logged and shown. */
     private <T> void runWithProgress(String label, Callable<T> work, Consumer<T> onSuccess, String failureMessage) {
-        progress.run(label, work, onSuccess,
-                cause -> error(failureMessage, cause instanceof Exception e ? e : new RuntimeException(cause)));
+        progress.run(label, work, onSuccess, cause -> {
+            if (Operation.isStop(cause)) {
+                showToast("Stopped: " + label);
+                return;
+            }
+            error(failureMessage, cause instanceof Exception e ? e : new RuntimeException(cause));
+        });
     }
 
     /**
@@ -931,6 +936,10 @@ public class Commander {
                 filesPanesHelper.refreshFileListViews();
             }
             Throwable cause = unwrapCompletionException(failure);
+            if (Operation.isStop(cause)) {
+                showToast("Stopped: " + title);
+                return;
+            }
             error(title + " failed", cause instanceof Exception e ? e : new RuntimeException(cause));
         });
     }

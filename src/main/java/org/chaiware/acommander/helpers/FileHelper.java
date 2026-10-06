@@ -1,5 +1,6 @@
 package org.chaiware.acommander.helpers;
 
+import org.chaiware.acommander.commands.Operation;
 import org.chaiware.acommander.model.FileItem;
 import org.chaiware.acommander.vfs.LocalFileSystem;
 import org.chaiware.acommander.vfs.VFileSystem;
@@ -121,10 +122,11 @@ public class FileHelper {
         return total.get();
     }
 
-    /** Copies a folder tree into {@code target}; {@code options} apply to each file (e.g. REPLACE_EXISTING). */
+    /** Copies a folder tree into {@code target}; {@code options} apply to each file (e.g. REPLACE_EXISTING). Stop ends it between files. */
     public static void copyTree(Path source, Path target, CopyOption... options) throws IOException {
         try (Stream<Path> walk = Files.walk(source)) {
             for (Path path : (Iterable<Path>) walk::iterator) {
+                Operation.checkNotStopped();
                 Path destination = target.resolve(source.relativize(path));
                 if (Files.isDirectory(path)) {
                     Files.createDirectories(destination);

@@ -112,7 +112,7 @@ Not actions, but often asked for:
 | Type-to-filter popup | `Commander.filterByChar`, `backspaceCharFilter`, `clearCharFilter`; logic in `helpers/IncrementalFilter` (one per pane) |
 | Pane list cells, icons, colours | `Commander.configListViewLookAndBehavior`, `helpers/FileIcons` |
 | Pane footer (counts / sizes) | `Commander.updatePaneSummary` |
-| Running-tool progress bar + Stop button | `helpers/ExternalProgressController` (count, show/hide, `run` for background work); `Commander.buildExternalCommandListener` feeds it, `stopExternalTasks`, `runWithProgress` |
+| Running-tool progress bar + Stop button | `helpers/ExternalProgressController` (count, show/hide, `run` for background work as an `Operation`); `Commander.buildExternalCommandListener` feeds it, `stopExternalTasks` → `Operation.stopAll`, `runWithProgress`, `runFileOperation` |
 | Error / info / toast | `Commander.showError`, `showInfo`, `showToast` |
 | Text-input prompt | `Commander.promptUser` / `getUserFeedback` → `dialog/TextPromptDialog` |
 | Startup paths + persistence | `Commander.loadConfigFile`, `resolveInitialPath`, `persistCurrentPaths` (on window close in `Main`) |
@@ -167,7 +167,9 @@ Not actions, but often asked for:
 ### `commands/` — running external tools
 | File | Role |
 |---|---|
-| `ExternalToolRunner` | One per app: `runExecutable` (background run, listener events, accepted exit codes, a callback when a tool changed files), `reportFailure` (shows the failure of a run nobody waits on; every fire-and-forget run must use it, or `Commander.runExternalReported`), `stopAll` (Stop button). No JavaFX. |
+| `ExternalToolRunner` | One per app: `runExecutable` (background run, listener events, accepted exit codes, a callback when a tool changed files; the run belongs to the current `Operation` or its own), `reportFailure` (shows the failure of a run nobody waits on, never a stop; every fire-and-forget run must use it, or `Commander.runExternalReported`). No JavaFX. |
+| `Operation` | One thing the user started. `ExternalProgressController.run` and every tool run start one; Stop (`Operation.stopAll`) kills its processes (`ProcessRunner.Tracker`) and makes its next `checkNotStopped` / process start throw, so a batch never reaches its next item, a fallback, or the delete after a stopped copy. |
+| `OperationStoppedException` | What a stopped operation throws; `Operation.rethrowIfStopped` keeps catch-alls from turning it into an item failure. |
 | `ExternalCommandListener` | Callback for tool start/finish (drives the progress bar) and `onFailure` (error dialog). |
 | `ExternalCommandException` | Non-zero exit with command + output tail. |
 
@@ -272,7 +274,7 @@ Not actions, but often asked for:
 | `BundledToolCommands` | Argument lists + option types for rhash (checksum), file (analyze), ExamDiff (compare files), ripgrep (find by name / in files, `foundFiles`) and the 7-Zip split size. |
 | `Dpapi` | Windows DPAPI (current user) through one hidden PowerShell run per batch, base64 lines on stdin/stdout. Encrypts the saved FTP passwords for `SettingsStore`. |
 | `FilePropertiesLauncher` | Opens the Windows Properties dialog of a path: writes a VBS script to the temp dir, runs it with `wscript.exe`; the script quits when the app's process is gone. |
-| `ProcessRunner` | The one way to start a process: `run()` drains stdout/stderr (merged or apart) and returns `Result`; `launch()` for GUI tools; `trackIn` for the Stop button; `stdin` keeps secrets off the command line. |
+| `ProcessRunner` | The one way to start a process: `run()` drains stdout/stderr (merged or apart) and returns `Result`; `launch()` for GUI tools; `trackIn(Tracker)` hands the process to its `Operation` for the Stop button; `stdin` keeps secrets off the command line. |
 
 ### `vfs/` — pane file systems
 | File | Role |

@@ -1,6 +1,7 @@
 package org.chaiware.acommander.services;
 
 import org.chaiware.acommander.commands.ExternalToolRunner;
+import org.chaiware.acommander.commands.Operation;
 import org.chaiware.acommander.config.ActionDefinition;
 import org.chaiware.acommander.config.AppRegistry;
 import org.chaiware.acommander.helpers.AppTempDir;
@@ -74,6 +75,7 @@ public class PdfOperations {
             try {
                 run(action, null, Map.of("${outputPattern}", workDir.resolve("page_%04d.pdf").toString()), List.of(input.toString()));
             } catch (CompletionException e) {
+                Operation.rethrowIfStopped(e);
                 log.warn("pdftk burst failed for '{}', extracting page by page", pdf.name(), e.getCause());
                 extractPageByPage(action, input, workDir, totalPages);
             }

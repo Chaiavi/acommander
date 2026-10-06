@@ -6,6 +6,7 @@ import javafx.scene.control.Label;
 import javafx.scene.control.ProgressBar;
 import javafx.scene.control.ProgressIndicator;
 import javafx.scene.layout.HBox;
+import org.chaiware.acommander.commands.Operation;
 
 import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
@@ -51,16 +52,19 @@ public final class ExternalProgressController {
     }
 
     /**
-     * Runs {@code work} on the background executor behind the bar. {@code onSuccess} gets its result and
-     * {@code onFailure} its exception, both on the FX thread.
+     * Runs {@code work} on the background executor behind the bar, as an {@link Operation} the Stop button reaches.
+     * {@code onSuccess} gets its result and {@code onFailure} its exception, both on the FX thread.
      */
     public <T> void run(String name, Callable<T> work, Consumer<T> onSuccess, Consumer<Throwable> onFailure) {
         started(name);
+        Operation operation = Operation.start();
         BackgroundTasks.supply(() -> {
             try {
-                return work.call();
+                return operation.run(work);
             } catch (Exception e) {
                 throw new CompletionException(e);
+            } finally {
+                operation.finish();
             }
         }).whenComplete((result, failure) -> {
             finished();

@@ -1,6 +1,7 @@
 package org.chaiware.acommander.vfs;
 
 import org.chaiware.acommander.commands.ExternalCommandListener;
+import org.chaiware.acommander.commands.Operation;
 import org.chaiware.acommander.helpers.AppTempDir;
 import org.chaiware.acommander.model.FileItem;
 import org.chaiware.acommander.tools.BundledTool;
@@ -321,7 +322,9 @@ public class FtpFileSystem implements VFileSystem {
         List<String> output = new ArrayList<>();
         try {
             try {
-                ProcessRunner.Result result = ProcessRunner.of(command).stdin(curlConfig()).mergeStderr().run();
+                ProcessRunner.Result result = ProcessRunner.of(command).stdin(curlConfig()).mergeStderr()
+                        .trackIn(Operation.current()).run();
+                Operation.checkNotStopped();
                 output = result.stdout();
                 exitCode = result.exitCode();
                 if (exitCode != 0) {
@@ -337,10 +340,12 @@ public class FtpFileSystem implements VFileSystem {
                 externalCommandListener.onCommandFinished(command, exitCode, null);
             }
             return output;
-        } catch (IOException e) {
+        } catch (IOException | RuntimeException e) {
             if (externalCommandListener != null) {
                 externalCommandListener.onCommandFinished(command, exitCode, e);
             }
+            // A killed curl fails with an I/O error; it must not look like a server error that a fallback retries
+            Operation.checkNotStopped();
             throw e;
         }
     }
@@ -434,6 +439,7 @@ public class FtpFileSystem implements VFileSystem {
         } else {
             // For different servers or different users, copy will handle sanitization of targetInternalPath
             copy(sourceInternalPath, targetFs, targetInternalPath);
+            Operation.checkNotStopped();
             delete(sourceInternalPath);
         }
     }

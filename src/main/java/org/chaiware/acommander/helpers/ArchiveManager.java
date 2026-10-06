@@ -1,5 +1,7 @@
 package org.chaiware.acommander.helpers;
 
+import org.chaiware.acommander.commands.Operation;
+import org.chaiware.acommander.commands.OperationStoppedException;
 import org.chaiware.acommander.model.ArchiveMode;
 import org.chaiware.acommander.model.ArchiveSession;
 import org.chaiware.acommander.model.FileItem;
@@ -76,6 +78,12 @@ public class ArchiveManager {
         if (session.getMode() == ArchiveMode.READ_WRITE && session.isNeedsRepack()) {
             try {
                 repackArchive(session);
+            } catch (OperationStoppedException stopped) {
+                IOException kept = new IOException("Saving into " + Paths.get(session.getArchivePath()).getFileName()
+                        + " was stopped; the archive is unchanged. Your edits are kept in " + tempFolder
+                        + ", also after ACommander closes.");
+                kept.addSuppressed(stopped);
+                throw kept;
             } catch (IOException repackError) {
                 Path archive = Paths.get(session.getArchivePath());
                 Path recovered;
@@ -197,7 +205,7 @@ public class ArchiveManager {
             } else {
                 throw new IOException("Failed to create temporary archive during repack");
             }
-        } catch (IOException e) {
+        } catch (IOException | RuntimeException e) {
             logger.error("Repack failed for {}: {}", archivePath, e.getMessage());
             if (Files.exists(tempArchive)) {
                 try {
@@ -217,7 +225,8 @@ public class ArchiveManager {
         logger.debug("Running 7z {}: {}", operation, String.join(" ", command));
         
         try {
-            ProcessRunner.Result result = ProcessRunner.of(command).mergeStderr().run();
+            ProcessRunner.Result result = ProcessRunner.of(command).mergeStderr().trackIn(Operation.current()).run();
+            Operation.checkNotStopped();
             result.stdout().forEach(line -> logger.trace("7z: {}", line));
             int exitCode = result.exitCode();
             if (exitCode != 0) {

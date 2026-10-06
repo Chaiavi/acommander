@@ -1,5 +1,6 @@
 package org.chaiware.acommander.services;
 
+import org.chaiware.acommander.commands.Operation;
 import org.chaiware.acommander.helpers.FilesPanesHelper;
 import org.chaiware.acommander.model.FileItem;
 import org.chaiware.acommander.vfs.FtpFileSystem;
@@ -58,6 +59,7 @@ public final class ClipboardTransfer {
         List<Entry> failed = new ArrayList<>();
         Exception firstFailure = null;
         for (Entry entry : state.entries()) {
+            Operation.checkNotStopped();
             try {
                 String targetName = duplicate ? duplicateName(entry.name(), targetFs, targetFolder) : entry.name();
                 String targetPath = targetInternalPath(targetFs, targetFolder, targetName, entry.directory());
@@ -68,6 +70,7 @@ public final class ClipboardTransfer {
                 }
                 pasted.add(new Entry(targetName, entry.directory(), entry.sourceInternalPath()));
             } catch (Exception ex) {
+                Operation.rethrowIfStopped(ex);
                 log.warn("Paste failed for item: {}", entry.name(), ex);
                 failed.add(entry);
                 firstFailure = firstFailure == null ? ex : firstFailure;

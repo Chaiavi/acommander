@@ -1,5 +1,6 @@
 package org.chaiware.acommander.vfs;
 
+import org.chaiware.acommander.commands.Operation;
 import org.chaiware.acommander.helpers.FileHelper;
 import org.chaiware.acommander.model.FileItem;
 
@@ -103,6 +104,7 @@ public class LocalFileSystem implements VFileSystem {
             Files.move(Paths.get(sourceInternalPath), Paths.get(targetInternalPath), StandardCopyOption.REPLACE_EXISTING);
         } else {
             copy(sourceInternalPath, targetFs, targetInternalPath);
+            Operation.checkNotStopped();
             delete(sourceInternalPath);
         }
     }
