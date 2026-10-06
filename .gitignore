@@ -25,8 +25,9 @@ replay_pid*
 /.factorypath
 /.settings/
 
-# VS Code
-.vscode/
+# VS Code (launch.json is shared: F5 runs the app)
+.vscode/*
+!.vscode/launch.json
 
 # OS-generated files
 .DS_Store

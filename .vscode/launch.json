@@ -1,0 +1,13 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "java",
+            "name": "ACommander",
+            "request": "launch",
+            "mainClass": "org.chaiware.acommander.Launcher",
+            "projectName": "acommander",
+            "cwd": "${workspaceFolder}"
+        }
+    ]
+}
