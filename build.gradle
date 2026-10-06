@@ -175,11 +175,12 @@ def distributionContents = copySpec {
     }
 }
 
-// Create distribution task - puts files in dist folder at project root
-def copyDist = tasks.register('copyDist', Copy) {
+// Mirrors the release into dist/ at the project root; a Sync, so files from older builds don't linger
+def copyDist = tasks.register('copyDist', Sync) {
     dependsOn tasks.named('createExe')
     with distributionContents
     into 'dist'
+    preserve { include 'acommander-v*.zip' }
 }
 
 def zipDist = tasks.register('zipDist', Zip) {

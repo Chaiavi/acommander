@@ -89,7 +89,8 @@ lessons about this repo in the files above, not in memory.
 - Run: `.\gradlew.bat run` (working dir must be repo root, see below)
 - Windows distribution (EXE + bundled runtime + apps/config + zip → `dist/`): `.\gradlew.bat dist`. The ZIP is built
   from `releaseResources` in `build.gradle` (public config files only, no tool logs or settings), never from `dist/`
-  or `build/libs/`; `verifyDistribution` fails it if per-user files get in.
+  or `build/libs/`; `verifyDistribution` fails it if per-user files get in. `dist/` is a mirror: each `dist` run
+  deletes anything in it the build doesn't produce, so don't keep files or run the app there.
 - After every fix or feature run `build` and fix failures. Add a JUnit 5 + AssertJ + Mockito test for new business
   logic under the matching package in `src/test/java`. Tests don't start the JavaFX toolkit — don't test UI.
 
