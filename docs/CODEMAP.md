@@ -111,6 +111,7 @@ Not actions, but often asked for:
 | Backspace / go up (local, archive, FTP root disconnects) | `FilePaneKeyHandlerImpl.goUpOneFolder`; inside an archive `Commander.goUpInArchive` → `FilesPanesHelper.goUpInArchive` / `exitArchive` |
 | Type-to-filter popup | `Commander.filterByChar`, `backspaceCharFilter`, `clearCharFilter`; logic in `helpers/IncrementalFilter` (one per pane) |
 | Pane list cells, icons, colours | `Commander.configListViewLookAndBehavior`, `helpers/FileIcons` |
+| Drag and drop (out to other apps, between panes, onto folder rows, in from Explorer; right-drag Copy / Move menu) | `Commander.configDragAndDrop`, `startPaneDrag`, `dropTarget`, `dropOnPane` (cell handlers in `configListViewLookAndBehavior`) → `transfer`; logic in `services/PaneDragDrop` |
 | Pane footer (counts / sizes) | `Commander.updatePaneSummary` |
 | Running-tool progress bar + Stop button | `helpers/ExternalProgressController` (count, show/hide, `run` for background work as an `Operation`); `Commander.buildExternalCommandListener` feeds it, `stopExternalTasks` → `Operation.stopAll`, `runWithProgress`, `runFileOperation` |
 | Error / info / toast | `Commander.showError`, `showInfo`, `showToast` |
@@ -128,7 +129,8 @@ Not actions, but often asked for:
 4. Key bindings + palette: `setupBindings`, `determineCurrentContext`, `openCommandPalette` … `selectPreviousCommandPaletteAction`.
 5. Theme: `initializeTheme`, `toggleDarkMode` (apply logic at file end: `applyTheme`).
 6. Config/properties: `loadConfigFile`, `loadAppRegistry`, `saveConfigFile`, `persistCurrentPaths`.
-7. List look and icons: `configMouseDoubleClick`, `configListViewLookAndBehavior` (icons from `FileIcons`), pane summary.
+7. List look and icons: `configMouseDoubleClick`, `configListViewLookAndBehavior` (icons from `FileIcons`), drag and drop
+   (`configDragAndDrop` … `dropOnPane`), pane summary.
 8. Navigation: `enterSelectedItem`, archive enter/exit, `openFileWithSystemDefault`.
 9. F-key file operations: `help` → `renameFile` → `viewFile` → `editFile` → `copyFile` → `duplicateFile` → `moveFile`
    → `makeDirectory` → `makeFile` → `deleteFile` → `deleteWipe` → `terminalHere` → `explorerHere` → `search`
@@ -267,6 +269,7 @@ Not actions, but often asked for:
 | `ClipboardTransfer` | Copy/cut/paste between panes on any VFS: `capture` (the selection with full paths, read on the FX thread), clipboard `State`, `paste` (move or copy, per-item failures), `duplicateName` (`_copy`, `_copy_2`, …), `isSameFolder`, `targetInternalPath`. |
 | `FileOperations` | Takes the captured file system and paths, never the panes: `transfer` (F5, F6, Alt+F6, Ctrl+V; FastCopy local to local with `toolTarget` = target folder + `\`), rename, delete / wipe / unlock, new folder / file, view / edit (temp copy for archive/FTP, saved back), terminal, explorer; `filterValidItems` drops "..". `Commander.runFileOperation` runs it in the background and refreshes once. |
 | `TransferConflicts` | Names of a copy/move already in the target: `find` (lists both folders via VFS; ignores case except FTP), `Policy` (Overwrite / Skip / Overwrite Older → FastCopy `force_copy` / `noexist_only` / `update`), `keep` (filters whole items for moves and VFS paths). |
+| `PaneDragDrop` | Drag and drop: `filesOnDisk` (local / archive items), `download` (FTP items to a temp folder at drag start), `allowsMoveOut`, `fromDroppedFiles` (other apps' files as a copy), `folderOf` (folder row → target folder), `isDraggedFolder`. |
 | `ArchiveOperations` | Pack (non-local items staged under their own names), Unpack and Extract All (`unpackWith`; remote sides through temp copies). |
 | `PdfOperations` | Merge, extract pages, page count with pdftk on ASCII temp copies; results saved to any pane type. Pages per PDF cuts each chunk with one `cat start-end`; other modes burst, falling back to page by page. `parsePageExpression`, `validateExtractRequest`. |
 | `PdfExtractOptions` | Record: extract all / page expression / pages per PDF. |
@@ -311,5 +314,5 @@ Under `src/test/java/org/chaiware/acommander/`, same package as the class tested
 `actions/` ActionMatcher, ActionPriorityEngine, ActionRegistry, BuiltinAction, ActionRulesSnapshot (FTP / read-only / palette
 rules per action vs `src/test/resources/action-rules-snapshot.txt`) · `commands/` ExternalToolRunner · `config/` ActionScope, AppConfigLoader, AppRegistryShortcutMatching · `dialog/` DialogTheme, MetadataFormDialog · `helpers/` AppTempDir, AppVersion, ArchiveManager, AudioConversionSupport, AudioMetadataSupport,
 BugReportUrl, ExecutableCompressionSupport, ExternalProgressController, FileAttributesHelper, FileHelper, FileIcons, FilesPanesHelper, IncrementalFilter, ImageConversionSupport, ImageMetadataSupport, PaneSorter, SettingsStore, VideoMetadataSupport · `model/` ArchiveMode,
-FileItem · `services/` ArchiveOperations, AudioConversionService, ClipboardTransfer, FileOperations, FolderComparer, ImageConversionService, PdfOperations, TransferConflicts · `tools/` BundledTool, BundledToolCommands, ToolCommandBuilder, ProcessRunner · `vfs/` ArchiveFileSystem, FtpFileSystem, LocalFileSystem · root: ArchitectureRules (process / background / temp-file / app-path / version / fire-and-forget / no file walking or hashing in `Commander` rules), `CodeMapTest` (fails when a main
+FileItem · `services/` ArchiveOperations, AudioConversionService, ClipboardTransfer, FileOperations, FolderComparer, ImageConversionService, PaneDragDrop, PdfOperations, TransferConflicts · `tools/` BundledTool, BundledToolCommands, ToolCommandBuilder, ProcessRunner · `vfs/` ArchiveFileSystem, FtpFileSystem, LocalFileSystem · root: ArchitectureRules (process / background / temp-file / app-path / version / fire-and-forget / no file walking or hashing in `Commander` rules), `CodeMapTest` (fails when a main
 class or an apps.json action is missing from this file).

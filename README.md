@@ -76,6 +76,7 @@ command palette. Free and open source.**
 | **Rename**              | Single or batch via Ant Renamer              |
 | **Copy / Move**         | Between panes. When names already exist, one dialog lists them and asks: Overwrite All, Skip Existing or Overwrite Older |
 | **Copy / Paste**        | Clipboard-based copy and paste               |
+| **Drag and Drop**       | Drag files into other apps (web uploads, Explorer, mail), between panes, onto a folder row (into that folder) or from Explorer into a pane. A drag copies; a right-button drag between panes asks Copy Here or Move Here. FTP files download at drag start |
 | **Duplicate**           | Clone a file in the same directory           |
 | **Create**              | New directory or new file                    |
 | **Delete**              | With fallback unlock-delete for locked files |

@@ -11,8 +11,12 @@ import javafx.scene.Cursor;
 import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
+import javafx.scene.input.ClipboardContent;
+import javafx.scene.input.DragEvent;
+import javafx.scene.input.Dragboard;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
+import javafx.scene.input.TransferMode;
 import javafx.scene.layout.*;
 import javafx.stage.Popup;
 import javafx.stage.Window;
@@ -42,6 +46,7 @@ import org.chaiware.acommander.services.ImageConversionService.ImageConversionRe
 import org.chaiware.acommander.helpers.PaneSorter.SortColumn;
 import org.chaiware.acommander.services.ArchiveOperations;
 import org.chaiware.acommander.services.FileOperations;
+import org.chaiware.acommander.services.PaneDragDrop;
 import org.chaiware.acommander.services.PdfOperations;
 import org.chaiware.acommander.services.TransferConflicts;
 import org.chaiware.acommander.tools.BundledTool;
@@ -134,6 +139,9 @@ public class Commander {
     private Label toastLabel;
     private PauseTransition toastHideTransition;
     private ClipboardTransfer.State clipboardTransferState;
+    /** The selection being dragged from one of the panes; null when no such drag runs. */
+    private ClipboardTransfer.State paneDragState;
+    private boolean paneDragSecondary;
 
     private KeyBindingManager keyBindingManager;
     private javafx.scene.input.MouseEvent functionButtonClick;
@@ -174,6 +182,8 @@ public class Commander {
 
         configListViewLookAndBehavior(LEFT, leftFileList);
         configListViewLookAndBehavior(RIGHT, rightFileList);
+        configDragAndDrop(LEFT, leftFileList);
+        configDragAndDrop(RIGHT, rightFileList);
         configSortHeaders();
         configFileListsFocus();
         configurePaneSummary();
@@ -650,12 +660,39 @@ public class Commander {
                     hbox.setMaxWidth(width);
                     hbox.setPrefWidth(width);
                 });
+
+                setOnDragDetected(event -> {
+                    if (!isEmpty()) {
+                        startPaneDrag(side, listView, this, event.isSecondaryButtonDown());
+                    }
+                    event.consume();
+                });
+                setOnDragOver(event -> {
+                    if (isDropRow(getItem())) {
+                        if (dropTarget(event, side, getItem()) != null) {
+                            event.acceptTransferModes(TransferMode.COPY);
+                        }
+                        event.consume();
+                    }
+                });
+                setOnDragEntered(event -> {
+                    if (isDropRow(getItem()) && dropTarget(event, side, getItem()) != null) {
+                        getStyleClass().add("drop-target");
+                    }
+                });
+                setOnDragExited(event -> getStyleClass().removeAll("drop-target"));
+                setOnDragDropped(event -> {
+                    if (isDropRow(getItem())) {
+                        dropOnPane(event, side, dropTarget(event, side, getItem()));
+                        event.consume();
+                    }
+                });
             }
 
             @Override
             protected void updateItem(FileItem item, boolean empty) {
                 super.updateItem(item, empty);
-                getStyleClass().removeAll("compare-left-only", "compare-right-only", "compare-different");
+                getStyleClass().removeAll("compare-left-only", "compare-right-only", "compare-different", "drop-target");
                 if (empty || item == null) {
                     setGraphic(null);
                 } else {
@@ -676,6 +713,111 @@ public class Commander {
                 }
             }
         });
+    }
+
+    /** Drops on the rest of the pane go into its folder; folder rows take them first (see the cell factory). */
+    private void configDragAndDrop(FilesPanesHelper.FocusSide side, ListView<FileItem> listView) {
+        listView.setOnDragOver(event -> {
+            if (dropTarget(event, side, null) != null) {
+                event.acceptTransferModes(TransferMode.COPY);
+            }
+            event.consume();
+        });
+        listView.setOnDragDropped(event -> {
+            dropOnPane(event, side, dropTarget(event, side, null));
+            event.consume();
+        });
+        listView.setOnDragDone(event -> {
+            paneDragState = null;
+            if (event.getTransferMode() == TransferMode.MOVE) {
+                filesPanesHelper.refreshFileListViews();
+            }
+            event.consume();
+        });
+    }
+
+    private static boolean isDropRow(FileItem item) {
+        return item != null && item.isDirectory() && !"..".equals(item.getPresentableFilename());
+    }
+
+    // A plain drag offers only copy, so a drop into Explorer on the same drive can't move the files.
+    private void startPaneDrag(FilesPanesHelper.FocusSide side, ListView<FileItem> listView, ListCell<FileItem> cell,
+                               boolean secondary) {
+        List<FileItem> items = fileOps.filterValidItems(new ArrayList<>(listView.getSelectionModel().getSelectedItems()));
+        if (items.isEmpty()) {
+            return;
+        }
+        VFileSystem fs = filesPanesHelper.getFileSystem(side);
+        ClipboardTransfer.State state = ClipboardTransfer.capture(items, false, side, fs, filesPanesHelper.getPath(side));
+        List<File> files;
+        try {
+            // ponytail: FTP files download at drag start (JavaFX can't fetch on drop), blocking the UI, until exit.
+            files = fs instanceof FtpFileSystem
+                    ? PaneDragDrop.download(state, AppTempDir.createTempDirectory("drag_"))
+                    : PaneDragDrop.filesOnDisk(items);
+        } catch (IOException e) {
+            error("Drag failed", e);
+            return;
+        }
+        Dragboard dragboard = listView.startDragAndDrop(secondary && PaneDragDrop.allowsMoveOut(fs)
+                ? TransferMode.COPY_OR_MOVE : new TransferMode[]{TransferMode.COPY});
+        ClipboardContent content = new ClipboardContent();
+        content.putFiles(files);
+        dragboard.setContent(content);
+        dragboard.setDragView(cell.snapshot(null, null));
+        paneDragState = state;
+        paneDragSecondary = secondary;
+    }
+
+    /** The folder a drop on {@code row} (null: the pane itself) goes into, or null when it can't go there. */
+    private String dropTarget(DragEvent event, FilesPanesHelper.FocusSide side, FileItem row) {
+        VFileSystem fs = filesPanesHelper.getFileSystem(side);
+        if (fs == null || fs.isReadOnly()) {
+            return null;
+        }
+        Object source = event.getGestureSource();
+        boolean fromPane = source == leftFileList || source == rightFileList;
+        if (fromPane ? paneDragState == null : source != null || !event.getDragboard().hasFiles()) {
+            return null;
+        }
+        String paneFolder = filesPanesHelper.getPath(side);
+        if (row == null) {
+            return source == (side == LEFT ? leftFileList : rightFileList) ? null : paneFolder;
+        }
+        if (fromPane && PaneDragDrop.isDraggedFolder(paneDragState, fs, paneFolder, row)) {
+            return null;
+        }
+        return PaneDragDrop.folderOf(fs, row);
+    }
+
+    // Other apps' files are always copied: a source told "moved" may delete them while the copy still runs.
+    private void dropOnPane(DragEvent event, FilesPanesHelper.FocusSide side, String folder) {
+        if (folder == null) {
+            event.setDropCompleted(false);
+            return;
+        }
+        ClipboardTransfer.State dragged = paneDragState;
+        Object source = event.getGestureSource();
+        event.setDropCompleted(true);
+        if (source != leftFileList && source != rightFileList) {
+            transfer("Copy", PaneDragDrop.fromDroppedFiles(event.getDragboard().getFiles(), side), side, folder, result -> {});
+            return;
+        }
+        if (!paneDragSecondary) {
+            transfer("Copy", dragged, side, folder, result -> {});
+            return;
+        }
+        MenuItem copy = new MenuItem("Copy Here");
+        copy.setOnAction(e -> transfer("Copy", dragged, side, folder, result -> {}));
+        MenuItem move = new MenuItem("Move Here");
+        move.setDisable(dragged.sourceFs().isReadOnly());
+        move.setOnAction(e -> transfer("Move", new ClipboardTransfer.State(dragged.entries(), true, dragged.sourceSide(),
+                dragged.sourceFs(), dragged.sourceFolder()), side, folder, result -> {}));
+        ContextMenu menu = new ContextMenu(copy, move, new SeparatorMenuItem(), new MenuItem("Cancel"));
+        Node anchor = side == LEFT ? leftFileList : rightFileList;
+        double x = event.getScreenX();
+        double y = event.getScreenY();
+        Platform.runLater(() -> menu.show(anchor, x, y));
     }
 
     private void applyFolderCompareStyle(FilesPanesHelper.FocusSide side, FileItem item, ListCell<FileItem> cell) {
@@ -950,8 +1092,13 @@ public class Commander {
      */
     private void transfer(String title, ClipboardTransfer.State source, FilesPanesHelper.FocusSide targetSide,
                           Consumer<ClipboardTransfer.PasteResult> onDone) {
+        transfer(title, source, targetSide, filesPanesHelper.getPath(targetSide), onDone);
+    }
+
+    /** Into {@code targetFolder} on the target pane's file system: its folder or a folder row in it. */
+    private void transfer(String title, ClipboardTransfer.State source, FilesPanesHelper.FocusSide targetSide,
+                          String targetFolder, Consumer<ClipboardTransfer.PasteResult> onDone) {
         VFileSystem targetFs = filesPanesHelper.getFileSystem(targetSide);
-        String targetFolder = filesPanesHelper.getPath(targetSide);
         if (source.entries().isEmpty() || targetFs == null) {
             return;
         }

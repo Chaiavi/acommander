@@ -198,6 +198,12 @@
     -fx-background-color: -ac-select-active-bg;
 }
 
+/* The folder row a drag would drop into */
+.file-pane .list-cell.drop-target {
+    -fx-border-color: -ac-list-text;
+    -fx-border-width: 2;
+}
+
 .file-cell-row {
     -fx-font-family: "JetBrains Mono";
     -fx-font-size: 14px;
