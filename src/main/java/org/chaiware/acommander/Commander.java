@@ -184,10 +184,8 @@ public class Commander {
         setupFunctionButtonActions();
 
         updateBottomButtons();
-        filesPanesHelper.refreshFileListViews();
         updatePaneSummary(LEFT);
         updatePaneSummary(RIGHT);
-        filesPanesHelper.getFileList(true).getSelectionModel().selectFirst();
         Platform.runLater(() -> leftFileList.requestFocus());
     }
 
