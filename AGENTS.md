@@ -9,6 +9,8 @@ schema, placeholders and shortcuts are in [README.md](README.md) — link there,
 - Never hand the user a command to run. Run one-time commands yourself and report the result. A need that recurs
   gets a feature in the app (an `apps.json` action / Command Palette entry), not documented CLI steps.
 - If the app is running (`gradlew run`) when you finish a change, restart it so the user never tests stale code.
+  Read the end of its log first: an action in the last minute (an open Rename dialog, say) means the user is mid-task,
+  and killing the app loses it. Say so and let them restart instead.
 - Clean up dead or broken code you come across in the same turn — don't just report it. First check what it still
   provides that live code lacks, and keep that.
 - Try file operations only on files you created in a temp folder. The user works in the app while you work; never
