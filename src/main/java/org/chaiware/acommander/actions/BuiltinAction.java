@@ -6,6 +6,7 @@ import java.util.Optional;
 /** Builtin action ids used in apps.json ({@code builtin}, or {@code id} when absent). */
 public enum BuiltinAction {
     HELP("help"),
+    ABOUT("about"),
     SETTINGS("settings"),
     RENAME("rename"),
     VIEW("view"),

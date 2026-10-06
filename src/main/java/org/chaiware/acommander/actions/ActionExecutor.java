@@ -71,6 +71,7 @@ public class ActionExecutor {
     private Runnable handler(BuiltinAction builtin) {
         return switch (builtin) {
             case HELP -> commander::help;
+            case ABOUT -> commander::about;
             case SETTINGS -> commander::openSettings;
             case RENAME -> commander::renameFile;
             case VIEW -> commander::viewFile;

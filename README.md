@@ -65,6 +65,7 @@ command palette. Free and open source.**
 - Sort by Name / Size / Modified (header click or palette actions)
 - Incremental **in-pane filtering** by typing letters/digits
 - **Dark / Light / Norton Commander themes** — switchable UI modes
+- **About** popup (Command Palette or the F1 help) — version, license, project link and runtime versions
 
 ---
 

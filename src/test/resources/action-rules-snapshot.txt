@@ -1,4 +1,5 @@
 # id | ftp | writes | palette enabled for: none dir txt png jpg wav mp3 mp4 pdf zip exe 2txt 2pdf png+txt
+about | ftp=yes | writes=none | palette=++++++++++++++
 analyzeFile | ftp=no | writes=none | palette=--+++++++++---
 bookmarkThisPath | ftp=no | writes=none | palette=++++++++++++++
 changeAttributes | ftp=no | writes=source | palette=-+++++++++++++

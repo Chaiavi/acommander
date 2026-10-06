@@ -5,7 +5,8 @@ import java.nio.charset.StandardCharsets;
 
 /** Builds the prefilled GitHub "new issue" URL for the Report Bug dialog. */
 public final class BugReportUrl {
-    private static final String NEW_ISSUE_URL = "https://github.com/Chaiavi/acommander/issues/new";
+    public static final String PROJECT_URL = "https://github.com/Chaiavi/acommander";
+    private static final String NEW_ISSUE_URL = PROJECT_URL + "/issues/new";
     /** GitHub rejects longer new-issue URLs. */
     static final int MAX_URL_LENGTH = 8000;
     static final String CUT_NOTE = "\n\n[Cut to fit the link. Please paste the rest here.]";

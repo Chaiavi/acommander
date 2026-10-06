@@ -47,6 +47,17 @@
       "type": "builtin"
     },
     {
+      "id": "about",
+      "description": "Shows the app version, license and project link.",
+      "category": "Getting Around",
+      "ftp": true,
+      "label": "About",
+      "aliases": ["version", "info", "credits", "license"],
+      "contexts": ["global", "commandPalette"],
+      "selection": "none",
+      "type": "builtin"
+    },
+    {
       "id": "settings",
       "description": "Opens your settings file in the editor; changes apply when you close it.",
       "category": "Display & Settings",

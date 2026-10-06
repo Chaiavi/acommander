@@ -1002,7 +1002,24 @@ public class Commander {
     public void help() {
         logger.info("Help (F1)");
         HelpDialog.show(dialogOwner(), currentThemeMode.styleClass, "A Commander " + AppVersion.current() + " Help",
-                HelpTopics.entries(appRegistry.actions()));
+                HelpTopics.entries(appRegistry.actions()), this::about);
+    }
+
+    public void about() {
+        logger.info("About");
+        AboutDialog.show(dialogOwner(), currentThemeMode.styleClass, AppVersion.current(), url -> openInBrowser("About", url));
+    }
+
+    /** Opens the URL in the browser; on failure shows it so the user can copy it. */
+    private boolean openInBrowser(String title, String url) {
+        try {
+            getDesktop().browse(java.net.URI.create(url));
+            return true;
+        } catch (Exception e) {
+            logger.warn("Failed opening URL in browser: {}", url, e);
+            showError(title, "Could not open the browser automatically.\nCopy and open this URL:\n" + url);
+            return false;
+        }
     }
 
     public void openSettings() {
@@ -3126,16 +3143,9 @@ public class Commander {
 
     private void submitBugReport(String url) {
         logger.info("Opening bug report URL: {}", url);
-
-        try {
-            getDesktop().browse(java.net.URI.create(url));
-        } catch (Exception browseEx) {
-            logger.warn("Failed opening bug report URL in browser: {}", url, browseEx);
-            showError("Report Bug", "Could not open the browser automatically.\nCopy and open this URL:\n" + url);
-            return;
+        if (openInBrowser("Report Bug", url)) {
+            showInfo("Report Submitted", "Thank you for your feedback! The issue form has been opened in your browser.");
         }
-
-        showInfo("Report Submitted", "Thank you for your feedback! The issue form has been opened in your browser.");
     }
 
     private void applyTheme(Scene scene, ThemeMode themeMode, boolean persist) {

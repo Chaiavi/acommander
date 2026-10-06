@@ -1,6 +1,7 @@
 package org.chaiware.acommander.dialog;
 
 import javafx.application.Platform;
+import javafx.event.ActionEvent;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.Button;
@@ -31,7 +32,7 @@ public final class HelpDialog {
     private HelpDialog() {
     }
 
-    public static void show(Window owner, String themeClass, String title, List<Entry> entries) {
+    public static void show(Window owner, String themeClass, String title, List<Entry> entries, Runnable onAbout) {
         Dialog<Void> dialog = new Dialog<>();
         dialog.setTitle(title);
         dialog.setHeaderText(null);
@@ -41,6 +42,14 @@ public final class HelpDialog {
         ButtonType closeType = new ButtonType("Close", ButtonBar.ButtonData.CANCEL_CLOSE);
         dialog.getDialogPane().getButtonTypes().add(closeType);
         tip((Button) dialog.getDialogPane().lookupButton(closeType), "Close the help.");
+        ButtonType aboutType = new ButtonType("About", ButtonBar.ButtonData.LEFT);
+        dialog.getDialogPane().getButtonTypes().add(aboutType);
+        Button aboutButton = tip((Button) dialog.getDialogPane().lookupButton(aboutType), "Show the app version, license and project link.");
+        // Consumed so the Help dialog stays open behind the About popup.
+        aboutButton.addEventFilter(ActionEvent.ACTION, event -> {
+            event.consume();
+            onAbout.run();
+        });
 
         Label heading = new Label(title);
         heading.setStyle("-fx-font-size: 16px; -fx-font-weight: bold;");

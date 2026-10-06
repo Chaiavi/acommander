@@ -57,6 +57,7 @@ Adding or renaming an action id? Check each of these:
 | Action id (apps.json) | `Commander` method | Logic / runs via | Tool |
 |---|---|---|---|
 | `help` (F1) | `help` | `dialog/HelpDialog`, `helpers/HelpTopics` (rows from apps.json `label` / `shortcut` / `description`, sections from `category`) | |
+| `about` | `about`, `openInBrowser` | `dialog/AboutDialog` (also the About button in F1 help) | browser |
 | `settings` | `openSettings` | `FileOperations.edit` | edits `config/acommander.properties` |
 | `rename` (F2, Shift+F6) | `renameFile` | `FileOperations.rename` → single: VFS, many: `multiRename` | `multi_rename/Renamer.exe` |
 | `view` (F3) | `viewFile` / `calculateDirSpace` (folder) | `FileOperations.view` / `FileHelper.folderSize` | `view/UniversalViewer/Viewer.exe` |
@@ -196,7 +197,8 @@ Not actions, but often asked for:
 | `TextPromptDialog` | One-line text prompt with a preselected range (rename selects the name without its extension). |
 | `FindInFilesDialog` / `FoundFilesDialog` | Find in Files options; the found files list (Enter / double-click goes to one). |
 | `BookmarkPickerDialog` | Pick a bookmark by name (Go / Remove). |
-| `HelpDialog` | F1: collapsible section per category of every key and action (`HelpTopics`); the filter opens matching sections; tips. |
+| `HelpDialog` | F1: collapsible section per category of every key and action (`HelpTopics`); the filter opens matching sections; tips; About button. |
+| `AboutDialog` | About popup: version, copyright, license, project link (`BugReportUrl.PROJECT_URL`), Java / JavaFX versions. |
 | `ReportBugDialog` | Bug report form → prefilled GitHub issue URL. |
 | `ImageConversionDialog` / `AudioConversionDialog` | Conversion options → `ImageConversionRequest` / `AudioConversionRequest`. |
 | `ExecutableCompressionDialog` | UPX compress level or decompress → `UpxAction`. |
