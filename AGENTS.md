@@ -208,6 +208,9 @@ All actions and external tools live in `config/apps.json`; shortcuts are declare
   browser (`Desktop.open`). To screenshot it, use
   `SetProcessDPIAware` + `Graphics.CopyFromScreen`; `PrintWindow` returns a black page for the embedded browser.
 - `Desktop.open` throws "Unsupported URI content" for executables (`.bat`, `.exe`); use ShellExec_RunDLL (above).
+- Drag and drop on Windows: JavaFX reports a plain drag and a Shift+drag the same way (both MOVE; only Ctrl = COPY,
+  Alt or Ctrl+Shift = LINK; see openjfx `GlassDnD.cpp`), and a `DragEvent` carries no key state. Don't build on Shift.
+  Accept only COPY from another app: a source told MOVE may delete its files while our background copy still runs.
 - A console program started from the app gets no window (the app has no console). To give it one, have a hidden
   `powershell -Command "Start-Process ..."` start it (`FileOperations.openTerminal`). Check such process tricks
   from `build\runtime\bin\javaw.exe Probe.java`, not `java.exe`: a console parent behaves differently.
