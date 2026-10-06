@@ -11,7 +11,6 @@ import javafx.scene.Cursor;
 import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
-import javafx.scene.input.Clipboard;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.*;
@@ -43,7 +42,6 @@ import org.chaiware.acommander.services.ImageConversionService.ImageConversionRe
 import org.chaiware.acommander.helpers.PaneSorter.SortColumn;
 import org.chaiware.acommander.services.ArchiveOperations;
 import org.chaiware.acommander.services.FileOperations;
-import org.chaiware.acommander.services.PdfExtractOptions;
 import org.chaiware.acommander.services.PdfOperations;
 import org.chaiware.acommander.tools.BundledTool;
 import org.chaiware.acommander.tools.BundledToolCommands;
@@ -151,7 +149,7 @@ public class Commander {
         ExternalCommandListener externalCommandListener = buildExternalCommandListener();
         filesPanesHelper.setExternalCommandListener(externalCommandListener);
         appRegistry = loadAppRegistry();
-        actionExecutor = new ActionExecutor(this, appRegistry);
+        actionExecutor = new ActionExecutor(this);
         toolRunner = new ExternalToolRunner(() -> Platform.runLater(() -> {
             filesPanesHelper.markArchiveNeedsRepack(filesPanesHelper.getFocusedSide());
             filesPanesHelper.refreshFileListViews();
@@ -2385,13 +2383,7 @@ public class Commander {
     private boolean isLocalPath(String path) {
         if (path == null || path.isEmpty()) return false;
         // Windows path: C:\ or \\network\
-        if (path.length() >= 2 && path.charAt(1) == ':') return true;
-        if (path.startsWith("\\\\")) return true;
-        // Unix path: /home/user (but FTP root is also /)
-        // If it's a single /, we treat it as VFS if we are already in VFS.
-        // If it's more than just /, and starts with /, it's likely local on Unix.
-        // On Windows, / is not a typical local path start unless using cygwin/gitbash style.
-        return false; 
+        return (path.length() >= 2 && path.charAt(1) == ':') || path.startsWith("\\\\");
     }
 
     public void bookmarkCurrentPath() {

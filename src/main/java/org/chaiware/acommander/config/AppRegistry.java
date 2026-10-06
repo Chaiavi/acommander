@@ -131,7 +131,7 @@ public class AppRegistry {
             return null;
         }
         try {
-            KeyCode keyCode = KeyCode.valueOf(keyToken.toUpperCase());
+            KeyCode keyCode = KeyCode.valueOf(keyToken.toUpperCase(Locale.ROOT));
             return new KeyCodeCombination(
                     keyCode,
                     shift,

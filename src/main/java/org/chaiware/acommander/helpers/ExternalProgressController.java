@@ -20,14 +20,12 @@ import java.util.function.Consumer;
 /** The progress bar and Stop button under the panes: one count over running tools and background work. */
 public final class ExternalProgressController {
     private final HBox box;
-    private final ProgressBar bar;
     private final Label label;
     private final Button stopButton;
     private final AtomicInteger running = new AtomicInteger();
 
     public ExternalProgressController(HBox box, ProgressBar bar, Label label, Button stopButton) {
         this.box = box;
-        this.bar = bar;
         this.label = label;
         this.stopButton = stopButton;
         bar.setProgress(ProgressIndicator.INDETERMINATE_PROGRESS);

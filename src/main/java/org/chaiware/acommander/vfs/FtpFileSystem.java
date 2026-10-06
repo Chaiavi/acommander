@@ -319,7 +319,7 @@ public class FtpFileSystem implements VFileSystem {
         }
         
         int exitCode = -1;
-        List<String> output = new ArrayList<>();
+        List<String> output;
         try {
             try {
                 ProcessRunner.Result result = ProcessRunner.of(command).stdin(curlConfig()).mergeStderr()

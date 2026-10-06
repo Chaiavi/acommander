@@ -31,7 +31,7 @@ public class FileAttributesHelper {
     }
 
     public void applyAttributesWithFallback(Path path, AttributeChangeRequest request) throws Exception {
-        IOException javaError = null;
+        IOException javaError;
         try {
             applyWithJava(path, request);
             return;
@@ -43,11 +43,7 @@ public class FileAttributesHelper {
         if (applyWithAttrib(path, request)) {
             return;
         }
-
-        if (javaError != null) {
-            throw javaError;
-        }
-        throw new IOException("attrib fallback failed");
+        throw javaError;
     }
 
     private void applyWithJava(Path path, AttributeChangeRequest request) throws IOException {

@@ -3,6 +3,7 @@ package org.chaiware.acommander.actions;
 import org.chaiware.acommander.model.FileItem;
 
 import java.util.List;
+import java.util.Locale;
 
 public enum SelectionRule {
     NONE,
@@ -17,7 +18,7 @@ public enum SelectionRule {
         if (value == null) {
             return NONE;
         }
-        return switch (value.toLowerCase()) {
+        return switch (value.toLowerCase(Locale.ROOT)) {
             case "any" -> ANY;
             case "single" -> SINGLE;
             case "multi" -> MULTI;

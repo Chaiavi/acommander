@@ -20,7 +20,6 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
-import java.util.concurrent.CompletableFuture;
 
 /**
  * Dialog for viewing and editing image metadata using exiv2.
@@ -578,11 +577,6 @@ public class ImageMetadataDialog {
         };
     }
 
-    private void highlightModifiedRow(TreeItem<MetadataEntry> item, boolean modified) {
-        // Visual feedback for modified rows could be added here
-        // For now, the status message provides feedback
-    }
-
     private void applyAllChanges() {
         if (pendingModifications.isEmpty()) {
             showInfo("No Changes", "No modifications to apply.", null);
@@ -943,10 +937,6 @@ public class ImageMetadataDialog {
         return entry == null ? normalized : ImageMetadataSupport.displayValue(entry.getType(), normalized);
     }
 
-    private void showError(String message) {
-        showError(message, "Error", null);
-    }
-
     private void showError(String message, String title, String details) {
         Platform.runLater(() -> {
             Alert alert = new Alert(Alert.AlertType.ERROR);
@@ -966,10 +956,6 @@ public class ImageMetadataDialog {
             DialogTheme.apply(alert, owner, themeClass);
             alert.showAndWait();
         });
-    }
-
-    private void showInfo(String message) {
-        showInfo("Information", message, null);
     }
 
     private void showInfo(String title, String message, String details) {

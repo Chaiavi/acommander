@@ -86,6 +86,11 @@ lessons about this repo in the files above, not in memory.
 
 - Build + test (same as CI, [ci.yml](.github/workflows/ci.yml)): `.\gradlew.bat build`
 - One test class: `.\gradlew.bat test --tests "org.chaiware.acommander.model.FileItemTest"`
+- Static analysis (javac lint + PMD, on demand, not in `build`):
+  `.\gradlew.bat --init-script gradle\analysis\analysis.init.gradle compileJava pmdMain --no-configuration-cache`,
+  then `build/reports/pmd/main.xml`. Known false positives: `==` on controls/`ButtonType`/file systems
+  (identity is meant), `PreserveStackTrace` where a wrapper's cause is unwrapped, the commented empty catch in
+  `LocalFileSystem.addEntries`.
 - Run: `.\gradlew.bat run` (working dir must be repo root, see below). Faster in VS Code: F5 ("ACommander" in
   `.vscode/launch.json`) skips Gradle's configuration step, which `run` can't cache.
 - Windows distribution (EXE + bundled runtime + apps/config + zip → `dist/`): `.\gradlew.bat dist`. The ZIP is built

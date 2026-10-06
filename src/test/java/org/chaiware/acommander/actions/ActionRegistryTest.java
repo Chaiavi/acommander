@@ -37,7 +37,7 @@ class ActionRegistryTest {
         commander.filesPanesHelper = panesHelper;
 
         AppRegistry registry = new AppRegistry(configWithConvertActions());
-        ActionRegistry actionRegistry = new ActionRegistry(registry, new ActionExecutor(commander, registry));
+        ActionRegistry actionRegistry = new ActionRegistry(registry, new ActionExecutor(commander));
         ActionContext context = new ActionContext(commander);
 
         AppAction action = actionRegistry.all().stream()
@@ -63,7 +63,7 @@ class ActionRegistryTest {
         commander.filesPanesHelper = panesHelper;
 
         AppRegistry registry = new AppRegistry(configWithConvertActions());
-        ActionRegistry actionRegistry = new ActionRegistry(registry, new ActionExecutor(commander, registry));
+        ActionRegistry actionRegistry = new ActionRegistry(registry, new ActionExecutor(commander));
         ActionContext context = new ActionContext(commander);
 
         AppAction action = actionRegistry.all().stream()
@@ -89,7 +89,7 @@ class ActionRegistryTest {
         commander.filesPanesHelper = panesHelper;
 
         AppRegistry registry = new AppRegistry(configWithRemoveAudioMetadataAction());
-        ActionRegistry actionRegistry = new ActionRegistry(registry, new ActionExecutor(commander, registry));
+        ActionRegistry actionRegistry = new ActionRegistry(registry, new ActionExecutor(commander));
         ActionContext context = new ActionContext(commander);
 
         AppAction action = actionRegistry.all().stream()
@@ -118,7 +118,7 @@ class ActionRegistryTest {
         commander.filesPanesHelper = panesHelper;
 
         AppRegistry registry = new AppRegistry(configWithRemoveVideoMetadataAction());
-        ActionRegistry actionRegistry = new ActionRegistry(registry, new ActionExecutor(commander, registry));
+        ActionRegistry actionRegistry = new ActionRegistry(registry, new ActionExecutor(commander));
         ActionContext context = new ActionContext(commander);
 
         AppAction action = actionRegistry.all().stream()
@@ -139,7 +139,7 @@ class ActionRegistryTest {
         when(commander.canCompareSelectedFiles()).thenReturn(true);
 
         AppRegistry registry = new AppRegistry(configWithCompareAction());
-        ActionRegistry actionRegistry = new ActionRegistry(registry, new ActionExecutor(commander, registry));
+        ActionRegistry actionRegistry = new ActionRegistry(registry, new ActionExecutor(commander));
         ActionContext context = new ActionContext(commander);
 
         AppAction action = actionRegistry.all().stream()
@@ -156,7 +156,7 @@ class ActionRegistryTest {
         when(commander.canCompareSelectedFiles()).thenReturn(false);
 
         AppRegistry registry = new AppRegistry(configWithCompareAction());
-        ActionRegistry actionRegistry = new ActionRegistry(registry, new ActionExecutor(commander, registry));
+        ActionRegistry actionRegistry = new ActionRegistry(registry, new ActionExecutor(commander));
         ActionContext context = new ActionContext(commander);
 
         AppAction action = actionRegistry.all().stream()
@@ -173,7 +173,7 @@ class ActionRegistryTest {
         when(commander.hasClipboardTransferEntries()).thenReturn(false);
 
         AppRegistry registry = new AppRegistry(configWithPasteAction());
-        ActionRegistry actionRegistry = new ActionRegistry(registry, new ActionExecutor(commander, registry));
+        ActionRegistry actionRegistry = new ActionRegistry(registry, new ActionExecutor(commander));
         ActionContext context = new ActionContext(commander);
 
         AppAction action = actionRegistry.all().stream()
@@ -190,7 +190,7 @@ class ActionRegistryTest {
         when(commander.hasClipboardTransferEntries()).thenReturn(true);
 
         AppRegistry registry = new AppRegistry(configWithPasteAction());
-        ActionRegistry actionRegistry = new ActionRegistry(registry, new ActionExecutor(commander, registry));
+        ActionRegistry actionRegistry = new ActionRegistry(registry, new ActionExecutor(commander));
         ActionContext context = new ActionContext(commander);
 
         AppAction action = actionRegistry.all().stream()
@@ -217,7 +217,7 @@ class ActionRegistryTest {
         commander.filesPanesHelper = panesHelper;
 
         AppRegistry registry = new AppRegistry(configWithCompressExecutableAction());
-        ActionRegistry actionRegistry = new ActionRegistry(registry, new ActionExecutor(commander, registry));
+        ActionRegistry actionRegistry = new ActionRegistry(registry, new ActionExecutor(commander));
         ActionContext context = new ActionContext(commander);
 
         AppAction action = actionRegistry.all().stream()

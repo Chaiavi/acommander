@@ -2,7 +2,6 @@ package org.chaiware.acommander.actions;
 
 import org.chaiware.acommander.Commander;
 import org.chaiware.acommander.config.ActionDefinition;
-import org.chaiware.acommander.config.AppRegistry;
 import org.chaiware.acommander.config.PromptDefinition;
 import org.chaiware.acommander.tools.ToolCommandBuilder;
 import org.chaiware.acommander.vfs.FtpFileSystem;
@@ -14,11 +13,9 @@ import java.util.List;
 public class ActionExecutor {
     private static final Logger logger = LoggerFactory.getLogger(ActionExecutor.class);
     private final Commander commander;
-    private final AppRegistry appRegistry;
 
-    public ActionExecutor(Commander commander, AppRegistry appRegistry) {
+    public ActionExecutor(Commander commander) {
         this.commander = commander;
-        this.appRegistry = appRegistry;
     }
 
     public void execute(ActionDefinition action) {

@@ -1,0 +1,14 @@
+// On-demand static analysis (javac -Xlint + PMD); not part of `build`. Report: build/reports/pmd/main.html
+allprojects {
+    apply plugin: 'pmd'
+    pmd {
+        toolVersion = '7.7.0'
+        ignoreFailures = true
+        consoleOutput = false
+        ruleSetFiles = files("${rootDir}/gradle/analysis/pmd-rules.xml")
+        ruleSets = []
+    }
+    tasks.withType(JavaCompile).configureEach {
+        options.compilerArgs += ['-Xlint:all,-processing,-serial', '-Xmaxwarns', '2000']
+    }
+}

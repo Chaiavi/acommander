@@ -80,7 +80,7 @@ class ActionRulesSnapshotTest {
         when(panes.getUnfocusedFileSystem()).thenReturn(unfocused);
         commander.filesPanesHelper = panes;
         try {
-            new ActionExecutor(commander, new AppRegistry(config)).execute(action);
+            new ActionExecutor(commander).execute(action);
         } catch (RuntimeException ignored) {
             // The action itself runs against mocks; only the gates in front of it matter here.
         }
@@ -98,7 +98,7 @@ class ActionRulesSnapshotTest {
             Commander commander = new Commander();
             commander.filesPanesHelper = panes;
             AppRegistry registry = new AppRegistry(config);
-            AppAction paletteAction = new ActionRegistry(registry, new ActionExecutor(commander, registry)).all().stream()
+            AppAction paletteAction = new ActionRegistry(registry, new ActionExecutor(commander)).all().stream()
                     .filter(candidate -> candidate.id().equals(action.getId()))
                     .findFirst()
                     .orElse(null);

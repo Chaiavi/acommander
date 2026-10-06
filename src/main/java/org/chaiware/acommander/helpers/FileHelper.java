@@ -17,6 +17,7 @@ import java.nio.file.Path;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.Comparator;
+import java.util.Locale;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Stream;
 
@@ -49,7 +50,7 @@ public class FileHelper {
         } else {
             // For non-local, we'd have to download to check. 
             // For now, let's assume it's text based on extension or just return true to allow trying to edit.
-            String name = fileItem.getName().toLowerCase();
+            String name = fileItem.getName().toLowerCase(Locale.ROOT);
             return name.endsWith(".txt") || name.endsWith(".java") || name.endsWith(".xml") || 
                    name.endsWith(".json") || name.endsWith(".properties") || name.endsWith(".md") ||
                    name.endsWith(".html") || name.endsWith(".css") || name.endsWith(".js") ||
