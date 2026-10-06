@@ -141,6 +141,8 @@ All actions and external tools live in `config/apps.json`; shortcuts are declare
 ## Conventions
 
 - UI updates from background threads go through `Platform.runLater`.
+- Bump the version only in `src/main/resources/app-version.properties`; `build.gradle` and `AppVersion` read it.
+  Don't template it (`${...}`): IDE launches (F5) copy resources without Gradle and showed "dev".
 - Start processes with `tools/ProcessRunner`, run background work with `helpers/BackgroundTasks`, create temp files
   with `helpers/AppTempDir`. `ArchitectureRulesTest` fails the build on `new ProcessBuilder`,
   `CompletableFuture.runAsync`, `deleteOnExit` or a temp file in the default temp dir anywhere else.
