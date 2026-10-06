@@ -70,16 +70,29 @@ public class PdfOperations {
             int totalPages = options.knownTotalPages() != null && options.knownTotalPages() > 0
                     ? options.knownTotalPages() : readPageCount(action, input);
             validateExtractRequest(pdf.name(), totalPages, options);
-            List<Integer> selectedPages = options.mode() == PdfExtractOptions.Mode.SPECIFIC_PAGES_SINGLE
-                    ? parsePageExpression(options.pageExpression(), totalPages) : List.of();
-            try {
-                run(action, null, Map.of("${outputPattern}", workDir.resolve("page_%04d.pdf").toString()), List.of(input.toString()));
-            } catch (CompletionException e) {
-                Operation.rethrowIfStopped(e);
-                log.warn("pdftk burst failed for '{}', extracting page by page", pdf.name(), e.getCause());
-                extractPageByPage(action, input, workDir, totalPages);
+            String prefix = pdf.name().replaceFirst("(?i)\\.pdf$", "");
+            Path outDir = Files.createDirectories(workDir.resolve("out"));
+            if (options.mode() == PdfExtractOptions.Mode.PAGES_PER_PDF) {
+                for (int start = 1; start <= totalPages; start += options.pagesPerPdf()) {
+                    Operation.checkNotStopped();
+                    int end = Math.min(start + options.pagesPerPdf() - 1, totalPages);
+                    Path chunk = outDir.resolve(String.format("%s_%04d-%04d.pdf", prefix, start, end));
+                    run(action, List.of("${selectedFile}", "cat", start + "-" + end, "output", "${outputPdf}"),
+                            Map.of("${outputPdf}", chunk.toString()), List.of(input.toString()));
+                }
+            } else {
+                List<Integer> selectedPages = options.mode() == PdfExtractOptions.Mode.SPECIFIC_PAGES_SINGLE
+                        ? parsePageExpression(options.pageExpression(), totalPages) : List.of();
+                try {
+                    run(action, null, Map.of("${outputPattern}", workDir.resolve("page_%04d.pdf").toString()), List.of(input.toString()));
+                } catch (CompletionException e) {
+                    Operation.rethrowIfStopped(e);
+                    log.warn("pdftk burst failed for '{}', extracting page by page", pdf.name(), e.getCause());
+                    extractPageByPage(action, input, workDir, totalPages);
+                }
+                namePages(workDir, outDir, prefix, selectedPages);
             }
-            savePages(workDir, pdf.name().replaceFirst("(?i)\\.pdf$", ""), options, selectedPages, targetFs, destinationFolder);
+            saveAll(outDir, targetFs, destinationFolder);
         } finally {
             FileHelper.deleteQuietly(workDir);
         }
@@ -177,9 +190,8 @@ public class PdfOperations {
         }
     }
 
-    /** Names the burst pages as the options ask, in a local folder, then saves them to the target pane. */
-    private void savePages(Path workDir, String prefix, PdfExtractOptions options, List<Integer> selectedPages,
-                           VFileSystem targetFs, String destinationPath) throws IOException {
+    /** Moves the burst pages into {@code outDir} as {@code prefix_0001.pdf}; only {@code selectedPages} when given. */
+    private static void namePages(Path workDir, Path outDir, String prefix, List<Integer> selectedPages) throws IOException {
         List<Path> pages;
         try (Stream<Path> files = Files.list(workDir)) {
             pages = files.filter(path -> path.getFileName().toString().matches("^page_\\d{4}\\.pdf$")).sorted().toList();
@@ -187,35 +199,26 @@ public class PdfOperations {
         if (pages.isEmpty()) {
             throw new IOException("PDF extraction produced no pages.");
         }
-        Path outDir = Files.createDirectories(workDir.resolve("out"));
-        switch (options.mode()) {
-            case SPECIFIC_PAGES_SINGLE -> {
-                int saved = 0;
-                for (int page : selectedPages) {
-                    if (page <= pages.size()) {
-                        Files.move(pages.get(page - 1), outDir.resolve(String.format("%s_%04d.pdf", prefix, page)));
-                        saved++;
-                    }
-                }
-                if (saved == 0) {
-                    throw new IllegalArgumentException("No selected pages matched the source PDF page count.");
-                }
+        if (selectedPages.isEmpty()) {
+            for (int i = 0; i < pages.size(); i++) {
+                Files.move(pages.get(i), outDir.resolve(String.format("%s_%04d.pdf", prefix, i + 1)));
             }
-            case PAGES_PER_PDF -> {
-                ActionDefinition mergeAction = registry.requireAction("mergePdf");
-                for (int start = 1; start <= pages.size(); start += options.pagesPerPdf()) {
-                    int end = Math.min(start + options.pagesPerPdf() - 1, pages.size());
-                    List<String> chunk = pages.subList(start - 1, end).stream().map(Path::toString).toList();
-                    Path chunkFile = outDir.resolve(String.format("%s_%04d-%04d.pdf", prefix, start, end));
-                    run(mergeAction, null, Map.of("${outputPdf}", chunkFile.toString()), chunk);
-                }
-            }
-            default -> {
-                for (int i = 0; i < pages.size(); i++) {
-                    Files.move(pages.get(i), outDir.resolve(String.format("%s_%04d.pdf", prefix, i + 1)));
-                }
+            return;
+        }
+        int saved = 0;
+        for (int page : selectedPages) {
+            if (page <= pages.size()) {
+                Files.move(pages.get(page - 1), outDir.resolve(String.format("%s_%04d.pdf", prefix, page)));
+                saved++;
             }
         }
+        if (saved == 0) {
+            throw new IllegalArgumentException("No selected pages matched the source PDF page count.");
+        }
+    }
+
+    /** Saves every file in {@code outDir} to the target pane's folder. */
+    private static void saveAll(Path outDir, VFileSystem targetFs, String destinationPath) throws IOException {
         try (Stream<Path> files = Files.list(outDir)) {
             for (Path file : files.toList()) {
                 String name = file.getFileName().toString();

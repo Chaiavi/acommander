@@ -12,9 +12,11 @@ import org.junit.jupiter.api.io.TempDir;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -78,8 +80,35 @@ class PdfOperationsTest {
         assertThat(runner.output.getParent()).as("the work folder is cleaned up").doesNotExist();
     }
 
+    @Test
+    void pagesPerPdfCutsEachChunkStraightFromTheSource() throws Exception {
+        Path sourceDir = Files.createDirectory(tempDir.resolve("source"));
+        Path targetDir = Files.createDirectory(tempDir.resolve("target"));
+        Path book = Files.writeString(sourceDir.resolve("book.pdf"), "pdf");
+        ActionDefinition extractAction = new ActionDefinition();
+        extractAction.setId("extractPdfPages");
+        extractAction.setPath("apps/pdf/pdftk.exe");
+        extractAction.setArgs(List.of("${selectedFile}", "burst", "output", "${outputPattern}"));
+        AppConfig config = new AppConfig();
+        config.setActions(List.of(extractAction));
+        FakeRunner runner = new FakeRunner();
+        LocalFileSystem local = new LocalFileSystem("");
+
+        new PdfOperations(new AppRegistry(config), runner).extractPages(local, new Entry("book.pdf", false, book.toString()),
+                local, targetDir.toString(), new PdfExtractOptions(PdfExtractOptions.Mode.PAGES_PER_PDF, null, 100, 250));
+
+        assertThat(runner.commands).as("no burst, no merge").allMatch(command -> command.contains("cat"));
+        assertThat(runner.commands).extracting(command -> command.get(command.indexOf("cat") + 1))
+                .containsExactly("1-100", "101-200", "201-250");
+        try (Stream<Path> files = Files.list(targetDir)) {
+            assertThat(files.map(file -> file.getFileName().toString()).sorted())
+                    .containsExactly("book_0001-0100.pdf", "book_0101-0200.pdf", "book_0201-0250.pdf");
+        }
+    }
+
     /** Plays pdftk: records the inputs and writes the output file. */
     private static final class FakeRunner extends ExternalToolRunner {
+        private final List<List<String>> commands = new ArrayList<>();
         private List<String> inputNames = List.of();
         private Path output;
 
@@ -90,6 +119,7 @@ class PdfOperationsTest {
         @Override
         public CompletableFuture<List<String>> runExecutable(List<String> command, boolean changesFiles,
                                                              Set<Integer> acceptedNonZeroExitCodes) {
+            commands.add(command);
             inputNames = command.stream().filter(arg -> arg.matches(".*input_\\d\\.pdf"))
                     .map(arg -> Path.of(arg).getFileName().toString()).toList();
             output = Path.of(command.get(command.indexOf("output") + 1));
