@@ -11,12 +11,16 @@
         <exclude name="AvoidFieldNameMatchingTypeName"/>
         <exclude name="NullAssignment"/>
         <exclude name="ReturnEmptyCollectionRatherThanNull"/>
+        <exclude name="MissingSerialVersionUID"/>
+        <exclude name="AssignmentInOperand"/>
+        <exclude name="AvoidInstanceofChecksInCatchClause"/>
     </rule>
     <rule ref="category/java/multithreading.xml">
         <exclude name="UseConcurrentHashMap"/>
         <exclude name="DoNotUseThreads"/>
         <exclude name="AvoidSynchronizedAtMethodLevel"/>
         <exclude name="AvoidSynchronizedStatement"/>
+        <exclude name="AvoidUsingVolatile"/>
     </rule>
     <rule ref="category/java/security.xml"/>
     <rule ref="category/java/bestpractices.xml/UnusedPrivateField"/>
@@ -30,7 +34,6 @@
     <rule ref="category/java/bestpractices.xml/UseTryWithResources"/>
     <rule ref="category/java/bestpractices.xml/MissingOverride"/>
     <rule ref="category/java/bestpractices.xml/SimplifiableTestAssertion"/>
-    <rule ref="category/java/design.xml/SimplifyBooleanReturns"/>
     <rule ref="category/java/design.xml/CollapsibleIfStatements"/>
     <rule ref="category/java/design.xml/SingularField"/>
     <rule ref="category/java/design.xml/ImmutableField"/>

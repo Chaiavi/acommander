@@ -34,7 +34,7 @@ public class FilesPanesHelper {
     private final Map<FocusSide, VFileSystem> fileSystems = new EnumMap<>(FocusSide.class);
     private final Map<FocusSide, String> currentInternalPaths = new EnumMap<>(FocusSide.class);
     private final Map<FocusSide, Loads> loads = new EnumMap<>(FocusSide.class);
-    private FocusSide focusedSide;
+    private FocusSide focusedSide = LEFT;
     private ExternalCommandListener externalCommandListener;
 
     public void setExternalCommandListener(ExternalCommandListener listener) {
@@ -64,7 +64,7 @@ public class FilesPanesHelper {
     }
 
     public VFileSystem getUnfocusedFileSystem() {
-        return fileSystems.get(focusedSide == LEFT ? RIGHT : LEFT);
+        return fileSystems.get(otherSide(focusedSide));
     }
 
     public void setFileSystem(FocusSide side, VFileSystem fs) throws IOException {
@@ -86,8 +86,6 @@ public class FilesPanesHelper {
     }
 
     public FilesPanesHelper(ListView<FileItem> leftFileList, ComboBox<Folder> leftPathComboBox, ListView<FileItem> rightFileList, ComboBox<Folder> rightPathComboBox) {
-        setFocusedFileList(LEFT);
-
         filePanes.put(LEFT, new FilePane(leftFileList, leftPathComboBox));
         filePanes.put(RIGHT, new FilePane(rightFileList, rightPathComboBox));
         sortStates.put(LEFT, SortState.DEFAULT);
@@ -362,7 +360,7 @@ public class FilesPanesHelper {
         if (isFocused)
             return filePanes.get(focusedSide).getFileListView();
         else
-            return filePanes.get(focusedSide == FocusSide.LEFT ? FocusSide.RIGHT : FocusSide.LEFT).getFileListView();
+            return filePanes.get(otherSide(focusedSide)).getFileListView();
     }
 
     /* Refreshes both of the file views; safe to call from any thread */
@@ -597,7 +595,7 @@ public class FilesPanesHelper {
     }
 
     public String getUnfocusedPath() {
-        return getPath(focusedSide == LEFT ? RIGHT : LEFT);
+        return getPath(otherSide(focusedSide));
     }
 
     public FileItem getSelectedItem() {

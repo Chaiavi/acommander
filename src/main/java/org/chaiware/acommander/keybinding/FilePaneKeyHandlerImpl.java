@@ -28,8 +28,7 @@ public class FilePaneKeyHandlerImpl implements IKeyHandler {
 
     @Override
     public boolean handle(KeyEvent event) {
-        // Sync tracked state with actual event state to prevent "stuck" modifiers
-        syncModifierState(event);
+        IKeyHandler.syncModifiers(commander.activeModifiers, event);
         
         ActionDefinition action = appRegistry.matchShortcut(ActionScope.FILE_PANE, event).orElse(null);
         if (action != null) {
@@ -190,37 +189,5 @@ public class FilePaneKeyHandlerImpl implements IKeyHandler {
             }
             default -> false;
         };
-    }
-    
-    /**
-     * Syncs the tracked modifier state with the actual state from the event.
-     * This prevents "stuck" modifier states when key events are missed due to focus changes.
-     */
-    private void syncModifierState(KeyEvent event) {
-        boolean altDown = event.isAltDown();
-        boolean shiftDown = event.isShiftDown();
-        boolean controlDown = event.isControlDown();
-        
-        if (altDown != commander.activeModifiers.contains(javafx.scene.input.KeyCode.ALT)) {
-            if (altDown) {
-                commander.activeModifiers.add(javafx.scene.input.KeyCode.ALT);
-            } else {
-                commander.activeModifiers.remove(javafx.scene.input.KeyCode.ALT);
-            }
-        }
-        if (shiftDown != commander.activeModifiers.contains(javafx.scene.input.KeyCode.SHIFT)) {
-            if (shiftDown) {
-                commander.activeModifiers.add(javafx.scene.input.KeyCode.SHIFT);
-            } else {
-                commander.activeModifiers.remove(javafx.scene.input.KeyCode.SHIFT);
-            }
-        }
-        if (controlDown != commander.activeModifiers.contains(javafx.scene.input.KeyCode.CONTROL)) {
-            if (controlDown) {
-                commander.activeModifiers.add(javafx.scene.input.KeyCode.CONTROL);
-            } else {
-                commander.activeModifiers.remove(javafx.scene.input.KeyCode.CONTROL);
-            }
-        }
     }
 }

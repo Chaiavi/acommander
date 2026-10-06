@@ -404,9 +404,7 @@ public class FtpFileSystem implements VFileSystem {
         // 3. Delete children
         for (FileItem item : contents) {
             if ("..".equals(item.getPresentableFilename())) continue;
-            String childPath = ftpPath;
-            if (!childPath.endsWith("/")) childPath += "/";
-            childPath += item.getName();
+            String childPath = (ftpPath.endsWith("/") ? ftpPath : ftpPath + "/") + item.getName();
             
             if (item.isDirectory()) {
                 deleteRecursive(childPath);

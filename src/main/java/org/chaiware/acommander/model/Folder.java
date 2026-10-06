@@ -9,7 +9,7 @@ public class Folder {
     String path;
 
     public Folder(String path) {
-        setPath(path);
+        this.path = path;
     }
 
     @Override

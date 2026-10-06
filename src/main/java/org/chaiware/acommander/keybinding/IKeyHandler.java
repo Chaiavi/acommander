@@ -1,10 +1,14 @@
 package org.chaiware.acommander.keybinding;
 
+import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyCodeCombination;
 import javafx.scene.input.KeyCombination;
 import javafx.scene.input.KeyEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.Map;
+import java.util.Set;
 
 import static javafx.scene.input.KeyCode.*;
 import static javafx.scene.input.KeyCombination.*;
@@ -12,6 +16,15 @@ import static javafx.scene.input.KeyCombination.*;
 
 public interface IKeyHandler {
     Logger logger = LoggerFactory.getLogger(IKeyHandler.class);
+
+    /** Copies the event's modifier state, so a key release missed during a focus change can't leave one stuck. */
+    static void syncModifiers(Set<KeyCode> active, KeyEvent event) {
+        Map.of(ALT, event.isAltDown(), SHIFT, event.isShiftDown(), CONTROL, event.isControlDown())
+                .forEach((key, down) -> {
+                    if (down) active.add(key);
+                    else active.remove(key);
+                });
+    }
 
     KeyCombination ALT_F1 = new KeyCodeCombination(F1, ALT_DOWN);
     KeyCombination ALT_F2 = new KeyCodeCombination(F2, ALT_DOWN);

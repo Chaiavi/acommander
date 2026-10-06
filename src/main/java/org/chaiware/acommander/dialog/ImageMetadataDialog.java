@@ -36,14 +36,12 @@ public class ImageMetadataDialog {
     @SuppressWarnings("unchecked")
 
     private TreeTableView<MetadataEntry> metadataTreeTable;
-    private TreeItem<MetadataEntry> rootItem;
     private Button loadButton;
     private Button saveButton;
     private Button applyButton;
     private Button addTagButton;
     private ComboBox<String> metadataTypeCombo;
     private Label statusLabel;
-    private DialogPane dialogPane;
 
     private final Map<String, MetadataEntry> entriesByKey = new LinkedHashMap<>();
     private final List<MetadataEntry> allParsedEntries = new ArrayList<>();
@@ -86,7 +84,7 @@ public class ImageMetadataDialog {
         dialog.initOwner(owner);
         dialog.initModality(Modality.WINDOW_MODAL);
 
-        dialogPane = dialog.getDialogPane();
+        DialogPane dialogPane = dialog.getDialogPane();
         dialogPane.getButtonTypes().addAll(ButtonType.CLOSE);
         dialogPane.setMinWidth(900);
         dialogPane.setMinHeight(650);
@@ -514,7 +512,7 @@ public class ImageMetadataDialog {
      * Rebuilds the tree table, optionally filtering by metadata type.
      */
     private void rebuildTreeTable(String filterType) {
-        rootItem = new TreeItem<>(new MetadataEntry("", "", "", ""));
+        TreeItem<MetadataEntry> rootItem = new TreeItem<>(new MetadataEntry("", "", "", ""));
 
         // Group entries by namespace, applying filter
         Map<String, List<MetadataEntry>> groups = new LinkedHashMap<>();
@@ -587,7 +585,7 @@ public class ImageMetadataDialog {
         setButtonsDisabled(true);
 
         BackgroundTasks.run(() -> {
-            java.io.File tempCmdFile = null;
+            File tempCmdFile = null;
             try {
                 // Check if file is writable
                 if (!imageFile.canWrite()) {
@@ -981,7 +979,7 @@ public class ImageMetadataDialog {
 
     private void showErrorInTable(String errorMessage) {
         entriesByKey.clear();
-        rootItem = new TreeItem<>(new MetadataEntry("", "", "", ""));
+        TreeItem<MetadataEntry> rootItem = new TreeItem<>(new MetadataEntry("", "", "", ""));
         
         TreeItem<MetadataEntry> errorItem = new TreeItem<>(
             new MetadataEntry("Error", "", errorMessage, "")

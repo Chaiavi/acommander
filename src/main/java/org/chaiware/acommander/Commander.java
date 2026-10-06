@@ -1896,8 +1896,8 @@ public class Commander {
         if (leftSelected == null || rightSelected == null) {
             return false;
         }
-        return org.chaiware.acommander.helpers.FileHelper.isTextFile(leftSelected, filesPanesHelper.getFileSystem(LEFT)) && 
-               org.chaiware.acommander.helpers.FileHelper.isTextFile(rightSelected, filesPanesHelper.getFileSystem(RIGHT));
+        return FileHelper.isTextFile(leftSelected, filesPanesHelper.getFileSystem(LEFT)) && 
+               FileHelper.isTextFile(rightSelected, filesPanesHelper.getFileSystem(RIGHT));
     }
 
     public void compareFiles() {
@@ -1916,8 +1916,8 @@ public class Commander {
             return;
         }
 
-        if (!org.chaiware.acommander.helpers.FileHelper.isTextFile(leftSelected, filesPanesHelper.getFileSystem(LEFT)) || 
-            !org.chaiware.acommander.helpers.FileHelper.isTextFile(rightSelected, filesPanesHelper.getFileSystem(RIGHT))) {
+        if (!FileHelper.isTextFile(leftSelected, filesPanesHelper.getFileSystem(LEFT)) || 
+            !FileHelper.isTextFile(rightSelected, filesPanesHelper.getFileSystem(RIGHT))) {
             showError("Compare Files", "Only text files can be compared. One of the selected files appears to be binary.");
             restoreFocusToFile(lastSelectedSide, lastSelectedFile);
             return;
@@ -2067,7 +2067,7 @@ public class Commander {
 
     @FXML
     public void editImageMetadata() {
-        editMetadata("image", org.chaiware.acommander.dialog.ImageMetadataDialog::show);
+        editMetadata("image", ImageMetadataDialog::show);
     }
 
     /** Opens {@code editor} on the first selected file; refreshes the panes when it saved. */
@@ -2163,7 +2163,7 @@ public class Commander {
 
     @FXML
     public void editVideoMetadata() {
-        editMetadata("video", org.chaiware.acommander.dialog.VideoMetadataDialog::show);
+        editMetadata("video", VideoMetadataDialog::show);
     }
 
     @FXML
@@ -2183,7 +2183,7 @@ public class Commander {
 
     @FXML
     public void editAudioMetadata() {
-        editMetadata("audio", org.chaiware.acommander.dialog.AudioMetadataDialog::show);
+        editMetadata("audio", AudioMetadataDialog::show);
     }
 
     @FXML

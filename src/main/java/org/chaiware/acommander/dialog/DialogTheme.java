@@ -12,7 +12,7 @@ public final class DialogTheme {
 
     public enum ThemeMode {
         DARK("dark", DialogTheme.DARK),
-        REGULAR("regular", DialogTheme.LIGHT);
+        REGULAR("regular", LIGHT);
 
         /** The {@code theme_mode} value in the settings file. */
         public final String configValue;

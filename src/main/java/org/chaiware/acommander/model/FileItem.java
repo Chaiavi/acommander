@@ -20,15 +20,19 @@ import java.util.function.Predicate;
 public class FileItem {
     /** Null on FTP panes: the item is only a name there, the pane knows the folder. */
     private final Path path;
-    private String presentableFilename;
+    private final String presentableFilename;
     private long size = -1;
     private Long lastModified = null;
     private boolean isDirectory = false;
 
     /** Reads the metadata once now; the pane, sort and footer then never touch the disk for it. */
     public FileItem(Path path) {
+        this(path, fileName(path));
+    }
+
+    public FileItem(Path path, String presentableFilename) {
         this.path = path;
-        this.presentableFilename = fileName(path);
+        this.presentableFilename = presentableFilename;
         try {
             BasicFileAttributes attributes = Files.readAttributes(path, BasicFileAttributes.class);
             this.isDirectory = attributes.isDirectory();
@@ -39,11 +43,6 @@ public class FileItem {
             this.size = 0;
             this.lastModified = 0L;
         }
-    }
-
-    public FileItem(Path folder, String filenameStr) {
-        this(folder);
-        this.presentableFilename = filenameStr;
     }
 
     public FileItem(Path path, String presentableFilename, long size, long lastModified, boolean isDirectory) {
