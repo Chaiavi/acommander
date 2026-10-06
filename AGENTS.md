@@ -91,8 +91,8 @@ lessons about this repo in the files above, not in memory.
 - One test class: `.\gradlew.bat test --tests "org.chaiware.acommander.model.FileItemTest"`
 - Static analysis (javac lint + PMD, on demand, not in `build`):
   `.\gradlew.bat --init-script gradle\analysis\analysis.init.gradle compileJava pmdMain --no-configuration-cache`,
-  then `build/reports/pmd/main.xml`. The 20 known false positives: `==` on controls/`ButtonType`/file systems and
-  the null check in `PaneSorter` (identity is meant), `PreserveStackTrace` where a wrapper's cause is unwrapped, the
+  then `build/reports/pmd/main.xml`. The 21 known false positives: `==` on controls/`ButtonType`/file systems and
+  the null check in `PaneSorter` (identity is meant; two rules flag it), `PreserveStackTrace` where a wrapper's cause is unwrapped, the
   commented empty catch in `LocalFileSystem.addEntries`, `plainFtpPasswordsFound` in `SettingsStore` (a field read
   elsewhere). Anything else is new.
 - Run: `.\gradlew.bat run` (working dir must be repo root, see below). Faster in VS Code: F5 ("ACommander" in
@@ -101,7 +101,7 @@ lessons about this repo in the files above, not in memory.
   from `releaseResources` in `build.gradle` (public config files only, no tool logs or settings), never from `dist/`
   or `build/libs/`; `verifyDistribution` fails it if per-user files get in. `dist/` is a mirror: each `dist` run
   deletes anything in it the build doesn't produce, so don't keep files or run the app there.
-- After every fix or feature run `build` and fix failures. Add a JUnit 5 + AssertJ + Mockito test for new business
+- After every fix or feature run `build` and fix failures. Add a JUnit 6 (Jupiter) + AssertJ + Mockito test for new business
   logic under the matching package in `src/test/java`. Tests don't start the JavaFX toolkit — don't test UI.
 
 ## Architecture
@@ -182,6 +182,9 @@ All actions and external tools live in `config/apps.json`; shortcuts are declare
 - `ActionRulesSnapshotTest` diff flips many actions to `ftp=yes | writes=none`: a new gate in
   `ActionExecutor.execute` runs before the FTP / read-only gates and returns first (its mocks have no selection).
   Put new gates after those two.
+- Gradle warns "Deprecated Gradle features were used" (`Configuration.setVisible`, `build.gradle` at
+  `apply plugin: 'edu.sc.seis.launch4j'`). It comes from the Launch4j plugin 4.0.0, not our script; it breaks in
+  Gradle 11 unless the plugin ships a fix. Check `--warning-mode all` for any other source before ignoring it.
 - Eclipse files (`.classpath`, `.project`, `.factorypath`, `.settings/`) are gitignored and regenerated from
   `build.gradle`; never commit them.
 - `config/acommander.properties` is per-user runtime state (gitignored). Never commit it.

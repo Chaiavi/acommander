@@ -1,16 +1,16 @@
 buildscript {
     ext {
-        shadowPluginVersion = '9.3.1'
+        shadowPluginVersion = '9.6.1'
         launch4jPluginVersion = '4.0.0'
 
-        javafxVersion = '21.0.7'
-        lombokVersion = '1.18.42'
-        logbackVersion = '1.5.29'
-        slf4jVersion = '2.0.17'
-        jacksonVersion = '2.17.2'
-        junitBomVersion = '5.11.4'
+        javafxVersion = '21.0.12'
+        lombokVersion = '1.18.48'
+        logbackVersion = '1.6.5'
+        slf4jVersion = '2.0.20'
+        jacksonVersion = '2.22.3'
+        junitBomVersion = '6.1.3'
         assertjVersion = '3.27.7'
-        mockitoVersion = '5.14.2'
+        mockitoVersion = '5.24.0'
     }
     repositories {
         mavenCentral()
