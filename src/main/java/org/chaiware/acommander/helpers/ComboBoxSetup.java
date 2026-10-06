@@ -11,7 +11,9 @@ import org.slf4j.LoggerFactory;
 
 import javax.swing.filechooser.FileSystemView;
 import java.io.File;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
@@ -24,9 +26,19 @@ public class ComboBoxSetup {
     public void setupComboBox(ComboBox<Folder> comboBox) {
         comboBox.setCellFactory(param -> new FolderComboBoxCell());
         comboBox.setButtonCell(new FolderComboBoxCell(true));
-        populateComboBox(comboBox);
+        comboBox.getItems().setAll(buildItems());
         setStringInput(comboBox);
         comboBox.getSelectionModel().selectLast();
+        comboBox.setOnShowing(e -> refreshDrives(comboBox));
+    }
+
+    /** Re-reads the drives (a USB disk plugged in or removed since) and keeps the combo's current path. */
+    public void refreshDrives(ComboBox<Folder> comboBox) {
+        Folder current = comboBox.getValue();
+        comboBox.getItems().setAll(buildItems());
+        if (comboBox.getValue() != current) {
+            comboBox.setValue(current);
+        }
     }
 
     /** Enables user input into the combox as string (it will convert it to Folder object) */
@@ -75,34 +87,32 @@ public class ComboBoxSetup {
         return trimmed.trim();
     }
 
-    private void populateComboBox(ComboBox<Folder> comboBox) {
-        // Adding drives first
-        // File.listRoots() is a simple detection - Should change it to a better detection which will also find usb and drive names
-        File[] roots = File.listRoots();
-        for (File root : roots) {
+    /** The drives, then Desktop / Documents / Downloads. */
+    List<Folder> buildItems() {
+        List<Folder> items = new ArrayList<>();
+        for (File root : File.listRoots()) {
             Drive drive = new Drive();
             drive.setPath(root.getAbsolutePath());
             drive.setLetter(root.getAbsolutePath().substring(0, 1));
+            // A drive added after startup isn't in the PowerShell cache; FileSystemView types it instead
             drive.setStoreType(getStoreType(root));
             drive.setTotalSpace(root.getTotalSpace());
             drive.setAvailableSpace(root.getUsableSpace());
-            comboBox.getItems().add(drive);
+            items.add(drive);
         }
 
-        // Adding Windows folders
-        addWindowsFolder(comboBox, "Desktop", System.getProperty("user.home") + "\\Desktop");
-        addWindowsFolder(comboBox, "Documents", System.getProperty("user.home") + "\\Documents");
-        addWindowsFolder(comboBox, "Downloads", System.getProperty("user.home") + "\\Downloads");
-
-        // Adding bookmarked folders ?
-        // addBookmarkFolder(comboBox, name, path);
+        String home = System.getProperty("user.home");
+        items.add(windowsFolder("Desktop", home + "\\Desktop"));
+        items.add(windowsFolder("Documents", home + "\\Documents"));
+        items.add(windowsFolder("Downloads", home + "\\Downloads"));
+        return items;
     }
 
-    private void addWindowsFolder(ComboBox<Folder> comboBox, String name, String path) {
+    private static WindowsFolder windowsFolder(String name, String path) {
         WindowsFolder folder = new WindowsFolder();
         folder.setName(name);
         folder.setPath(path);
-        comboBox.getItems().add(folder);
+        return folder;
     }
 
     private String getStoreType(File root) {

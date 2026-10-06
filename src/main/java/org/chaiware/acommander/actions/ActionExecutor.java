@@ -110,7 +110,7 @@ public class ActionExecutor {
             case EDIT_AUDIO_METADATA -> commander::editAudioMetadata;
             case REMOVE_AUDIO_METADATA -> commander::removeAudioMetadata;
             case COMPRESS_EXECUTABLE -> commander::compressExecutable;
-            case REFRESH -> () -> commander.filesPanesHelper.refreshFileListViews();
+            case REFRESH -> commander::refreshPanesAndDrives;
             case OPEN_COMMAND_PALETTE -> commander::openCommandPalette;
             case LEFT_PATH_COMBO -> () -> commander.leftPathComboBox.show();
             case RIGHT_PATH_COMBO -> () -> commander.rightPathComboBox.show();

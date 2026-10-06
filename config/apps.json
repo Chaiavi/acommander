@@ -744,7 +744,7 @@
     },
     {
       "id": "refresh",
-      "description": "Reloads both panes.",
+      "description": "Reloads both panes and the drive list.",
       "category": "Getting Around",
       "ftp": true,
       "label": "Refresh Panels",

@@ -117,6 +117,7 @@ public class Commander {
     FileOperations fileOps;
     private ArchiveOperations archiveOps;
     private PdfOperations pdfOps;
+    private ComboBoxSetup comboBoxSetup;
     private ExternalToolRunner toolRunner;
     private AppRegistry appRegistry;
     private ActionExecutor actionExecutor;
@@ -170,9 +171,9 @@ public class Commander {
         configMouseDoubleClick();
 
         logger.debug("Loading file lists into the double panes file views");
-        ComboBoxSetup setup = new ComboBoxSetup();
-        setup.setupComboBox(leftPathComboBox);
-        setup.setupComboBox(rightPathComboBox);
+        comboBoxSetup = new ComboBoxSetup();
+        comboBoxSetup.setupComboBox(leftPathComboBox);
+        comboBoxSetup.setupComboBox(rightPathComboBox);
         filesPanesHelper.setFileListPath(LEFT, resolveInitialPath(LEFT));
         filesPanesHelper.setFileListPath(RIGHT, resolveInitialPath(RIGHT));
         folderCompareMarks.put(LEFT, new HashMap<>());
@@ -381,6 +382,12 @@ public class Commander {
             return "";
         }
         return ascending ? " ▲" : " ▼";
+    }
+
+    public void refreshPanesAndDrives() {
+        filesPanesHelper.refreshFileListViews();
+        comboBoxSetup.refreshDrives(leftPathComboBox);
+        comboBoxSetup.refreshDrives(rightPathComboBox);
     }
 
     private void onPathChanged(FilesPanesHelper.FocusSide side, Folder newValue) {

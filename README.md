@@ -101,7 +101,7 @@ directories.
 | **SFTP / FTPS**      | Secure remote browsing over SSH or TLS (via curl). The server's certificate or SSH key (from `.ssh\known_hosts`) is checked; tick **Trust Any Certificate** in the connection dialog for a self-signed server you trust. Saved passwords are encrypted for your Windows account (DPAPI); another PC or user asks for them again |
 | **FTP-to-FTP copy**  | Transfer files directly between two remote servers        |
 | **Folder upload**    | Copy or move whole folders (with empty subfolders) from a local or archive pane to a server |
-| **USB drives**       | Detect and browse USB disk keys                           |
+| **USB drives**       | Detect and browse USB disk keys; the drive list updates when you open it (Alt+F1/F2) or press Ctrl+R, so a disk plugged in later shows up |
 
 ---
 

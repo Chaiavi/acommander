@@ -91,7 +91,7 @@ Adding or renaming an action id? Check each of these:
 | `editVideoMetadata` / `removeVideoMetadata` | `editVideoMetadata` / `removeVideoMetadata` | `dialog/VideoMetadataDialog` (on `MetadataFormDialog`), `helpers/VideoMetadataSupport` | `video_metadata/AtomicParsley.exe` |
 | `editAudioMetadata` / `removeAudioMetadata` | `editAudioMetadata` / `removeAudioMetadata` | `dialog/AudioMetadataDialog` (on `MetadataFormDialog`), `helpers/AudioMetadataSupport` | `audio_metadata/id3.exe` |
 | `compressExecutable` | `compressExecutable` | `dialog/ExecutableCompressionDialog`, `helpers/ExecutableCompressionSupport` (`UpxAction`, `upxCommand`, `percentChange`) | `exe_compress/upx.exe` |
-| `refresh` (Ctrl+R) | — | `FilesPanesHelper.refreshFileListViews` | — |
+| `refresh` (Ctrl+R) | `refreshPanesAndDrives` | `FilesPanesHelper.refreshFileListViews`, `ComboBoxSetup.refreshDrives` | — |
 | `selectAll` / `unselectAll` / `invertSelection` / `selectByPattern` | same names | `dialog/SelectByPatternDialog`, `FilesPanesHelper.selectAllItems` … `selectByPattern` | — |
 | `sortByName` / `sortBySize` / `sortByDate` | same names, `onSortHeaderClicked` | `FilesPanesHelper.toggleSort` → `helpers/PaneSorter` | — |
 | `toggleDarkMode` | same name, `applyTheme` | `dialog/DialogTheme` (`ThemeMode`, `apply(scene)`) | `styles/app-theme.css` |
@@ -236,7 +236,7 @@ Not actions, but often asked for:
 | `FileIcons` | Glyph + colour per pane item (folder, archive, PDF, text, image, audio, video, executable, other). |
 | `IncrementalFilter` | Type-to-filter state of one pane: typed prefix, the unfiltered list, the matching items; starts over when the pane changed. |
 | `ExternalProgressController` | Progress bar + Stop button: one running count over tool runs (listener) and background work (`run`); `toolName`, `isFailedExit` (ExamDiff 27 and Explorer 1 are not failures). |
-| `ComboBoxSetup`, `FolderComboBoxCell` | Path combo: drives (with type/free space), Desktop/Documents/Downloads. |
+| `ComboBoxSetup`, `FolderComboBoxCell` | Path combo: drives (with type/free space), Desktop/Documents/Downloads. `refreshDrives` re-reads them each time the dropdown opens and on Ctrl+R. |
 
 ### `keybinding/`
 | File | Role |
