@@ -74,7 +74,7 @@ command palette. Free and open source.**
 | Operation               | Details                                      |
 |-------------------------|----------------------------------------------|
 | **Rename**              | Single or batch via Ant Renamer              |
-| **Copy / Move**         | Between panes                                |
+| **Copy / Move**         | Between panes. When names already exist, one dialog lists them and asks: Overwrite All, Skip Existing or Overwrite Older |
 | **Copy / Paste**        | Clipboard-based copy and paste               |
 | **Duplicate**           | Clone a file in the same directory           |
 | **Create**              | New directory or new file                    |

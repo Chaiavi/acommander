@@ -134,7 +134,7 @@
       "selection": "any",
       "type": "builtin",
       "path": "apps/copy/fcp.exe",
-      "args": ["/cmd=force_copy", "/auto_close", "${selectedFiles}", "/to=${targetFolder}"],
+      "args": ["/cmd=${copyMode}", "/auto_close", "${selectedFiles}", "/to=${targetFolder}"],
       "refreshAfter": true
     },
     {

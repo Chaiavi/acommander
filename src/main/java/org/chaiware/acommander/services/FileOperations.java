@@ -106,20 +106,29 @@ public class FileOperations {
      * Copies (or, for a cut, moves) every entry of {@code source} into {@code targetFolder}. Blocking. Local to local
      * runs FastCopy (a move on one drive is a rename); archive and FTP sides go through the VFS, and a copy into its
      * own folder gets {@link ClipboardTransfer#duplicateName duplicate names}. A failed item is listed, the rest run.
+     * {@code policy} decides what happens to the {@code conflicts} ({@link TransferConflicts#find}).
      */
-    public PasteResult transfer(ClipboardTransfer.State source, VFileSystem targetFs, String targetFolder) {
+    public PasteResult transfer(ClipboardTransfer.State source, VFileSystem targetFs, String targetFolder,
+                                TransferConflicts.Policy policy, List<TransferConflicts.Conflict> conflicts) {
         boolean bothLocal = source.sourceFs() instanceof LocalFileSystem && targetFs instanceof LocalFileSystem;
-        if (!bothLocal || ClipboardTransfer.isSameFolder(source.sourceFs(), targetFs, source.sourceFolder(), targetFolder)) {
-            return ClipboardTransfer.paste(source, targetFs, targetFolder);
+        if (bothLocal && !source.cut()
+                && !ClipboardTransfer.isSameFolder(source.sourceFs(), targetFs, source.sourceFolder(), targetFolder)) {
+            return copyLocal(source.entries(), targetFolder, policy);
         }
-        return source.cut() ? moveLocal(source.entries(), targetFolder) : copyLocal(source.entries(), targetFolder);
+        List<Entry> kept = TransferConflicts.keep(source.entries(), conflicts, policy);
+        if (bothLocal && source.cut()) {
+            return moveLocal(kept, targetFolder);
+        }
+        return ClipboardTransfer.paste(new ClipboardTransfer.State(kept, source.cut(), source.sourceSide(),
+                source.sourceFs(), source.sourceFolder()), targetFs, targetFolder);
     }
 
     /** One FastCopy run for all entries, then a check: FastCopy can exit 0 and still skip files. */
-    private PasteResult copyLocal(List<Entry> entries, String targetFolder) {
+    private PasteResult copyLocal(List<Entry> entries, String targetFolder, TransferConflicts.Policy policy) {
         List<String> sources = entries.stream().map(Entry::sourceInternalPath).toList();
+        Map<String, String> values = Map.of("${targetFolder}", toolTarget(targetFolder), "${copyMode}", policy.fastCopyMode());
         try {
-            runner.runExecutable(command("copy", Map.of("${targetFolder}", toolTarget(targetFolder)), sources), false).join();
+            runner.runExecutable(command("copy", values, sources), false).join();
         } catch (CompletionException e) {
             Operation.rethrowIfStopped(e);
             return new PasteResult(List.of(), entries, unwrap(e));
@@ -127,7 +136,7 @@ public class FileOperations {
         return checkArrived(entries, targetFolder, "The copy tool reported success, but these are missing in ");
     }
 
-    /** Item by item: a rename on the same drive, FastCopy across drives. */
+    /** Item by item: a rename on the same drive, FastCopy across drives or into an existing folder (it merges). */
     private PasteResult moveLocal(List<Entry> entries, String targetFolder) {
         List<Entry> moved = new ArrayList<>();
         List<Entry> failed = new ArrayList<>();
@@ -136,7 +145,8 @@ public class FileOperations {
         for (Entry entry : entries) {
             Operation.checkNotStopped();
             try {
-                if (sameDrive(entry.sourceInternalPath(), targetFolder)) {
+                if (sameDrive(entry.sourceInternalPath(), targetFolder)
+                        && !(entry.directory() && Files.isDirectory(Paths.get(targetFolder, entry.name())))) {
                     local.move(entry.sourceInternalPath(), local, Paths.get(targetFolder, entry.name()).toString());
                 } else {
                     runner.runExecutable(command("move", Map.of("${targetFolder}", toolTarget(targetFolder)),

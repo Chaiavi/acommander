@@ -43,6 +43,7 @@ import org.chaiware.acommander.helpers.PaneSorter.SortColumn;
 import org.chaiware.acommander.services.ArchiveOperations;
 import org.chaiware.acommander.services.FileOperations;
 import org.chaiware.acommander.services.PdfOperations;
+import org.chaiware.acommander.services.TransferConflicts;
 import org.chaiware.acommander.tools.BundledTool;
 import org.chaiware.acommander.tools.BundledToolCommands;
 import org.chaiware.acommander.tools.BundledToolCommands.ChecksumOptions;
@@ -958,8 +959,27 @@ public class Commander {
             showToast("Cannot move items into the same folder");
             return;
         }
+        if (ClipboardTransfer.isSameFolder(source.sourceFs(), targetFs, source.sourceFolder(), targetFolder)) {
+            runTransfer(title, source, targetSide, targetFs, targetFolder, TransferConflicts.Policy.OVERWRITE, List.of(), onDone);
+            return;
+        }
+        runFileOperation(title, List.of(source.sourceFs(), targetFs), false,
+                () -> TransferConflicts.find(source, targetFs, targetFolder),
+                conflicts -> {
+                    if (conflicts.isEmpty()) {
+                        runTransfer(title, source, targetSide, targetFs, targetFolder, TransferConflicts.Policy.OVERWRITE, conflicts, onDone);
+                        return;
+                    }
+                    OverwriteDialog.show(dialogOwner(), currentThemeMode.styleClass, title, targetFolder, conflicts)
+                            .ifPresent(policy -> runTransfer(title, source, targetSide, targetFs, targetFolder, policy, conflicts, onDone));
+                });
+    }
+
+    private void runTransfer(String title, ClipboardTransfer.State source, FilesPanesHelper.FocusSide targetSide,
+                             VFileSystem targetFs, String targetFolder, TransferConflicts.Policy policy,
+                             List<TransferConflicts.Conflict> conflicts, Consumer<ClipboardTransfer.PasteResult> onDone) {
         runFileOperation(title, List.of(source.sourceFs(), targetFs), true,
-                () -> fileOps.transfer(source, targetFs, targetFolder),
+                () -> fileOps.transfer(source, targetFs, targetFolder, policy, conflicts),
                 result -> {
                     filesPanesHelper.selectNames(targetSide, targetFolder,
                             result.pasted().stream().map(ClipboardTransfer.Entry::name).toList());

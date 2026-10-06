@@ -28,6 +28,7 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.chaiware.acommander.services.TransferConflicts.Policy.OVERWRITE;
 import static org.mockito.Mockito.*;
 
 class FileOperationsTest {
@@ -67,7 +68,7 @@ class FileOperationsTest {
         Path second = write("two.txt", "second");
         targetDir.toFile().mkdir();
 
-        ClipboardTransfer.PasteResult result = operations.transfer(capture(true, local, tempDir, first, second), local, targetDir.toString());
+        ClipboardTransfer.PasteResult result = operations.transfer(capture(true, local, tempDir, first, second), local, targetDir.toString(), OVERWRITE, List.of());
 
         assertThat(result.failed()).isEmpty();
         assertThat(first).doesNotExist();
@@ -76,10 +77,53 @@ class FileOperationsTest {
     }
 
     @Test
+    void moveSkipsTheConflictsWhenAskedTo() throws Exception {
+        Path targetDir = Files.createDirectories(tempDir.resolve("target"));
+        Path clash = write("clash.txt", "new");
+        Path fresh = write("fresh.txt", "fresh");
+        Files.writeString(targetDir.resolve("clash.txt"), "old");
+        ClipboardTransfer.State state = capture(true, local, tempDir, clash, fresh);
+
+        operations.transfer(state, local, targetDir.toString(), TransferConflicts.Policy.SKIP,
+                TransferConflicts.find(state, local, targetDir.toString()));
+
+        assertThat(targetDir.resolve("clash.txt")).hasContent("old");
+        assertThat(clash).hasContent("new");
+        assertThat(targetDir.resolve("fresh.txt")).hasContent("fresh");
+    }
+
+    @Test
+    void moveIntoAnExistingFolderOnTheSameDriveMergesWithFastCopy() throws Exception {
+        Path folder = Files.createDirectories(tempDir.resolve("src").resolve("photos"));
+        Path targetDir = Files.createDirectories(tempDir.resolve("target").resolve("photos")).getParent();
+        List<List<String>> commands = new ArrayList<>();
+        ExternalToolRunner fastCopy = new ExternalToolRunner(() -> {}) {
+            @Override
+            public CompletableFuture<List<String>> runExecutable(List<String> command, boolean changesFiles, Set<Integer> accepted) {
+                commands.add(command);
+                return CompletableFuture.completedFuture(List.of());
+            }
+        };
+        ActionDefinition move = new ActionDefinition();
+        move.setId("move");
+        move.setPath("apps/copy/fcp.exe");
+        move.setArgs(List.of("/cmd=move", "${selectedFile}", "/to=${targetFolder}"));
+        AppConfig config = new AppConfig();
+        config.setActions(List.of(move));
+
+        ClipboardTransfer.PasteResult result = new FileOperations(new AppRegistry(config), fastCopy)
+                .transfer(capture(true, local, folder.getParent(), folder), local, targetDir.toString(), OVERWRITE, List.of());
+
+        assertThat(result.failed()).isEmpty();
+        assertThat(commands).hasSize(1);
+        assertThat(commands.getFirst()).contains("/cmd=move", folder.toString());
+    }
+
+    @Test
     void copyIntoItsOwnFolderGetsADuplicateName() {
         Path file = write("sample.txt", "data");
 
-        ClipboardTransfer.PasteResult result = operations.transfer(capture(false, local, tempDir, file), local, tempDir.toString());
+        ClipboardTransfer.PasteResult result = operations.transfer(capture(false, local, tempDir, file), local, tempDir.toString(), OVERWRITE, List.of());
 
         assertThat(result.pasted()).extracting(ClipboardTransfer.Entry::name).containsExactly("sample_copy.txt");
         assertThat(tempDir.resolve("sample_copy.txt")).hasContent("data");
@@ -104,15 +148,16 @@ class FileOperationsTest {
         ActionDefinition copy = new ActionDefinition();
         copy.setId("copy");
         copy.setPath("apps/copy/fcp.exe");
-        copy.setArgs(List.of("/cmd=force_copy", "${selectedFiles}", "/to=${targetFolder}"));
+        copy.setArgs(List.of("/cmd=${copyMode}", "${selectedFiles}", "/to=${targetFolder}"));
         AppConfig config = new AppConfig();
         config.setActions(List.of(copy));
 
         ClipboardTransfer.PasteResult result = new FileOperations(new AppRegistry(config), fastCopy)
-                .transfer(capture(false, local, tempDir, copied, skipped), local, targetDir.toString());
+                .transfer(capture(false, local, tempDir, copied, skipped), local, targetDir.toString(),
+                        TransferConflicts.Policy.OVERWRITE_OLDER, List.of());
 
         assertThat(commands).hasSize(1);
-        assertThat(commands.getFirst()).contains(copied.toString(), skipped.toString(), "/to=" + targetDir + "\\");
+        assertThat(commands.getFirst()).contains("/cmd=update", copied.toString(), skipped.toString(), "/to=" + targetDir + "\\");
         assertThat(result.pasted()).extracting(ClipboardTransfer.Entry::name).containsExactly("copied.txt");
         assertThat(result.failed()).extracting(ClipboardTransfer.Entry::name).containsExactly("skipped.txt");
         assertThat(result.firstFailure()).hasMessageContaining("skipped.txt");
@@ -175,7 +220,7 @@ class FileOperationsTest {
         ArchiveFileSystem archive = new ArchiveFileSystem(
                 new ArchiveSession("a.zip", extracted, ArchiveMode.READ_WRITE), new ArchiveManager());
         try {
-            operations.transfer(capture(false, local, source.getParent(), source), archive, extracted.toString());
+            operations.transfer(capture(false, local, source.getParent(), source), archive, extracted.toString(), OVERWRITE, List.of());
 
             assertThat(extracted.resolve("dirA").resolve("inner.txt")).hasContent("x");
             assertThat(extracted.resolve("dirA").resolve("dirA")).doesNotExist();
