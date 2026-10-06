@@ -187,7 +187,8 @@ All actions and external tools live in `config/apps.json`; shortcuts are declare
   (cmd keeps the bytes; PowerShell `>` re-encodes), make your edit in both `%TEMP%\x` and the working file, then
   `git update-index --cacheinfo 100644,$(git hash-object -w --path <file> $env:TEMP\x),<file>` and `git commit -m`
   without a pathspec. A test failing on a class you never wrote is the same signal.
-- After `git mv` / `git rm`, `git commit -- <old path>` fails ("pathspec did not match any file(s) known to git").
+- After `git mv`, `git commit -- <old path>` fails ("pathspec did not match any file(s) known to git"). (A plain
+  `git rm <file>` then `git commit -- <file> ...` works.)
   `git add` the other paths (the move/delete is already staged), check `git status` lists only your files, then
   `git commit -m` without a pathspec.
 - IntelliJ: after a clean build, debugger errors → **File → Invalidate Caches → Invalidate and Restart**. LSP errors in
