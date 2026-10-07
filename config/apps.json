@@ -924,6 +924,30 @@
       "type": "builtin"
     },
     {
+      "id": "linkNavigation",
+      "description": "Makes the other pane follow each folder step (Enter, Backspace, ..) of the focused pane.",
+      "category": "Getting Around",
+      "ftp": true,
+      "requires": ["navigationUnlinked"],
+      "label": "Link Panel Navigation",
+      "aliases": ["navigate both panes", "link panes", "sync dirs", "synchronous navigation"],
+      "contexts": ["commandPalette"],
+      "selection": "none",
+      "type": "builtin"
+    },
+    {
+      "id": "unlinkNavigation",
+      "description": "Stops the other pane following the focused pane's folder steps.",
+      "category": "Getting Around",
+      "ftp": true,
+      "requires": ["navigationLinked"],
+      "label": "Unlink Panel Navigation",
+      "aliases": ["unlink panes", "stop sync dirs", "remove linked navigation"],
+      "contexts": ["commandPalette"],
+      "selection": "none",
+      "type": "builtin"
+    },
+    {
       "id": "ftpConnect",
       "description": "Connects the focused pane to an FTP, FTPS or SFTP server.",
       "category": "Tools",

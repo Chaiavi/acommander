@@ -51,7 +51,9 @@ public class ActionDefinition {
     public enum Requirement {
         @JsonProperty("clipboardHasFiles") CLIPBOARD_HAS_FILES,
         @JsonProperty("focusedPaneIsFtp") FOCUSED_PANE_IS_FTP,
-        @JsonProperty("textFileInEachPane") TEXT_FILE_IN_EACH_PANE
+        @JsonProperty("textFileInEachPane") TEXT_FILE_IN_EACH_PANE,
+        @JsonProperty("navigationLinked") NAVIGATION_LINKED,
+        @JsonProperty("navigationUnlinked") NAVIGATION_UNLINKED
     }
 
     public String getId() {

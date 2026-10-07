@@ -352,10 +352,6 @@ public class FilesPanesHelper {
         setFileListPath(focusedSide, path);
     }
 
-    public void setFocusedFileListPathAndSelect(String path, String preferredSelectionName) {
-        setFileListPath(focusedSide, path, preferredSelectionName);
-    }
-
     public ListView<FileItem> getFileList(boolean isFocused) {
         if (isFocused)
             return filePanes.get(focusedSide).getFileListView();

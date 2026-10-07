@@ -139,6 +139,8 @@ public class ActionRegistry {
             case CLIPBOARD_HAS_FILES -> commander.hasClipboardTransferEntries();
             case FOCUSED_PANE_IS_FTP -> panes != null && panes.getFileSystem(panes.getFocusedSide()) instanceof FtpFileSystem;
             case TEXT_FILE_IN_EACH_PANE -> panes != null && commander.canCompareSelectedFiles();
+            case NAVIGATION_LINKED -> commander.isNavigationLinked();
+            case NAVIGATION_UNLINKED -> !commander.isNavigationLinked();
         };
     }
 

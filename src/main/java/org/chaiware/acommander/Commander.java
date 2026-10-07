@@ -46,6 +46,7 @@ import org.chaiware.acommander.services.ImageConversionService.ImageConversionRe
 import org.chaiware.acommander.helpers.PaneSorter.SortColumn;
 import org.chaiware.acommander.services.ArchiveOperations;
 import org.chaiware.acommander.services.FileOperations;
+import org.chaiware.acommander.services.LinkedNavigation;
 import org.chaiware.acommander.services.PaneDragDrop;
 import org.chaiware.acommander.services.PdfOperations;
 import org.chaiware.acommander.services.TransferConflicts;
@@ -111,6 +112,8 @@ public class Commander {
     @FXML
     Button externalStopButton;
     @FXML
+    Button linkIndicator;
+    @FXML
     private CommandPaletteController commandPaletteController;
 
     private final SettingsStore settings = new SettingsStore(AppPaths.config("acommander.properties"));
@@ -143,6 +146,7 @@ public class Commander {
     /** The selection being dragged from one of the panes; null when no such drag runs. */
     private ClipboardTransfer.State paneDragState;
     private boolean paneDragSecondary;
+    private boolean navigationLinked;
 
     private KeyBindingManager keyBindingManager;
     private javafx.scene.input.MouseEvent functionButtonClick;
@@ -923,6 +927,10 @@ public class Commander {
 
         FileItem selectedItem = filesPanesHelper.getSelectedItem();
         logger.debug("Running: {}", selectedItem.getName());
+        if ("..".equals(selectedItem.getPresentableFilename())) {
+            goUpOneFolder();
+            return;
+        }
 
         // Handle archive navigation
         FilesPanesHelper.FocusSide focusedSide = filesPanesHelper.getFocusedSide();
@@ -934,30 +942,15 @@ public class Commander {
         // Handle FTP navigation
         VFileSystem fs = filesPanesHelper.getFileSystem(focusedSide);
         if (fs instanceof FtpFileSystem ftpFs) {
-            if ("..".equals(selectedItem.getPresentableFilename())) {
-                String currentPath = filesPanesHelper.getFocusedPath();
-                if ("/".equals(currentPath) || currentPath.isEmpty()) {
-                    // Back to local filesystem
-                    ftpDisconnect();
-                } else {
-                    // Go up one level in FTP
-                    String parentPath = ftpFs.getParent(currentPath);
-                    filesPanesHelper.setFileListPath(focusedSide, parentPath, leafName(currentPath));
-                }
-            } else if (selectedItem.isDirectory()) {
+            if (selectedItem.isDirectory()) {
                 filesPanesHelper.setFileListPath(focusedSide, ftpFs.getInternalPath(selectedItem));
             }
             return;
         }
 
-        if ("..".equals(selectedItem.getPresentableFilename())) {
-            String currentPath = filesPanesHelper.getFocusedPath();
-            File parent = new File(currentPath).getParentFile();
-            if (parent != null) {
-                filesPanesHelper.setFocusedFileListPathAndSelect(parent.getAbsolutePath(), new File(currentPath).getName());
-            }
-        } else if (selectedItem.isDirectory()) {
+        if (selectedItem.isDirectory()) {
             filesPanesHelper.setFocusedFileListPath(selectedItem.getFullPath());
+            followInOtherPane(selectedItem.getName());
         } else {
             // It's a file - check if it's an archive we can enter
             String extension = selectedItem.extension();
@@ -995,9 +988,7 @@ public class Commander {
     private void handleArchiveEnter(FileItem selectedItem) {
         FilesPanesHelper.FocusSide focusedSide = filesPanesHelper.getFocusedSide();
 
-        if ("..".equals(selectedItem.getPresentableFilename())) {
-            goUpInArchive();
-        } else if (selectedItem.isDirectory()) {
+        if (selectedItem.isDirectory()) {
             runWithProgress("VFS: Entering " + selectedItem.getName(),
                     () -> filesPanesHelper.enterArchiveSubdirectory(focusedSide, selectedItem.getName()),
                     this::focusCurrentFileList,
@@ -1026,6 +1017,66 @@ public class Commander {
         }
     }
     
+    /** Backspace or "..": goes up one folder; at an FTP root disconnects, at an archive root leaves the archive. */
+    public void goUpOneFolder() {
+        FilesPanesHelper.FocusSide side = filesPanesHelper.getFocusedSide();
+        String currentPath = filesPanesHelper.getPath(side);
+        if (filesPanesHelper.getFileSystem(side) instanceof FtpFileSystem ftpFs) {
+            if ("/".equals(currentPath) || currentPath.isEmpty()) {
+                ftpDisconnect();
+            } else {
+                filesPanesHelper.setFileListPath(side, ftpFs.getParent(currentPath), leafName(currentPath));
+            }
+            return;
+        }
+        if (filesPanesHelper.isInArchive(side)) {
+            goUpInArchive();
+            return;
+        }
+        File parent = new File(currentPath).getParentFile();
+        if (parent != null) {
+            filesPanesHelper.setFileListPath(side, parent.getAbsolutePath(), new File(currentPath).getName());
+            followInOtherPane(null);
+        }
+    }
+
+    public void linkNavigation() {
+        setNavigationLinked(true);
+        showToast("Navigation linked: Enter and Backspace now move both panes.");
+    }
+
+    @FXML
+    public void unlinkNavigation() {
+        setNavigationLinked(false);
+        showToast("Navigation unlinked.");
+    }
+
+    public boolean isNavigationLinked() {
+        return navigationLinked;
+    }
+
+    private void setNavigationLinked(boolean linked) {
+        navigationLinked = linked;
+        linkIndicator.setVisible(linked);
+        linkIndicator.setManaged(linked);
+    }
+
+    /** Linked navigation: repeats the focused pane's folder step (into {@code intoName}, or up when null) in the other pane. */
+    private void followInOtherPane(String intoName) {
+        FilesPanesHelper.FocusSide other = otherSide(filesPanesHelper.getFocusedSide());
+        if (!navigationLinked || !(filesPanesHelper.getFileSystem(other) instanceof LocalFileSystem)) {
+            return;
+        }
+        String otherPath = filesPanesHelper.getPath(other);
+        LinkedNavigation.target(otherPath, intoName).ifPresentOrElse(
+                target -> filesPanesHelper.setFileListPath(other, target, intoName == null ? leafName(otherPath) : null),
+                () -> {
+                    if (intoName != null) {
+                        showToast("The other pane has no folder named " + intoName + ".");
+                    }
+                });
+    }
+
     /** Goes up one level inside an archive; at its root, leaves it (repacking if it changed). */
     public void goUpInArchive() {
         FilesPanesHelper.FocusSide side = filesPanesHelper.getFocusedSide();
@@ -2535,35 +2586,7 @@ public class Commander {
 
         try {
             if (!(focusedFs instanceof LocalFileSystem)) {
-                // For VFS (FTP/Archive), we should ideally sync the filesystem too
-                // But the requirement says "go to that filelist in the regular file system"
-                // which implies the OTHER pane should be LocalFileSystem and show that path?
-                // Wait, if I'm on FTP in LEFT, and I run "goto same folder on RIGHT", 
-                // what should RIGHT show? If it shows the FTP path as a local path, it fails.
-                // The issue says: "also going to the other pane and running "goto same folder on..." should also go to that filelist in the regular file system"
-                // This means if I am on the OTHER pane (local) and I want to sync FROM the FTP pane,
-                // it should probably switch the FTP pane back to local or just show the same as some local default?
-                // Actually, reading again: "also going to the other pane and running "goto same folder on..." 
-                // should also go to that filelist in the regular file system"
-                // This means if LEFT=FTP, RIGHT=Local. I go to RIGHT, run "Sync". 
-                // RIGHT should now show what? 
-                // If the user meant they want to EXIT FTP by syncing, then LEFT should become local.
-                // But typically "Sync" means "Target = Source Path".
-                // If Source is FTP, Target can't easily be "same folder" in local unless it's a very specific path.
-                // Given "backspace shuld go back to the regular filesystem", it seems the user wants easy ways to exit FTP.
-                
-                // Let's assume they mean: if I sync FROM FTP, the TARGET should switch to Local FS.
-                // But if they are ON the other pane (Local) and sync FROM FTP, 
-                // then the Target (Local) remains Local and gets the path.
-                // If the path is "/" (FTP root), Local FS will try to list "/" which is root on Unix or invalid-ish on Windows.
-                
-                // Re-reading: "also going to the other pane and running "goto same folder on..." should also go to that filelist in the regular file system"
-                // This might mean: if I'm on FTP (Pane A), and I go to Pane B (Local), and I want Pane B to be "Same as A", 
-                // then Pane B should probably stay Local but maybe go to a default local path? 
-                // No, that doesn't make sense.
-                
-                // Maybe they mean: if I'm on FTP, and I use a command to "sync", it should go back to local?
-                // Let's look at the implementation of setFileListPath again.
+                // An archive or FTP path means nothing on disk: the other pane goes back to a local root
                 filesPanesHelper.setFileSystem(targetSide, filesPanesHelper.getVfsManager().createLocalFileSystem(""), getDefaultRootPath());
             } else {
                 filesPanesHelper.setFileListPath(targetSide, focusedPath);

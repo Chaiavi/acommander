@@ -281,6 +281,14 @@
     -fx-background-color: -ac-hover;
 }
 
+/* Shown while pane navigation is linked */
+.link-indicator {
+    -fx-background-color: -ac-accent;
+    -fx-text-fill: -ac-select-active-text;
+    -fx-font-size: 11px;
+    -fx-font-weight: bold;
+}
+
 .function-bar-shell {
     -fx-border-color: -ac-border;
     -fx-border-width: 1 0 0 0;

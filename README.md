@@ -126,6 +126,7 @@ directories.
 | Open Explorer here                  | `Alt+F9`            |
 | Bookmark / Go to / Remove bookmark  | via Command Palette |
 | Sync other pane to current path     | via Command Palette |
+| Link / unlink panel navigation (Enter, Backspace and `..` move both panes into same-named folders; a Linked button shows while on) | via Command Palette |
 
 ---
 
@@ -237,7 +238,7 @@ Every action is **data-driven**. Add, remove, or reconfigure tools without touch
 | `ftp`          | —        | `true` = allowed on FTP panes (default: rejected)  |
 | `writes`       | —        | Pane it writes to: `none` (default) · `source` (focused) · `target` (other) · `both`; blocked when that pane is a read-only archive |
 | `fileTypes`    | —        | Palette offers it only when all selected items are one of: `convertibleImage` · `convertibleAudio` · `imageWithMetadata` · `videoWithMetadata` · `audioWithMetadata` · `executable` · `archive` · `pdf` |
-| `requires`     | —        | Extra palette conditions: `clipboardHasFiles` · `focusedPaneIsFtp` · `textFileInEachPane` |
+| `requires`     | —        | Extra palette conditions: `clipboardHasFiles` · `focusedPaneIsFtp` · `textFileInEachPane` · `navigationLinked` · `navigationUnlinked` |
 
 ### Placeholders in `args`
 

@@ -115,6 +115,8 @@ public class ActionExecutor {
             case LEFT_PATH_COMBO -> () -> commander.leftPathComboBox.show();
             case RIGHT_PATH_COMBO -> () -> commander.rightPathComboBox.show();
             case SYNC_TO_OTHER_PANE -> commander::syncToOtherPane;
+            case LINK_NAVIGATION -> commander::linkNavigation;
+            case UNLINK_NAVIGATION -> commander::unlinkNavigation;
             case TOGGLE_DARK_MODE -> commander::toggleDarkMode;
             case SORT_BY_NAME -> commander::sortByName;
             case SORT_BY_SIZE -> commander::sortBySize;

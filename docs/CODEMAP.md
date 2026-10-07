@@ -99,6 +99,7 @@ Adding or renaming an action id? Check each of these:
 | `ftpConnect` / `ftpDisconnect` | `ftpConnect` / `ftpDisconnect` | `dialog/FtpConnectDialog`, `vfs/FtpFileSystem`, `FtpConnectionOptions` | `remote_connectivity/curl.exe` |
 | `openHostsFile` | `openHostsFile` | `FileOperations.openHostsFile`: elevated `edit` action via PowerShell `Start-Process -Verb RunAs` | `edit/Notepad4.exe` |
 | `syncToOtherPane` | `syncToOtherPane` | — | — |
+| `linkNavigation` / `unlinkNavigation` | same names, `followInOtherPane` (called by `enterSelectedItem` and `goUpOneFolder`), `linkIndicator` button | `services/LinkedNavigation` | — |
 | `leftPathCombo` / `rightPathCombo` (Alt+F1/F2) | `leftPathComboBox.show()` | `helpers/ComboBoxSetup`, `FolderComboBoxCell` | — |
 | `reportBug` | `reportBug`, `submitBugReport` | `dialog/ReportBugDialog`, `helpers/BugReportUrl` (prefilled issue URL + label) | browser |
 | `openCommandPalette` | `openCommandPalette` | `palette/CommandPaletteController` | — |
@@ -108,7 +109,7 @@ Not actions, but often asked for:
 | Behaviour | Where |
 |---|---|
 | Enter on an item (open folder, archive, run exe/bat/ps1, open with default app) | `Commander.enterSelectedItem`, `handleArchiveEnter`, `openFileWithSystemDefault` |
-| Backspace / go up (local, archive, FTP root disconnects) | `FilePaneKeyHandlerImpl.goUpOneFolder`; inside an archive `Commander.goUpInArchive` → `FilesPanesHelper.goUpInArchive` / `exitArchive` |
+| Backspace / go up (local, archive, FTP root disconnects) | `Commander.goUpOneFolder` (also `..` in `enterSelectedItem`); inside an archive `Commander.goUpInArchive` → `FilesPanesHelper.goUpInArchive` / `exitArchive` |
 | Type-to-filter popup | `Commander.filterByChar`, `backspaceCharFilter`, `clearCharFilter`; logic in `helpers/IncrementalFilter` (one per pane) |
 | Pane list cells, icons, colours | `Commander.configListViewLookAndBehavior`, `helpers/FileIcons` |
 | Drag and drop (out to other apps, between panes, onto folder rows, in from Explorer; right-drag Copy / Move menu) | `Commander.configDragAndDrop`, `startPaneDrag`, `dropTarget`, `dropOnPane` (cell handlers in `configListViewLookAndBehavior`) → `transfer`; logic in `services/PaneDragDrop` |
@@ -131,7 +132,8 @@ Not actions, but often asked for:
 6. Config/properties: `loadConfigFile`, `loadAppRegistry`, `saveConfigFile`, `persistCurrentPaths`.
 7. List look and icons: `configMouseDoubleClick`, `configListViewLookAndBehavior` (icons from `FileIcons`), drag and drop
    (`configDragAndDrop` … `dropOnPane`), pane summary.
-8. Navigation: `enterSelectedItem`, archive enter/exit, `openFileWithSystemDefault`.
+8. Navigation: `enterSelectedItem`, archive enter/exit, `goUpOneFolder`, linked navigation (`linkNavigation` …
+   `followInOtherPane`), `openFileWithSystemDefault`.
 9. F-key file operations: `help` → `renameFile` → `viewFile` → `editFile` → `copyFile` → `duplicateFile` → `moveFile`
    → `makeDirectory` → `makeFile` → `deleteFile` → `deleteWipe` → `terminalHere` → `explorerHere` → `search`
    → `findInFiles` → `pack` → `splitLargeFile`.
@@ -273,6 +275,7 @@ Not actions, but often asked for:
 | `ArchiveOperations` | Pack (non-local items staged under their own names), Unpack and Extract All (`unpackWith`; remote sides through temp copies). |
 | `PdfOperations` | Merge, extract pages, page count with pdftk on ASCII temp copies; results saved to any pane type. Pages per PDF cuts each chunk with one `cat start-end`; other modes burst, falling back to page by page. `parsePageExpression`, `validateExtractRequest`. |
 | `PdfExtractOptions` | Record: extract all / page expression / pages per PDF. |
+| `LinkedNavigation` | Linked panel navigation: `target` = where the other pane goes for a folder step (same-named subfolder or parent). |
 
 ### `tools/`
 | File | Role |

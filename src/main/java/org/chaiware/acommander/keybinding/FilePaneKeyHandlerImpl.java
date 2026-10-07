@@ -6,10 +6,6 @@ import org.chaiware.acommander.actions.ActionExecutor;
 import org.chaiware.acommander.config.ActionDefinition;
 import org.chaiware.acommander.config.ActionScope;
 import org.chaiware.acommander.config.AppRegistry;
-import org.chaiware.acommander.helpers.FilesPanesHelper;
-import org.chaiware.acommander.vfs.FtpFileSystem;
-
-import java.io.File;
 
 import static javafx.scene.input.KeyCode.*;
 
@@ -64,7 +60,7 @@ public class FilePaneKeyHandlerImpl implements IKeyHandler {
                 if (commander.backspaceCharFilter()) {
                     yield true;
                 }
-                goUpOneFolder();
+                commander.goUpOneFolder();
                 yield true;
             }
             case ENTER -> {
@@ -78,48 +74,6 @@ public class FilePaneKeyHandlerImpl implements IKeyHandler {
                 yield false;
             }
         };
-    }
-
-    private void goUpOneFolder() {
-        FilesPanesHelper.FocusSide side = commander.filesPanesHelper.getFocusedSide();
-        // Check if we're in FTP
-        if (commander.filesPanesHelper.getFileSystem(side) instanceof FtpFileSystem ftpFs) {
-            String currentPath = commander.filesPanesHelper.getPath(side);
-
-            if ("/".equals(currentPath) || currentPath.isEmpty()) {
-                // At FTP root, backspace disconnects and goes back to local
-                commander.ftpDisconnect();
-            } else {
-                // Not at root, go up one level in FTP
-                String parentPath = ftpFs.getParent(currentPath);
-                commander.filesPanesHelper.setFileListPath(side, parentPath, leafName(currentPath));
-            }
-            return;
-        }
-
-        // Check if we're in an archive
-        if (commander.filesPanesHelper.isInArchive(side)) {
-            commander.goUpInArchive();
-        } else {
-            // Regular folder navigation
-            String currentPath = commander.filesPanesHelper.getFocusedPath();
-            File parent = new File(currentPath).getParentFile();
-            if (parent != null) {
-                commander.filesPanesHelper.setFocusedFileListPathAndSelect(parent.getAbsolutePath(), new File(currentPath).getName());
-            }
-        }
-    }
-
-    private String leafName(String path) {
-        if (path == null || path.isBlank()) {
-            return null;
-        }
-        String normalized = path;
-        while (normalized.length() > 1 && (normalized.endsWith("/") || normalized.endsWith("\\"))) {
-            normalized = normalized.substring(0, normalized.length() - 1);
-        }
-        int slash = Math.max(normalized.lastIndexOf('/'), normalized.lastIndexOf('\\'));
-        return slash < 0 ? normalized : normalized.substring(slash + 1);
     }
 
     private Character extractFilterChar(KeyEvent event) {

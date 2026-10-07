@@ -19,11 +19,15 @@
             </rowConstraints>
 
             <!-- Drive/Path ComboBoxes -->
-            <ComboBox fx:id="leftPathComboBox" editable="true" maxWidth="Infinity" prefHeight="30.0" styleClass="path-combo" GridPane.columnIndex="0" GridPane.hgrow="ALWAYS" GridPane.rowIndex="0">
+            <HBox alignment="CENTER_LEFT" spacing="2.0" GridPane.columnIndex="0" GridPane.hgrow="ALWAYS" GridPane.rowIndex="0">
                 <GridPane.margin>
                     <Insets left="3.0" right="1.0" top="3.0" />
                 </GridPane.margin>
-            </ComboBox>
+                <ComboBox fx:id="leftPathComboBox" editable="true" maxWidth="Infinity" prefHeight="30.0" styleClass="path-combo" HBox.hgrow="ALWAYS" />
+                <Button fx:id="linkIndicator" managed="false" onAction="#unlinkNavigation" prefHeight="30.0" styleClass="link-indicator" text="Linked" visible="false">
+                    <tooltip><Tooltip text="Folder steps in one pane repeat in the other; click to unlink." /></tooltip>
+                </Button>
+            </HBox>
 
             <ComboBox fx:id="rightPathComboBox" editable="true" maxWidth="Infinity" prefHeight="30.0" styleClass="path-combo" GridPane.columnIndex="1" GridPane.hgrow="ALWAYS" GridPane.rowIndex="0">
                 <GridPane.margin>

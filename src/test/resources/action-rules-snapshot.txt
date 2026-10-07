@@ -34,6 +34,7 @@ gotoBookmark | ftp=yes | writes=none | palette=++++++++++++++
 help | ftp=yes | writes=none | palette=++++++++++++++
 invertSelection | ftp=yes | writes=none | palette=++++++++++++++
 leftPathCombo | ftp=yes | writes=none | palette=n/a
+linkNavigation | ftp=yes | writes=none | palette=++++++++++++++
 mergePdf | ftp=no | writes=target | palette=------------+-
 mkdir | ftp=yes | writes=source | palette=++++++++++++++
 mkfile | ftp=yes | writes=source | palette=++++++++++++++
@@ -64,6 +65,7 @@ splitLargeFile | ftp=no | writes=target | palette=-+++++++++++++
 syncToOtherPane | ftp=no | writes=none | palette=++++++++++++++
 terminal | ftp=no | writes=none | palette=++++++++++++++
 toggleDarkMode | ftp=yes | writes=none | palette=++++++++++++++
+unlinkNavigation | ftp=yes | writes=none | palette=--------------
 unlockDelete | ftp=no | writes=source | palette=n/a
 unpack | ftp=no | writes=target | palette=---------+----
 unselectAll | ftp=yes | writes=none | palette=-+++++++++++++

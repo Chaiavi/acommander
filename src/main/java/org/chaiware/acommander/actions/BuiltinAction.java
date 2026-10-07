@@ -50,6 +50,8 @@ public enum BuiltinAction {
     LEFT_PATH_COMBO("leftPathCombo"),
     RIGHT_PATH_COMBO("rightPathCombo"),
     SYNC_TO_OTHER_PANE("syncToOtherPane"),
+    LINK_NAVIGATION("linkNavigation"),
+    UNLINK_NAVIGATION("unlinkNavigation"),
     TOGGLE_DARK_MODE("toggleDarkMode"),
     SORT_BY_NAME("sortByName"),
     SORT_BY_SIZE("sortBySize"),
