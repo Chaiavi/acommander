@@ -955,11 +955,8 @@ public class Commander {
             // It's a file - check if it's an archive we can enter
             String extension = selectedItem.extension();
 
-            if (ArchiveMode.isReadWriteExtension(extension) || ArchiveMode.isReadOnlyExtension(extension)) {
-                runWithProgress("VFS: Opening " + selectedItem.getName(),
-                        () -> filesPanesHelper.enterArchive(focusedSide, selectedItem.getFullPath()),
-                        this::focusCurrentFileList,
-                        "Failed to enter archive: " + selectedItem.getName());
+            if (ArchiveMode.isSupportedExtension(extension)) {
+                enterArchiveFile(focusedSide, selectedItem);
             } else if (FileIcons.isExecutableExtension(extension)) {
                 try {
                     List<String> command = switch (extension) {
@@ -993,10 +990,20 @@ public class Commander {
                     () -> filesPanesHelper.enterArchiveSubdirectory(focusedSide, selectedItem.getName()),
                     this::focusCurrentFileList,
                     "Failed to enter archive subdirectory: " + selectedItem.getName());
+        } else if (ArchiveMode.isSupportedExtension(selectedItem.extension())) {
+            enterArchiveFile(focusedSide, selectedItem);
         } else {
             // It's a file - open it with default viewer
             openFileWithSystemDefault(selectedItem, true);
         }
+    }
+
+    /** Opens an archive file as a folder; inside an archive it opens nested, and leaving it goes back there. */
+    private void enterArchiveFile(FilesPanesHelper.FocusSide side, FileItem archive) {
+        runWithProgress("VFS: Opening " + archive.getName(),
+                () -> filesPanesHelper.enterArchive(side, archive.getFullPath()),
+                this::focusCurrentFileList,
+                "Failed to enter archive: " + archive.getName());
     }
 
     private void openFileWithSystemDefault(FileItem selectedItem, boolean fromArchive) {

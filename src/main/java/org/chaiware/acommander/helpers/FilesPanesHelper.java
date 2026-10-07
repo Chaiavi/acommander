@@ -227,9 +227,17 @@ public class FilesPanesHelper {
      * For read-only archives, also extracts but marks as read-only.
      */
     public void enterArchive(FocusSide focusSide, String archivePath) throws IOException {
-        VFileSystem fs = vfsManager.openArchive(archivePath);
+        ArchiveFileSystem outer = fileSystems.get(focusSide) instanceof ArchiveFileSystem current ? current : null;
+        ArchiveFileSystem fs = vfsManager.openArchive(archivePath, outer);
         currentInternalPaths.put(focusSide, "");
-        setFileSystem(focusSide, fs, null);
+        if (outer == null) {
+            setFileSystem(focusSide, fs, null);
+        } else {
+            // The outer archive stays open: leaving this one goes back to it (exitArchive).
+            fileSystems.put(focusSide, fs);
+            fs.setExternalCommandListener(externalCommandListener);
+            refreshFileListView(focusSide);
+        }
 
         Platform.runLater(() -> {
             ComboBox<Folder> pathComboBox = filePanes.get(focusSide).getPathComboBox();
@@ -240,12 +248,22 @@ public class FilesPanesHelper {
         logger.info("Entered archive ({} mode): {}", fs.isReadOnly() ? "READ_ONLY" : "READ_WRITE", archivePath);
     }
 
-    /** Leaves the archive, shows its parent folder with the archive selected, then repacks it if it changed. */
+    /**
+     * Leaves the archive, shows the folder it lies in (on disk, or in the outer archive) with the archive selected,
+     * then repacks it if it changed.
+     */
     public void exitArchive(FocusSide focusSide) throws IOException {
         if (!(fileSystems.get(focusSide) instanceof ArchiveFileSystem archiveFs)) {
             return;
         }
         File archive = new File(archiveFs.getSession().getArchivePath());
+        ArchiveFileSystem outer = archiveFs.getOuter();
+        if (outer != null) {
+            fileSystems.put(focusSide, outer);
+            setFileListPath(focusSide, outer.getSession().getEntryPath(), archive.getName());
+            archiveFs.closeOwn();
+            return;
+        }
         VFileSystem local = vfsManager.createLocalFileSystem("");
         local.setExternalCommandListener(externalCommandListener);
         fileSystems.put(focusSide, local);
@@ -265,7 +283,7 @@ public class FilesPanesHelper {
         }
         
         ArchiveSession newSession = currentArchiveFs.getSession().createChild(dirName);
-        ArchiveFileSystem newFs = new ArchiveFileSystem(newSession, vfsManager.getArchiveManager());
+        ArchiveFileSystem newFs = currentArchiveFs.at(newSession);
         fileSystems.put(focusSide, newFs);
         currentInternalPaths.put(focusSide, newSession.getEntryPath());
         
@@ -296,7 +314,7 @@ public class FilesPanesHelper {
             exitArchive(focusSide);
         } else {
             String childDirName = leafName(currentSession.getEntryPath());
-            ArchiveFileSystem parentFs = new ArchiveFileSystem(parentSession, vfsManager.getArchiveManager());
+            ArchiveFileSystem parentFs = currentArchiveFs.at(parentSession);
             fileSystems.put(focusSide, parentFs);
             currentInternalPaths.put(focusSide, parentSession.getEntryPath());
 

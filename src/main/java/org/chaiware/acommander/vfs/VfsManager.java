@@ -31,10 +31,13 @@ public class VfsManager {
         return new FtpFileSystem(options);
     }
 
-    /** Opens a local archive file as a browsable file system (7-Zip extracts it to a temp folder). */
-    public VFileSystem openArchive(String archivePath) throws IOException {
+    /**
+     * Opens an archive file as a browsable file system (7-Zip extracts it to a temp folder). {@code outer} is the
+     * archive the file lies in, or null for a file on disk.
+     */
+    public ArchiveFileSystem openArchive(String archivePath, ArchiveFileSystem outer) throws IOException {
         logger.info("Entering archive: {}", archivePath);
-        return new ArchiveFileSystem(archiveManager.openArchive(archivePath), archiveManager);
+        return new ArchiveFileSystem(archiveManager.openArchive(archivePath), archiveManager, outer);
     }
 
     /** Closes a file system; for an archive this repacks it, and a failure says where the edits were saved. */

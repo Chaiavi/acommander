@@ -25,10 +25,26 @@ public class ArchiveFileSystem implements VFileSystem {
     private static final Logger logger = LoggerFactory.getLogger(ArchiveFileSystem.class);
     private final ArchiveSession session;
     private final ArchiveManager archiveManager;
+    /** The archive (folder) this archive file was opened from, or null for an archive on disk. */
+    private final ArchiveFileSystem outer;
 
     public ArchiveFileSystem(ArchiveSession session, ArchiveManager archiveManager) {
+        this(session, archiveManager, null);
+    }
+
+    public ArchiveFileSystem(ArchiveSession session, ArchiveManager archiveManager, ArchiveFileSystem outer) {
         this.session = session;
         this.archiveManager = archiveManager;
+        this.outer = outer;
+    }
+
+    /** The same archive at another folder ({@code session} shares this one's root). */
+    public ArchiveFileSystem at(ArchiveSession session) {
+        return new ArchiveFileSystem(session, archiveManager, outer);
+    }
+
+    public ArchiveFileSystem getOuter() {
+        return outer;
     }
 
     @Override
@@ -64,7 +80,8 @@ public class ArchiveFileSystem implements VFileSystem {
 
     @Override
     public boolean isReadOnly() {
-        return session.getMode() == ArchiveMode.READ_ONLY;
+        // An archive inside a read-only one can't be saved back either.
+        return session.getMode() == ArchiveMode.READ_ONLY || (outer != null && outer.isReadOnly());
     }
 
     @Override
@@ -145,9 +162,43 @@ public class ArchiveFileSystem implements VFileSystem {
         markModified();
     }
 
+    /** Closes this archive and every archive it was opened from (the pane leaves them all). */
     @Override
     public void close() throws IOException {
-        archiveManager.closeArchive(session);
+        IOException failure = null;
+        try {
+            closeOwn();
+        } catch (IOException e) {
+            failure = e;
+        }
+        if (outer != null) {
+            try {
+                outer.close();
+            } catch (IOException e) {
+                if (failure == null) {
+                    failure = e;
+                } else {
+                    IOException both = new IOException(failure.getMessage() + "\n" + e.getMessage(), failure);
+                    both.addSuppressed(e);
+                    failure = both;
+                }
+            }
+        }
+        if (failure != null) {
+            throw failure;
+        }
+    }
+
+    /** Repacks and closes only this archive; it is a file in the outer archive, so a change there marks that too. */
+    public void closeOwn() throws IOException {
+        boolean changed = session.isNeedsRepack();
+        try {
+            archiveManager.closeArchive(session);
+        } finally {
+            if (changed && outer != null) {
+                outer.markModified();
+            }
+        }
     }
 
     @Override

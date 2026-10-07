@@ -11,6 +11,9 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 
 class ArchiveFileSystemTest {
 
@@ -66,5 +69,49 @@ class ArchiveFileSystemTest {
         closer.join(5000);
         assertThat(closer.isAlive()).isFalse();
         assertThat(extracted).doesNotExist();
+    }
+
+    @Test
+    void archiveInsideAReadOnlyArchiveIsReadOnly() {
+        ArchiveManager manager = mock(ArchiveManager.class);
+        ArchiveFileSystem iso = new ArchiveFileSystem(
+                new ArchiveSession("disk.iso", Path.of("x"), ArchiveMode.READ_ONLY), manager);
+        ArchiveFileSystem zip = new ArchiveFileSystem(
+                new ArchiveSession("x/inner.zip", Path.of("y"), ArchiveMode.READ_WRITE), manager, iso);
+
+        assertThat(zip.isReadOnly()).isTrue();
+        assertThat(zip.at(zip.getSession().createChild("sub")).isReadOnly()).isTrue();
+    }
+
+    @Test
+    void leavingAChangedNestedArchiveMarksTheOuterOne() throws IOException {
+        Path extracted = AppTempDir.createTempDirectory("archive_test_");
+        ArchiveManager manager = mock(ArchiveManager.class);
+        ArchiveSession outerSession = new ArchiveSession("outer.zip", extracted, ArchiveMode.READ_WRITE);
+        ArchiveSession innerSession = new ArchiveSession(extracted + "/inner.zip", Path.of("y"), ArchiveMode.READ_WRITE);
+        ArchiveFileSystem inner = new ArchiveFileSystem(innerSession, manager, new ArchiveFileSystem(outerSession, manager));
+        try {
+            innerSession.setNeedsRepack(true);
+            inner.closeOwn();
+
+            verify(manager).closeArchive(innerSession);
+            verify(manager, never()).closeArchive(outerSession);
+            assertThat(outerSession.isNeedsRepack()).isTrue();
+        } finally {
+            AppTempDir.release(extracted);
+            Files.deleteIfExists(extracted);
+        }
+    }
+
+    @Test
+    void closingANestedArchiveClosesTheOuterOneToo() throws IOException {
+        ArchiveManager manager = mock(ArchiveManager.class);
+        ArchiveSession outerSession = new ArchiveSession("outer.zip", Path.of("x"), ArchiveMode.READ_WRITE);
+        ArchiveSession innerSession = new ArchiveSession("x/inner.zip", Path.of("y"), ArchiveMode.READ_WRITE);
+
+        new ArchiveFileSystem(innerSession, manager, new ArchiveFileSystem(outerSession, manager)).close();
+
+        verify(manager).closeArchive(innerSession);
+        verify(manager).closeArchive(outerSession);
     }
 }

@@ -108,7 +108,7 @@ Not actions, but often asked for:
 
 | Behaviour | Where |
 |---|---|
-| Enter on an item (open folder, archive, run exe/bat/ps1, open with default app) | `Commander.enterSelectedItem`, `handleArchiveEnter`, `openFileWithSystemDefault` |
+| Enter on an item (open folder, archive (also one inside an archive), run exe/bat/ps1, open with default app) | `Commander.enterSelectedItem`, `handleArchiveEnter`, `enterArchiveFile`, `openFileWithSystemDefault` |
 | Backspace / go up (local, archive, FTP root disconnects) | `Commander.goUpOneFolder` (also `..` in `enterSelectedItem`); inside an archive `Commander.goUpInArchive` → `FilesPanesHelper.goUpInArchive` / `exitArchive` |
 | Type-to-filter popup | `Commander.filterByChar`, `backspaceCharFilter`, `clearCharFilter`; logic in `helpers/IncrementalFilter` (one per pane) |
 | Pane list cells, icons, colours | `Commander.configListViewLookAndBehavior`, `helpers/FileIcons` |
@@ -294,7 +294,7 @@ Not actions, but often asked for:
 | `VFileSystem` | Interface: list, copy/move across FS, delete, rename, mkdir, `close` (an archive repacks there). |
 | `VfsManager` | Creates local/FTP FS; opens archives (`openArchive`). |
 | `LocalFileSystem` | Disk. Archive files are virtual folders. `addEntries` lists through a `DirectoryStream`, so bad-media names still list. `copy` is the one disk-to-anywhere copy (archives reuse it); to FTP it calls `FtpFileSystem.upload`. |
-| `ArchiveFileSystem` | Inside an archive's temp folder; the first change marks it for repack and retains the folder (`AppTempDir.retain`). |
+| `ArchiveFileSystem` | Inside an archive's temp folder; the first change marks it for repack and retains the folder (`AppTempDir.retain`). `outer` = the archive a nested one was opened from: leaving it (`closeOwn`) returns there and marks it changed; `close` closes the whole chain. |
 | `FtpFileSystem` | FTP/FTPS/SFTP through `curl.exe`; `upload(path, target)` is the only upload (files and folder trees); SFTP gets curl's SFTP quote commands; `autoDiscoverProtocol`, `sanitizePath`. |
 | `FtpConnectionOptions` | Host, port, user, protocol, URL building. |
 
