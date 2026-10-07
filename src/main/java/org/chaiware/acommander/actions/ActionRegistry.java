@@ -147,10 +147,10 @@ public class ActionRegistry {
     static boolean areAllOfType(ActionDefinition.FileType type, List<FileItem> items) {
         return switch (type) {
             case CONVERTIBLE_IMAGE -> ImageConversionSupport.areAllConvertibleImages(items);
-            case CONVERTIBLE_AUDIO -> AudioConversionSupport.areAllConvertibleAudio(items);
+            case CONVERTIBLE_AUDIO -> MediaFiles.areAllAudio(items);
             case IMAGE_WITH_METADATA -> ImageMetadataSupport.areAllSupportedImages(items);
-            case VIDEO_WITH_METADATA -> VideoMetadataSupport.areAllSupportedVideos(items);
-            case AUDIO_WITH_METADATA -> AudioMetadataSupport.areAllSupportedAudio(items);
+            case VIDEO_WITH_METADATA -> MediaFiles.areAllTaggableVideo(items);
+            case AUDIO_WITH_METADATA -> MediaFiles.areAllTaggableAudio(items);
             case EXECUTABLE -> ExecutableCompressionSupport.areAllSupportedExecutables(items);
             case ARCHIVE -> FileItem.allFilesWithExtension(items, ArchiveMode::isUnpackable);
             case PDF -> FileItem.allFilesWithExtension(items, "pdf"::equals);

@@ -102,6 +102,48 @@ def seedToolSettings = tasks.register('seedToolSettings') {
     }
 }
 
+// ffmpeg.exe (gyan.dev essentials, GPLv3) is over GitHub's 100 MB file limit, so the build downloads it, pinned by hash
+def ffmpegVersion = '9.0.2'
+def ffmpegZipSha256 = '60f467265b1e312373dbcd92200c2618a74850f98d3d078e94296bb3fa2047ba'
+def ffmpegExe = file('apps/media/ffmpeg.exe')
+def ffmpegLicense = file('apps/media/LICENSE.txt')
+def fetchFfmpeg = tasks.register('fetchFfmpeg') {
+    def url = "https://github.com/GyanD/codexffmpeg/releases/download/${ffmpegVersion}/ffmpeg-${ffmpegVersion}-essentials_build.zip"
+    inputs.property('sha256', ffmpegZipSha256)
+    outputs.files(ffmpegExe, ffmpegLicense)
+    doLast {
+        def zipFile = File.createTempFile('ffmpeg-', '.zip')
+        try {
+            def digest = java.security.MessageDigest.getInstance('SHA-256')
+            URI.create(url).toURL().withInputStream { input ->
+                zipFile.withOutputStream { output ->
+                    input.eachByte(1 << 16) { byte[] buffer, int length ->
+                        digest.update(buffer, 0, length)
+                        output.write(buffer, 0, length)
+                    }
+                }
+            }
+            def actual = digest.digest().encodeHex().toString()
+            if (actual != ffmpegZipSha256) {
+                throw new GradleException("${url}: SHA-256 is ${actual}, expected ${ffmpegZipSha256}")
+            }
+            ffmpegExe.parentFile.mkdirs()
+            def zip = new java.util.zip.ZipFile(zipFile)
+            try {
+                [(ffmpegExe): '/bin/ffmpeg.exe', (ffmpegLicense): '/LICENSE'].each { File target, String suffix ->
+                    def entry = zip.entries().find { it.name.endsWith(suffix) && it.name.count('/') == suffix.count('/') }
+                    if (entry == null) throw new GradleException("${url} has no ${suffix}")
+                    target.withOutputStream { it << zip.getInputStream(entry) }
+                }
+            } finally {
+                zip.close()
+            }
+        } finally {
+            zipFile.delete()
+        }
+    }
+}
+
 // What a release ships from config/ and apps/. Tools write logs and settings into their folders, and
 // config/acommander.properties holds the user's paths, bookmarks and FTP logins: none of that ships.
 def releaseConfigFiles = ['apps.json']
@@ -132,6 +174,7 @@ def releaseResources = copySpec {
 
 // Task to copy config and apps folders to build/libs
 def copyResources = tasks.register('copyResources', Copy) {
+    dependsOn fetchFfmpeg
     with releaseResources
     into layout.buildDirectory.dir('libs')
 }
@@ -181,14 +224,14 @@ def distributionContents = copySpec {
 
 // Mirrors the release into dist/ at the project root; a Sync, so files from older builds don't linger
 def copyDist = tasks.register('copyDist', Sync) {
-    dependsOn tasks.named('createExe')
+    dependsOn tasks.named('createExe'), fetchFfmpeg
     with distributionContents
     into 'dist'
     preserve { include 'acommander-v*.zip' }
 }
 
 def zipDist = tasks.register('zipDist', Zip) {
-    dependsOn tasks.named('createExe')
+    dependsOn tasks.named('createExe'), fetchFfmpeg
     mustRunAfter copyDist
     with distributionContents
     archiveFileName = "acommander-v${appVersion}.zip"
@@ -215,7 +258,8 @@ def verifyDistribution = tasks.register('verifyDistribution') {
                         name == 'apps/extract_all/UniExtract/batch.queue' ||
                         name.startsWith('apps/extract_all/UniExtract/log/')
             }
-            def required = ['acommander.exe', 'acommander.jar', 'runtime/bin/javaw.exe'] + templates.keySet() + allowedConfig
+            def required = ['acommander.exe', 'acommander.jar', 'runtime/bin/javaw.exe', 'apps/media/ffmpeg.exe',
+                            'apps/media/LICENSE.txt'] + templates.keySet() + allowedConfig
             def missing = required.findAll { !names.contains(it) }
             def problems = []
             if (privateEntries) problems << "per-user files: ${privateEntries.take(20)}"
@@ -253,6 +297,7 @@ tasks.named('startScripts') {
 }
 
 tasks.named('test') {
+    dependsOn fetchFfmpeg
     useJUnitPlatform()
     // Tests read these directly; without them a docs- or apps.json-only edit leaves `test` up-to-date (a false green).
     inputs.files('config/apps.json', 'README.md', 'docs/CODEMAP.md')
@@ -268,6 +313,6 @@ tasks.named('test') {
 // IntelliJ injects temporary debugger init scripts (ijJvmDebugger*.gradle) for Gradle `run`.
 // Those scripts can conflict with Gradle configuration-cache deserialization across runs.
 tasks.named('run') {
-    dependsOn seedToolSettings
+    dependsOn seedToolSettings, fetchFfmpeg
     notCompatibleWithConfigurationCache('Avoid IntelliJ debugger init-script classloader cache mismatch')
 }

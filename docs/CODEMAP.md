@@ -78,9 +78,9 @@ Adding or renaming an action id? Check each of these:
 | `unpack` (F12) | `unpackFile` | `ArchiveOperations.unpack` → `unpackWith` | `pack_unpack/7zG.exe` |
 | `extractAll` (Alt+F12) | `extractAll` | `ArchiveOperations.extractAll` → `unpackWith` | `extract_all/UniExtract/UniExtract.exe` |
 | `mergePdf` / `extractPdfPages` | `mergePDFFiles` / `extractPDFPages` | `dialog/PdfExtractDialog`, `services/PdfOperations.merge` / `extractPages` / `pageCount`, `PdfExtractOptions` | `pdf/pdftk.exe` |
-| `convertMediaFile` (Alt+F5) | `convertMediaFile` → image or audio below | `ImageConversionSupport`, `AudioConversionSupport` | — |
+| `convertMediaFile` (Alt+F5) | `convertMediaFile` → image or audio below | `ImageConversionSupport`, `MediaFiles` | — |
 | `convertGraphicsFiles` | `convertGraphicsFiles` | `dialog/ImageConversionDialog`, `services/ImageConversionService` (command, output lookup), `ImageConversionSupport` | `image_convert/caesiumclt.exe` |
-| `convertAudioFiles` | `convertAudioFiles` | `dialog/AudioConversionDialog`, `services/AudioConversionService` (commands, AAC bridge, ASCII staging), `AudioConversionSupport` | `sound_convert/sndfile-convert.exe`, `faac.exe`, `faad.exe` |
+| `convertAudioFiles` | `convertAudioFiles`, `mediaConverter`, `showConversionResult` | `dialog/AudioConversionDialog`, `services/MediaConversionService.convertAudio` | `media/ffmpeg.exe` |
 | `checksumFile` / `checksumFolderContents` | `checksumFile` / `checksumFolderContents` | `dialog/ChecksumOptionsDialog`, `ChecksumResultDialog`; `tools/BundledToolCommands.checksum`, `checksumDigest`, `checksumOutputPath` | `checksum/rhash.exe` |
 | `analyzeFile` | `analyzeFile` | `tools/BundledToolCommands.analyzeFile` | `file_analysis/file.exe` + `magic.mgc` |
 | `compareFiles` | `compareFiles`, `canCompareSelectedFiles` | `dialog/CompareFilesDialog`, `tools/BundledToolCommands.compareFiles` | `file_compare/ExamDiff.exe` |
@@ -88,8 +88,8 @@ Adding or renaming an action id? Check each of these:
 | `fileProperties` (Alt+Enter) | `fileProperties` | `tools/FilePropertiesLauncher` (temp `.vbs` via `wscript.exe`, Windows Properties dialog) | — |
 | `changeAttributes` | `changeAttributes` | `dialog/AttributesDialog`, `helpers/FileAttributesHelper` | `attrib` |
 | `editImageMetadata` / `removeImageMetadata` | `editImageMetadata` → `editMetadata` (shared with video/audio) / `removeImageMetadata` → `removeMetadata` (shared confirm + background run) | `dialog/ImageMetadataDialog`, `helpers/ImageMetadataSupport` | `image_metadata/exiv2.exe` |
-| `editVideoMetadata` / `removeVideoMetadata` | `editVideoMetadata` / `removeVideoMetadata` | `dialog/VideoMetadataDialog` (on `MetadataFormDialog`), `helpers/VideoMetadataSupport` | `video_metadata/AtomicParsley.exe` |
-| `editAudioMetadata` / `removeAudioMetadata` | `editAudioMetadata` / `removeAudioMetadata` | `dialog/AudioMetadataDialog` (on `MetadataFormDialog`), `helpers/AudioMetadataSupport` | `audio_metadata/id3.exe` |
+| `editVideoMetadata` / `removeVideoMetadata` | `editVideoMetadata` / `removeVideoMetadata` | `dialog/MetadataFormDialog.editVideo`, `helpers/MediaTagSupport` | `media/ffmpeg.exe` |
+| `editAudioMetadata` / `removeAudioMetadata` | `editAudioMetadata` / `removeAudioMetadata` | `dialog/MetadataFormDialog.editAudio`, `helpers/MediaTagSupport` | `media/ffmpeg.exe` |
 | `compressExecutable` | `compressExecutable` | `dialog/ExecutableCompressionDialog`, `helpers/ExecutableCompressionSupport` (`UpxAction`, `upxCommand`, `percentChange`) | `exe_compress/upx.exe` |
 | `refresh` (Ctrl+R) | `refreshPanesAndDrives` | `FilesPanesHelper.refreshFileListViews`, `ComboBoxSetup.refreshDrives` | — |
 | `selectAll` / `unselectAll` / `invertSelection` / `selectByPattern` | same names | `dialog/SelectByPatternDialog`, `FilesPanesHelper.selectAllItems` … `selectByPattern` | — |
@@ -206,13 +206,11 @@ Not actions, but often asked for:
 | `HelpDialog` | F1: collapsible section per category of every key and action (`HelpTopics`); the filter opens matching sections; tips; About button. |
 | `AboutDialog` | About popup: version, copyright, license, project link (`BugReportUrl.PROJECT_URL`), Java / JavaFX versions. |
 | `ReportBugDialog` | Bug report form → prefilled GitHub issue URL. |
-| `ImageConversionDialog` / `AudioConversionDialog` | Conversion options → `ImageConversionRequest` / `AudioConversionRequest`. |
+| `ImageConversionDialog` / `AudioConversionDialog` | Conversion options → `ImageConversionRequest` / `MediaConversionService.AudioRequest`. |
 | `ExecutableCompressionDialog` | UPX compress level or decompress → `UpxAction`. |
 | `FtpConnectDialog` | Host, port, user, protocol, saved connections → `FtpConnectionOptions` + save flag. |
 | `ImageMetadataDialog` | EXIF/IPTC/XMP editor via `exiv2.exe` (tree table, own layout). |
-| `MetadataFormDialog` | Shared tag form for audio and video: a text field per `Field`, extra rows, Preserve File Time, Reload/Save, status; a `Tool` reads and writes in the background. `changes` = edited option/value pairs. |
-| `VideoMetadataDialog` | MP4-family tags via `AtomicParsley.exe`: field list + `VideoMetadataSupport` read/write. |
-| `AudioMetadataDialog` | ID3 tags via `id3.exe`: field list, tag-version combo + `AudioMetadataSupport` read/write. |
+| `MetadataFormDialog` | Audio and video tag editor (`editAudio` / `editVideo`, a field list each): a text field per `Field`, Preserve File Time, Reload/Save, status; `MediaTagSupport` reads and writes in the background. `changes` = edited tag key → value. |
 | `DialogTheme` | The dark/light theme: `ThemeMode` (settings value ↔ style class), `apply(scene, mode)` on the window root, `apply(dialog, owner, themeClass)` for dialogs (theme class + the owner's stylesheets). The metadata dialogs take owner + theme class, not `Commander`. |
 
 `Commander` shows a dialog with `XxxDialog.show(dialogOwner(), currentThemeMode.styleClass, …)` and acts on the
@@ -232,8 +230,10 @@ Not actions, but often asked for:
 | `SettingsStore` | `config/acommander.properties`: typed get/set (pane folders, theme, last selection pattern, bookmarks, FTP connections), save via temp file + atomic move; an unreadable file is moved to `.unreadable`. FTP passwords are stored DPAPI-encrypted (`passwordDpapi`), decrypted by `unlockFtpPasswords` when the FTP dialog opens. `Commander.loadSettings` / `saveSettings`; reloaded when the Settings editor closes. |
 | `AppVersion` | Running version from `app-version.properties`, the only place it is written (`build.gradle` reads it too). |
 | `HelpTopics` | F1 help rows: fixed keys, apps.json actions (same handler's shortcuts merged, F-key order), palette-only actions; `byCategory` sections in `CATEGORIES` order; `matches` filter; tips. |
-| `ImageConversionSupport`, `AudioConversionSupport` | Which files convert, target formats. |
-| `ImageMetadataSupport`, `VideoMetadataSupport`, `AudioMetadataSupport` | Which files the metadata editors accept; `remove(file)` strips all metadata (exiv2 / AtomicParsley / id3). Output parsers the dialogs use: `parsePrintAll` + `groupName` (exiv2), `parseTextData` (AtomicParsley), `parseQuery` (id3). Video and audio also `read` / `writeCommand` / `write` (id3 refuses text the Windows code page can't hold). `VideoMetadataSupport` also deletes the temp files AtomicParsley leaves. |
+| `ImageConversionSupport` | Which images convert, target formats. |
+| `MediaFiles` | Which files the ffmpeg features take, by extension: audio, taggable audio, taggable video. |
+| `ImageMetadataSupport` | Which images the metadata editor accepts; `remove(file)` strips all metadata; exiv2 output parser `parsePrintAll` + `groupName`. |
+| `MediaTagSupport` | Audio and video tags with ffmpeg: `read` (`-f ffmetadata`, `parseFfmetadata`), `write` and `remove` copy the streams into a temp file next to the original, then move it over the original. |
 | `ExecutableCompressionSupport` | Which files UPX accepts; `UpxAction` (level or decompress → flag), `upxCommand`, `percentChange`. |
 | `BugReportUrl` | Report Bug: prefilled GitHub new-issue URL with title prefix and label per report type; cuts the body to keep the URL under 8,000 chars. |
 | `FileIcons` | Glyph + colour per pane item (folder, archive, PDF, text, image, audio, video, executable, other). |
@@ -268,7 +268,7 @@ Not actions, but often asked for:
 |---|---|
 | `FolderComparer` | Compare Folders: only-left / only-right / different (size, date, contents via `Files.mismatch`) marks per top-level item; `key(path)` looks a pane item up. |
 | `ImageConversionService` | caesiumclt command from an `ImageConversionRequest`; finds the first output file to select. |
-| `AudioConversionService` | Runs sndfile-convert (faad/faac for AAC/M4A) per file through an injected runner; stages non-ASCII paths; collision policy; encoding choices for the dialog. |
+| `MediaConversionService` | ffmpeg conversions through an injected runner, one file at a time: `convertAudio` (`AUDIO_FORMATS`, `Quality`); output naming, collision policy (never the source itself), deletes a failed run's partial output. |
 | `ClipboardTransfer` | Copy/cut/paste between panes on any VFS: `capture` (the selection with full paths, read on the FX thread), clipboard `State`, `paste` (move or copy, per-item failures), `duplicateName` (`_copy`, `_copy_2`, …), `isSameFolder`, `targetInternalPath`. |
 | `FileOperations` | Takes the captured file system and paths, never the panes: `transfer` (F5, F6, Alt+F6, Ctrl+V; FastCopy local to local with `toolTarget` = target folder + `\`), rename, delete / wipe / unlock, new folder / file, view / edit (temp copy for archive/FTP, saved back), terminal, explorer; `filterValidItems` drops "..". `Commander.runFileOperation` runs it in the background and refreshes once. |
 | `TransferConflicts` | Names of a copy/move already in the target: `find` (lists both folders via VFS; ignores case except FTP), `Policy` (Overwrite / Skip / Overwrite Older → FastCopy `force_copy` / `noexist_only` / `update`), `keep` (filters whole items for moves and VFS paths). |
@@ -309,14 +309,14 @@ Not actions, but often asked for:
 | `config/apps.json` | Actions, shortcuts, tool paths (read from `user.dir`). |
 | `config/acommander.properties` | Per-user state (gitignored), read and written only by `SettingsStore`: `left_folder`, `right_folder`, `theme_mode`, `bookmark.*`, `ftp.*`, `last_selection_pattern`. |
 | `apps/` | Bundled tools; table in README "External Tools Bundled". |
-| `build.gradle` | Build, `shadowJar` (copies the release files to `build/libs/`), launch4j, `dist` (`releaseResources` = what ships from `config/` and `apps/`; `verifyDistribution` checks the ZIP), `seedToolSettings`. |
+| `build.gradle` | Build, `shadowJar` (copies the release files to `build/libs/`), launch4j, `dist` (`releaseResources` = what ships from `config/` and `apps/`; `verifyDistribution` checks the ZIP), `seedToolSettings`, `fetchFfmpeg` (downloads `apps/media/ffmpeg.exe`, gitignored, pinned by SHA-256; `test`, `run` and `dist` depend on it). |
 
 ## 7. Tests
 
 Under `src/test/java/org/chaiware/acommander/`, same package as the class tested:
 
 `actions/` ActionMatcher, ActionPriorityEngine, ActionRegistry, BuiltinAction, ActionRulesSnapshot (FTP / read-only / palette
-rules per action vs `src/test/resources/action-rules-snapshot.txt`) · `commands/` ExternalToolRunner · `config/` ActionScope, AppConfigLoader, AppRegistryShortcutMatching · `dialog/` DialogTheme, MetadataFormDialog · `helpers/` AppTempDir, AppVersion, ArchiveManager, AudioConversionSupport, AudioMetadataSupport,
-BugReportUrl, ExecutableCompressionSupport, ExternalProgressController, FileAttributesHelper, FileHelper, FileIcons, FilesPanesHelper, IncrementalFilter, ImageConversionSupport, ImageMetadataSupport, PaneSorter, SettingsStore, VideoMetadataSupport · `model/` ArchiveMode,
-FileItem · `services/` ArchiveOperations, AudioConversionService, ClipboardTransfer, FileOperations, FolderComparer, ImageConversionService, PaneDragDrop, PdfOperations, TransferConflicts · `tools/` BundledTool, BundledToolCommands, ToolCommandBuilder, ProcessRunner · `vfs/` ArchiveFileSystem, FtpFileSystem, LocalFileSystem · root: ArchitectureRules (process / background / temp-file / app-path / version / fire-and-forget / no file walking or hashing in `Commander` rules), `CodeMapTest` (fails when a main
+rules per action vs `src/test/resources/action-rules-snapshot.txt`) · `commands/` ExternalToolRunner · `config/` ActionScope, AppConfigLoader, AppRegistryShortcutMatching · `dialog/` DialogTheme, MetadataFormDialog · `helpers/` AppTempDir, AppVersion, ArchiveManager,
+BugReportUrl, ExecutableCompressionSupport, ExternalProgressController, FileAttributesHelper, FileHelper, FileIcons, FilesPanesHelper, IncrementalFilter, ImageConversionSupport, ImageMetadataSupport, MediaTagSupport, PaneSorter, SettingsStore · `model/` ArchiveMode,
+FileItem · `services/` ArchiveOperations, ClipboardTransfer, FileOperations, FolderComparer, ImageConversionService, MediaConversionService, PaneDragDrop, PdfOperations, TransferConflicts · `tools/` BundledTool, BundledToolCommands, ToolCommandBuilder, ProcessRunner · `vfs/` ArchiveFileSystem, FtpFileSystem, LocalFileSystem · root: ArchitectureRules (process / background / temp-file / app-path / version / fire-and-forget / no file walking or hashing in `Commander` rules), `CodeMapTest` (fails when a main
 class or an apps.json action is missing from this file).

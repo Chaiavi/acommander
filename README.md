@@ -107,11 +107,11 @@ directories.
 
 ## 🏷️ Metadata Editing
 
-| Media Type      | Details                                              |
-|-----------------|------------------------------------------------------|
-| **Video**       | Edit video file metadata tags via AtomicParsley      |
-| **Images**      | View and modify EXIF/IPTC metadata via exiv2         |
-| **MP3 / Audio** | Update ID3 tags (title, artist, album, etc.) via id3 |
+| Media Type      | Details                                                                              |
+|-----------------|--------------------------------------------------------------------------------------|
+| **Video**       | Edit tags (title, artist, year, description, etc.) of MP4, MOV, MKV and WebM via ffmpeg |
+| **Images**      | View and modify EXIF/IPTC metadata via exiv2                                         |
+| **Audio**       | Edit tags (title, artist, album, etc.) of MP3, M4A, FLAC, OGG and Opus via ffmpeg, in any language |
 
 ---
 
@@ -136,7 +136,7 @@ directories.
 |--------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | **Archive**  | Pack to zip (`F11`) via 7-Zip GUI · Unpack (`F12`) via 7-Zip GUI · Extract anything (`Alt+F12`) via Universal Extractor · Split large file (`Alt+F11`) via 7z CLI |
 | **PDF**      | Merge PDF files · Extract PDF pages (all pages, specific pages/ranges, pages-per-output chunking)                                                                 |
-| **Convert**  | Media conversion (`Alt+F5`) auto-routes to image or audio · Graphics via `caesiumclt.exe` · Audio via `sndfile-convert.exe`                                       |
+| **Convert**  | Media conversion (`Alt+F5`) auto-routes to image or audio · Graphics via `caesiumclt.exe` · Audio to MP3, M4A, FLAC, WAV, OGG or Opus via ffmpeg (quality, sample rate, loudness normalize) |
 | **Checksum** | Single file or recursive folder checksum via `rhash.exe`                                                                                                          |
 | **UPX**      | Compress/decompress EXE and DLL files via `upx.exe`                                                                                                               |
 
@@ -180,12 +180,10 @@ directories.
 | ThisIsMyFile & SDelete | `apps/delete`                            |
 | ripgrep                | `apps/search_in_files/rg.exe`            |
 | Caesium CLI            | `apps/image_convert/caesiumclt.exe`      |
-| sndfile-convert        | `apps/sound_convert/sndfile-convert.exe` |
+| FFmpeg (GPLv3; the build downloads it) | `apps/media/ffmpeg.exe`  |
 | rhash                  | `apps/checksum/rhash.exe`                |
 | ExamDiff               | `apps/file_compare/ExamDiff.exe`         |
 | exiv2                  | `apps/image_metadata/exiv2.exe`          |
-| id3 & id3-images       | `apps/audio_metadata`                    |
-| AtomicParsley          | `apps/video_metadata/AtomicParsley.exe`  |
 | UPX                    | `apps/exe_compress/upx.exe`              |
 | curl                   | `apps/remote_connectivity/curl.exe`      |
 
@@ -299,9 +297,9 @@ Full notes and downloads for every version: [GitHub Releases](https://github.com
 
 **Metadata Editing**
 
-- **Edit video metadata** — modify tags on video files via AtomicParsley
+- **Edit video metadata** — modify tags on MP4, MOV, MKV and WebM videos via ffmpeg
 - **Edit image metadata** — view and change EXIF/IPTC data on images via exiv2
-- **Edit MP3 metadata** — update ID3 tags on audio files via id3
+- **Edit audio metadata** — update tags on MP3, M4A, FLAC, OGG and Opus files via ffmpeg
 
 **File Operations**
 

@@ -10,6 +10,7 @@ import javafx.scene.layout.VBox;
 import javafx.stage.Modality;
 import javafx.stage.Window;
 import org.chaiware.acommander.helpers.BackgroundTasks;
+import org.chaiware.acommander.helpers.MediaTagSupport;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -19,28 +20,37 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.CompletionException;
 import java.util.function.Consumer;
 
-/** A tag editor for one file: a text field per tag, Reload, Save and a status line. The tool runs off the FX thread. */
-final class MetadataFormDialog {
+/** A tag editor for one audio or video file: a text field per tag, Reload, Save and a status line. ffmpeg runs off the FX thread. */
+public final class MetadataFormDialog {
     private static final Logger logger = LoggerFactory.getLogger(MetadataFormDialog.class);
 
-    /** One tag: the key the tool reads it under, its label, the tool option that writes it, and its tooltip. */
-    record Field(String key, String label, String option, String tooltip) {}
+    /** One tag: its ffmpeg key, its label and its tooltip. */
+    record Field(String key, String label, String tooltip) {}
 
-    interface Tool {
-        /** Background: the file's tag values by field key; a missing key shows as empty. */
-        Map<String, String> read() throws Exception;
+    private static final List<Field> AUDIO_FIELDS = List.of(
+            new Field("title", "Title", "The song title."),
+            new Field("artist", "Artist", "The performing artist."),
+            new Field("album", "Album", "The album the song is on."),
+            new Field("track", "Track", "The track number, e.g. 3 or 3/12."),
+            new Field("date", "Year", "The release year."),
+            new Field("genre", "Genre", "The genre name."),
+            new Field("comment", "Comment", "A free-text comment."));
 
-        /** FX thread, so it may read extra controls: the command that writes {@code changes} (option, value, …). */
-        List<String> writeCommand(List<String> changes, boolean preserveTime);
-
-        /** Background: runs a {@link #writeCommand}. */
-        void write(List<String> command) throws Exception;
-    }
+    private static final List<Field> VIDEO_FIELDS = List.of(
+            new Field("title", "Title", "The video title."),
+            new Field("artist", "Artist", "The artist or creator."),
+            new Field("album", "Album", "The album or series the video belongs to."),
+            new Field("genre", "Genre", "The genre name."),
+            new Field("date", "Year", "The release year or date."),
+            new Field("track", "Track", "The track number, e.g. 3 or 3/12."),
+            new Field("disc", "Disc", "The disc number, e.g. 1 or 1/2."),
+            new Field("comment", "Comment", "A free-text comment."),
+            new Field("composer", "Composer", "The composer or writer."),
+            new Field("description", "Description", "A short description of the video."));
 
     private final Window owner;
     private final String themeClass;
     private final File file;
-    private final Tool tool;
     private final List<Field> fields;
     private final Map<String, TextField> inputs = new HashMap<>();
     private final Map<String, String> loaded = new HashMap<>();
@@ -48,34 +58,36 @@ final class MetadataFormDialog {
     private final Label status = new Label("Ready");
     private boolean saved;
 
-    private MetadataFormDialog(Window owner, String themeClass, File file, List<Field> fields, Tool tool) {
+    private MetadataFormDialog(Window owner, String themeClass, File file, List<Field> fields) {
         this.owner = owner;
         this.themeClass = themeClass;
         this.file = file;
         this.fields = fields;
-        this.tool = tool;
     }
 
-    /** Shows the editor until closed; true when a save changed the file. {@code extraRows} are label → control. */
-    static boolean show(Window owner, String themeClass, String title, File file, String toolName,
-                        List<Field> fields, Map<String, Control> extraRows, Tool tool) {
-        return new MetadataFormDialog(owner, themeClass, file, fields, tool).showAndWait(title, toolName, extraRows);
+    /** Shows the editor until closed; true when a save changed the file. */
+    public static boolean editAudio(Window owner, String themeClass, File file) {
+        return new MetadataFormDialog(owner, themeClass, file, AUDIO_FIELDS).showAndWait("Edit Audio Metadata");
     }
 
-    /** The option/value pairs of the fields whose {@code current} text differs from what was {@code loaded}. */
-    static List<String> changes(List<Field> fields, Map<String, String> loaded, Map<String, String> current) {
-        List<String> changes = new ArrayList<>();
+    /** Shows the editor until closed; true when a save changed the file. */
+    public static boolean editVideo(Window owner, String themeClass, File file) {
+        return new MetadataFormDialog(owner, themeClass, file, VIDEO_FIELDS).showAndWait("Edit Video Metadata");
+    }
+
+    /** Tag key → new value for the fields whose {@code current} text differs from what was {@code loaded}. */
+    static Map<String, String> changes(List<Field> fields, Map<String, String> loaded, Map<String, String> current) {
+        Map<String, String> changes = new LinkedHashMap<>();
         for (Field field : fields) {
             String value = current.getOrDefault(field.key(), "");
             if (!value.equals(loaded.getOrDefault(field.key(), ""))) {
-                changes.add(field.option());
-                changes.add(value);
+                changes.put(field.key(), value);
             }
         }
         return changes;
     }
 
-    private boolean showAndWait(String title, String toolName, Map<String, Control> extraRows) {
+    private boolean showAndWait(String title) {
         GridPane grid = new GridPane();
         grid.setHgap(10);
         grid.setVgap(8);
@@ -86,10 +98,6 @@ final class MetadataFormDialog {
             inputs.put(field.key(), input);
             controls.add(input);
         }
-        extraRows.forEach((label, control) -> {
-            grid.addRow(grid.getRowCount(), new Label(label), control);
-            controls.add(control);
-        });
         CheckBox preserveTime = OptionsDialog.tip(new CheckBox("Preserve File Time"),
                 "Keeps the file's modified date when the tags are saved.");
         preserveTime.setSelected(true);
@@ -104,7 +112,7 @@ final class MetadataFormDialog {
 
         Label heading = new Label(title);
         heading.setStyle("-fx-font-size: 16px; -fx-font-weight: bold;");
-        Label subtitle = new Label("File: " + file.getName() + "  -  Powered by " + toolName);
+        Label subtitle = new Label("File: " + file.getName() + "  -  Powered by ffmpeg");
         subtitle.setStyle("-fx-text-fill: #666666; -fx-font-size: 11px;");
         status.setStyle("-fx-text-fill: #666666; -fx-font-size: 11px;");
         VBox content = new VBox(10, heading, subtitle, new Separator(), grid, new HBox(10, reload, save), new Separator(), status);
@@ -126,7 +134,7 @@ final class MetadataFormDialog {
     }
 
     private void load() {
-        inBackground("Loading metadata...", tool::read, values -> {
+        inBackground("Loading metadata...", () -> MediaTagSupport.read(file), values -> {
             loaded.clear();
             for (Field field : fields) {
                 String value = values.getOrDefault(field.key(), "");
@@ -144,14 +152,13 @@ final class MetadataFormDialog {
         }
         Map<String, String> current = new HashMap<>();
         inputs.forEach((key, input) -> current.put(key, input.getText() == null ? "" : input.getText()));
-        List<String> changes = changes(fields, loaded, current);
+        Map<String, String> changes = changes(fields, loaded, current);
         if (changes.isEmpty()) {
             status.setText("No metadata changes to save");
             return;
         }
-        List<String> command = tool.writeCommand(changes, preserveTime);
         inBackground("Saving metadata...", () -> {
-            tool.write(command);
+            MediaTagSupport.write(file, changes, preserveTime);
             return null;
         }, ignored -> {
             saved = true;

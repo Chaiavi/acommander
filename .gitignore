@@ -40,6 +40,8 @@ Thumbs.db
 /build_script.bat
 /apps/copy/FastCopy2.ini
 /apps/multi_rename/Renamer.xml
+# Downloaded by the fetchFfmpeg Gradle task: ffmpeg.exe is over GitHub's 100 MB file limit
+/apps/media/
 /IMPLEMENTATION_REPORT.md
 /run_build.py
 /verify_changes.py

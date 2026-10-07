@@ -38,8 +38,8 @@ import org.chaiware.acommander.model.FileItem;
 import org.chaiware.acommander.model.Folder;
 import org.chaiware.acommander.palette.CommandPaletteController;
 import org.chaiware.acommander.services.FolderComparer;
-import org.chaiware.acommander.services.AudioConversionService;
-import org.chaiware.acommander.services.AudioConversionService.AudioConversionRequest;
+import org.chaiware.acommander.services.MediaConversionService;
+import org.chaiware.acommander.services.MediaConversionService.AudioRequest;
 import org.chaiware.acommander.services.ClipboardTransfer;
 import org.chaiware.acommander.services.ImageConversionService;
 import org.chaiware.acommander.services.ImageConversionService.ImageConversionRequest;
@@ -1680,7 +1680,7 @@ public class Commander {
             convertGraphicsFiles();
             return;
         }
-        if (AudioConversionSupport.areAllConvertibleAudio(selectedItems)) {
+        if (MediaFiles.areAllAudio(selectedItems)) {
             convertAudioFiles();
             return;
         }
@@ -1691,38 +1691,42 @@ public class Commander {
     public void convertAudioFiles() {
         logger.info("Convert Audio Files");
         List<FileItem> selectedItems = fileOps.filterValidItems(new ArrayList<>(filesPanesHelper.getSelectedItems()));
-        if (!AudioConversionSupport.areAllConvertibleAudio(selectedItems)) {
+        if (!MediaFiles.areAllAudio(selectedItems)) {
             showError("Convert Audio Files", "Select one or more audio files only.");
             requestFocusedFileListFocus();
             return;
         }
 
-        List<String> targetFormats = AudioConversionSupport.targetFormatsForSelection(selectedItems);
-        if (targetFormats.isEmpty()) {
-            showError("Convert Audio Files", "No supported target formats were found for the selected files.");
-            requestFocusedFileListFocus();
-            return;
-        }
-        Optional<AudioConversionRequest> request = AudioConversionDialog.show(dialogOwner(), currentThemeMode.styleClass,
-                selectedItems.size(), filesPanesHelper.getUnfocusedPath(), targetFormats);
+        Optional<AudioRequest> request = AudioConversionDialog.show(dialogOwner(), currentThemeMode.styleClass,
+                selectedItems.size(), filesPanesHelper.getUnfocusedPath());
         if (request.isEmpty()) {
             requestFocusedFileListFocus();
             return;
         }
-
-        AudioConversionService converter = new AudioConversionService(command -> runExternal(command, false),
-                BundledTool.SNDFILE_CONVERT.path(), BundledTool.FAAD.path(), BundledTool.FAAC.path());
-        AudioConversionRequest options = request.get();
-        List<Path> sources = selectedItems.stream().map(item -> Path.of(item.getFullPath())).toList();
-        for (Path tool : converter.requiredTools(sources, options.targetFormat())) {
-            if (!Files.isRegularFile(tool)) {
-                showError("Convert Audio Files", tool.getFileName() + " was not found at: " + tool);
-                requestFocusedFileListFocus();
-                return;
-            }
+        Optional<MediaConversionService> converter = mediaConverter("Convert Audio Files");
+        if (converter.isEmpty()) {
+            return;
         }
 
-        converter.convertAll(sources, Paths.get(filesPanesHelper.getUnfocusedPath()), options)
+        List<Path> sources = selectedItems.stream().map(item -> Path.of(item.getFullPath())).toList();
+        showConversionResult("Convert Audio Files",
+                converter.get().convertAudio(sources, Paths.get(filesPanesHelper.getUnfocusedPath()), request.get()));
+    }
+
+    /** The ffmpeg converter, or empty after telling the user ffmpeg.exe is missing. */
+    private Optional<MediaConversionService> mediaConverter(String title) {
+        Path ffmpeg = BundledTool.FFMPEG.path();
+        if (!Files.isRegularFile(ffmpeg)) {
+            showError(title, "ffmpeg.exe was not found at: " + ffmpeg);
+            requestFocusedFileListFocus();
+            return Optional.empty();
+        }
+        return Optional.of(new MediaConversionService(command -> runExternal(command, false), ffmpeg));
+    }
+
+    /** Refreshes the panes and selects the first new file in the other pane, or shows why the conversion failed. */
+    private void showConversionResult(String title, CompletableFuture<Path> conversion) {
+        conversion
                 .thenAccept(firstConverted -> Platform.runLater(() -> {
                     filesPanesHelper.refreshFileListViews();
                     if (firstConverted != null) {
@@ -1732,7 +1736,8 @@ public class Commander {
                 }))
                 .exceptionally(throwable -> {
                     Platform.runLater(() -> {
-                        showError("Convert Audio Files", "Audio conversion failed: " + throwable.getMessage());
+                        filesPanesHelper.refreshFileListViews();
+                        showError(title, "Conversion failed: " + throwable.getMessage());
                         requestFocusedFileListFocus();
                     });
                     return null;
@@ -2416,7 +2421,7 @@ public class Commander {
 
     @FXML
     public void editVideoMetadata() {
-        editMetadata("video", VideoMetadataDialog::show);
+        editMetadata("video", MetadataFormDialog::editVideo);
     }
 
     @FXML
@@ -2426,17 +2431,17 @@ public class Commander {
         if (selectedItems.isEmpty()) {
             return;
         }
-        if (!VideoMetadataSupport.areAllSupportedVideos(selectedItems)) {
+        if (!MediaFiles.areAllTaggableVideo(selectedItems)) {
             showError("Remove Video Metadata", "Select one or more supported video files only.");
             requestFocusedFileListFocus();
             return;
         }
-        removeMetadata("Remove Video Metadata", "video file(s)", selectedItems, VideoMetadataSupport::remove);
+        removeMetadata("Remove Video Metadata", "video file(s)", selectedItems, MediaTagSupport::remove);
     }
 
     @FXML
     public void editAudioMetadata() {
-        editMetadata("audio", AudioMetadataDialog::show);
+        editMetadata("audio", MetadataFormDialog::editAudio);
     }
 
     @FXML
@@ -2446,12 +2451,12 @@ public class Commander {
         if (selectedItems.isEmpty()) {
             return;
         }
-        if (!AudioMetadataSupport.areAllSupportedAudio(selectedItems)) {
+        if (!MediaFiles.areAllTaggableAudio(selectedItems)) {
             showError("Remove Audio Metadata", "Select one or more supported audio files only.");
             requestFocusedFileListFocus();
             return;
         }
-        removeMetadata("Remove Audio Metadata", "audio file(s)", selectedItems, AudioMetadataSupport::remove);
+        removeMetadata("Remove Audio Metadata", "audio file(s)", selectedItems, MediaTagSupport::remove);
     }
 
     @FXML
