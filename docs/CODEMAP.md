@@ -314,7 +314,7 @@ Not actions, but often asked for:
 | `config/apps.json` | Actions, shortcuts, tool paths (read from `user.dir`). |
 | `config/acommander.properties` | Per-user state (gitignored), read and written only by `SettingsStore`: `left_folder`, `right_folder`, `theme_mode`, `bookmark.*`, `ftp.*`, `last_selection_pattern`. |
 | `apps/` | Bundled tools; table in README "External Tools Bundled". |
-| `build.gradle` | Build, `shadowJar` (copies the release files to `build/libs/`), launch4j, `dist` (`releaseResources` = what ships from `config/` and `apps/`; `verifyDistribution` checks the ZIP), `seedToolSettings`, `fetchFfmpeg` (downloads `apps/media/ffmpeg.exe`, gitignored, pinned by SHA-256; `test`, `run` and `dist` depend on it). |
+| `build.gradle` | Build, `shadowJar` (copies the release files to `build/libs/`), launch4j, `dist` (`releaseResources` = what ships from `config/` and `apps/`; `verifyDistribution` checks the ZIP), `seedToolSettings`, `fetchFfmpeg` (downloads `apps/media/ffmpeg.exe`, gitignored, pinned by SHA-256; skipped while `apps/media/source.sha256` holds the pinned hash, which lets CI restore the folder from cache; `test`, `run` and `dist` depend on it). |
 
 ## 7. Tests
 

@@ -107,10 +107,15 @@ def ffmpegVersion = '9.0.2'
 def ffmpegZipSha256 = '60f467265b1e312373dbcd92200c2618a74850f98d3d078e94296bb3fa2047ba'
 def ffmpegExe = file('apps/media/ffmpeg.exe')
 def ffmpegLicense = file('apps/media/LICENSE.txt')
+// Holds the zip hash of the files beside it, so a fresh checkout with a restored apps/media (CI cache) skips the download
+def ffmpegSource = file('apps/media/source.sha256')
 def fetchFfmpeg = tasks.register('fetchFfmpeg') {
     def url = "https://github.com/GyanD/codexffmpeg/releases/download/${ffmpegVersion}/ffmpeg-${ffmpegVersion}-essentials_build.zip"
     inputs.property('sha256', ffmpegZipSha256)
-    outputs.files(ffmpegExe, ffmpegLicense)
+    outputs.files(ffmpegExe, ffmpegLicense, ffmpegSource)
+    onlyIf {
+        !(ffmpegExe.isFile() && ffmpegLicense.isFile() && ffmpegSource.isFile() && ffmpegSource.text.trim() == ffmpegZipSha256)
+    }
     doLast {
         def zipFile = File.createTempFile('ffmpeg-', '.zip')
         try {
@@ -138,6 +143,7 @@ def fetchFfmpeg = tasks.register('fetchFfmpeg') {
             } finally {
                 zip.close()
             }
+            ffmpegSource.text = ffmpegZipSha256
         } finally {
             zipFile.delete()
         }
@@ -153,6 +159,7 @@ def releaseAppsExcludes = [
         'copy/FastCopy2.ini',
         'extract_all/UniExtract/batch.queue',
         'extract_all/UniExtract/log/**',
+        'media/source.sha256',
 ]
 def releaseResources = copySpec {
     from('config') {

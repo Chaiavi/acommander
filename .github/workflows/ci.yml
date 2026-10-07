@@ -17,5 +17,12 @@ jobs:
         with:
           distribution: temurin
           java-version: "21"
+      # ffmpeg.exe (~110 MB download); fetchFfmpeg skips the download when this holds the pinned build
+      - name: Cache ffmpeg
+        uses: actions/cache@v4
+        with:
+          path: apps/media
+          key: ffmpeg-${{ hashFiles('build.gradle') }}
+          restore-keys: ffmpeg-
       - name: Build and test
         run: ./gradlew build
