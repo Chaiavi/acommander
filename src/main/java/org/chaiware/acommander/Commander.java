@@ -1510,7 +1510,7 @@ public class Commander {
             return;
         }
         FoundFilesDialog.show(dialogOwner(), currentThemeMode.styleClass, files).ifPresent(selectedFile -> {
-            filesPanesHelper.setFocusedFileListPath(selectedFile.getPath().getParent().toString());
+            showLocalFolder(filesPanesHelper.getFocusedSide(), selectedFile.getPath().getParent().toString(), title);
             filesPanesHelper.selectFileItem(true, selectedFile);
             requestFocusedFileListFocus();
         });
@@ -2584,18 +2584,24 @@ public class Commander {
         VFileSystem focusedFs = filesPanesHelper.getFocusedFileSystem();
         String focusedPath = filesPanesHelper.getFocusedPath();
 
+        // An archive or FTP path means nothing on disk: the other pane goes back to a local root
+        showLocalFolder(targetSide, focusedFs instanceof LocalFileSystem ? focusedPath : getDefaultRootPath(),
+                "Same Folder on Other Panel");
+        Platform.runLater(() -> filesPanesHelper.getFileList(true).requestFocus());
+    }
+
+    /** Shows local {@code path} on {@code side}, first leaving the archive (repacking it) or FTP server it shows. */
+    private void showLocalFolder(FilesPanesHelper.FocusSide side, String path, String errorTitle) {
         try {
-            if (!(focusedFs instanceof LocalFileSystem)) {
-                // An archive or FTP path means nothing on disk: the other pane goes back to a local root
-                filesPanesHelper.setFileSystem(targetSide, filesPanesHelper.getVfsManager().createLocalFileSystem(""), getDefaultRootPath());
+            if (filesPanesHelper.getFileSystem(side) instanceof LocalFileSystem) {
+                filesPanesHelper.setFileListPath(side, path);
             } else {
-                filesPanesHelper.setFileListPath(targetSide, focusedPath);
+                filesPanesHelper.setFileSystem(side, filesPanesHelper.getVfsManager().createLocalFileSystem(""), path);
             }
         } catch (IOException e) {
-            logger.error("Failed to sync panes", e);
-            showError("Same Folder on Other Panel", e.getMessage());
+            logger.error("Failed to leave the {} pane's file system for {}", side, path, e);
+            showError(errorTitle, e.getMessage());
         }
-        Platform.runLater(() -> filesPanesHelper.getFileList(true).requestFocus());
     }
 
     private boolean isLocalPath(String path) {
@@ -2645,7 +2651,7 @@ public class Commander {
                 return;
             }
 
-            filesPanesHelper.setFocusedFileListPath(path);
+            showLocalFolder(filesPanesHelper.getFocusedSide(), path, "Go to Bookmark");
         } finally {
             requestFocusedFileListFocus();
         }

@@ -141,7 +141,8 @@ Not actions, but often asked for:
 11. `analyzeFile`, `checksumFile`, `checksumFolderContents`, `unpackFile`, `extractAll`, PDFs.
 12. Compare: `compareFiles`, `compareFolders` (logic in `services/FolderComparer`).
 13. `fileProperties`, `changeAttributes`, image/video/audio metadata edit + remove, `compressExecutable`.
-14. `syncToOtherPane`, bookmarks, selection, `ftpDisconnect`, `openHostsFile`, `ftpConnect`.
+14. `syncToOtherPane`, `showLocalFolder` (shows a local folder, first leaving an archive/FTP pane), bookmarks,
+    selection, `ftpDisconnect`, `openHostsFile`, `ftpConnect`.
 15. Type-to-filter popup, prompts (`getUserFeedback`, `promptUser`, `pickBookmark`).
 16. `runExternal`, `showError`, `showInfo`.
 17. Clipboard copy/cut/paste, toast.
