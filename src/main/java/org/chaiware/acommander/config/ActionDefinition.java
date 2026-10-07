@@ -39,6 +39,8 @@ public class ActionDefinition {
     public enum FileType {
         @JsonProperty("convertibleImage") CONVERTIBLE_IMAGE,
         @JsonProperty("convertibleAudio") CONVERTIBLE_AUDIO,
+        @JsonProperty("convertibleVideo") CONVERTIBLE_VIDEO,
+        @JsonProperty("media") MEDIA,
         @JsonProperty("imageWithMetadata") IMAGE_WITH_METADATA,
         @JsonProperty("videoWithMetadata") VIDEO_WITH_METADATA,
         @JsonProperty("audioWithMetadata") AUDIO_WITH_METADATA,

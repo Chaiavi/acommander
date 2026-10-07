@@ -92,6 +92,10 @@ public class ActionExecutor {
             case CONVERT_MEDIA_FILE -> commander::convertMediaFile;
             case CONVERT_GRAPHICS_FILES -> commander::convertGraphicsFiles;
             case CONVERT_AUDIO_FILES -> commander::convertAudioFiles;
+            case CONVERT_VIDEO_FILES -> commander::convertVideoFiles;
+            case TRIM_MEDIA -> commander::trimMedia;
+            case JOIN_MEDIA -> commander::joinMedia;
+            case MEDIA_INFO -> commander::mediaInfo;
             case CHECKSUM_FILE -> commander::checksumFile;
             case CHECKSUM_FOLDER_CONTENTS -> commander::checksumFolderContents;
             case ANALYZE_FILE -> commander::analyzeFile;

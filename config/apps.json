@@ -369,10 +369,10 @@
     },
     {
       "id": "convertMediaFile",
-      "description": "Converts the selected images or audio files to another format.",
+      "description": "Converts the selected images, audio files or videos to another format.",
       "category": "Media",
       "writes": "target",
-      "fileTypes": ["convertibleImage", "convertibleAudio"],
+      "fileTypes": ["convertibleImage", "convertibleAudio", "convertibleVideo"],
       "label": "Convert Media File",
       "shortcut": "Alt+F5",
       "aliases": ["convert media", "media convert", "transcode media"],
@@ -423,6 +423,59 @@
           "selection": "singleOrMultipleFiles"
         }
       ]
+    },
+    {
+      "id": "convertVideoFiles",
+      "description": "Converts the selected videos to MP4 or MKV, or extracts their audio.",
+      "category": "Media",
+      "writes": "target",
+      "fileTypes": ["convertibleVideo"],
+      "label": "Convert Video Files",
+      "aliases": ["convert video", "video convert", "extract audio", "video to mp3", "transcode video", "shrink video"],
+      "contexts": ["commandPalette"],
+      "selection": "any",
+      "type": "builtin",
+      "priorityRules": [
+        {
+          "score": 140,
+          "selection": "singleOrMultipleFiles"
+        }
+      ]
+    },
+    {
+      "id": "trimMedia",
+      "description": "Keeps a start-to-end part of an audio or video file, as a new file in the other pane.",
+      "category": "Media",
+      "writes": "target",
+      "fileTypes": ["media"],
+      "label": "Trim Media",
+      "aliases": ["cut video", "cut audio", "trim video", "trim audio", "clip"],
+      "contexts": ["commandPalette"],
+      "selection": "singleFile",
+      "type": "builtin"
+    },
+    {
+      "id": "joinMedia",
+      "description": "Joins the selected audio or video files of one type into one file, without re-encoding.",
+      "category": "Media",
+      "writes": "target",
+      "fileTypes": ["media"],
+      "label": "Join Media",
+      "aliases": ["join video", "join audio", "merge video", "merge audio", "concatenate"],
+      "contexts": ["commandPalette"],
+      "selection": "multi",
+      "type": "builtin"
+    },
+    {
+      "id": "mediaInfo",
+      "description": "Shows the duration, bitrate, codecs, resolution and tags of an audio or video file.",
+      "category": "Media",
+      "fileTypes": ["media"],
+      "label": "Media Info",
+      "aliases": ["video info", "audio info", "codec", "resolution", "duration", "ffprobe"],
+      "contexts": ["commandPalette"],
+      "selection": "singleFile",
+      "type": "builtin"
     },
     {
       "id": "checksumFile",

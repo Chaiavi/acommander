@@ -11,6 +11,7 @@ compressExecutable | ftp=no | writes=source | palette=----------+---
 convertAudioFiles | ftp=no | writes=target | palette=-----++-------
 convertGraphicsFiles | ftp=no | writes=target | palette=---++---------
 convertMediaFile | ftp=no | writes=target | palette=n/a
+convertVideoFiles | ftp=no | writes=target | palette=-------+------
 copy | ftp=yes | writes=target | palette=-+++++++++++++
 copySelection | ftp=yes | writes=none | palette=-+++++++++++++
 cutSelection | ftp=yes | writes=none | palette=-+++++++++++++
@@ -33,8 +34,10 @@ ftpDisconnect | ftp=yes | writes=none | palette=--------------
 gotoBookmark | ftp=yes | writes=none | palette=++++++++++++++
 help | ftp=yes | writes=none | palette=++++++++++++++
 invertSelection | ftp=yes | writes=none | palette=++++++++++++++
+joinMedia | ftp=no | writes=target | palette=--------------
 leftPathCombo | ftp=yes | writes=none | palette=n/a
 linkNavigation | ftp=yes | writes=none | palette=++++++++++++++
+mediaInfo | ftp=no | writes=none | palette=-----+++------
 mergePdf | ftp=no | writes=target | palette=------------+-
 mkdir | ftp=yes | writes=source | palette=++++++++++++++
 mkfile | ftp=yes | writes=source | palette=++++++++++++++
@@ -65,6 +68,7 @@ splitLargeFile | ftp=no | writes=target | palette=-+++++++++++++
 syncToOtherPane | ftp=no | writes=none | palette=++++++++++++++
 terminal | ftp=no | writes=none | palette=++++++++++++++
 toggleDarkMode | ftp=yes | writes=none | palette=++++++++++++++
+trimMedia | ftp=no | writes=target | palette=-----+++------
 unlinkNavigation | ftp=yes | writes=none | palette=--------------
 unlockDelete | ftp=no | writes=source | palette=n/a
 unpack | ftp=no | writes=target | palette=---------+----

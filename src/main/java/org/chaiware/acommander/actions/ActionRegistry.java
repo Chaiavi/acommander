@@ -148,6 +148,8 @@ public class ActionRegistry {
         return switch (type) {
             case CONVERTIBLE_IMAGE -> ImageConversionSupport.areAllConvertibleImages(items);
             case CONVERTIBLE_AUDIO -> MediaFiles.areAllAudio(items);
+            case CONVERTIBLE_VIDEO -> MediaFiles.areAllVideo(items);
+            case MEDIA -> MediaFiles.areAllMedia(items);
             case IMAGE_WITH_METADATA -> ImageMetadataSupport.areAllSupportedImages(items);
             case VIDEO_WITH_METADATA -> MediaFiles.areAllTaggableVideo(items);
             case AUDIO_WITH_METADATA -> MediaFiles.areAllTaggableAudio(items);

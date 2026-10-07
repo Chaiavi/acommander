@@ -136,7 +136,8 @@ directories.
 |--------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | **Archive**  | Pack to zip (`F11`) via 7-Zip GUI · Unpack (`F12`) via 7-Zip GUI · Extract anything (`Alt+F12`) via Universal Extractor · Split large file (`Alt+F11`) via 7z CLI |
 | **PDF**      | Merge PDF files · Extract PDF pages (all pages, specific pages/ranges, pages-per-output chunking)                                                                 |
-| **Convert**  | Media conversion (`Alt+F5`) auto-routes to image or audio · Graphics via `caesiumclt.exe` · Audio to MP3, M4A, FLAC, WAV, OGG or Opus via ffmpeg (quality, sample rate, loudness normalize) |
+| **Convert**  | Media conversion (`Alt+F5`) auto-routes to image, audio or video · Graphics via `caesiumclt.exe` · Audio to MP3, M4A, FLAC, WAV, OGG or Opus via ffmpeg (quality, sample rate, loudness normalize) · Video to MP4 (H.264 / H.265, optional downsizing), or to MP4/MKV without re-encoding, or extract its audio (MP3, M4A or the original track) |
+| **Media**    | Trim Media (keep a start-to-end part, lossless by default) · Join Media (join files of one type without re-encoding) · Media Info (duration, bitrate, codecs, resolution, tags) · all via ffmpeg, from the Command Palette |
 | **Checksum** | Single file or recursive folder checksum via `rhash.exe`                                                                                                          |
 | **UPX**      | Compress/decompress EXE and DLL files via `upx.exe`                                                                                                               |
 
@@ -235,7 +236,7 @@ Every action is **data-driven**. Add, remove, or reconfigure tools without touch
 | `prompt`       | —        | Prompt config for external actions                 |
 | `ftp`          | —        | `true` = allowed on FTP panes (default: rejected)  |
 | `writes`       | —        | Pane it writes to: `none` (default) · `source` (focused) · `target` (other) · `both`; blocked when that pane is a read-only archive |
-| `fileTypes`    | —        | Palette offers it only when all selected items are one of: `convertibleImage` · `convertibleAudio` · `imageWithMetadata` · `videoWithMetadata` · `audioWithMetadata` · `executable` · `archive` · `pdf` |
+| `fileTypes`    | —        | Palette offers it only when all selected items are one of: `convertibleImage` · `convertibleAudio` · `convertibleVideo` · `media` (audio or video) · `imageWithMetadata` · `videoWithMetadata` · `audioWithMetadata` · `executable` · `archive` · `pdf` |
 | `requires`     | —        | Extra palette conditions: `clipboardHasFiles` · `focusedPaneIsFtp` · `textFileInEachPane` · `navigationLinked` · `navigationUnlinked` |
 
 ### Placeholders in `args`

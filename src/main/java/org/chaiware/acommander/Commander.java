@@ -40,6 +40,8 @@ import org.chaiware.acommander.palette.CommandPaletteController;
 import org.chaiware.acommander.services.FolderComparer;
 import org.chaiware.acommander.services.MediaConversionService;
 import org.chaiware.acommander.services.MediaConversionService.AudioRequest;
+import org.chaiware.acommander.services.MediaConversionService.TrimRequest;
+import org.chaiware.acommander.services.MediaConversionService.VideoRequest;
 import org.chaiware.acommander.services.ClipboardTransfer;
 import org.chaiware.acommander.services.ImageConversionService;
 import org.chaiware.acommander.services.ImageConversionService.ImageConversionRequest;
@@ -1684,7 +1686,11 @@ public class Commander {
             convertAudioFiles();
             return;
         }
-        showError("Convert Media File", "Select one or more image files or one or more audio files only.");
+        if (MediaFiles.areAllVideo(selectedItems)) {
+            convertVideoFiles();
+            return;
+        }
+        showError("Convert Media File", "Select image, audio or video files of one kind only.");
         requestFocusedFileListFocus();
     }
 
@@ -1737,11 +1743,105 @@ public class Commander {
                 .exceptionally(throwable -> {
                     Platform.runLater(() -> {
                         filesPanesHelper.refreshFileListViews();
-                        showError(title, "Conversion failed: " + throwable.getMessage());
+                        showError(title, "Conversion failed: " + causeMessage(throwable));
                         requestFocusedFileListFocus();
                     });
                     return null;
                 });
+    }
+
+    private static String causeMessage(Throwable throwable) {
+        Throwable cause = throwable instanceof CompletionException && throwable.getCause() != null ? throwable.getCause() : throwable;
+        return cause.getMessage();
+    }
+
+    public void convertVideoFiles() {
+        logger.info("Convert Video Files");
+        List<FileItem> selectedItems = fileOps.filterValidItems(new ArrayList<>(filesPanesHelper.getSelectedItems()));
+        if (!MediaFiles.areAllVideo(selectedItems)) {
+            showError("Convert Video Files", "Select one or more video files only.");
+            requestFocusedFileListFocus();
+            return;
+        }
+        Optional<VideoRequest> request = VideoConversionDialog.show(dialogOwner(), currentThemeMode.styleClass,
+                selectedItems.size(), filesPanesHelper.getUnfocusedPath());
+        if (request.isEmpty()) {
+            requestFocusedFileListFocus();
+            return;
+        }
+        Optional<MediaConversionService> converter = mediaConverter("Convert Video Files");
+        if (converter.isEmpty()) {
+            return;
+        }
+        List<Path> sources = selectedItems.stream().map(item -> Path.of(item.getFullPath())).toList();
+        showConversionResult("Convert Video Files",
+                converter.get().convertVideo(sources, Paths.get(filesPanesHelper.getUnfocusedPath()), request.get()));
+    }
+
+    public void trimMedia() {
+        logger.info("Trim Media");
+        List<FileItem> selectedItems = fileOps.filterValidItems(new ArrayList<>(filesPanesHelper.getSelectedItems()));
+        if (selectedItems.size() != 1 || !MediaFiles.areAllMedia(selectedItems)) {
+            showError("Trim Media", "Select one audio or video file.");
+            requestFocusedFileListFocus();
+            return;
+        }
+        FileItem item = selectedItems.getFirst();
+        Optional<TrimRequest> request = TrimMediaDialog.show(dialogOwner(), currentThemeMode.styleClass, item.getName(),
+                MediaFiles.isVideo(item.extension()));
+        if (request.isEmpty()) {
+            requestFocusedFileListFocus();
+            return;
+        }
+        mediaConverter("Trim Media").ifPresent(converter -> showConversionResult("Trim Media",
+                converter.trim(Path.of(item.getFullPath()), Paths.get(filesPanesHelper.getUnfocusedPath()), request.get())));
+    }
+
+    public void joinMedia() {
+        logger.info("Join Media");
+        List<FileItem> selectedItems = fileOps.filterValidItems(new ArrayList<>(filesPanesHelper.getSelectedItems()));
+        String problem = MediaFiles.joinProblem(selectedItems);
+        if (problem != null) {
+            showError("Join Media", problem);
+            requestFocusedFileListFocus();
+            return;
+        }
+        FileItem first = selectedItems.getFirst();
+        String extension = first.extension();
+        String name = first.getName();
+        String suggested = name.substring(0, name.length() - extension.length() - 1) + "_joined." + extension;
+        Optional<String> entered = getUserFeedback(suggested, "Join Media", "Joined file name",
+                suggested.length() - extension.length() - 1);
+        if (entered.isEmpty() || entered.get().isBlank()) {
+            requestFocusedFileListFocus();
+            return;
+        }
+        List<Path> sources = selectedItems.stream().map(item -> Path.of(item.getFullPath())).toList();
+        mediaConverter("Join Media").ifPresent(converter -> showConversionResult("Join Media", converter.join(sources,
+                Paths.get(filesPanesHelper.getUnfocusedPath()), MediaFiles.withExtension(entered.get(), extension))));
+    }
+
+    public void mediaInfo() {
+        logger.info("Media Info");
+        List<FileItem> selectedItems = fileOps.filterValidItems(new ArrayList<>(filesPanesHelper.getSelectedItems()));
+        if (selectedItems.size() != 1 || !MediaFiles.areAllMedia(selectedItems)) {
+            showError("Media Info", "Select one audio or video file.");
+            requestFocusedFileListFocus();
+            return;
+        }
+        FileItem item = selectedItems.getFirst();
+        mediaConverter("Media Info").ifPresent(converter -> converter.probe(Path.of(item.getFullPath()))
+                .thenAccept(output -> Platform.runLater(() -> {
+                    showInfo("Media Info", item.getName() + "\n\n" + String.join("\n", MediaConversionService.mediaInfo(output)));
+                    requestFocusedFileListFocus();
+                }))
+                .exceptionally(throwable -> {
+                    Platform.runLater(() -> {
+                        showError("Media Info", "Could not read the file: " + causeMessage(throwable));
+                        requestFocusedFileListFocus();
+                    });
+                    return null;
+                }));
     }
 
     private boolean containsNonAscii(String text) {

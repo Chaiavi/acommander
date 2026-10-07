@@ -149,6 +149,10 @@ All actions and external tools live in `config/apps.json`; shortcuts are declare
   `CompletableFuture.runAsync`, `deleteOnExit` or a temp file in the default temp dir anywhere else.
 - A tool under `apps/` that Java runs directly is a `tools/BundledTool` entry; other app files come from
   `helpers/AppPaths`. `ArchitectureRulesTest` fails on `"user.dir"` or an `"apps/` literal anywhere else.
+- `apps/media/ffmpeg.exe` is not in git: it is over GitHub's 100 MB file limit. The `fetchFfmpeg` Gradle task
+  downloads it, pinned by SHA-256, and `test`, `run` and `dist` depend on it. To update ffmpeg, change
+  `ffmpegVersion` and `ffmpegZipSha256` in `build.gradle`. All audio/video work (convert, tags, trim, join, info) runs
+  through it; `MediaConversionServiceTest` and `MediaTagSupportTest` run the real exe on generated clips.
 - A tool run nobody waits on goes through `ExternalToolRunner.reportFailure` (or `Commander.runExternalReported`), or its
   failure is only logged. `ArchitectureRulesTest` fails on a bare `runExecutable(...);` / `runExternal(...);`.
 - A service that runs tools takes the runner as a `Function<List<String>, CompletableFuture<List<String>>>`
