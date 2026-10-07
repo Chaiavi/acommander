@@ -192,8 +192,8 @@ All actions and external tools live in `config/apps.json`; shortcuts are declare
   `build.gradle`; never commit them.
 - `config/acommander.properties` is per-user runtime state (gitignored). Never commit it.
 - Root `*.bat`, `run_build.py`, `verify_changes.py`, `bin/` are gitignored local leftovers; ignore them.
-- Build fails with `:processResources` "Failed to clean up stale outputs": a running app (`gradlew run`) locks
-  `build/resources`. Stop the `org.chaiware.acommander.Launcher` java process, build, then start the app again.
+- Build fails with `:processResources` "Failed to clean up stale outputs": a running app (`gradlew run`, or the F5
+  launch too) locks `build/resources`. Stop the `org.chaiware.acommander.Launcher` java process, build, then start the app again.
   Killing the terminal that ran `gradlew run` does not stop the app's java process.
 - A file you must commit already has another session's uncommitted edits (`git diff <file>` shows hunks you didn't
   write): `git commit -- <file>` would take theirs too. Stage only yours: `cmd /c "git show HEAD:<file> > %TEMP%\x"`
