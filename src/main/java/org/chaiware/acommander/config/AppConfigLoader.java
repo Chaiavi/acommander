@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
@@ -20,5 +21,9 @@ public class AppConfigLoader {
             throw new IOException("Missing config file: " + configPath);
         }
         return mapper.readValue(configPath.toFile(), AppConfig.class);
+    }
+
+    public AppConfig load(InputStream in) throws IOException {
+        return mapper.readValue(in, AppConfig.class);
     }
 }

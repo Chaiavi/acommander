@@ -150,9 +150,16 @@ All actions and external tools live in `config/apps.json`; shortcuts are declare
 - A tool under `apps/` that Java runs directly is a `tools/BundledTool` entry; other app files come from
   `helpers/AppPaths`. `ArchitectureRulesTest` fails on `"user.dir"` or an `"apps/` literal anywhere else.
 - `apps/media/ffmpeg.exe` is not in git: it is over GitHub's 100 MB file limit. The `fetchFfmpeg` Gradle task
-  downloads it, pinned by SHA-256, and `test`, `run` and `dist` depend on it. To update ffmpeg, change
-  `ffmpegVersion` and `ffmpegZipSha256` in `build.gradle`. All audio/video work (convert, tags, trim, join, info) runs
+  downloads it, pinned by SHA-256, and `test`, `run` and `dist` depend on it. To update ffmpeg, change its `version`
+  and `release` (`ffmpeg-<version>`) in the `tools` section of `config/apps.json` and `ffmpegZipSha256` in
+  `build.gradle`; `dist` then creates that release with `gh` so Tool Updates can download it. All audio/video work (convert, tags, trim, join, info) runs
   through it; `MediaConversionServiceTest` and `MediaTagSupportTest` run the real exe on generated clips.
+- Every file under `apps/` belongs to one tool in the `tools` section of `config/apps.json` (`ToolsConfigTest`). To
+  update a tool: replace its files, set its `version`, run `build` (rewrites `apps/tools.sha256`), commit the files and
+  `apps/tools.sha256` together. Users' Tool Updates compare against `main`, so a binary pushed without its new hash
+  list fails their download check.
+- `apps/**` is `-text` in `.gitattributes`: GitHub must serve the bytes `tools.sha256` was computed from. With
+  `core.autocrlf` git stored LF and checked out CRLF, so every text file's hash differed from the raw download.
 - A tool run nobody waits on goes through `ExternalToolRunner.reportFailure` (or `Commander.runExternalReported`), or its
   failure is only logged. `ArchitectureRulesTest` fails on a bare `runExecutable(...);` / `runExternal(...);`.
 - A service that runs tools takes the runner as a `Function<List<String>, CompletableFuture<List<String>>>`

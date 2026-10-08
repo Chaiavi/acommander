@@ -1062,6 +1062,60 @@
       ],
       "selection": "none",
       "type": "builtin"
+    },
+    {
+      "id": "checkToolUpdates",
+      "description": "Checks this project's GitHub for newer bundled tools and updates the ones you pick.",
+      "category": "Tools",
+      "ftp": true,
+      "label": "Check Tool Updates",
+      "aliases": [
+        "update tools",
+        "upgrade",
+        "bundled tools",
+        "tool versions"
+      ],
+      "contexts": [
+        "global",
+        "commandPalette"
+      ],
+      "selection": "none",
+      "type": "builtin"
     }
+  ],
+  "tools": [
+    {"id": "antRenamer", "name": "Ant Renamer", "version": "2.13", "link": "https://antp.be/software/renamer", "paths": ["apps/multi_rename"]},
+    {"id": "caesium", "name": "Caesium CLI", "version": "1.2.0", "link": "https://github.com/Lymphatus/caesium-clt", "paths": ["apps/image_convert"],
+      "upstream": {"github": "Lymphatus/caesium-clt"}},
+    {"id": "curl", "name": "curl", "version": "8.18.0", "link": "https://curl.se/windows/", "paths": ["apps/remote_connectivity"],
+      "upstream": {"page": "https://curl.se/windows/", "pattern": "curl-(\\d+\\.\\d+\\.\\d+)_\\d+-win64"}},
+    {"id": "examDiff", "name": "ExamDiff", "version": "1.9.4.2", "link": "https://www.prestosoft.com/edp_examdiff.asp", "paths": ["apps/file_compare"],
+      "upstream": {"page": "https://www.prestosoft.com/edp_examdiff.asp", "pattern": "ExamDiff (\\d+\\.\\d+(?:\\.\\d+)*)"}},
+    {"id": "exiv2", "name": "Exiv2", "version": "0.28.8", "link": "https://github.com/Exiv2/exiv2", "paths": ["apps/image_metadata"],
+      "upstream": {"github": "Exiv2/exiv2"}},
+    {"id": "fastCopy", "name": "FastCopy", "version": "5.11.2", "link": "https://fastcopy.jp/", "paths": ["apps/copy"],
+      "upstream": {"page": "https://fastcopy.jp/", "pattern": "FastCopy ver (\\d+\\.\\d+\\.\\d+)"}},
+    {"id": "ffmpeg", "name": "FFmpeg (gyan.dev essentials build)", "version": "9.0.2", "link": "https://www.gyan.dev/ffmpeg/builds/", "paths": ["apps/media"],
+      "release": "ffmpeg-9.0.2", "upstream": {"github": "GyanD/codexffmpeg"}},
+    {"id": "file", "name": "file (Windows build)", "version": "5.29", "link": "https://github.com/nscaife/file-windows", "paths": ["apps/file_analysis"]},
+    {"id": "notepad4", "name": "Notepad4", "version": "25.05.5670", "link": "https://github.com/zufuliu/notepad4", "paths": ["apps/edit/Notepad4.exe"],
+      "upstream": {"github": "zufuliu/notepad4"}},
+    {"id": "pdftk", "name": "PDFtk Server", "version": "2.02", "link": "https://www.pdflabs.com/tools/pdftk-server/", "paths": ["apps/pdf"]},
+    {"id": "rhash", "name": "RHash", "version": "1.4.5", "link": "https://github.com/rhash/RHash", "paths": ["apps/checksum"],
+      "upstream": {"github": "rhash/RHash"}},
+    {"id": "ripgrep", "name": "ripgrep", "version": "15.1.0", "link": "https://github.com/BurntSushi/ripgrep", "paths": ["apps/search_in_files"],
+      "upstream": {"github": "BurntSushi/ripgrep"}},
+    {"id": "sdelete", "name": "SDelete", "version": "2.05", "link": "https://learn.microsoft.com/sysinternals/downloads/sdelete", "paths": ["apps/delete/wipe"],
+      "upstream": {"page": "https://learn.microsoft.com/en-us/sysinternals/downloads/sdelete", "pattern": "SDelete v(\\d+\\.\\d+)"}},
+    {"id": "sevenZip", "name": "7-Zip", "version": "24.09", "link": "https://www.7-zip.org/", "paths": ["apps/pack_unpack"],
+      "upstream": {"github": "ip7z/7zip"}},
+    {"id": "tedNotepad", "name": "TED Notepad", "version": "6.3.1", "link": "https://jsimlo.sk/notepad/", "paths": ["apps/edit/TedNPad.exe"],
+      "upstream": {"page": "https://jsimlo.sk/notepad/", "pattern": "Current version (\\d+\\.\\d+\\.\\d+)"}},
+    {"id": "thisIsMyFile", "name": "ThisIsMyFile", "version": "4.41", "link": "https://www.softwareok.com/?seite=Freeware/ThisIsMyFile", "paths": ["apps/delete/unlock_delete"],
+      "upstream": {"page": "https://www.softwareok.com/?seite=Freeware/ThisIsMyFile", "pattern": "New in version (\\d+\\.\\d+)"}},
+    {"id": "uniExtract", "name": "Universal Extractor 2", "version": "2.0.0", "link": "https://github.com/Bioruebe/UniExtract2", "paths": ["apps/extract_all"]},
+    {"id": "universalViewer", "name": "Universal Viewer", "version": "5.5", "link": "https://www.uvviewsoft.com/uviewer/", "paths": ["apps/view"]},
+    {"id": "upx", "name": "UPX", "version": "5.1.1", "link": "https://github.com/upx/upx", "paths": ["apps/exe_compress"],
+      "upstream": {"github": "upx/upx"}}
   ]
 }

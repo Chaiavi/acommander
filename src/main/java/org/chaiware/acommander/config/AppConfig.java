@@ -5,6 +5,7 @@ import java.util.List;
 
 public class AppConfig {
     private List<ActionDefinition> actions = new ArrayList<>();
+    private List<ToolDefinition> tools = new ArrayList<>();
 
     public List<ActionDefinition> getActions() {
         return actions;
@@ -12,5 +13,13 @@ public class AppConfig {
 
     public void setActions(List<ActionDefinition> actions) {
         this.actions = actions == null ? new ArrayList<>() : actions;
+    }
+
+    public List<ToolDefinition> getTools() {
+        return tools;
+    }
+
+    public void setTools(List<ToolDefinition> tools) {
+        this.tools = tools == null ? new ArrayList<>() : tools;
     }
 }

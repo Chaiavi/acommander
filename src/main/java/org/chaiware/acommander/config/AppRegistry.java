@@ -10,11 +10,13 @@ import java.util.stream.Collectors;
 
 public class AppRegistry {
     private final List<ActionDefinition> actions;
+    private final List<ToolDefinition> tools;
     private final Map<ActionScope, List<ActionDefinition>> actionsByScope;
     private final Map<String, KeyCombination> shortcutCache;
 
     public AppRegistry(AppConfig config) {
         actions = List.copyOf(config.getActions());
+        tools = List.copyOf(config.getTools());
         actionsByScope = new EnumMap<>(ActionScope.class);
         for (ActionScope scope : ActionScope.values()) {
             List<ActionDefinition> scopedActions = actions.stream()
@@ -36,6 +38,10 @@ public class AppRegistry {
 
     public List<ActionDefinition> actions() {
         return actions;
+    }
+
+    public List<ToolDefinition> tools() {
+        return tools;
     }
 
     public List<ActionDefinition> actionsForScope(ActionScope scope) {

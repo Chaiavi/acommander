@@ -139,6 +139,7 @@ public class ActionExecutor {
             case CUT_SELECTION -> commander::cutSelectionToClipboard;
             case PASTE_SELECTION -> commander::pasteClipboardSelection;
             case REPORT_BUG -> commander::reportBug;
+            case CHECK_TOOL_UPDATES -> commander::checkToolUpdates;
         };
     }
 

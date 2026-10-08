@@ -25,6 +25,9 @@ public class SettingsStore {
     private static final String RIGHT_FOLDER = "right_folder";
     private static final String THEME_MODE = "theme_mode";
     private static final String LAST_SELECTION_PATTERN = "last_selection_pattern";
+    private static final String TOOL_UPDATES_AT_START = "tool_updates_at_start";
+    private static final String TOOL_UPDATES_CHECKED = "tool_updates_checked";
+    private static final String TOOL_UPDATES_SHOWN = "tool_updates_shown";
     private static final String BOOKMARK_PREFIX = "bookmark.";
     private static final String FTP_PREFIX = "ftp.";
     private static final String PASSWORD_DPAPI = "passwordDpapi";
@@ -105,6 +108,37 @@ public class SettingsStore {
 
     public void setLastSelectionPattern(String pattern) {
         properties.setProperty(LAST_SELECTION_PATTERN, pattern);
+    }
+
+    /** Whether the app looks for tool updates when it starts; on unless the user turned it off. */
+    public boolean toolUpdatesAtStart() {
+        return !"false".equals(properties.getProperty(TOOL_UPDATES_AT_START));
+    }
+
+    public void setToolUpdatesAtStart(boolean atStart) {
+        properties.setProperty(TOOL_UPDATES_AT_START, String.valueOf(atStart));
+    }
+
+    /** When the start check last ran, in epoch milliseconds; 0 when never. */
+    public long toolUpdatesChecked() {
+        try {
+            return Long.parseLong(properties.getProperty(TOOL_UPDATES_CHECKED, "0"));
+        } catch (NumberFormatException e) {
+            return 0;
+        }
+    }
+
+    public void setToolUpdatesChecked(long epochMillis) {
+        properties.setProperty(TOOL_UPDATES_CHECKED, String.valueOf(epochMillis));
+    }
+
+    /** The updates the start check last showed ({@code ToolUpdateService.offerKey}), so it doesn't show them again. */
+    public String toolUpdatesShown() {
+        return properties.getProperty(TOOL_UPDATES_SHOWN, "");
+    }
+
+    public void setToolUpdatesShown(String offerKey) {
+        properties.setProperty(TOOL_UPDATES_SHOWN, offerKey);
     }
 
     /** Bookmark name → folder. */

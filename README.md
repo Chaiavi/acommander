@@ -188,6 +188,20 @@ directories.
 | UPX                    | `apps/exe_compress/upx.exe`              |
 | curl                   | `apps/remote_connectivity/curl.exe`      |
 
+Each tool's full name, version and home page are in the F1 help ("Bundled Tools") and in `config/apps.json` (`tools`).
+
+### Updating the Tools
+
+- **Check Tool Updates** (Command Palette) lists every tool with its installed and available version. **Update** downloads
+  the tool's changed files; **Update All** does every tool.
+- Updates come **only from this project's GitHub**: the `main` branch, and a release of this project for ffmpeg. Every file
+  must match the SHA-256 in `apps/tools.sha256`, or nothing changes. A file the update didn't change (a tool's own
+  settings, say) is never reset; a missing file is downloaded again.
+- With **Check at Start** on (the default), ACommander looks once a day and opens the list only when there is something new.
+- For the developer, `gradlew build` prints the tools whose own site has a newer release (once a day). To update one:
+  replace its files under `apps/`, set its `version` in `config/apps.json`, build (this rewrites `apps/tools.sha256`),
+  commit and push. Users get it from `main`.
+
 ---
 
 ## ⚙️ Configuration (`config/apps.json`)
@@ -252,6 +266,20 @@ Every action is **data-driven**. Add, remove, or reconfigure tools without touch
 | `${promptValue}`                            | Value entered from the `prompt` dialog                 |
 
 > `ToolCommandBuilder` also creates quoted aliases for extra placeholders (e.g. `${archiveFileQuoted}` when `${archiveFile}` is provided by builtin flows).
+
+### Bundled Tools (`tools`)
+
+```json
+{"id": "ripgrep", "name": "ripgrep", "version": "15.1.0", "link": "https://github.com/BurntSushi/ripgrep",
+ "paths": ["apps/search_in_files"], "upstream": {"github": "BurntSushi/ripgrep"}}
+```
+
+| Field           | Notes                                                                                     |
+|-----------------|-------------------------------------------------------------------------------------------|
+| `paths`         | Files or folders under `apps/` that belong to the tool; every shipped file needs one owner |
+| `upstream`      | Where the build looks for a newer version: `github` (owner/repo), or `page` + `pattern` (regex, group 1 = version); leave it out for tools no longer developed |
+| `release`       | A release of this project holding the tool's files (ffmpeg, too big for git)              |
+| `minAppVersion` | Users of an older ACommander don't get this tool version                                   |
 
 ---
 

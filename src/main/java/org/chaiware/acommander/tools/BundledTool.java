@@ -17,7 +17,9 @@ public enum BundledTool {
     RHASH("apps/checksum/rhash.exe"),
     EXAM_DIFF("apps/file_compare/ExamDiff.exe"),
     UPX("apps/exe_compress/upx.exe"),
-    VIEWER("apps/view/UniversalViewer/Viewer.exe");
+    VIEWER("apps/view/UniversalViewer/Viewer.exe"),
+    /** SHA-256 of every shipped file under apps/, written by the build's toolHashes task. */
+    TOOL_HASHES("apps/tools.sha256");
 
     private final String relativePath;
 
@@ -27,5 +29,10 @@ public enum BundledTool {
 
     public Path path() {
         return AppPaths.resolve(relativePath);
+    }
+
+    /** The path under the app root with forward slashes, as on GitHub. */
+    public String relativePath() {
+        return relativePath;
     }
 }

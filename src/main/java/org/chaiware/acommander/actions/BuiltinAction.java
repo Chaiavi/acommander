@@ -73,7 +73,8 @@ public enum BuiltinAction {
     COPY_SELECTION("copySelection"),
     CUT_SELECTION("cutSelection"),
     PASTE_SELECTION("pasteSelection"),
-    REPORT_BUG("reportBug");
+    REPORT_BUG("reportBug"),
+    CHECK_TOOL_UPDATES("checkToolUpdates");
 
     private final String id;
 

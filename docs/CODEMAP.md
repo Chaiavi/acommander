@@ -105,6 +105,7 @@ Adding or renaming an action id? Check each of these:
 | `linkNavigation` / `unlinkNavigation` | same names, `followInOtherPane` (called by `enterSelectedItem` and `goUpOneFolder`), `linkIndicator` button | `services/LinkedNavigation` | — |
 | `leftPathCombo` / `rightPathCombo` (Alt+F1/F2) | `leftPathComboBox.show()` | `helpers/ComboBoxSetup`, `FolderComboBoxCell` | — |
 | `reportBug` | `reportBug`, `submitBugReport` | `dialog/ReportBugDialog`, `helpers/BugReportUrl` (prefilled issue URL + label) | browser |
+| `checkToolUpdates` | `checkToolUpdates`, `checkToolUpdatesAtStart` (from `initialize`, once a day), `showToolUpdates` | `services/ToolUpdateService` (`check`, `update`), `dialog/ToolUpdatesDialog`; tool list = apps.json `tools` | files from this project's GitHub (raw `main`, ffmpeg from its release) |
 | `openCommandPalette` | `openCommandPalette` | `palette/CommandPaletteController` | — |
 
 Not actions, but often asked for:
@@ -150,7 +151,7 @@ Not actions, but often asked for:
 15. Type-to-filter popup, prompts (`getUserFeedback`, `promptUser`, `pickBookmark`).
 16. `runExternal`, `showError`, `showInfo`.
 17. Clipboard copy/cut/paste, toast.
-18. `updateBottomButtons`, read-only archive checks, `reportBug`, `applyTheme`, `dialogOwner`.
+18. `updateBottomButtons`, read-only archive checks, `reportBug`, `checkToolUpdates`, `applyTheme`, `dialogOwner`.
 
 ## 5. Every Class
 
@@ -186,11 +187,12 @@ Not actions, but often asked for:
 | File | Role |
 |---|---|
 | `AppConfigLoader` | Jackson-loads `apps.json` into `AppConfig`. |
-| `AppConfig` | Root: `actions` list. |
+| `AppConfig` | Root: `actions` and `tools` lists. |
 | `ActionDefinition` | One action (fields in README "Fields" table); nested enums `WriteTarget`, `FileType`, `Requirement`. |
+| `ToolDefinition` | One bundled tool (apps.json `tools`): id, name, version, link, `paths` it owns under apps/ (`owns`), `minAppVersion`, `release` (ffmpeg), `upstream` (GitHub repo or page + pattern, for the build's check). |
 | `PromptDefinition` / `PriorityRuleDefinition` | `prompt` and `priorityRules` sub-objects. |
 | `ActionScope` | `global` / `filePane` / `commandPalette`; maps from `KeyContext`. |
-| `AppRegistry` | Index by scope, `findAction(id)`, `requireAction(id)` (throws when missing), `matchShortcut(scope, event)`. |
+| `AppRegistry` | Index by scope, `findAction(id)`, `requireAction(id)` (throws when missing), `matchShortcut(scope, event)`, `tools()`. |
 
 ### `dialog/` — dialogs (each takes owner window + theme class, not `Commander`)
 | File | Role |
@@ -210,6 +212,7 @@ Not actions, but often asked for:
 | `HelpDialog` | F1: collapsible section per category of every key and action (`HelpTopics`); the filter opens matching sections; tips; About button. |
 | `AboutDialog` | About popup: version, copyright, license, project link (`BugReportUrl.PROJECT_URL`), Java / JavaFX versions. |
 | `ReportBugDialog` | Bug report form → prefilled GitHub issue URL. |
+| `ToolUpdatesDialog` | Tool Updates: per tool name (home page link), installed / available version, status, Update; Update All; Check at Start. |
 | `ImageConversionDialog` / `AudioConversionDialog` / `VideoConversionDialog` | Conversion options → `ImageConversionRequest` / `MediaConversionService.AudioRequest` / `VideoRequest`. |
 | `TrimMediaDialog` | Start / end time (validated with `parseTime`), Exact Cut for video → `MediaConversionService.TrimRequest`. |
 | `ExecutableCompressionDialog` | UPX compress level or decompress → `UpxAction`. |
@@ -282,12 +285,14 @@ Not actions, but often asked for:
 | `PdfOperations` | Merge, extract pages, page count with pdftk on ASCII temp copies; results saved to any pane type. Pages per PDF cuts each chunk with one `cat start-end`; other modes burst, falling back to page by page. `parsePageExpression`, `validateExtractRequest`. |
 | `PdfExtractOptions` | Record: extract all / page expression / pages per PDF. |
 | `LinkedNavigation` | Linked panel navigation: `target` = where the other pane goes for a folder step (same-named subfolder or parent). |
+| `ToolUpdateService` | Tool Updates: `check` reads `config/apps.json` and `apps/tools.sha256` from raw `main` and compares them with this copy (`plan`: missing files, files main changed, files main dropped; a file main didn't change is never reset); `update` downloads to `AppTempDir`, checks each SHA-256, swaps the files (old ones moved aside, put back on failure) and rewrites the local `tools.sha256`. `https()` allows only this project's GitHub hosts; `resolve` refuses paths outside apps/. |
 
 ### `tools/`
 | File | Role |
 |---|---|
 | `ToolCommandBuilder` | Expands `${...}` placeholders in apps.json `args`; resolves `path` with `AppPaths`. |
-| `BundledTool` | Every tool under `apps/` the code runs directly (7z, curl, exiv2, rg, rhash, …) → `path()`. Tools of apps.json actions are listed there instead. `BundledToolTest` checks both lists are on disk. |
+| `BundledTool` | Every tool under `apps/` the code runs directly (7z, curl, exiv2, rg, rhash, …) → `path()`, plus `TOOL_HASHES` (`apps/tools.sha256`). Tools of apps.json actions are listed there instead. `BundledToolTest` checks both lists are on disk. |
+| `ToolUpstreamCheck` | Developer only, run by the build's `checkToolUpdates` task: asks each apps.json tool's `upstream` (GitHub latest release or a page + pattern) for its version and prints the newer ones. |
 | `BundledToolCommands` | Argument lists + option types for rhash (checksum), file (analyze), ExamDiff (compare files), ripgrep (find by name / in files, `foundFiles`) and the 7-Zip split size. |
 | `Dpapi` | Windows DPAPI (current user) through one hidden PowerShell run per batch, base64 lines on stdin/stdout. Encrypts the saved FTP passwords for `SettingsStore`. |
 | `FilePropertiesLauncher` | Opens the Windows Properties dialog of a path: writes a VBS script to the temp dir, runs it with `wscript.exe`; the script quits when the app's process is gone. |
@@ -311,17 +316,18 @@ Not actions, but often asked for:
 | `src/main/resources/CommandPalette.fxml` | Palette overlay. |
 | `src/main/resources/styles/app-theme.css` | All styling; dark/light via `theme-dark` / `theme-light` root classes. |
 | `src/main/resources/logback.xml` | Logs to `logs/`. |
-| `config/apps.json` | Actions, shortcuts, tool paths (read from `user.dir`). |
-| `config/acommander.properties` | Per-user state (gitignored), read and written only by `SettingsStore`: `left_folder`, `right_folder`, `theme_mode`, `bookmark.*`, `ftp.*`, `last_selection_pattern`. |
+| `config/apps.json` | Actions, shortcuts, tool paths (read from `user.dir`); `tools`: every bundled tool's name, version, link, files, upstream. |
+| `config/acommander.properties` | Per-user state (gitignored), read and written only by `SettingsStore`: `left_folder`, `right_folder`, `theme_mode`, `bookmark.*`, `ftp.*`, `last_selection_pattern`, `tool_updates_*`. |
 | `apps/` | Bundled tools; table in README "External Tools Bundled". |
-| `build.gradle` | Build, `shadowJar` (copies the release files to `build/libs/`), launch4j, `dist` (`releaseResources` = what ships from `config/` and `apps/`; `verifyDistribution` checks the ZIP), `seedToolSettings`, `fetchFfmpeg` (downloads `apps/media/ffmpeg.exe`, gitignored, pinned by SHA-256; skipped while `apps/media/source.sha256` holds the pinned hash, which lets CI restore the folder from cache; `test`, `run` and `dist` depend on it). |
+| `apps/tools.sha256` | SHA-256 of every shipped file under apps/, written by the `toolHashes` task (commit it). Tool Updates compares the user's copy with main's. |
+| `build.gradle` | Build, `shadowJar` (copies the release files to `build/libs/`), launch4j, `dist` (`releaseResources` = what ships from `config/` and `apps/`; `verifyDistribution` checks the ZIP), `seedToolSettings`, `fetchFfmpeg` (downloads `apps/media/ffmpeg.exe`, gitignored, pinned by SHA-256; version from apps.json `tools`; skipped while `apps/media/source.sha256` holds the pinned hash, which lets CI restore the folder from cache; `test`, `run` and `dist` depend on it), `toolHashes` (writes `apps/tools.sha256`), `checkToolUpdates` (runs `ToolUpstreamCheck` after `build`, once a day, not in CI), `publishFfmpeg` (`dist`: creates the `ffmpeg-<version>` release with `gh` if missing). |
 
 ## 7. Tests
 
 Under `src/test/java/org/chaiware/acommander/`, same package as the class tested:
 
 `actions/` ActionMatcher, ActionPriorityEngine, ActionRegistry, BuiltinAction, ActionRulesSnapshot (FTP / read-only / palette
-rules per action vs `src/test/resources/action-rules-snapshot.txt`) · `commands/` ExternalToolRunner · `config/` ActionScope, AppConfigLoader, AppRegistryShortcutMatching · `dialog/` DialogTheme, MetadataFormDialog · `helpers/` AppTempDir, AppVersion, ArchiveManager,
+rules per action vs `src/test/resources/action-rules-snapshot.txt`) · `commands/` ExternalToolRunner · `config/` ActionScope, AppConfigLoader, AppRegistryShortcutMatching, ToolsConfig (every shipped file belongs to one apps.json tool) · `dialog/` DialogTheme, MetadataFormDialog · `helpers/` AppTempDir, AppVersion, ArchiveManager,
 BugReportUrl, ExecutableCompressionSupport, ExternalProgressController, FileAttributesHelper, FileHelper, FileIcons, FilesPanesHelper, IncrementalFilter, ImageConversionSupport, ImageMetadataSupport, MediaFiles, MediaTagSupport, PaneSorter, SettingsStore · `model/` ArchiveMode,
-FileItem · `services/` ArchiveOperations, ClipboardTransfer, FileOperations, FolderComparer, ImageConversionService, MediaConversionService, PaneDragDrop, PdfOperations, TransferConflicts · `tools/` BundledTool, BundledToolCommands, ToolCommandBuilder, ProcessRunner · `vfs/` ArchiveFileSystem, FtpFileSystem, LocalFileSystem · root: ArchitectureRules (process / background / temp-file / app-path / version / fire-and-forget / no file walking or hashing in `Commander` rules), `CodeMapTest` (fails when a main
+FileItem · `services/` ArchiveOperations, ClipboardTransfer, FileOperations, FolderComparer, ImageConversionService, MediaConversionService, PaneDragDrop, PdfOperations, ToolUpdateService, TransferConflicts · `tools/` BundledTool, BundledToolCommands, ToolCommandBuilder, ToolUpstreamCheck, ProcessRunner · `vfs/` ArchiveFileSystem, FtpFileSystem, LocalFileSystem · root: ArchitectureRules (process / background / temp-file / app-path / version / fire-and-forget / no file walking or hashing in `Commander` rules), `CodeMapTest` (fails when a main
 class or an apps.json action is missing from this file).

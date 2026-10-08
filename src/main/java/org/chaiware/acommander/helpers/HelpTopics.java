@@ -1,6 +1,7 @@
 package org.chaiware.acommander.helpers;
 
 import org.chaiware.acommander.config.ActionDefinition;
+import org.chaiware.acommander.config.ToolDefinition;
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -17,7 +18,7 @@ public final class HelpTopics {
 
     /** The help's sections, in display order; an apps.json {@code category} outside this list goes last. */
     public static final List<String> CATEGORIES = List.of("Getting Around", "Selection", "File Operations",
-            "Search & Compare", "Archives & PDF", "Media", "Tools", "Display & Settings");
+            "Search & Compare", "Archives & PDF", "Media", "Tools", "Display & Settings", "Bundled Tools");
 
     /** Keys handled in code, not in apps.json. */
     static final List<Entry> FIXED_KEYS = List.of(
@@ -98,6 +99,15 @@ public final class HelpTopics {
         List<Entry> all = new ArrayList<>(FIXED_KEYS);
         all.addAll(withShortcut);
         all.addAll(paletteOnly);
+        return all;
+    }
+
+    /** The actions' rows, then one row per bundled tool (apps.json {@code tools}): version, name and home page. */
+    public static List<Entry> entries(List<ActionDefinition> actions, List<ToolDefinition> tools) {
+        List<Entry> all = new ArrayList<>(entries(actions));
+        tools.stream()
+                .sorted(Comparator.comparing(tool -> tool.getName().toLowerCase(Locale.ROOT)))
+                .forEach(tool -> all.add(new Entry("Bundled Tools", tool.getVersion(), tool.getName(), tool.getLink(), List.of(tool.getId()))));
         return all;
     }
 

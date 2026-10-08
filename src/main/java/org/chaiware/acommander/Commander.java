@@ -51,6 +51,7 @@ import org.chaiware.acommander.services.FileOperations;
 import org.chaiware.acommander.services.LinkedNavigation;
 import org.chaiware.acommander.services.PaneDragDrop;
 import org.chaiware.acommander.services.PdfOperations;
+import org.chaiware.acommander.services.ToolUpdateService;
 import org.chaiware.acommander.services.TransferConflicts;
 import org.chaiware.acommander.tools.BundledTool;
 import org.chaiware.acommander.tools.BundledToolCommands;
@@ -124,6 +125,7 @@ public class Commander {
     private PdfOperations pdfOps;
     private ComboBoxSetup comboBoxSetup;
     private ExternalToolRunner toolRunner;
+    private ToolUpdateService toolUpdates;
     private AppRegistry appRegistry;
     private ActionExecutor actionExecutor;
     private final Map<String, String> bookmarks = new LinkedHashMap<>();
@@ -203,6 +205,8 @@ public class Commander {
         updatePaneSummary(LEFT);
         updatePaneSummary(RIGHT);
         Platform.runLater(() -> leftFileList.requestFocus());
+        toolUpdates = new ToolUpdateService(AppPaths.root(), ToolUpdateService.https(), AppVersion.current());
+        checkToolUpdatesAtStart();
     }
 
 
@@ -1236,7 +1240,7 @@ public class Commander {
     public void help() {
         logger.info("Help (F1)");
         HelpDialog.show(dialogOwner(), currentThemeMode.styleClass, "A Commander " + AppVersion.current() + " Help",
-                HelpTopics.entries(appRegistry.actions()), this::about);
+                HelpTopics.entries(appRegistry.actions(), appRegistry.tools()), this::about);
     }
 
     public void about() {
@@ -3461,6 +3465,67 @@ public class Commander {
         if (openInBrowser("Report Bug", url)) {
             showInfo("Report Submitted", "Thank you for your feedback! The issue form has been opened in your browser.");
         }
+    }
+
+    public void checkToolUpdates() {
+        logger.info("Check Tool Updates");
+        showToast("Checking for tool updates...");
+        BackgroundTasks.supply(this::toolStatuses).whenComplete((statuses, error) -> Platform.runLater(() -> {
+            if (error != null) {
+                Throwable cause = error.getCause() != null ? error.getCause() : error;
+                logger.warn("Tool update check failed", cause);
+                showError("Tool Updates", "Could not check for tool updates: " + cause.getMessage());
+                return;
+            }
+            showToolUpdates(statuses);
+        }));
+    }
+
+    /** Once a day, when on: shows Tool Updates only if main offers something the user hasn't been shown. */
+    private void checkToolUpdatesAtStart() {
+        if (!ToolUpdateService.startCheckDue(settings.toolUpdatesAtStart(), settings.toolUpdatesChecked(), System.currentTimeMillis())) {
+            return;
+        }
+        BackgroundTasks.supply(this::toolStatuses).whenComplete((statuses, error) -> Platform.runLater(() -> {
+            if (error != null) {
+                logger.info("Start check for tool updates failed: {}", error.getMessage());
+                return;
+            }
+            settings.setToolUpdatesChecked(System.currentTimeMillis());
+            String offer = ToolUpdateService.offerKey(statuses);
+            boolean isNew = !offer.isEmpty() && !offer.equals(settings.toolUpdatesShown());
+            settings.setToolUpdatesShown(offer);
+            saveSettings();
+            if (isNew) {
+                showToolUpdates(statuses);
+            }
+        }));
+    }
+
+    private List<ToolUpdateService.ToolStatus> toolStatuses() {
+        try {
+            return toolUpdates.check(appRegistry.tools());
+        } catch (IOException e) {
+            throw new CompletionException(e);
+        }
+    }
+
+    private void showToolUpdates(List<ToolUpdateService.ToolStatus> statuses) {
+        ToolUpdatesDialog.show(dialogOwner(), currentThemeMode.styleClass, statuses, settings.toolUpdatesAtStart(),
+                atStart -> {
+                    settings.setToolUpdatesAtStart(atStart);
+                    saveSettings();
+                },
+                status -> BackgroundTasks.run(() -> {
+                    try {
+                        toolUpdates.update(status);
+                        logger.info("Updated {} to {}", status.tool().getName(), status.available());
+                    } catch (IOException e) {
+                        logger.warn("Updating {} failed", status.tool().getName(), e);
+                        throw new CompletionException(e);
+                    }
+                }),
+                url -> openInBrowser("Tool Updates", url));
     }
 
     private void applyTheme(Scene scene, ThemeMode themeMode, boolean persist) {

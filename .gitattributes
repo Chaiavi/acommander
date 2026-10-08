@@ -10,3 +10,7 @@
 # Binary files should be left untouched
 *.jar           binary
 
+# Bundled tools are stored byte for byte: Tool Updates checks a file downloaded from GitHub against the
+# SHA-256 of the working-tree file (apps/tools.sha256), so git must not convert line endings.
+/apps/**        -text
+
