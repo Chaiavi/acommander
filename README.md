@@ -198,9 +198,14 @@ Each tool's full name, version and home page are in the F1 help ("Bundled Tools"
   must match the SHA-256 in `apps/tools.sha256`, or nothing changes. A file the update didn't change (a tool's own
   settings, say) is never reset; a missing file is downloaded again.
 - With **Check at Start** on (the default), ACommander looks once a day and opens the list only when there is something new.
-- For the developer, `gradlew build` prints the tools whose own site has a newer release (once a day). To update one:
+- For the developer, `gradlew build` prints every tool's current and latest version, with release dates where GitHub
+  has them, and a direct download for the newer ones (once a day; `gradlew checkToolUpdates` any time). To update one:
   replace its files under `apps/`, set its `version` in `config/apps.json`, build (this rewrites `apps/tools.sha256`),
   commit and push. Users get it from `main`.
+- `BundledToolContractTest` runs every command-line tool the way the app does (search, checksum, metadata, image
+  conversion, UPX, PDF, archives, wipe, copy, FTP protocols), so a new version that changed its flags or output fails
+  the build before it is pushed. GUI tools (7-Zip GUI, Universal Extractor, Universal Viewer, Notepad4, TED Notepad,
+  ExamDiff, Ant Renamer, ThisIsMyFile) can't run in a test: after updating one, try its action once in the app.
 
 ---
 
@@ -277,7 +282,7 @@ Every action is **data-driven**. Add, remove, or reconfigure tools without touch
 | Field           | Notes                                                                                     |
 |-----------------|-------------------------------------------------------------------------------------------|
 | `paths`         | Files or folders under `apps/` that belong to the tool; every shipped file needs one owner |
-| `upstream`      | Where the build looks for a newer version: `github` (owner/repo), or `page` + `pattern` (regex, group 1 = version); leave it out for tools no longer developed |
+| `upstream`      | Where the build looks for a newer version: `github` (owner/repo) with optional `asset` (regex for the file to download), or `page` + `pattern` (regex, group 1 = version); leave it out for tools no longer developed |
 | `release`       | A release of this project holding the tool's files (ffmpeg, too big for git)              |
 | `minAppVersion` | Users of an older ACommander don't get this tool version                                   |
 

@@ -25,6 +25,8 @@ public class ToolDefinition {
     public static class Upstream {
         /** owner/repo of a GitHub project whose latest release tag is the version. */
         private String github;
+        /** Regex for the release file to download (the Windows x64 zip); without it the release page is linked. */
+        private String asset;
         /** A web page that names the latest version, found with {@link #pattern} (group 1). */
         private String page;
         private String pattern;

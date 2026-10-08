@@ -9,16 +9,36 @@ import java.util.List;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class ToolUpstreamCheckTest {
+    // Cut from https://api.github.com/repos/BurntSushi/ripgrep/releases?per_page=30 (newest first; assets trimmed)
+    private static final String RIPGREP_RELEASES = """
+            [{"html_url": "https://github.com/BurntSushi/ripgrep/releases/tag/15.3.0-beta", "tag_name": "15.3.0-beta",
+              "draft": false, "prerelease": true, "published_at": "2026-09-01T10:00:00Z", "assets": []},
+             {"html_url": "https://github.com/BurntSushi/ripgrep/releases/tag/15.2.0", "tag_name": "15.2.0",
+              "draft": false, "prerelease": false, "published_at": "2026-08-01T12:30:00Z",
+              "assets": [{"name": "ripgrep-15.2.0-aarch64-pc-windows-msvc.zip",
+                          "browser_download_url": "https://github.com/BurntSushi/ripgrep/releases/download/15.2.0/ripgrep-15.2.0-aarch64-pc-windows-msvc.zip"},
+                         {"name": "ripgrep-15.2.0-x86_64-pc-windows-msvc.zip",
+                          "browser_download_url": "https://github.com/BurntSushi/ripgrep/releases/download/15.2.0/ripgrep-15.2.0-x86_64-pc-windows-msvc.zip"}]},
+             {"html_url": "https://github.com/BurntSushi/ripgrep/releases/tag/15.1.0", "tag_name": "15.1.0",
+              "draft": false, "prerelease": false, "published_at": "2025-10-22T08:00:00Z", "assets": []}]""";
 
     @Test
-    void readsTheTagOfAGitHubRelease() throws IOException {
-        // Cut from https://api.github.com/repos/zufuliu/notepad4/releases/latest
-        String json = """
-                {"html_url": "https://github.com/zufuliu/notepad4/releases/tag/v26.08r6282", "id": 370978510,
-                 "tag_name": "v26.08r6282", "target_commitish": "main", "name": "v26.08r6282", "draft": false,
-                 "prerelease": false, "assets": []}""";
+    void readsTheLatestFullReleaseItsDownloadAndTheCurrentVersionsDate() throws IOException {
+        ToolUpstreamCheck.Result result = ToolUpstreamCheck.fromReleases(
+                tool("ripgrep", "15.1.0", "BurntSushi/ripgrep", "x86_64-pc-windows-msvc\\.zip$"), RIPGREP_RELEASES);
 
-        assertThat(ToolUpstreamCheck.latestTag(json)).isEqualTo("v26.08r6282");
+        assertThat(result.latest()).isEqualTo("15.2.0");
+        assertThat(result.latestDate()).isEqualTo("2026-08-01");
+        assertThat(result.currentDate()).isEqualTo("2025-10-22");
+        assertThat(result.download()).endsWith("/ripgrep-15.2.0-x86_64-pc-windows-msvc.zip");
+        assertThat(result.isNewer()).isTrue();
+    }
+
+    @Test
+    void withoutAnAssetPatternLinksTheReleasePage() throws IOException {
+        ToolUpstreamCheck.Result result = ToolUpstreamCheck.fromReleases(tool("ripgrep", "15.1.0", "BurntSushi/ripgrep", null), RIPGREP_RELEASES);
+
+        assertThat(result.download()).isEqualTo("https://github.com/BurntSushi/ripgrep/releases/tag/15.2.0");
     }
 
     @Test
@@ -31,28 +51,31 @@ class ToolUpstreamCheckTest {
     }
 
     @Test
-    void reportsNewerToolsAndOnesThatCouldNotBeChecked() {
-        ToolUpstreamCheck.Result newer = ToolUpstreamCheck.check(tool("ripgrep", "15.1.0", "BurntSushi/ripgrep"),
-                uri -> "{\"tag_name\": \"15.2.0\"}");
-        ToolUpstreamCheck.Result same = ToolUpstreamCheck.check(tool("UPX", "5.1.1", "upx/upx"),
-                uri -> "{\"tag_name\": \"v5.1.1\"}");
-        ToolUpstreamCheck.Result failed = ToolUpstreamCheck.check(tool("RHash", "1.4.5", "rhash/RHash"), uri -> {
-            throw new IOException(uri + " answered HTTP 403");
+    void reportsEveryToolNewerOnesFirst() {
+        ToolUpstreamCheck.Result newer = ToolUpstreamCheck.check(tool("ripgrep", "15.1.0", "BurntSushi/ripgrep", "x86_64-pc-windows-msvc\\.zip$"),
+                uri -> RIPGREP_RELEASES);
+        ToolUpstreamCheck.Result failed = ToolUpstreamCheck.check(tool("RHash", "1.4.5", "rhash/RHash", null), uri -> {
+            throw new IOException("HTTP 403");
         });
+        ToolDefinition renamer = tool("Ant Renamer", "2.13", null, null);
+        renamer.setUpstream(null);
 
-        assertThat(ToolUpstreamCheck.report(List.of(newer, same, failed))).isEqualTo("""
-                Bundled tools with a newer release (replace the files under apps/, set the version in config/apps.json, build, commit and push):
-                  ripgrep 15.1.0 -> 15.2.0  https://github.com/BurntSushi/ripgrep/releases/latest
-                  Could not check RHash: https://api.github.com/repos/rhash/RHash/releases/latest answered HTTP 403
+        assertThat(ToolUpstreamCheck.report(List.of(failed, ToolUpstreamCheck.check(renamer, uri -> ""), newer))).isEqualTo("""
+                Bundled tools: 1 with a newer release (*). To update one: replace its files under apps/, set its version in config/apps.json, build, commit and push.
+                    Tool                                 Current                  Latest                   Download
+                  * ripgrep                              15.1.0 (2025-10-22)      15.2.0 (2026-08-01)      https://github.com/BurntSushi/ripgrep/releases/download/15.2.0/ripgrep-15.2.0-x86_64-pc-windows-msvc.zip
+                    Ant Renamer                          2.13                     (no upstream)
+                    RHash                                1.4.5                    could not check: HTTP 403
                 """);
     }
 
-    private static ToolDefinition tool(String name, String version, String github) {
+    private static ToolDefinition tool(String name, String version, String github, String asset) {
         ToolDefinition tool = new ToolDefinition();
         tool.setName(name);
         tool.setVersion(version);
         ToolDefinition.Upstream upstream = new ToolDefinition.Upstream();
         upstream.setGithub(github);
+        upstream.setAsset(asset);
         tool.setUpstream(upstream);
         return tool;
     }

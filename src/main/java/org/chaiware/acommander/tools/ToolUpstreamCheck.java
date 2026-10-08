@@ -14,20 +14,22 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
  * For the developer, run by the build's checkToolUpdates task: asks each tool's upstream (apps.json {@code upstream})
- * for its latest version and prints the tools that have a newer one. Users never run this; they update from this
- * project's own GitHub through {@link ToolUpdateService}.
+ * for its latest version and prints every tool's current and latest version, with release dates where GitHub has
+ * them, and a direct download for the newer ones. Users never run this; they update from this project's own GitHub
+ * through {@link ToolUpdateService}.
  */
 public final class ToolUpstreamCheck {
     private static final ObjectMapper JSON = new ObjectMapper();
 
-    /** A tool's upstream answer: {@code latest} or {@code error} is set. */
-    public record Result(ToolDefinition tool, String latest, String url, String error) {
+    /** A tool's upstream answer; {@code latest} is null when there is no upstream or the check failed ({@code error}). */
+    public record Result(ToolDefinition tool, String currentDate, String latest, String latestDate, String download, String error) {
         public boolean isNewer() {
             return latest != null && ToolUpdateService.compareVersions(latest, tool.getVersion()) > 0;
         }
@@ -42,11 +44,10 @@ public final class ToolUpstreamCheck {
                 .followRedirects(HttpClient.Redirect.NORMAL)
                 .connectTimeout(Duration.ofSeconds(20))
                 .build();
+        String token = System.getenv("GITHUB_TOKEN");
         List<Result> results = new ArrayList<>();
         for (ToolDefinition tool : tools) {
-            if (tool.getUpstream() != null) {
-                results.add(check(tool, uri -> get(client, uri)));
-            }
+            results.add(check(tool, uri -> get(client, uri, token)));
         }
         System.out.print(report(results));
     }
@@ -57,28 +58,59 @@ public final class ToolUpstreamCheck {
 
     static Result check(ToolDefinition tool, Fetcher fetcher) {
         ToolDefinition.Upstream upstream = tool.getUpstream();
+        if (upstream == null) {
+            return new Result(tool, null, null, null, null, null);
+        }
         try {
             if (upstream.getGithub() != null) {
-                String url = "https://github.com/" + upstream.getGithub() + "/releases/latest";
-                String json = fetcher.get(URI.create("https://api.github.com/repos/" + upstream.getGithub() + "/releases/latest"));
-                return new Result(tool, latestTag(json), url, null);
+                return fromReleases(tool, fetcher.get(URI.create(
+                        "https://api.github.com/repos/" + upstream.getGithub() + "/releases?per_page=30")));
             }
             String latest = latestOnPage(fetcher.get(URI.create(upstream.getPage())), upstream.getPattern());
             if (latest == null) {
-                return new Result(tool, null, upstream.getPage(), "no version matching " + upstream.getPattern());
+                return new Result(tool, null, null, null, null, "no version matching " + upstream.getPattern());
             }
-            return new Result(tool, latest, upstream.getPage(), null);
+            return new Result(tool, null, latest, null, upstream.getPage(), null);
         } catch (IOException | RuntimeException e) {
-            return new Result(tool, null, null, e.getMessage());
+            return new Result(tool, null, null, null, null, e.getMessage());
         }
     }
 
-    static String latestTag(String releaseJson) throws IOException {
-        JsonNode tag = JSON.readTree(releaseJson).get("tag_name");
-        if (tag == null || tag.asText().isBlank()) {
-            throw new IOException("the latest release has no tag");
+    /** From GitHub's release list (newest first): the latest full release, its download, and the current version's date. */
+    static Result fromReleases(ToolDefinition tool, String releasesJson) throws IOException {
+        JsonNode latest = null;
+        String currentDate = null;
+        for (JsonNode release : JSON.readTree(releasesJson)) {
+            if (release.path("draft").asBoolean() || release.path("prerelease").asBoolean()) {
+                continue;
+            }
+            if (latest == null) {
+                latest = release;
+            }
+            if (currentDate == null && ToolUpdateService.compareVersions(release.path("tag_name").asText(), tool.getVersion()) == 0) {
+                currentDate = date(release);
+            }
         }
-        return tag.asText();
+        if (latest == null) {
+            throw new IOException("no full release on GitHub");
+        }
+        String download = latest.path("html_url").asText();
+        String assetPattern = tool.getUpstream().getAsset();
+        if (assetPattern != null) {
+            Pattern asset = Pattern.compile(assetPattern);
+            for (JsonNode file : latest.path("assets")) {
+                if (asset.matcher(file.path("name").asText()).find()) {
+                    download = file.path("browser_download_url").asText();
+                    break;
+                }
+            }
+        }
+        return new Result(tool, currentDate, latest.path("tag_name").asText(), date(latest), download, null);
+    }
+
+    private static String date(JsonNode release) {
+        String published = release.path("published_at").asText();
+        return published.length() >= 10 ? published.substring(0, 10) : null;
     }
 
     /** The highest version that {@code pattern} (group 1) finds on the page, or null. */
@@ -93,30 +125,40 @@ public final class ToolUpstreamCheck {
         return latest;
     }
 
+    /** Every tool, newer ones first (marked *): current and latest version with dates, and a download for the newer. */
     static String report(List<Result> results) {
-        StringBuilder text = new StringBuilder();
-        List<Result> newer = results.stream().filter(Result::isNewer).toList();
-        if (newer.isEmpty()) {
-            text.append("Bundled tools: none of the ").append(results.size()).append(" checked has a newer release.\n");
-        } else {
-            text.append("Bundled tools with a newer release (replace the files under apps/, set the version in "
-                    + "config/apps.json, build, commit and push):\n");
-            newer.forEach(result -> text.append("  ").append(result.tool().getName()).append(' ')
-                    .append(result.tool().getVersion()).append(" -> ").append(result.latest())
-                    .append("  ").append(result.url()).append('\n'));
+        List<Result> rows = results.stream()
+                .sorted(Comparator.comparing((Result result) -> !result.isNewer())
+                        .thenComparing(result -> result.tool().getName().toLowerCase()))
+                .toList();
+        long newer = rows.stream().filter(Result::isNewer).count();
+        StringBuilder text = new StringBuilder(newer == 0 ? "Bundled tools: all up to date.\n"
+                : "Bundled tools: " + newer + " with a newer release (*). To update one: replace its files under apps/, "
+                + "set its version in config/apps.json, build, commit and push.\n");
+        text.append(String.format("    %-36s %-24s %-24s %s", "Tool", "Current", "Latest", "Download").stripTrailing()).append('\n');
+        for (Result result : rows) {
+            String latest = result.error() != null ? "could not check: " + result.error()
+                    : result.latest() == null ? "(no upstream)" : withDate(result.latest(), result.latestDate());
+            text.append(String.format("  %s %-36s %-24s %-24s %s", result.isNewer() ? "*" : " ", result.tool().getName(),
+                    withDate(result.tool().getVersion(), result.currentDate()), latest,
+                    result.isNewer() ? result.download() : "").stripTrailing()).append('\n');
         }
-        results.stream().filter(result -> result.error() != null).forEach(result -> text
-                .append("  Could not check ").append(result.tool().getName()).append(": ").append(result.error()).append('\n'));
         return text.toString();
     }
 
-    private static String get(HttpClient client, URI uri) throws IOException {
-        HttpRequest request = HttpRequest.newBuilder(uri)
+    private static String withDate(String version, String date) {
+        return date == null ? version : version + " (" + date + ")";
+    }
+
+    private static String get(HttpClient client, URI uri, String token) throws IOException {
+        HttpRequest.Builder request = HttpRequest.newBuilder(uri)
                 .header("User-Agent", "ACommander-build")
-                .timeout(Duration.ofSeconds(30))
-                .build();
+                .timeout(Duration.ofSeconds(60));
+        if (token != null && !token.isBlank() && "api.github.com".equals(uri.getHost())) {
+            request.header("Authorization", "Bearer " + token);
+        }
         try {
-            HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+            HttpResponse<String> response = client.send(request.build(), HttpResponse.BodyHandlers.ofString());
             if (response.statusCode() != 200) {
                 throw new IOException(uri + " answered HTTP " + response.statusCode());
             }

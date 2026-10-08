@@ -1651,10 +1651,21 @@ public class Commander {
 
         String outputFolder = filesPanesHelper.getUnfocusedPath();
         ImageConversionRequest options = request.get();
-        List<String> command = ImageConversionService.buildCommand(caesiumPath, outputFolder,
-                selectedItems.stream().map(FileItem::getFullPath).toList(), options);
-        runExternal(command, true)
+        CompletableFuture<List<String>> runs = CompletableFuture.completedFuture(List.of());
+        for (List<String> command : ImageConversionService.buildCommands(caesiumPath, outputFolder,
+                selectedItems.stream().map(FileItem::getFullPath).toList(), options)) {
+            runs = runs.thenCompose(earlier -> runExternal(command, true).thenApply(output -> {
+                List<String> all = new ArrayList<>(earlier);
+                all.addAll(output);
+                return all;
+            }));
+        }
+        runs
                 .thenAccept(output -> Platform.runLater(() -> {
+                    List<String> failures = ImageConversionService.failures(output);
+                    if (!failures.isEmpty()) {
+                        showError("Convert Graphics Files", "Some images were not converted:\n" + String.join("\n", failures));
+                    }
                     focusConvertedFileInOtherPane(selectedItems, outputFolder, options);
                 }))
                 .exceptionally(throwable -> {

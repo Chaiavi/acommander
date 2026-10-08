@@ -220,7 +220,8 @@ def publishFfmpeg = tasks.register('publishFfmpeg') {
     doLast {
         def gh = { List<String> args ->
             try {
-                def process = new ProcessBuilder(['gh'] + args + ['--repo', 'Chaiavi/acommander']).redirectErrorStream(true).start()
+                def command = (['gh'] + args + ['--repo', 'Chaiavi/acommander']).collect { it.toString() }
+                def process = new ProcessBuilder(command).redirectErrorStream(true).start()
                 def output = process.inputStream.text
                 return [process.waitFor(), output]
             } catch (IOException e) {

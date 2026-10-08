@@ -39,8 +39,39 @@ public final class ImageConversionService {
     private ImageConversionService() {
     }
 
-    public static List<String> buildCommand(Path caesiumPath, String outputFolder, List<String> sourcePaths,
-                                            ImageConversionRequest options) {
+    /**
+     * The caesiumclt runs for {@code sourcePaths}. caesium refuses to convert a file to its own format ("Cannot convert
+     * to the same format") yet exits 0, so files already in the target format get their own run with
+     * {@code --format original}.
+     */
+    public static List<List<String>> buildCommands(Path caesiumPath, String outputFolder, List<String> sourcePaths,
+                                                   ImageConversionRequest options) {
+        List<String> extensions = extensions(options.targetFormat());
+        List<String> same = new ArrayList<>();
+        List<String> other = new ArrayList<>();
+        for (String source : sourcePaths) {
+            (extensions.contains(extension(source)) ? same : other).add(source);
+        }
+        List<List<String>> commands = new ArrayList<>();
+        if (!other.isEmpty()) {
+            commands.add(buildCommand(caesiumPath, outputFolder, other, options, options.targetFormat()));
+        }
+        if (!same.isEmpty()) {
+            commands.add(buildCommand(caesiumPath, outputFolder, same, options, "original"));
+        }
+        return commands;
+    }
+
+    /** caesium's lines about files it failed on; it exits 0 even then. */
+    public static List<String> failures(List<String> output) {
+        return output.stream()
+                .map(String::trim)
+                .filter(line -> line.startsWith("[Error]") || line.startsWith("Error compressing"))
+                .toList();
+    }
+
+    private static List<String> buildCommand(Path caesiumPath, String outputFolder, List<String> sourcePaths,
+                                             ImageConversionRequest options, String format) {
         List<String> command = new ArrayList<>();
         command.add(caesiumPath.toString());
 
@@ -59,7 +90,9 @@ public final class ImageConversionService {
         command.add("--output");
         command.add(outputFolder);
         command.add("--format");
-        command.add(options.targetFormat());
+        command.add(format);
+        command.add("--verbose");
+        command.add("2");
 
         if (options.keepExif()) {
             command.add("--exif");
@@ -108,13 +141,21 @@ public final class ImageConversionService {
         int dotIndex = sourceName.lastIndexOf('.');
         String stem = dotIndex > 0 ? sourceName.substring(0, dotIndex) : sourceName;
         String suffix = options.suffix() == null ? "" : options.suffix();
-        String format = options.targetFormat().toLowerCase(Locale.ROOT);
-        List<String> extensions = switch (format) {
+        return extensions(options.targetFormat()).stream().map(ext -> stem + suffix + "." + ext).toList();
+    }
+
+    private static List<String> extensions(String format) {
+        return switch (format.toLowerCase(Locale.ROOT)) {
             case "jpeg" -> List.of("jpeg", "jpg");
             case "tiff" -> List.of("tiff", "tif");
-            default -> List.of(format);
+            default -> List.of(format.toLowerCase(Locale.ROOT));
         };
-        return extensions.stream().map(ext -> stem + suffix + "." + ext).toList();
+    }
+
+    private static String extension(String path) {
+        String name = Paths.get(path).getFileName().toString();
+        int dot = name.lastIndexOf('.');
+        return dot < 0 ? "" : name.substring(dot + 1).toLowerCase(Locale.ROOT);
     }
 
     private static String caesiumOverwritePolicy(String label) {

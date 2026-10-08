@@ -155,9 +155,12 @@ All actions and external tools live in `config/apps.json`; shortcuts are declare
   `build.gradle`; `dist` then creates that release with `gh` so Tool Updates can download it. All audio/video work (convert, tags, trim, join, info) runs
   through it; `MediaConversionServiceTest` and `MediaTagSupportTest` run the real exe on generated clips.
 - Every file under `apps/` belongs to one tool in the `tools` section of `config/apps.json` (`ToolsConfigTest`). To
-  update a tool: replace its files, set its `version`, run `build` (rewrites `apps/tools.sha256`), commit the files and
-  `apps/tools.sha256` together. Users' Tool Updates compare against `main`, so a binary pushed without its new hash
-  list fails their download check.
+  update a tool: replace its files, set its `version`, run `build` (rewrites `apps/tools.sha256`; `BundledToolContractTest`
+  runs each command-line tool the way the app does), commit the files and `apps/tools.sha256` together. A GUI tool
+  (7zG, UniExtract, Viewer, Notepad4, TedNPad, ExamDiff, Renamer, ThisIsMyFile) has no test: try its action in the app.
+  Users' Tool Updates compare against `main`, so a binary pushed without its new hash list fails their download check.
+- caesiumclt exits 0 when a file fails ("Cannot convert to the same format" for PNG to PNG): check its output with
+  `ImageConversionService.failures`, not the exit code. Same-format files run with `--format original`.
 - `apps/**` is `-text` in `.gitattributes`: GitHub must serve the bytes `tools.sha256` was computed from. With
   `core.autocrlf` git stored LF and checked out CRLF, so every text file's hash differed from the raw download.
 - A tool run nobody waits on goes through `ExternalToolRunner.reportFailure` (or `Commander.runExternalReported`), or its
