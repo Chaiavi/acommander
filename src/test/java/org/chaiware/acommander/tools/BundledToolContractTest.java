@@ -8,26 +8,22 @@ import org.chaiware.acommander.helpers.AppPaths;
 import org.chaiware.acommander.helpers.ArchiveManager;
 import org.chaiware.acommander.helpers.ExecutableCompressionSupport;
 import org.chaiware.acommander.helpers.ExecutableCompressionSupport.UpxAction;
-import org.chaiware.acommander.helpers.FilesPanesHelper;
 import org.chaiware.acommander.helpers.ImageConversionSupport;
 import org.chaiware.acommander.helpers.ImageMetadataSupport;
 import org.chaiware.acommander.model.ArchiveSession;
 import org.chaiware.acommander.model.FileItem;
 import org.chaiware.acommander.services.ClipboardTransfer;
-import org.chaiware.acommander.services.FileOperations;
 import org.chaiware.acommander.services.ImageConversionService;
 import org.chaiware.acommander.services.ImageConversionService.ImageCompressionMode;
 import org.chaiware.acommander.services.ImageConversionService.ImageConversionRequest;
 import org.chaiware.acommander.services.ImageConversionService.ImageResizeMode;
 import org.chaiware.acommander.services.PdfExtractOptions;
 import org.chaiware.acommander.services.PdfOperations;
-import org.chaiware.acommander.services.TransferConflicts;
 import org.chaiware.acommander.tools.BundledToolCommands.ChecksumOptions;
 import org.chaiware.acommander.tools.BundledToolCommands.FindInFilesOptions;
 import org.chaiware.acommander.vfs.LocalFileSystem;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.condition.DisabledIfEnvironmentVariable;
 import org.junit.jupiter.api.io.TempDir;
 
 import javax.imageio.ImageIO;
@@ -47,9 +43,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * Runs each command-line tool under apps/ the way the app does, on generated files, and reads its output with the
- * app's own parsers. A tool update that changes flags or output fails here before it is pushed. GUI tools (7zG,
- * Universal Extractor, Universal Viewer, Notepad4, TED Notepad, ExamDiff, Ant Renamer, ThisIsMyFile) can't run
- * headless: after updating one, try its action once in the app.
+ * app's own parsers. A tool update that changes flags or output fails here before it is pushed. Tools that open a
+ * window are in {@link BundledGuiToolContractTest}.
  */
 class BundledToolContractTest {
     private static AppRegistry registry;
@@ -196,27 +191,6 @@ class BundledToolContractTest {
                 .filter(line -> line.startsWith("Protocols:")).findFirst().orElse("");
 
         assertThat(protocols.split("\\s+")).contains("ftp", "ftps", "sftp");
-    }
-
-    // FastCopy shows a window; on a fresh CI machine its first run could wait on a dialog.
-    @Test
-    @DisabledIfEnvironmentVariable(named = "CI", matches = ".+")
-    void fastCopyCopiesFiles() throws Exception {
-        Path source = Files.createDirectory(dir.resolve("source"));
-        Path target = Files.createDirectory(dir.resolve("target"));
-        List<FileItem> items = new ArrayList<>();
-        for (String name : List.of("one.txt", "two.txt")) {
-            items.add(new FileItem(Files.writeString(source.resolve(name), name)));
-        }
-        LocalFileSystem local = new LocalFileSystem("");
-        FileOperations operations = new FileOperations(registry, new ExternalToolRunner(() -> {}));
-
-        ClipboardTransfer.PasteResult result = operations.transfer(
-                ClipboardTransfer.capture(items, false, FilesPanesHelper.FocusSide.LEFT, local, source.toString()),
-                local, target.toString(), TransferConflicts.Policy.OVERWRITE, List.of());
-
-        assertThat(result.failed()).isEmpty();
-        assertThat(target.resolve("two.txt")).hasContent("two.txt");
     }
 
     /** Output lines of a run that must succeed. */

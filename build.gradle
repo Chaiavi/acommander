@@ -90,6 +90,7 @@ tasks.named('clean') {
 def toolSettingsTemplates = [
         'extract_all/UniExtract/UniExtract.ini': 'extract_all/UniExtract/UniExtract.default.ini',
         'multi_rename/Renamer.xml'             : 'multi_rename/Renamer.default.xml',
+        'delete/unlock_delete/ThisIsMyFile.ini': 'delete/unlock_delete/ThisIsMyFile.default.ini',
 ]
 def toolSettingsFiles = toolSettingsTemplates.collectEntries { live, template ->
     [(file("apps/${live}")): file("apps/${template}")]
@@ -392,7 +393,8 @@ tasks.named('startScripts') {
 
 tasks.named('test') {
     dependsOn fetchFfmpeg, toolHashes
-    useJUnitPlatform()
+    // Tools that open windows would flash over the user's work on every build; guiToolTest runs them.
+    useJUnitPlatform { excludeTags 'gui' }
     // Tests read these directly; without them a docs- or apps.json-only edit leaves `test` up-to-date (a false green).
     inputs.files('config/apps.json', 'README.md', 'docs/CODEMAP.md', toolHashesFile)
     inputs.dir('src/main/java')
@@ -401,6 +403,21 @@ tasks.named('test') {
         events 'passed', 'failed', 'skipped'
         exceptionFormat 'full'
         showStandardStreams = true
+    }
+}
+
+// The bundled tools that open a window (tests tagged gui); run after updating one of them
+tasks.register('guiToolTest', Test) {
+    group = 'verification'
+    description = 'Runs the bundled tools that open windows the way the app does'
+    dependsOn fetchFfmpeg, seedToolSettings
+    testClassesDirs = sourceSets.test.output.classesDirs
+    classpath = sourceSets.test.runtimeClasspath
+    useJUnitPlatform { includeTags 'gui' }
+    outputs.upToDateWhen { false }
+    testLogging {
+        events 'passed', 'failed', 'skipped'
+        exceptionFormat 'full'
     }
 }
 

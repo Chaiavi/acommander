@@ -156,8 +156,8 @@ All actions and external tools live in `config/apps.json`; shortcuts are declare
   through it; `MediaConversionServiceTest` and `MediaTagSupportTest` run the real exe on generated clips.
 - Every file under `apps/` belongs to one tool in the `tools` section of `config/apps.json` (`ToolsConfigTest`). To
   update a tool: replace its files, set its `version`, run `build` (rewrites `apps/tools.sha256`; `BundledToolContractTest`
-  runs each command-line tool the way the app does), commit the files and `apps/tools.sha256` together. A GUI tool
-  (7zG, UniExtract, Viewer, Notepad4, TedNPad, ExamDiff, Renamer, ThisIsMyFile) has no test: try its action in the app.
+  runs each command-line tool the way the app does), commit the files and `apps/tools.sha256` together. Tools that
+  open a window run in `guiToolTest` (`BundledGuiToolContractTest`, tag `gui`, kept out of `build`): run it too.
   Users' Tool Updates compare against `main`, so a binary pushed without its new hash list fails their download check.
 - caesiumclt exits 0 when a file fails ("Cannot convert to the same format" for PNG to PNG): check its output with
   `ImageConversionService.failures`, not the exit code. Same-format files run with `--format original`.
@@ -191,10 +191,11 @@ All actions and external tools live in `config/apps.json`; shortcuts are declare
 
 ## Pitfalls
 
-- `UniExtract.ini` and `Renamer.xml` (Ant Renamer) are gitignored because the tools rewrite them on every run. Edit
-  defaults in `UniExtract.default.ini` / `Renamer.default.xml`; the `seedToolSettings` Gradle task copies a missing
+- `UniExtract.ini`, `Renamer.xml` (Ant Renamer) and `ThisIsMyFile.ini` are gitignored because the tools rewrite them
+  on every run. Edit defaults in their `.default` templates; the `seedToolSettings` Gradle task copies a missing
   one into place and the release ships the templates. A new tool that does this: add it to `toolSettingsTemplates`
-  in `build.gradle` and to `.gitignore`.
+  in `build.gradle` and to `.gitignore`. `guiToolTest` runs every window tool, so `git status` after it shows any
+  other tracked file a tool rewrites.
 - `ActionRulesSnapshotTest` diff flips many actions to `ftp=yes | writes=none`: a new gate in
   `ActionExecutor.execute` runs before the FTP / read-only gates and returns first (its mocks have no selection).
   Put new gates after those two.

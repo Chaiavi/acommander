@@ -1109,8 +1109,6 @@
       "upstream": {"page": "https://learn.microsoft.com/en-us/sysinternals/downloads/sdelete", "pattern": "SDelete v(\\d+\\.\\d+)"}},
     {"id": "sevenZip", "name": "7-Zip", "version": "24.09", "link": "https://www.7-zip.org/", "paths": ["apps/pack_unpack"],
       "upstream": {"github": "ip7z/7zip", "asset": "-x64\\.exe$"}},
-    {"id": "tedNotepad", "name": "TED Notepad", "version": "6.3.1", "link": "https://jsimlo.sk/notepad/", "paths": ["apps/edit/TedNPad.exe"],
-      "upstream": {"page": "https://jsimlo.sk/notepad/", "pattern": "Current version (\\d+\\.\\d+\\.\\d+)"}},
     {"id": "thisIsMyFile", "name": "ThisIsMyFile", "version": "4.41", "link": "https://www.softwareok.com/?seite=Freeware/ThisIsMyFile", "paths": ["apps/delete/unlock_delete"],
       "upstream": {"page": "https://www.softwareok.com/?seite=Freeware/ThisIsMyFile", "pattern": "New in version (\\d+\\.\\d+)"}},
     {"id": "uniExtract", "name": "Universal Extractor 2", "version": "2.0.0", "link": "https://github.com/Bioruebe/UniExtract2", "paths": ["apps/extract_all"]},

@@ -172,7 +172,7 @@ directories.
 | Tool                   | Location                                 |
 |------------------------|------------------------------------------|
 | Universal Viewer       | `apps/view/UniversalViewer`              |
-| Notepad4 & TedNPad     | `apps/edit`                              |
+| Notepad4               | `apps/edit/Notepad4.exe`                 |
 | FastCopy               | `apps/copy`                              |
 | 7-Zip GUI              | `apps/pack_unpack/7zG.exe`               |
 | Universal Extractor    | `apps/extract_all/UniExtract`            |
@@ -203,9 +203,10 @@ Each tool's full name, version and home page are in the F1 help ("Bundled Tools"
   replace its files under `apps/`, set its `version` in `config/apps.json`, build (this rewrites `apps/tools.sha256`),
   commit and push. Users get it from `main`.
 - `BundledToolContractTest` runs every command-line tool the way the app does (search, checksum, metadata, image
-  conversion, UPX, PDF, archives, wipe, copy, FTP protocols), so a new version that changed its flags or output fails
-  the build before it is pushed. GUI tools (7-Zip GUI, Universal Extractor, Universal Viewer, Notepad4, TED Notepad,
-  ExamDiff, Ant Renamer, ThisIsMyFile) can't run in a test: after updating one, try its action once in the app.
+  conversion, UPX, PDF, archives, wipe, FTP protocols), so a new version that changed its flags or output fails
+  the build before it is pushed. The tools that open a window run in `gradlew guiToolTest` (not in `build`): FastCopy
+  copy and move, 7-Zip GUI pack and unpack, Universal Extractor and Ant Renamer are checked for their result;
+  Notepad4, Universal Viewer, ExamDiff and ThisIsMyFile are checked to open a file without crashing.
 
 ---
 
