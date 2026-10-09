@@ -1089,7 +1089,7 @@
       "upstream": {"github": "Lymphatus/caesium-clt", "asset": "x86_64-pc-windows-msvc\\.zip$"}},
     {"id": "curl", "name": "curl", "version": "8.22.0", "link": "https://curl.se/windows/", "paths": ["apps/remote_connectivity"],
       "upstream": {"page": "https://curl.se/windows/", "pattern": "curl-(\\d+\\.\\d+\\.\\d+)_\\d+-win64", "downloadPattern": "href=\"(dl-[^\"]+/curl-[\\d.]+_\\d+-win64-mingw\\.zip)\""}},
-    {"id": "examDiff", "name": "ExamDiff", "version": "1.9.4.2", "link": "https://www.prestosoft.com/edp_examdiff.asp", "paths": ["apps/file_compare"],
+    {"id": "examDiff", "name": "ExamDiff", "version": "1.9.4.3", "link": "https://www.prestosoft.com/edp_examdiff.asp", "paths": ["apps/file_compare"],
       "upstream": {"page": "https://www.prestosoft.com/edp_examdiff.asp", "pattern": "ExamDiff (\\d+\\.\\d+(?:\\.\\d+)*)"}},
     {"id": "exiv2", "name": "Exiv2", "version": "0.28.9", "link": "https://github.com/Exiv2/exiv2", "paths": ["apps/image_metadata"],
       "upstream": {"github": "Exiv2/exiv2", "asset": "msvc-AMD64\\.zip$"}},
