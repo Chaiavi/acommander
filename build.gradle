@@ -161,6 +161,7 @@ def releaseAppsExcludes = [
         '**/*.log',
         'copy/Log/**',
         'copy/FastCopy2.ini',
+        'edit/Notepad4.ini',
         'extract_all/UniExtract/batch.queue',
         'extract_all/UniExtract/log/**',
         'media/source.sha256',

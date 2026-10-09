@@ -41,6 +41,7 @@ Thumbs.db
 /apps/copy/FastCopy2.ini
 /apps/multi_rename/Renamer.xml
 /apps/delete/unlock_delete/ThisIsMyFile.ini
+/apps/edit/Notepad4.ini
 # Downloaded by the fetchFfmpeg Gradle task: ffmpeg.exe is over GitHub's 100 MB file limit
 /apps/media/
 /IMPLEMENTATION_REPORT.md

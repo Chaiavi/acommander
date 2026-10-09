@@ -1099,7 +1099,7 @@
     {"id": "ffmpeg", "name": "FFmpeg (gyan.dev essentials build)", "version": "9.0.2", "link": "https://www.gyan.dev/ffmpeg/builds/", "paths": ["apps/media"],
       "release": "ffmpeg-9.0.2", "upstream": {"github": "GyanD/codexffmpeg", "asset": "essentials_build\\.zip$"}},
     {"id": "file", "name": "file (Windows build)", "version": "5.29", "link": "https://github.com/nscaife/file-windows", "paths": ["apps/file_analysis"]},
-    {"id": "notepad4", "name": "Notepad4", "version": "25.05.5670", "link": "https://github.com/zufuliu/notepad4", "paths": ["apps/edit/Notepad4.exe"],
+    {"id": "notepad4", "name": "Notepad4", "version": "26.08r6282", "link": "https://github.com/zufuliu/notepad4", "paths": ["apps/edit/Notepad4.exe"],
       "upstream": {"github": "zufuliu/notepad4", "asset": "^Notepad4_en_x64_.*\\.zip$"}},
     {"id": "pdftk", "name": "PDFtk Server", "version": "2.02", "link": "https://www.pdflabs.com/tools/pdftk-server/", "paths": ["apps/pdf"]},
     {"id": "rhash", "name": "RHash", "version": "1.4.5", "link": "https://github.com/rhash/RHash", "paths": ["apps/checksum"],
