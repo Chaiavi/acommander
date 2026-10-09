@@ -1104,7 +1104,7 @@
     {"id": "pdftk", "name": "PDFtk Server", "version": "2.02", "link": "https://www.pdflabs.com/tools/pdftk-server/", "paths": ["apps/pdf"]},
     {"id": "rhash", "name": "RHash", "version": "1.4.5", "link": "https://github.com/rhash/RHash", "paths": ["apps/checksum"],
       "upstream": {"github": "rhash/RHash"}},
-    {"id": "ripgrep", "name": "ripgrep", "version": "15.1.0", "link": "https://github.com/BurntSushi/ripgrep", "paths": ["apps/search_in_files"],
+    {"id": "ripgrep", "name": "ripgrep", "version": "15.2.0", "link": "https://github.com/BurntSushi/ripgrep", "paths": ["apps/search_in_files"],
       "upstream": {"github": "BurntSushi/ripgrep", "asset": "x86_64-pc-windows-msvc\\.zip$"}},
     {"id": "sdelete", "name": "SDelete", "version": "2.05", "link": "https://learn.microsoft.com/sysinternals/downloads/sdelete", "paths": ["apps/delete/wipe"],
       "upstream": {"page": "https://learn.microsoft.com/en-us/sysinternals/downloads/sdelete", "pattern": "SDelete v(\\d+\\.\\d+)",
