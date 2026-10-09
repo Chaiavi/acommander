@@ -11,7 +11,6 @@ import java.nio.file.Files;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -41,13 +40,15 @@ class ToolsConfigTest {
     }
 
     @Test
-    void everyHashedFileBelongsToExactlyOneTool() throws IOException {
+    void everyHashedFileHasOneMostSpecificOwner() throws IOException {
         Map<String, String> hashes = ToolUpdateService.parseHashes(Files.readString(BundledTool.TOOL_HASHES.path()));
         assertThat(hashes).as("apps/tools.sha256 (written by the toolHashes task)").isNotEmpty();
-        Map<String, Long> owners = hashes.keySet().stream().collect(Collectors.toMap(Function.identity(),
-                path -> config.getTools().stream().filter(tool -> tool.owns(path)).count()));
-        assertThat(owners).as("files under apps/ owned by no tool or by several in apps.json tools")
-                .allSatisfy((path, count) -> assertThat(count).as(path).isEqualTo(1L));
+        assertThat(hashes.keySet()).as("files under apps/ owned by no tool, or by two tools equally, in apps.json tools")
+                .allSatisfy(path -> {
+                    ToolDefinition owner = ToolDefinition.owner(config.getTools(), path);
+                    assertThat(owner).as(path).isNotNull();
+                    assertThat(config.getTools()).as(path).filteredOn(tool -> tool.claim(path) == owner.claim(path)).hasSize(1);
+                });
     }
 
     @Test

@@ -52,17 +52,30 @@ class ToolUpdateServiceTest {
         Map<String, String> remote = Map.of("apps/rg/rg.exe", sha("new"), "apps/rg/settings.ini", sha("default"),
                 "apps/rg/README.txt", sha("readme"), "apps/other/x.exe", sha("x"));
 
-        assertThat(service.plan(tool("rg", "1", "apps/rg"), shipped, remote)).containsExactlyInAnyOrder(
+        ToolDefinition rg = tool("rg", "1", "apps/rg");
+        assertThat(service.plan(rg, shipped, remote, List.of(rg))).containsExactlyInAnyOrder(
                 new FileChange("apps/rg/rg.exe", sha("new")),
                 new FileChange("apps/rg/README.txt", sha("readme")));
+    }
+
+    @Test
+    void aFileInsideAnotherToolsFolderBelongsToTheToolThatNamesIt() throws IOException {
+        ToolDefinition uniExtract = tool("uniExtract", "2", "apps/extract_all");
+        ToolDefinition sevenZip = tool("sevenZipConsole", "26.04", "apps/extract_all/bin/7z.exe");
+        Map<String, String> remote = Map.of("apps/extract_all/bin/7z.exe", sha("7z"), "apps/extract_all/UniExtract.exe", sha("ue"));
+        List<ToolDefinition> tools = List.of(uniExtract, sevenZip);
+
+        assertThat(service.plan(sevenZip, Map.of(), remote, tools)).containsExactly(new FileChange("apps/extract_all/bin/7z.exe", sha("7z")));
+        assertThat(service.plan(uniExtract, Map.of(), remote, tools)).containsExactly(new FileChange("apps/extract_all/UniExtract.exe", sha("ue")));
     }
 
     @Test
     void planSkipsAFileThatAlreadyMatchesMain() throws IOException {
         write("apps/rg/rg.exe", "new");
 
-        assertThat(service.plan(tool("rg", "1", "apps/rg"), Map.of("apps/rg/rg.exe", sha("old")),
-                Map.of("apps/rg/rg.exe", sha("new")))).isEmpty();
+        ToolDefinition rg = tool("rg", "1", "apps/rg");
+        assertThat(service.plan(rg, Map.of("apps/rg/rg.exe", sha("old")),
+                Map.of("apps/rg/rg.exe", sha("new")), List.of(rg))).isEmpty();
     }
 
     @Test
@@ -71,7 +84,8 @@ class ToolUpdateServiceTest {
         write("apps/rg/notes.txt", "user notes");
         Map<String, String> shipped = Map.of("apps/rg/old.dll", sha("shipped"), "apps/rg/notes.txt", sha("shipped notes"));
 
-        assertThat(service.plan(tool("rg", "1", "apps/rg"), shipped, Map.of()))
+        ToolDefinition rg = tool("rg", "1", "apps/rg");
+        assertThat(service.plan(rg, shipped, Map.of(), List.of(rg)))
                 .containsExactly(new FileChange("apps/rg/old.dll", null));
     }
 
@@ -104,8 +118,9 @@ class ToolUpdateServiceTest {
     @Test
     void aCopyAheadOfMainIsNotOfferedTheOlderFiles() throws IOException {
         write("apps/rg/rg.exe", "newer, not pushed yet");
-        ToolStatus status = service.status(tool("rg", "16.0.0", "apps/rg"), tool("rg", "16.1.0", "apps/rg"),
-                Map.of("apps/rg/rg.exe", sha("newer, not pushed yet")), Map.of("apps/rg/rg.exe", sha("released")));
+        ToolDefinition onMain = tool("rg", "16.0.0", "apps/rg");
+        ToolStatus status = service.status(onMain, tool("rg", "16.1.0", "apps/rg"),
+                Map.of("apps/rg/rg.exe", sha("newer, not pushed yet")), Map.of("apps/rg/rg.exe", sha("released")), List.of(onMain));
 
         assertThat(status.state()).isEqualTo(State.UP_TO_DATE);
         assertThat(status.changes()).isEmpty();

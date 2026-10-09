@@ -42,6 +42,25 @@ public class ToolDefinition {
 
     /** True when {@code path} (apps/..., forward slashes) is one of this tool's files or inside one of its folders. */
     public boolean owns(String path) {
-        return paths.stream().anyMatch(own -> path.equals(own) || path.startsWith(own + "/"));
+        return claim(path) >= 0;
+    }
+
+    /** The length of this tool's longest own path that holds {@code path}; -1 when none does. */
+    public int claim(String path) {
+        return paths.stream()
+                .filter(own -> path.equals(own) || path.startsWith(own + "/"))
+                .mapToInt(String::length)
+                .max().orElse(-1);
+    }
+
+    /** The tool whose path holds {@code path} most specifically (7z.exe inside Universal Extractor's folder), or null. */
+    public static ToolDefinition owner(List<ToolDefinition> tools, String path) {
+        ToolDefinition owner = null;
+        for (ToolDefinition tool : tools) {
+            if (tool.claim(path) >= 0 && (owner == null || tool.claim(path) > owner.claim(path))) {
+                owner = tool;
+            }
+        }
+        return owner;
     }
 }

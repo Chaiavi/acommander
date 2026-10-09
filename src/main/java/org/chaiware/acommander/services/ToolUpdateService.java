@@ -110,13 +110,13 @@ public class ToolUpdateService {
                 .collect(Collectors.toMap(ToolDefinition::getId, tool -> tool, (a, b) -> a));
         List<ToolStatus> statuses = new ArrayList<>();
         for (ToolDefinition remote : remoteTools) {
-            statuses.add(status(remote, local.get(remote.getId()), shipped, remoteHashes));
+            statuses.add(status(remote, local.get(remote.getId()), shipped, remoteHashes, remoteTools));
         }
         return statuses;
     }
 
     ToolStatus status(ToolDefinition remote, ToolDefinition here, Map<String, String> shipped,
-                      Map<String, String> remoteHashes) throws IOException {
+                      Map<String, String> remoteHashes, List<ToolDefinition> remoteTools) throws IOException {
         String localVersion = here == null || here.getVersion() == null ? "" : here.getVersion();
         String available = remote.getVersion();
         if (remote.getMinAppVersion() != null && compareVersions(appVersion, remote.getMinAppVersion()) < 0) {
@@ -126,7 +126,7 @@ public class ToolUpdateService {
         if (!localVersion.isEmpty() && compareVersions(localVersion, available) > 0) {
             return new ToolStatus(remote, localVersion, available, State.UP_TO_DATE, List.of());
         }
-        List<FileChange> changes = plan(remote, shipped, remoteHashes);
+        List<FileChange> changes = plan(remote, shipped, remoteHashes, remoteTools);
         if (changes.isEmpty()) {
             return new ToolStatus(remote, available, available, State.UP_TO_DATE, changes);
         }
@@ -141,12 +141,14 @@ public class ToolUpdateService {
     /**
      * The files of {@code tool} to write or delete. A file changes when it is missing, or when main changed it and this
      * copy differs from main's; a file main didn't change is left alone, so a tool's own settings file is never reset.
-     * A file main dropped is deleted only while it is still the one this copy shipped.
+     * A file main dropped is deleted only while it is still the one this copy shipped. A file inside another tool's
+     * folder belongs to the tool that names it most specifically ({@link ToolDefinition#owner}).
      */
-    List<FileChange> plan(ToolDefinition tool, Map<String, String> shipped, Map<String, String> remote) throws IOException {
+    List<FileChange> plan(ToolDefinition tool, Map<String, String> shipped, Map<String, String> remote,
+                          List<ToolDefinition> tools) throws IOException {
         List<FileChange> changes = new ArrayList<>();
         for (Map.Entry<String, String> entry : remote.entrySet()) {
-            if (!tool.owns(entry.getKey())) {
+            if (ToolDefinition.owner(tools, entry.getKey()) != tool) {
                 continue;
             }
             Path file = resolve(entry.getKey());
@@ -158,7 +160,7 @@ public class ToolUpdateService {
             }
         }
         for (Map.Entry<String, String> entry : shipped.entrySet()) {
-            if (!tool.owns(entry.getKey()) || remote.containsKey(entry.getKey())) {
+            if (ToolDefinition.owner(tools, entry.getKey()) != tool || remote.containsKey(entry.getKey())) {
                 continue;
             }
             Path file = resolve(entry.getKey());
