@@ -18,6 +18,7 @@ class ToolUpstreamCheckTest {
               "assets": [{"name": "ripgrep-15.2.0-aarch64-pc-windows-msvc.zip",
                           "browser_download_url": "https://github.com/BurntSushi/ripgrep/releases/download/15.2.0/ripgrep-15.2.0-aarch64-pc-windows-msvc.zip"},
                          {"name": "ripgrep-15.2.0-x86_64-pc-windows-msvc.zip",
+                          "digest": "sha256:6ca2a5e0b1ee6c4fcb5f13e3c25e2b2df4a5a8e0a2c7ab5bd0e0d1d7bc4f3a10",
                           "browser_download_url": "https://github.com/BurntSushi/ripgrep/releases/download/15.2.0/ripgrep-15.2.0-x86_64-pc-windows-msvc.zip"}]},
              {"html_url": "https://github.com/BurntSushi/ripgrep/releases/tag/15.1.0", "tag_name": "15.1.0",
               "draft": false, "prerelease": false, "published_at": "2025-10-22T08:00:00Z", "assets": []}]""";
@@ -31,14 +32,37 @@ class ToolUpstreamCheckTest {
         assertThat(result.latestDate()).isEqualTo("2026-08-01");
         assertThat(result.currentDate()).isEqualTo("2025-10-22");
         assertThat(result.download()).endsWith("/ripgrep-15.2.0-x86_64-pc-windows-msvc.zip");
+        assertThat(result.sha256()).isEqualTo("6ca2a5e0b1ee6c4fcb5f13e3c25e2b2df4a5a8e0a2c7ab5bd0e0d1d7bc4f3a10");
         assertThat(result.isNewer()).isTrue();
+    }
+
+    @Test
+    void pageToolsDownloadFromTheirUrlOrTheLinkOnThePage() {
+        ToolDefinition.Upstream fastCopy = new ToolDefinition.Upstream();
+        fastCopy.setPage("https://fastcopy.jp/");
+        fastCopy.setUrl("https://fastcopy.jp/archive/FastCopy{version}_installer.exe");
+        ToolDefinition.Upstream curl = new ToolDefinition.Upstream();
+        curl.setPage("https://curl.se/windows/");
+        curl.setDownloadPattern("href=\"(dl-[^\"]+/curl-[\\d.]+_\\d+-win64-mingw\\.zip)\"");
+        String curlPage = "<a href=\"dl-8.22.0_3/curl-8.22.0_3-win64-mingw.zip\">zip</a>";
+
+        assertThat(ToolUpstreamCheck.pageDownload(fastCopy, "", "5.12.0")).isEqualTo("https://fastcopy.jp/archive/FastCopy5.12.0_installer.exe");
+        assertThat(ToolUpstreamCheck.pageDownload(curl, curlPage, "8.22.0"))
+                .isEqualTo("https://curl.se/windows/dl-8.22.0_3/curl-8.22.0_3-win64-mingw.zip");
+    }
+
+    @Test
+    void theVersionDropsTheTagsLeadingV() {
+        assertThat(ToolUpstreamCheck.bare("v26.08r6282")).isEqualTo("26.08r6282");
+        assertThat(ToolUpstreamCheck.bare("15.2.0")).isEqualTo("15.2.0");
     }
 
     @Test
     void withoutAnAssetPatternLinksTheReleasePage() throws IOException {
         ToolUpstreamCheck.Result result = ToolUpstreamCheck.fromReleases(tool("ripgrep", "15.1.0", "BurntSushi/ripgrep", null), RIPGREP_RELEASES);
 
-        assertThat(result.download()).isEqualTo("https://github.com/BurntSushi/ripgrep/releases/tag/15.2.0");
+        assertThat(result.download()).isNull();
+        assertThat(result.page()).isEqualTo("https://github.com/BurntSushi/ripgrep/releases/tag/15.2.0");
     }
 
     @Test

@@ -155,7 +155,8 @@ All actions and external tools live in `config/apps.json`; shortcuts are declare
   `build.gradle`; `dist` then creates that release with `gh` so Tool Updates can download it. All audio/video work (convert, tags, trim, join, info) runs
   through it; `MediaConversionServiceTest` and `MediaTagSupportTest` run the real exe on generated clips.
 - Every file under `apps/` belongs to one tool in the `tools` section of `config/apps.json` (`ToolsConfigTest`). To
-  update a tool: replace its files, set its `version`, run `build` (rewrites `apps/tools.sha256`; `BundledToolContractTest`
+  update tools, follow [update-tools](.github/skills/update-tools/SKILL.md): `upgradeTools -Ptools=<id>` downloads and
+  replaces the files, then `build` (rewrites `apps/tools.sha256`; `BundledToolContractTest`
   runs each command-line tool the way the app does), commit the files and `apps/tools.sha256` together. Tools that
   open a window run in `guiToolTest` (`BundledGuiToolContractTest`, tag `gui`, kept out of `build`): run it too.
   Users' Tool Updates compare against `main`, so a binary pushed without its new hash list fails their download check.

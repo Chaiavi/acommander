@@ -267,6 +267,18 @@ def checkToolUpdates = tasks.register('checkToolUpdates', JavaExec) {
 }
 tasks.named('build') { finalizedBy checkToolUpdates }
 
+// For the developer: downloads the newer bundled tools into apps/ and sets their version in apps.json
+// (-Ptools=ripgrep,upx; without it every tool with a newer release). `build` and `guiToolTest` then test them.
+tasks.register('upgradeTools', JavaExec) {
+    group = 'distribution'
+    description = 'Downloads newer versions of the bundled tools into apps/'
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'org.chaiware.acommander.tools.ToolUpgrader'
+    workingDir = projectDir
+    args providers.gradleProperty('tools').getOrElse('')
+    outputs.upToDateWhen { false }
+}
+
 // Task to copy config and apps folders to build/libs
 def copyResources = tasks.register('copyResources', Copy) {
     dependsOn fetchFfmpeg, toolHashes

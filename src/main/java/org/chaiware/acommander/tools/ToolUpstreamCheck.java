@@ -28,11 +28,25 @@ import java.util.regex.Pattern;
 public final class ToolUpstreamCheck {
     private static final ObjectMapper JSON = new ObjectMapper();
 
-    /** A tool's upstream answer; {@code latest} is null when there is no upstream or the check failed ({@code error}). */
-    public record Result(ToolDefinition tool, String currentDate, String latest, String latestDate, String download, String error) {
+    /**
+     * A tool's upstream answer; {@code latest} is null when there is no upstream or the check failed ({@code error}).
+     * {@code download} is the file to fetch (null when only {@code page} can be visited), {@code sha256} what GitHub
+     * published for it.
+     */
+    public record Result(ToolDefinition tool, String currentDate, String latest, String latestDate, String download,
+                         String sha256, String page, String error) {
         public boolean isNewer() {
             return latest != null && ToolUpdateService.compareVersions(latest, tool.getVersion()) > 0;
         }
+
+        /** The latest version as apps.json stores it: the tag without a leading v. */
+        public String version() {
+            return latest == null ? null : bare(latest);
+        }
+    }
+
+    static String bare(String tag) {
+        return tag.replaceFirst("^[vV](?=\\d)", "");
     }
 
     private ToolUpstreamCheck() {
@@ -40,16 +54,22 @@ public final class ToolUpstreamCheck {
 
     public static void main(String[] args) throws IOException {
         List<ToolDefinition> tools = new AppConfigLoader().load(AppPaths.config("apps.json")).getTools();
+        Fetcher fetcher = http();
+        List<Result> results = new ArrayList<>();
+        for (ToolDefinition tool : tools) {
+            results.add(check(tool, fetcher));
+        }
+        System.out.print(report(results));
+    }
+
+    /** Pages and the GitHub API over HTTPS; GITHUB_TOKEN, when set, lifts GitHub's 60 requests an hour. */
+    static Fetcher http() {
         HttpClient client = HttpClient.newBuilder()
                 .followRedirects(HttpClient.Redirect.NORMAL)
                 .connectTimeout(Duration.ofSeconds(20))
                 .build();
         String token = System.getenv("GITHUB_TOKEN");
-        List<Result> results = new ArrayList<>();
-        for (ToolDefinition tool : tools) {
-            results.add(check(tool, uri -> get(client, uri, token)));
-        }
-        System.out.print(report(results));
+        return uri -> get(client, uri, token);
     }
 
     interface Fetcher {
@@ -59,21 +79,36 @@ public final class ToolUpstreamCheck {
     static Result check(ToolDefinition tool, Fetcher fetcher) {
         ToolDefinition.Upstream upstream = tool.getUpstream();
         if (upstream == null) {
-            return new Result(tool, null, null, null, null, null);
+            return new Result(tool, null, null, null, null, null, null, null);
         }
         try {
             if (upstream.getGithub() != null) {
                 return fromReleases(tool, fetcher.get(URI.create(
                         "https://api.github.com/repos/" + upstream.getGithub() + "/releases?per_page=30")));
             }
-            String latest = latestOnPage(fetcher.get(URI.create(upstream.getPage())), upstream.getPattern());
+            String page = fetcher.get(URI.create(upstream.getPage()));
+            String latest = latestOnPage(page, upstream.getPattern());
             if (latest == null) {
-                return new Result(tool, null, null, null, null, "no version matching " + upstream.getPattern());
+                return new Result(tool, null, null, null, null, null, upstream.getPage(), "no version matching " + upstream.getPattern());
             }
-            return new Result(tool, null, latest, null, upstream.getPage(), null);
+            return new Result(tool, null, latest, null, pageDownload(upstream, page, bare(latest)), null, upstream.getPage(), null);
         } catch (IOException | RuntimeException e) {
-            return new Result(tool, null, null, null, null, e.getMessage());
+            return new Result(tool, null, null, null, null, null, null, e.getMessage());
         }
+    }
+
+    /** The download of a page tool: its {@code url} with the version filled in, or the link {@code downloadPattern} finds. */
+    static String pageDownload(ToolDefinition.Upstream upstream, String page, String version) {
+        if (upstream.getUrl() != null) {
+            return upstream.getUrl().replace("{version}", version);
+        }
+        if (upstream.getDownloadPattern() != null) {
+            Matcher link = Pattern.compile(upstream.getDownloadPattern()).matcher(page);
+            if (link.find()) {
+                return URI.create(upstream.getPage()).resolve(link.group(1).replace("&amp;", "&")).toString();
+            }
+        }
+        return null;
     }
 
     /** From GitHub's release list (newest first): the latest full release, its download, and the current version's date. */
@@ -94,18 +129,22 @@ public final class ToolUpstreamCheck {
         if (latest == null) {
             throw new IOException("no full release on GitHub");
         }
-        String download = latest.path("html_url").asText();
+        String download = null;
+        String sha256 = null;
         String assetPattern = tool.getUpstream().getAsset();
         if (assetPattern != null) {
             Pattern asset = Pattern.compile(assetPattern);
             for (JsonNode file : latest.path("assets")) {
                 if (asset.matcher(file.path("name").asText()).find()) {
                     download = file.path("browser_download_url").asText();
+                    String digest = file.path("digest").asText("");
+                    sha256 = digest.startsWith("sha256:") ? digest.substring("sha256:".length()) : null;
                     break;
                 }
             }
         }
-        return new Result(tool, currentDate, latest.path("tag_name").asText(), date(latest), download, null);
+        return new Result(tool, currentDate, latest.path("tag_name").asText(), date(latest), download, sha256,
+                latest.path("html_url").asText(), null);
     }
 
     private static String date(JsonNode release) {
@@ -141,7 +180,7 @@ public final class ToolUpstreamCheck {
                     : result.latest() == null ? "(no upstream)" : withDate(result.latest(), result.latestDate());
             text.append(String.format("  %s %-36s %-24s %-24s %s", result.isNewer() ? "*" : " ", result.tool().getName(),
                     withDate(result.tool().getVersion(), result.currentDate()), latest,
-                    result.isNewer() ? result.download() : "").stripTrailing()).append('\n');
+                    result.isNewer() ? (result.download() != null ? result.download() : result.page()) : "").stripTrailing()).append('\n');
         }
         return text.toString();
     }

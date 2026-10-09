@@ -199,9 +199,9 @@ Each tool's full name, version and home page are in the F1 help ("Bundled Tools"
   settings, say) is never reset; a missing file is downloaded again.
 - With **Check at Start** on (the default), ACommander looks once a day and opens the list only when there is something new.
 - For the developer, `gradlew build` prints every tool's current and latest version, with release dates where GitHub
-  has them, and a direct download for the newer ones (once a day; `gradlew checkToolUpdates` any time). To update one:
-  replace its files under `apps/`, set its `version` in `config/apps.json`, build (this rewrites `apps/tools.sha256`),
-  commit and push. Users get it from `main`.
+  has them, and a direct download for the newer ones (once a day; `gradlew checkToolUpdates` any time).
+  `gradlew upgradeTools -Ptools=<id>` downloads the newer version, replaces the tool's files and sets its version;
+  build, then commit and push. Users get it from `main`.
 - `BundledToolContractTest` runs every command-line tool the way the app does (search, checksum, metadata, image
   conversion, UPX, PDF, archives, wipe, FTP protocols), so a new version that changed its flags or output fails
   the build before it is pushed. The tools that open a window run in `gradlew guiToolTest` (not in `build`): FastCopy
@@ -283,7 +283,7 @@ Every action is **data-driven**. Add, remove, or reconfigure tools without touch
 | Field           | Notes                                                                                     |
 |-----------------|-------------------------------------------------------------------------------------------|
 | `paths`         | Files or folders under `apps/` that belong to the tool; every shipped file needs one owner |
-| `upstream`      | Where the build looks for a newer version: `github` (owner/repo) with optional `asset` (regex for the file to download), or `page` + `pattern` (regex, group 1 = version); leave it out for tools no longer developed |
+| `upstream`      | Where the build looks for a newer version: `github` (owner/repo) with optional `asset` (regex for the file to download), or `page` + `pattern` (regex, group 1 = version) with `url` (`{version}` filled in) or `downloadPattern` (regex, group 1 = link); `extract` (installer arguments, `{dir}`) when 7-Zip can't unpack it; `files` (names to take) when they differ from the tool's files; leave it out for tools no longer developed |
 | `release`       | A release of this project holding the tool's files (ffmpeg, too big for git)              |
 | `minAppVersion` | Users of an older ACommander don't get this tool version                                   |
 

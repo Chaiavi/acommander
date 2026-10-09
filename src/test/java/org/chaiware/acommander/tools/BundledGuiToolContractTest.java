@@ -83,6 +83,8 @@ class BundledGuiToolContractTest {
 
     @Test
     void sevenZipGuiPacksAndUnpacks() throws Exception {
+        // Without 7z.dll beside it, 7zG.exe borrows an installed 7-Zip's, so this passes only where one is installed.
+        assertThat(AppPaths.resolve(registry.findAction("pack").orElseThrow().getPath()).resolveSibling("7z.dll")).exists();
         LocalFileSystem local = new LocalFileSystem("");
         ArchiveOperations archives = new ArchiveOperations(registry, new ExternalToolRunner(() -> {}));
         Path a = Files.writeString(dir.resolve("a.txt"), "alpha");

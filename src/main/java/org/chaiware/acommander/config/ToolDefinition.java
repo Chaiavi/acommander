@@ -30,6 +30,14 @@ public class ToolDefinition {
         /** A web page that names the latest version, found with {@link #pattern} (group 1). */
         private String page;
         private String pattern;
+        /** The download for a {@link #page} tool, with {@code {version}} for the latest version. */
+        private String url;
+        /** Or a regex whose group 1 is the download link on the {@link #page}. */
+        private String downloadPattern;
+        /** Arguments that make a downloaded installer unpack itself into {@code {dir}}; without them 7-Zip unpacks it. */
+        private List<String> extract;
+        /** File names to take from the download; without them, the names of the tool's files under apps/. */
+        private List<String> files;
     }
 
     /** True when {@code path} (apps/..., forward slashes) is one of this tool's files or inside one of its folders. */
