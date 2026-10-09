@@ -69,11 +69,11 @@ class BundledToolCommandsTest {
     void analyzeFileUsesTheMagicFileOnlyWhenItExists(@TempDir Path dir) throws IOException {
         Path magic = dir.resolve("magic.mgc");
         assertThat(BundledToolCommands.analyzeFile(Path.of("file.exe"), magic, "x.bin"))
-                .containsExactly("file.exe", "-b", "-k", "-z", "x.bin");
+                .containsExactly("file.exe", "-b", "-z", "x.bin");
 
         Files.writeString(magic, "m");
         assertThat(BundledToolCommands.analyzeFile(Path.of("file.exe"), magic, "x.bin"))
-                .containsExactly("file.exe", "-b", "-k", "-z", "-m", magic.toString(), "x.bin");
+                .containsExactly("file.exe", "-b", "-z", "-m", magic.toString(), "x.bin");
     }
 
     @Test

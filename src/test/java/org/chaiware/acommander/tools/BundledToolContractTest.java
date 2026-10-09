@@ -88,7 +88,7 @@ class BundledToolContractTest {
 
         List<String> output = run(BundledToolCommands.analyzeFile(BundledTool.FILE.path(), BundledTool.FILE_MAGIC.path(), png.toString()));
 
-        assertThat(String.join("\n", output)).contains("PNG image data");
+        assertThat(String.join("\n", output)).contains("PNG image data").doesNotContain("\\012");
     }
 
     @Test

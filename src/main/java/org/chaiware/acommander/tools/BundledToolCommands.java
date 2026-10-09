@@ -135,7 +135,7 @@ public final class BundledToolCommands {
     }
 
     public static List<String> analyzeFile(Path fileToolPath, Path magicPath, String targetPath) {
-        List<String> command = new ArrayList<>(List.of(fileToolPath.toString(), "-b", "-k", "-z"));
+        List<String> command = new ArrayList<>(List.of(fileToolPath.toString(), "-b", "-z"));
         if (Files.isRegularFile(magicPath)) {
             command.add("-m");
             command.add(magicPath.toString());
