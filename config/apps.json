@@ -1106,7 +1106,7 @@
       "upstream": {"github": "rhash/RHash"}},
     {"id": "ripgrep", "name": "ripgrep", "version": "15.2.0", "link": "https://github.com/BurntSushi/ripgrep", "paths": ["apps/search_in_files"],
       "upstream": {"github": "BurntSushi/ripgrep", "asset": "x86_64-pc-windows-msvc\\.zip$"}},
-    {"id": "sdelete", "name": "SDelete", "version": "2.05", "link": "https://learn.microsoft.com/sysinternals/downloads/sdelete", "paths": ["apps/delete/wipe"],
+    {"id": "sdelete", "name": "SDelete", "version": "2.06", "link": "https://learn.microsoft.com/sysinternals/downloads/sdelete", "paths": ["apps/delete/wipe"],
       "upstream": {"page": "https://learn.microsoft.com/en-us/sysinternals/downloads/sdelete", "pattern": "SDelete v(\\d+\\.\\d+)",
         "url": "https://download.sysinternals.com/files/SDelete.zip"}},
     {"id": "sevenZip", "name": "7-Zip", "version": "26.04", "link": "https://www.7-zip.org/", "paths": ["apps/pack_unpack"],
