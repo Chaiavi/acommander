@@ -1116,7 +1116,7 @@
         "url": "https://www.softwareok.com/Download/ThisIsMyFile.zip", "files": ["ThisIsMyFile.exe"]}},
     {"id": "uniExtract", "name": "Universal Extractor 2", "version": "2.0.0", "link": "https://github.com/Bioruebe/UniExtract2", "paths": ["apps/extract_all"]},
     {"id": "universalViewer", "name": "Universal Viewer", "version": "5.5", "link": "https://www.uvviewsoft.com/uviewer/", "paths": ["apps/view"]},
-    {"id": "upx", "name": "UPX", "version": "5.1.1", "link": "https://github.com/upx/upx", "paths": ["apps/exe_compress"],
+    {"id": "upx", "name": "UPX", "version": "5.2.1", "link": "https://github.com/upx/upx", "paths": ["apps/exe_compress"],
       "upstream": {"github": "upx/upx", "asset": "win64\\.zip$"}}
   ]
 }
