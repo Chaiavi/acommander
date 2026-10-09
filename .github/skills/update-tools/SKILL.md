@@ -31,3 +31,5 @@ One tool at a time, so a bad update is held back alone and can be reverted alone
   apps.json to the names to take, then retry.
 - An upstream that changed its download page shows as `no version matching` or a missing download: fix `pattern`,
   `url` or `downloadPattern` in apps.json; `ToolUpstreamCheckTest` shows the expected shapes.
+- A new version that creates a settings file next to its exe shows as `??` after `guiToolTest` (Notepad4 26 made
+  `Notepad4.ini`): add it to `.gitignore` and `releaseAppsExcludes` in `build.gradle`, rebuild, commit with the tool.
