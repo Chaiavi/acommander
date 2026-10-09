@@ -1093,7 +1093,7 @@
       "upstream": {"page": "https://www.prestosoft.com/edp_examdiff.asp", "pattern": "ExamDiff (\\d+\\.\\d+(?:\\.\\d+)*)"}},
     {"id": "exiv2", "name": "Exiv2", "version": "0.28.9", "link": "https://github.com/Exiv2/exiv2", "paths": ["apps/image_metadata"],
       "upstream": {"github": "Exiv2/exiv2", "asset": "msvc-AMD64\\.zip$"}},
-    {"id": "fastCopy", "name": "FastCopy", "version": "5.11.2", "link": "https://fastcopy.jp/", "paths": ["apps/copy"],
+    {"id": "fastCopy", "name": "FastCopy", "version": "5.12.0", "link": "https://fastcopy.jp/", "paths": ["apps/copy"],
       "upstream": {"page": "https://fastcopy.jp/", "pattern": "FastCopy ver (\\d+\\.\\d+\\.\\d+)",
         "url": "https://fastcopy.jp/archive/FastCopy{version}_installer.exe", "extract": ["/EXTRACT", "/DIR={dir}"]}},
     {"id": "ffmpeg", "name": "FFmpeg (gyan.dev essentials build)", "version": "9.0.2", "link": "https://www.gyan.dev/ffmpeg/builds/", "paths": ["apps/media"],
