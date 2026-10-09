@@ -1111,7 +1111,7 @@
         "url": "https://download.sysinternals.com/files/SDelete.zip"}},
     {"id": "sevenZip", "name": "7-Zip", "version": "26.04", "link": "https://www.7-zip.org/", "paths": ["apps/pack_unpack"],
       "upstream": {"github": "ip7z/7zip", "asset": "-x64\\.exe$", "files": ["7zG.exe", "7z.dll"]}},
-    {"id": "thisIsMyFile", "name": "ThisIsMyFile", "version": "4.41", "link": "https://www.softwareok.com/?seite=Freeware/ThisIsMyFile", "paths": ["apps/delete/unlock_delete"],
+    {"id": "thisIsMyFile", "name": "ThisIsMyFile", "version": "4.51", "link": "https://www.softwareok.com/?seite=Freeware/ThisIsMyFile", "paths": ["apps/delete/unlock_delete"],
       "upstream": {"page": "https://www.softwareok.com/?seite=Freeware/ThisIsMyFile", "pattern": "New in version (\\d+\\.\\d+)",
         "url": "https://www.softwareok.com/Download/ThisIsMyFile.zip", "files": ["ThisIsMyFile.exe"]}},
     {"id": "uniExtract", "name": "Universal Extractor 2", "version": "2.0.0", "link": "https://github.com/Bioruebe/UniExtract2", "paths": ["apps/extract_all"]},
