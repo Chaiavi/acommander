@@ -1102,7 +1102,7 @@
     {"id": "notepad4", "name": "Notepad4", "version": "26.08r6282", "link": "https://github.com/zufuliu/notepad4", "paths": ["apps/edit/Notepad4.exe"],
       "upstream": {"github": "zufuliu/notepad4", "asset": "^Notepad4_en_x64_.*\\.zip$"}},
     {"id": "pdftk", "name": "PDFtk Server", "version": "2.02", "link": "https://www.pdflabs.com/tools/pdftk-server/", "paths": ["apps/pdf"]},
-    {"id": "rhash", "name": "RHash", "version": "1.4.5", "link": "https://github.com/rhash/RHash", "paths": ["apps/checksum"],
+    {"id": "rhash", "name": "RHash", "version": "1.4.6", "link": "https://github.com/rhash/RHash", "paths": ["apps/checksum"],
       "upstream": {"github": "rhash/RHash"}},
     {"id": "ripgrep", "name": "ripgrep", "version": "15.2.0", "link": "https://github.com/BurntSushi/ripgrep", "paths": ["apps/search_in_files"],
       "upstream": {"github": "BurntSushi/ripgrep", "asset": "x86_64-pc-windows-msvc\\.zip$"}},
