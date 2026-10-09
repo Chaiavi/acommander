@@ -1,6 +1,6 @@
 ---
 name: update-tools
-description: "Update the bundled tools under apps/ to their newest upstream versions, test each one, and commit and push the ones that pass. Use when the user asks to update the tools, or when `build` reports bundled tools with a newer release."
+description: "Update the bundled tools under apps/ to their newest upstream versions, test each one, and commit and push the ones that pass. Use when the user asks to update the tools or to deploy (always before `dist`), or when `build` reports bundled tools with a newer release."
 ---
 # Update the Bundled Tools
 
@@ -24,6 +24,8 @@ One tool at a time, so a bad update is held back alone and can be reverted alone
       apps/tools.sha256` (plus `build.gradle` for ffmpeg), and `git clean -f <tool paths>` for a file the upgrade
       added. Report the failing test and its message.
 4. Summary for the user: updated (old → new), failed (why), skipped (why).
+5. Deploying: run `.\gradlew.bat dist` only after this loop. A tool with no automatic download (RHash) is listed for
+   the user; the deploy goes ahead with the version already committed.
 
 ## Pitfalls
 

@@ -245,7 +245,7 @@ def publishFfmpeg = tasks.register('publishFfmpeg') {
 // For the developer: prints the bundled tools whose upstream (apps.json) has a newer release. Runs after `build`
 // at most once a day (always when asked for by name), never in CI, and never fails the build.
 def toolCheckStamp = layout.buildDirectory.file('tool-update-check.stamp')
-def toolCheckRequested = gradle.startParameter.taskNames.any { it.endsWith('checkToolUpdates') }
+def toolCheckRequested = gradle.startParameter.taskNames.any { it.endsWith('checkToolUpdates') || it.endsWith('dist') }
 def checkToolUpdates = tasks.register('checkToolUpdates', JavaExec) {
     group = 'verification'
     description = 'Prints the bundled tools that have a newer upstream release'
@@ -388,7 +388,7 @@ def verifyDistribution = tasks.register('verifyDistribution') {
 }
 
 tasks.register('dist') {
-    dependsOn copyDist, zipDist, verifyDistribution, publishFfmpeg
+    dependsOn copyDist, zipDist, verifyDistribution, publishFfmpeg, checkToolUpdates
     group = 'distribution'
     description = 'Creates the dist folder and a verified distribution ZIP'
 }
