@@ -1085,7 +1085,7 @@
   ],
   "tools": [
     {"id": "antRenamer", "name": "Ant Renamer", "version": "2.13", "link": "https://antp.be/software/renamer", "paths": ["apps/multi_rename"]},
-    {"id": "caesium", "name": "Caesium CLI", "version": "1.2.0", "link": "https://github.com/Lymphatus/caesium-clt", "paths": ["apps/image_convert"],
+    {"id": "caesium", "name": "Caesium CLI", "version": "1.5.0", "link": "https://github.com/Lymphatus/caesium-clt", "paths": ["apps/image_convert"],
       "upstream": {"github": "Lymphatus/caesium-clt", "asset": "x86_64-pc-windows-msvc\\.zip$"}},
     {"id": "curl", "name": "curl", "version": "8.22.0", "link": "https://curl.se/windows/", "paths": ["apps/remote_connectivity"],
       "upstream": {"page": "https://curl.se/windows/", "pattern": "curl-(\\d+\\.\\d+\\.\\d+)_\\d+-win64", "downloadPattern": "href=\"(dl-[^\"]+/curl-[\\d.]+_\\d+-win64-mingw\\.zip)\""}},
