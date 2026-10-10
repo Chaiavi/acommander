@@ -50,6 +50,30 @@
       "selection": "none"
     },
     {
+      "id": "puzzleCollection",
+      "description": "Opens Simon Tatham's Puzzle Collection: pick one of 40 logic puzzles.",
+      "category": "Games",
+      "ftp": true,
+      "label": "Puzzle Collection",
+      "type": "external",
+      "path": "apps/games/puzzles/PuzzleCollectionPortable.exe",
+      "aliases": ["game", "games", "puzzle", "puzzles", "sudoku", "solo", "loopy", "net", "bridges", "tents"],
+      "contexts": ["commandPalette"],
+      "selection": "none"
+    },
+    {
+      "id": "arkanoidClone",
+      "description": "Starts an Arkanoid clone: Space starts, arrows move, F toggles full screen, Q quits.",
+      "category": "Games",
+      "ftp": true,
+      "label": "Arkanoid Clone",
+      "type": "external",
+      "path": "apps/games/arkanoid_clone/Arkanoid Clone.exe",
+      "aliases": ["game", "games", "arkanoid", "breakout"],
+      "contexts": ["commandPalette"],
+      "selection": "none"
+    },
+    {
       "id": "help",
       "description": "Shows this help: every shortcut and action.",
       "category": "Getting Around",
@@ -1124,6 +1148,12 @@
         "url": "https://downloads.sourceforge.net/project/lgames/lbreakouthd/lbreakouthd-{version}-win64.zip"}},
     {"id": "minesPerfect", "name": "Mines-Perfect", "version": "1.4.0", "minAppVersion": "4.5.1", "link": "https://sourceforge.net/projects/mines-perfect/",
       "paths": ["apps/games/mines_perfect"]},
+    {"id": "puzzleCollection", "name": "Simon Tatham's Puzzle Collection (PortableApps)", "version": "2026.07.20", "minAppVersion": "4.5.1",
+      "link": "https://portableapps.com/apps/games/puzzle_collection_portable", "paths": ["apps/games/puzzles"],
+      "upstream": {"page": "https://sourceforge.net/projects/portableapps/files/Puzzle%20Collection%20Portable/",
+        "pattern": "PuzzleCollectionPortable_(\\d{4}\\.\\d{2}\\.\\d{2})_English"}},
+    {"id": "arkanoidClone", "name": "Arkanoid clone (Dreamwebspace)", "version": "0.3", "minAppVersion": "4.5.1",
+      "link": "https://dreamwebspace.itch.io/arkanoid", "paths": ["apps/games/arkanoid_clone"]},
     {"id": "notepad4", "name": "Notepad4", "version": "26.08r6282", "link": "https://github.com/zufuliu/notepad4", "paths": ["apps/edit/Notepad4.exe"],
       "upstream": {"github": "zufuliu/notepad4", "asset": "^Notepad4_en_x64_.*\\.zip$"}},
     {"id": "qpdf", "name": "qpdf", "version": "12.4.2", "link": "https://github.com/qpdf/qpdf", "paths": ["apps/pdf"],

@@ -163,6 +163,16 @@ class BundledGuiToolContractTest {
         startsWithoutCrashing(gameCommand("minesPerfect"), gameFolder("minesPerfect"));
     }
 
+    @Test
+    void puzzleCollectionStarts() throws Exception {
+        startsWithoutCrashing(gameCommand("puzzleCollection"), gameFolder("puzzleCollection"));
+    }
+
+    @Test
+    void arkanoidCloneStarts() throws Exception {
+        startsWithoutCrashing(gameCommand("arkanoidClone"), gameFolder("arkanoidClone"));
+    }
+
     private ClipboardTransfer.PasteResult transfer(List<FileItem> items, Path from, Path to, boolean cut) {
         LocalFileSystem local = new LocalFileSystem("");
         FileOperations operations = new FileOperations(registry, new ExternalToolRunner(() -> {}));

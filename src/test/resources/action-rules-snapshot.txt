@@ -1,6 +1,7 @@
 # id | ftp | writes | palette enabled for: none dir txt png jpg wav mp3 mp4 pdf zip exe 2txt 2pdf png+txt
 about | ftp=yes | writes=none | palette=++++++++++++++
 analyzeFile | ftp=no | writes=none | palette=--+++++++++---
+arkanoidClone | ftp=yes | writes=none | palette=++++++++++++++
 bookmarkThisPath | ftp=no | writes=none | palette=++++++++++++++
 changeAttributes | ftp=no | writes=source | palette=-+++++++++++++
 checkToolUpdates | ftp=yes | writes=none | palette=++++++++++++++
@@ -50,6 +51,7 @@ openCommandPalette | ftp=yes | writes=none | palette=n/a
 openHostsFile | ftp=no | writes=none | palette=++++++++++++++
 pack | ftp=no | writes=target | palette=-+++++++++++++
 pasteSelection | ftp=yes | writes=source | palette=--------------
+puzzleCollection | ftp=yes | writes=none | palette=++++++++++++++
 refresh | ftp=yes | writes=none | palette=++++++++++++++
 removeAudioMetadata | ftp=no | writes=source | palette=------+-------
 removeBookmark | ftp=yes | writes=none | palette=++++++++++++++

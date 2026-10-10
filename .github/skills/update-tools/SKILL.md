@@ -22,6 +22,10 @@ One tool at a time, so a bad update is held back alone and can be reverted alone
         new `lbreakouthd-<version>-win64.zip` over `apps/games/lbreakouthd`, but keep our `SDL2.dll` (2.32.10 from
         libsdl-org/SDL): the zip's SDL 2.0.7 crashes (0xC0000005 in SDL2.dll) on every quit, and the app then shows
         "LBreakoutHD Failed". Set its version, go on at step 2.
+      - Puzzle Collection: no automatic download (SourceForge). Download
+        `PuzzleCollectionPortable_<version>_English.paf.exe`, unpack it with `apps/extract_all/UniExtract/bin/x64/7z.exe x`, and copy
+        `App/Puzzles/*.exe` without the `_x86` ones (the app runs only on 64-bit Windows), `puzzles.chm` and
+        `PuzzleCollectionPortable.exe` over `apps/games/puzzles`. Keep `vcruntime140.dll` (the puzzles import it).
       - Any other failure: nothing changed; report it and go to the next tool.
    2. `.\gradlew.bat build guiToolTest`. `build` rewrites `apps/tools.sha256` and runs the command-line tool tests;
       `guiToolTest` runs the tools that open a window.
