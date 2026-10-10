@@ -30,6 +30,15 @@ class FilesPanesHelperTest {
     }
 
     @Test
+    void theSelectionNeverHoldsTheParentEntry() {
+        List<FileItem> selected = new ArrayList<>(items("..", "a.pdf", "b.pdf"));
+        selected.add(null);
+
+        assertThat(FilesPanesHelper.withoutParent(selected)).extracting(FileItem::getPresentableFilename)
+                .containsExactly("a.pdf", "b.pdf");
+    }
+
+    @Test
     void invertWalksTheListOnceWithoutSearchingIt() {
         List<FileItem> pane = new ArrayList<>(items(IntStream.range(0, 20_000).mapToObj(i -> "f" + i).toArray(String[]::new))) {
             @Override

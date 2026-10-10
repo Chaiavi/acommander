@@ -616,8 +616,13 @@ public class FilesPanesHelper {
         return getFileList(true).getSelectionModel().getSelectedItem();
     }
 
+    /** The focused pane's selection without "..", which a range or the cursor on it can add. */
     public List<FileItem> getSelectedItems() {
-        return getFileList(true).getSelectionModel().getSelectedItems();
+        return withoutParent(getFileList(true).getSelectionModel().getSelectedItems());
+    }
+
+    static List<FileItem> withoutParent(List<FileItem> items) {
+        return items.stream().filter(item -> item != null && !"..".equals(item.getPresentableFilename())).toList();
     }
 
     /** The item under the cursor of the focused pane, which may differ from the selection (NC-style F3/F4). */
@@ -626,14 +631,18 @@ public class FilesPanesHelper {
         return focused != null ? focused : getSelectedItem();
     }
 
-    /** Selects all items in the focused file pane */
+    /** Selects all items in the focused file pane except ".." */
     public void selectAllItems() {
         if (!Platform.isFxApplicationThread()) {
             Platform.runLater(this::selectAllItems);
             return;
         }
         ListView<FileItem> listView = getFileList(true);
-        listView.getSelectionModel().selectAll();
+        int[] indices = invertedIndices(listView.getItems(), List.of());
+        listView.getSelectionModel().clearSelection();
+        if (indices.length > 0) {
+            listView.getSelectionModel().selectIndices(-1, indices);
+        }
     }
 
     /** Clears selection in the focused file pane */
