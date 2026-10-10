@@ -36,6 +36,8 @@ the PNG. Steps are joined by `||`: SendKeys codes (`{ENTER}`, `^a`, `^+p`, `{DOW
 - Cursor to the Nth row: `{HOME}{DOWN N}` (row 0 is `..`). Rows shift when a test adds or removes files in `in\`.
 - Judge a step by the disk and the log (`Select-String $t\logs\ALL.log ' ERROR | WARN ' -CaseSensitive`), not by
   the screenshot alone. A screenshot shows where you are.
+- `ui.ps1` prints `foreground pid=0 size=0x0` and the Bitmap "Parameter is not valid": the Windows session is
+  locked (`Get-Process LogonUI` exists). Keys go nowhere; stop and say which rows are left.
 
 ## Release checklist
 

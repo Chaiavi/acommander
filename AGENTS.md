@@ -170,7 +170,8 @@ All actions and external tools live in `config/apps.json`; shortcuts are declare
 - A tool built with MSVC imports `VCRUNTIME140.dll`, which a clean Windows lacks (it runs here only because a VC++
   redist is installed). List a new exe's DLLs with a strings scan (`[regex]::Matches(<ASCII bytes>, '[\w\-]+\.dll')`);
   if it needs it, copy `build/runtime/bin/vcruntime140.dll` beside the exe and leave it out of `upstream.files`
-  (`file` does this).
+  (`file` does this). A scan that finds almost nothing means a packed exe (Mines-Perfect): scan a temp copy unpacked
+  with `apps/exe_compress/upx.exe -d`.
 - caesiumclt exits 0 when a file fails ("Cannot convert to the same format" for PNG to PNG): check its output with
   `ImageConversionService.failures`, not the exit code. Same-format files run with `--format original`.
 - `apps/**` is `-text` in `.gitattributes`: GitHub must serve the bytes `tools.sha256` was computed from. With
