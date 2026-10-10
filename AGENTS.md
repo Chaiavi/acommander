@@ -171,7 +171,9 @@ All actions and external tools live in `config/apps.json`; shortcuts are declare
   redist is installed). List a new exe's DLLs with a strings scan (`[regex]::Matches(<ASCII bytes>, '[\w\-]+\.dll')`);
   if it needs it, copy `build/runtime/bin/vcruntime140.dll` beside the exe and leave it out of `upstream.files`
   (`file` does this). A scan that finds almost nothing means a packed exe (Mines-Perfect): scan a temp copy unpacked
-  with `apps/exe_compress/upx.exe -d`.
+  with `apps/exe_compress/upx.exe -d`. A name the scan finds may be loaded only on demand (the Arkanoid clone names
+  `xinput1_3.dll`, which clean Windows lacks, but runs without it): `.github/skills/update-tools/pe-imports.ps1 <exe>`
+  lists the DLLs the exe really needs at startup.
 - caesiumclt exits 0 when a file fails ("Cannot convert to the same format" for PNG to PNG): check its output with
   `ImageConversionService.failures`, not the exit code. Same-format files run with `--format original`.
 - `apps/**` is `-text` in `.gitattributes`: GitHub must serve the bytes `tools.sha256` was computed from. With
