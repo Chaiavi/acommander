@@ -154,11 +154,6 @@ class BundledGuiToolContractTest {
     }
 
     @Test
-    void lbreakoutHDStarts() throws Exception {
-        startsWithoutCrashing(gameCommand("lbreakoutHD"), gameFolder("lbreakoutHD"));
-    }
-
-    @Test
     void minesPerfectStarts() throws Exception {
         startsWithoutCrashing(gameCommand("minesPerfect"), gameFolder("minesPerfect"));
     }
@@ -191,7 +186,7 @@ class BundledGuiToolContractTest {
         return ToolCommandBuilder.buildCommand(action.getPath(), action.getArgs(), null, Map.of(), null);
     }
 
-    /** External actions run in the exe's folder; LBreakoutHD crashes anywhere else. */
+    /** External actions run in the exe's folder; Mines-Perfect reads its boards and writes its settings there. */
     private static java.io.File gameFolder(String actionId) {
         return new java.io.File(gameCommand(actionId).getFirst()).getParentFile();
     }

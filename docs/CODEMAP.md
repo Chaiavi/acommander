@@ -69,7 +69,7 @@ Adding or renaming an action id? Check each of these:
 | `mkdir` (F7) / `mkfile` (Alt+F7) | `makeDirectory` / `makeFile` | `FileOperations.mkdir` / `mkFile` (VFS) | — |
 | `delete` (F8, Del) | `deleteFile` → `deleteLocked` | `FileOperations.delete` (VFS); local items left → `LockingPrograms.find` → `LockedItemsDialog` → `FileOperations.endLockersAndDelete` | `delete/unlock_delete/FileLocksmithCLI.exe` |
 | `deleteWipe` (Shift+F8) | `deleteWipe` | `FileOperations.wipeDelete` | `delete/wipe/sdelete64.exe` |
-| `wipeDelete`, `multiRename`, `lbreakoutHD`, `minesPerfect`, `puzzleCollection`, `arkanoidClone` | — (type `external`) | `ActionExecutor.executeExternal` (runs in the exe's folder) | `sdelete64.exe`, `Renamer.exe`, the games under `games/` |
+| `wipeDelete`, `multiRename`, `minesPerfect`, `puzzleCollection`, `arkanoidClone` | — (type `external`) | `ActionExecutor.executeExternal` (runs in the exe's folder) | `sdelete64.exe`, `Renamer.exe`, the games under `games/` |
 | `terminal` (F9) / `explorer` (Alt+F9) | `terminalHere` / `explorerHere` | `FileOperations.openTerminal` / `openExplorer` | PowerShell `Start-Process` (folder = working directory), `explorer.exe` |
 | `search` (F10, Ctrl+F) | `search` → `pickFoundFile` | `tools/BundledToolCommands.findByName`, `foundFiles`; `FoundFilesDialog` | `search_in_files/rg.exe` |
 | `findInFiles` (Alt+F10) | `findInFiles` → `pickFoundFile` | `dialog/FindInFilesDialog`, `FoundFilesDialog`; `tools/BundledToolCommands.findInFiles`, `foundFiles` | `search_in_files/rg.exe` |

@@ -42,9 +42,6 @@ Thumbs.db
 /apps/multi_rename/Renamer.xml
 /apps/edit/Notepad4.ini
 # Written by the games on every run
-/apps/games/lbreakouthd/lbreakouthd.conf
-/apps/games/lbreakouthd/lbreakouthd.hscr
-/apps/games/lbreakouthd/lbreakouthd.sav
 /apps/games/mines_perfect/mineperf.ini
 /apps/games/mines_perfect/logs/
 # Downloaded by the fetchFfmpeg Gradle task: ffmpeg.exe is over GitHub's 100 MB file limit

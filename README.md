@@ -149,7 +149,7 @@ directories.
 
 ## 🎮 Games
 
-Bundled games start from the Command Palette (type `game`): **Breakout/Arkanoid** (LBreakoutHD), **MineSweeper**
+Bundled games start from the Command Palette (type `game`): **MineSweeper**
 (Mines-Perfect, with extra board shapes), **Puzzle Collection** (Simon Tatham's 40 logic puzzles: Solo, Loopy, Net
 ...) and **Arkanoid Clone**.
 
@@ -199,7 +199,6 @@ Bundled games start from the Command Palette (type `game`): **Breakout/Arkanoid*
 | exiv2                  | `apps/image_metadata/exiv2.exe`          |
 | UPX                    | `apps/exe_compress/upx.exe`              |
 | curl                   | `apps/remote_connectivity/curl.exe`      |
-| LBreakoutHD (GPL)      | `apps/games/lbreakouthd`                 |
 | Mines-Perfect (GPL)    | `apps/games/mines_perfect`               |
 | Simon Tatham's Puzzle Collection (MIT; PortableApps launcher) | `apps/games/puzzles` |
 | Arkanoid clone (Dreamwebspace, free) | `apps/games/arkanoid_clone` |

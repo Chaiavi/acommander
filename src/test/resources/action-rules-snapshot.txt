@@ -37,7 +37,6 @@ gotoBookmark | ftp=yes | writes=none | palette=++++++++++++++
 help | ftp=yes | writes=none | palette=++++++++++++++
 invertSelection | ftp=yes | writes=none | palette=++++++++++++++
 joinMedia | ftp=no | writes=target | palette=--------------
-lbreakoutHD | ftp=yes | writes=none | palette=++++++++++++++
 leftPathCombo | ftp=yes | writes=none | palette=n/a
 linkNavigation | ftp=yes | writes=none | palette=++++++++++++++
 mediaInfo | ftp=no | writes=none | palette=-----+++------

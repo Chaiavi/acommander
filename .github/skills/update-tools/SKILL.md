@@ -18,10 +18,6 @@ One tool at a time, so a bad update is held back alone and can be reverted alone
         `apps/extract_all/UniExtract/bin/dark/dark.exe -nologo -x <tmp>\bundle setup.exe <tmp>\b.wxs`, then
         `apps/extract_all/UniExtract/bin/lessmsi/lessmsi.exe x <tmp>\bundle\AttachedContainer\a2 <tmp>\msi\ FileLocksmithCLI.exe`.
         Copy the exe over `apps/delete/unlock_delete/FileLocksmithCLI.exe`, set its version in apps.json, go on at step 2.
-      - LBreakoutHD: don't run `upgradeTools` (it matches files by name, and the themes repeat names). Unpack the
-        new `lbreakouthd-<version>-win64.zip` over `apps/games/lbreakouthd`, but keep our `SDL2.dll` (2.32.10 from
-        libsdl-org/SDL): the zip's SDL 2.0.7 crashes (0xC0000005 in SDL2.dll) on every quit, and the app then shows
-        "LBreakoutHD Failed". Set its version, go on at step 2.
       - Puzzle Collection: no automatic download (SourceForge). Download
         `PuzzleCollectionPortable_<version>_English.paf.exe`, unpack it with `apps/extract_all/UniExtract/bin/x64/7z.exe x`, and copy
         `App/Puzzles/*.exe` without the `_x86` ones (the app runs only on 64-bit Windows), `puzzles.chm` and
