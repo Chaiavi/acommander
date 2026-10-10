@@ -97,7 +97,8 @@ lessons about this repo in the files above, not in memory.
   elsewhere). Anything else is new.
 - Run: `.\gradlew.bat run` (working dir must be repo root, see below). Faster in VS Code: F5 ("ACommander" in
   `.vscode/launch.json`) skips Gradle's configuration step, which `run` can't cache.
-- Windows distribution (EXE + bundled runtime + apps/config + zip → `dist/`): `.\gradlew.bat dist`. The ZIP is built
+- Windows distribution (EXE + bundled runtime + apps/config + zip + per-user setup → `dist/`): `.\gradlew.bat dist`.
+  The setup comes from `installer/acommander.iss` (Inno Setup, downloaded into `build/innosetup`). The ZIP is built
   from `releaseResources` in `build.gradle` (public config files only, no tool logs or settings), never from `dist/`
   or `build/libs/`; `verifyDistribution` fails it if per-user files get in. `dist/` is a mirror: each `dist` run
   deletes anything in it the build doesn't produce, so don't keep files or run the app there.

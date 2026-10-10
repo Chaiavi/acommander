@@ -14,8 +14,12 @@ command palette. Free and open source.**
 **[Download the latest release for Windows](https://github.com/Chaiavi/acommander/releases/latest)**
 
 1. Windows 10 or 11. No Java install needed; the runtime is included.
-2. Unzip anywhere and run `acommander.exe`. It is portable; nothing is installed.
-3. The zip is about 300 MB because it bundles about 20 tools and its own Java runtime.
+2. **Installer** (`acommander-setup-v<version>.exe`): installs for your user only, no admin rights, into
+   `%LOCALAPPDATA%\Programs\ACommander`. Adds a Start Menu entry, an optional desktop shortcut, and an uninstaller in
+   Settings › Apps. Running a newer setup upgrades in place and keeps your settings; uninstall removes the folder,
+   settings included.
+3. **Portable** (`acommander-v<version>.zip`): unzip anywhere and run `acommander.exe`. Nothing is installed.
+4. Both are about 300 MB because they bundle about 20 tools and their own Java runtime.
 
 ![A Commander out of the box](https://github.com/user-attachments/assets/5880e5c6-c1f4-4450-b169-b8bf8079a350)
 
@@ -378,7 +382,7 @@ You only need this to change the code. To use the app, [download a release](#-do
 # Build fat JAR
 .\gradlew.bat shadowJar
 
-# Build Windows distribution (EXE + runtime + apps/config + zip)
+# Build Windows distribution (EXE + runtime + apps/config + zip + setup)
 .\gradlew.bat dist
 ```
 
@@ -389,6 +393,7 @@ You only need this to change the code. To use the app, [download a release](#-do
 | JAR + resources | `build/libs/`     |
 | EXE             | `build/launch4j/` |
 | Distribution    | `dist/`           |
+| Installer       | `dist/acommander-setup-v<version>.exe` (script: `installer/acommander.iss`) |
 
 ---
 
@@ -399,6 +404,7 @@ acommander/
 ├── apps/                    Bundled external tools
 ├── config/                  apps.json, user properties
 ├── docs/                    CODEMAP.md — where each feature lives in the code
+├── installer/               Inno Setup script for the Windows installer
 ├── src/
 │   ├── main/
 │   │   ├── java/            Application source

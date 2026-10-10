@@ -70,6 +70,20 @@ confirm with `{ENTER}` unless the row says otherwise. Palette actions: `^+p`, `T
 | 24 | Move (F6) | `שלום.txt`, `{F6}` | `out\שלום.txt`, gone from `in\` |
 | 25 | Delete (F8) / Wipe (Shift+F8) | `renamed.txt` `{F8}`; `big.bin` `+{F8}` | Both gone from `in\` |
 
+### Installer (after `dist`)
+
+Skip and say so if `HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\{1D54CF8C-10E1-4E2A-BD4D-5F4CFE658C1C}_is1`
+exists: that is the user's real install, and a test install would take it over. Always pass `/TASKS=""`: the desktop
+task overwrites a desktop `ACommander.lnk` the user may have made for a portable copy, and uninstall then deletes it.
+
+1. `dist\acommander-setup-v<version>.exe /VERYSILENT /SUPPRESSMSGBOXES /NORESTART /TASKS="" "/DIR=$env:TEMP\ac-install"`
+   (via `Start-Process -Wait`). Pass: exit 0, the Start Menu `ACommander.lnk` points into the folder.
+2. Start the `.lnk`; screenshot with `ui.ps1`. Pass: panes show, `logs\` and `config\acommander.properties` are in the
+   install folder, no ERROR in its log.
+3. Add a line to its `UniExtract.ini` and `acommander.properties`, run step 1 again with the app open. Pass: Setup
+   closes the app (its `/LOG` says "Shutting down applications"), both lines survive.
+4. `unins000.exe /VERYSILENT /SUPPRESSMSGBOXES`. Pass: the folder, the `.lnk` and the uninstall key are gone.
+
 Not covered (say why if asked): FTP (needs a server), hosts file (admin), Check Tool Updates (network), Report Bug
 (sends a message), drag and drop (no key path).
 

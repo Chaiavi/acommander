@@ -153,6 +153,44 @@ def fetchFfmpeg = tasks.register('fetchFfmpeg') {
     }
 }
 
+// The Inno Setup compiler that builds the installer, installed portable (no registry, no Start Menu) under build/
+def innoSetupUrl = 'https://github.com/jrsoftware/issrc/releases/download/is-7_1_0/innosetup-7.1.0-x64.exe'
+def innoSetupSha256 = '0362a383ed217d4c4239b5933866dd96d3eb2102737da92f80f6057a4b40df2f'
+def innoSetupDir = layout.buildDirectory.dir('innosetup').get().asFile
+def innoSetupCompiler = new File(innoSetupDir, 'ISCC.exe')
+def fetchInnoSetup = tasks.register('fetchInnoSetup') {
+    inputs.property('sha256', innoSetupSha256)
+    outputs.dir(innoSetupDir)
+    onlyIf { !innoSetupCompiler.isFile() }
+    doLast {
+        def setupFile = File.createTempFile('innosetup-', '.exe')
+        try {
+            def digest = java.security.MessageDigest.getInstance('SHA-256')
+            URI.create(innoSetupUrl).toURL().withInputStream { input ->
+                setupFile.withOutputStream { output ->
+                    input.eachByte(1 << 16) { byte[] buffer, int length ->
+                        digest.update(buffer, 0, length)
+                        output.write(buffer, 0, length)
+                    }
+                }
+            }
+            def actual = digest.digest().encodeHex().toString()
+            if (actual != innoSetupSha256) {
+                throw new GradleException("${innoSetupUrl}: SHA-256 is ${actual}, expected ${innoSetupSha256}")
+            }
+            def process = new ProcessBuilder(setupFile.path, '/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART',
+                    '/CURRENTUSER', '/PORTABLE=1', "/DIR=${innoSetupDir.path}".toString())
+                    .redirectErrorStream(true).start()
+            process.inputStream.text
+            if (process.waitFor() != 0 || !innoSetupCompiler.isFile()) {
+                throw new GradleException("Inno Setup did not install to ${innoSetupDir} (exit ${process.exitValue()})")
+            }
+        } finally {
+            setupFile.delete()
+        }
+    }
+}
+
 // What a release ships from config/ and apps/. Tools write logs and settings into their folders, and
 // config/acommander.properties holds the user's paths, bookmarks and FTP logins: none of that ships.
 def releaseConfigFiles = ['apps.json']
@@ -334,7 +372,7 @@ def copyDist = tasks.register('copyDist', Sync) {
     dependsOn tasks.named('createExe'), fetchFfmpeg, toolHashes
     with distributionContents
     into 'dist'
-    preserve { include 'acommander-v*.zip' }
+    preserve { include 'acommander-v*.zip', 'acommander-setup-v*.exe' }
 }
 
 def zipDist = tasks.register('zipDist', Zip) {
@@ -386,8 +424,24 @@ def verifyDistribution = tasks.register('verifyDistribution') {
     }
 }
 
+// Per-user setup.exe (Start Menu, desktop shortcut, uninstaller) built from the fresh dist/ mirror
+def installerScript = file('installer/acommander.iss')
+def installerSettingsFiles = toolSettingsTemplates.keySet().collect { 'apps\\' + it.replace('/', '\\') }
+def buildInstaller = tasks.register('buildInstaller', Exec) {
+    dependsOn fetchInnoSetup, copyDist
+    mustRunAfter zipDist
+    commandLine innoSetupCompiler.path, '/Q', "/DAppVersion=${appVersionValue}", "/DSourceDir=${file('dist').path}",
+            "/O${file('dist').path}", "/Facommander-setup-v${appVersionValue}", installerScript.path
+    doFirst {
+        def missing = installerSettingsFiles.findAll { !installerScript.text.contains(it) }
+        if (missing) {
+            throw new GradleException("${installerScript.name} must install ${missing} with onlyifdoesntexist")
+        }
+    }
+}
+
 tasks.register('dist') {
-    dependsOn copyDist, zipDist, verifyDistribution, publishFfmpeg, checkToolUpdates
+    dependsOn copyDist, zipDist, verifyDistribution, buildInstaller, publishFfmpeg, checkToolUpdates
     group = 'distribution'
     description = 'Creates the dist folder and a verified distribution ZIP'
 }
@@ -413,7 +467,7 @@ tasks.named('test') {
     systemProperty 'acommander.appVersion', appVersionValue
     testLogging {
         events 'passed', 'failed', 'skipped'
-        exceptionFormat 'full'
+        exceptionFormat = 'full'
         showStandardStreams = true
     }
 }
@@ -429,7 +483,7 @@ tasks.register('guiToolTest', Test) {
     outputs.upToDateWhen { false }
     testLogging {
         events 'passed', 'failed', 'skipped'
-        exceptionFormat 'full'
+        exceptionFormat = 'full'
     }
 }
 
