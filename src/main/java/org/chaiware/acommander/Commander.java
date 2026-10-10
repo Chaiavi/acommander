@@ -49,6 +49,7 @@ import org.chaiware.acommander.helpers.PaneSorter.SortColumn;
 import org.chaiware.acommander.services.ArchiveOperations;
 import org.chaiware.acommander.services.FileOperations;
 import org.chaiware.acommander.services.LinkedNavigation;
+import org.chaiware.acommander.services.LockingPrograms;
 import org.chaiware.acommander.services.PaneDragDrop;
 import org.chaiware.acommander.services.PdfOperations;
 import org.chaiware.acommander.services.ToolUpdateService;
@@ -1458,10 +1459,37 @@ public class Commander {
                 () -> fileOps.delete(source.sourceFs(), source.entries()),
                 failed -> {
                     filesPanesHelper.selectIndex(source.sourceSide(), source.sourceFolder(), previousIndex - 1);
-                    if (!failed.isEmpty() && !(source.sourceFs() instanceof LocalFileSystem)) {
+                    if (failed.isEmpty()) {
+                        return;
+                    }
+                    if (source.sourceFs() instanceof LocalFileSystem) {
+                        deleteLocked(source.sourceFs(), failed);
+                    } else {
                         showError("Delete", "Could not delete: " + failed.stream()
                                 .map(ClipboardTransfer.Entry::name).collect(java.util.stream.Collectors.joining(", ")));
                     }
+                });
+    }
+
+    /** Local items a delete left: finds the programs holding them open and, if the user agrees, ends them and retries. */
+    private void deleteLocked(VFileSystem fs, List<ClipboardTransfer.Entry> locked) {
+        runFileOperation("Find Programs Using the Items", List.of(), false,
+                () -> LockingPrograms.find(locked.stream().map(ClipboardTransfer.Entry::sourceInternalPath).toList()),
+                lockers -> {
+                    if (lockers.isEmpty()) {
+                        showError("Delete", FileOperations.notLockedMessage(locked));
+                        return;
+                    }
+                    List<String> names = locked.stream().map(ClipboardTransfer.Entry::name).toList();
+                    if (LockedItemsDialog.show(dialogOwner(), currentThemeMode.styleClass, names, lockers).isEmpty()) {
+                        return;
+                    }
+                    runFileOperation("Delete", List.of(fs), true, () -> fileOps.endLockersAndDelete(fs, locked, lockers),
+                            result -> {
+                                if (!result.failed().isEmpty()) {
+                                    showError("Delete", result.message());
+                                }
+                            });
                 });
     }
 

@@ -191,10 +191,16 @@ public class FileOperations {
         log.debug("Created File: {}", newFileName);
     }
 
-    /**
-     * Deletes the entries through the VFS. Blocking. Local items that fail (locked) go to the unlock-and-delete tool;
-     * returns the ones that failed.
-     */
+    /** The result of {@link #endLockersAndDelete}: entries still not deleted, programs that could not be ended. */
+    public record LockedDelete(List<Entry> failed, List<LockingPrograms.Locker> stillRunning) {
+        public String message() {
+            String text = "Could not delete: " + names(failed) + ".";
+            return stillRunning.isEmpty() ? text : text + " Still running: "
+                    + stillRunning.stream().map(LockingPrograms.Locker::describe).collect(Collectors.joining(", ")) + ".";
+        }
+    }
+
+    /** Deletes the entries through the VFS. Blocking. Returns the ones that failed (on a local disk: often locked). */
     public List<Entry> delete(VFileSystem fs, List<Entry> entries) {
         List<Entry> failed = new ArrayList<>();
         for (Entry entry : entries) {
@@ -208,12 +214,24 @@ public class FileOperations {
                 failed.add(entry);
             }
         }
-        if (!failed.isEmpty() && fs instanceof LocalFileSystem) {
-            log.info("Failed to delete {} files, attempting to unlock them so you can delete them all", failed.size());
-            runner.reportFailure(runner.runExecutable(command("unlockDelete", Map.of(),
-                    failed.stream().map(Entry::sourceInternalPath).toList()), true), "Unlock and Delete");
-        }
         return failed;
+    }
+
+    /** Ends the programs holding {@code entries} open, then deletes them again. Blocking. */
+    public LockedDelete endLockersAndDelete(VFileSystem fs, List<Entry> entries, List<LockingPrograms.Locker> lockers) {
+        List<LockingPrograms.Locker> stillRunning = LockingPrograms.end(lockers);
+        log.info("Ended {} of {} programs holding files open", lockers.size() - stillRunning.size(), lockers.size());
+        return new LockedDelete(delete(fs, entries), stillRunning);
+    }
+
+    /** Shown when a delete failed but no program of this user holds the items open. */
+    public static String notLockedMessage(List<Entry> failed) {
+        return "Could not delete: " + names(failed) + ". No program running as you has them open: they may need "
+                + "administrator rights, or a program running as administrator may be using them.";
+    }
+
+    private static String names(List<Entry> entries) {
+        return entries.stream().map(Entry::name).collect(Collectors.joining(", "));
     }
 
     /** Overwrites, then deletes (SDelete). */

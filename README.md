@@ -79,7 +79,7 @@ command palette. Free and open source.**
 | **Drag and Drop**       | Drag files into other apps (web uploads, Explorer, mail), between panes, onto a folder row (into that folder) or from Explorer into a pane. A drag copies; a right-button drag between panes asks Copy Here or Move Here. FTP files download at drag start |
 | **Duplicate**           | Clone a file in the same directory           |
 | **Create**              | New directory or new file                    |
-| **Delete**              | With fallback unlock-delete for locked files |
+| **Delete**              | A locked local file or folder: lists the programs holding it open (File Locksmith) and, if you agree, ends them and deletes it |
 | **Secure Wipe**         | Via SDelete                                  |
 | **Attributes**          | Change file/folder attributes                |
 | **Properties**          | View detailed file/folder properties         |
@@ -178,7 +178,7 @@ directories.
 | Universal Extractor    | `apps/extract_all/UniExtract`            |
 | qpdf                   | `apps/pdf/qpdf.exe`                      |
 | Ant Renamer            | `apps/multi_rename`                      |
-| ThisIsMyFile & SDelete | `apps/delete`                            |
+| File Locksmith (PowerToys, MIT) & SDelete | `apps/delete`                 |
 | ripgrep                | `apps/search_in_files/rg.exe`            |
 | Caesium CLI            | `apps/image_convert/caesiumclt.exe`      |
 | FFmpeg (GPLv3; the build downloads it) | `apps/media/ffmpeg.exe`  |
@@ -203,10 +203,10 @@ Each tool's full name, version and home page are in the F1 help ("Bundled Tools"
   `gradlew upgradeTools -Ptools=<id>` downloads the newer version, replaces the tool's files and sets its version;
   build, then commit and push. Users get it from `main`.
 - `BundledToolContractTest` runs every command-line tool the way the app does (search, checksum, metadata, image
-  conversion, UPX, PDF, archives, wipe, FTP protocols), so a new version that changed its flags or output fails
+  conversion, UPX, PDF, archives, wipe, locked files, FTP protocols), so a new version that changed its flags or output fails
   the build before it is pushed. The tools that open a window run in `gradlew guiToolTest` (not in `build`): FastCopy
   copy and move, 7-Zip GUI pack and unpack, Universal Extractor and Ant Renamer are checked for their result;
-  Notepad4, Universal Viewer, ExamDiff and ThisIsMyFile are checked to open a file without crashing.
+  Notepad4, Universal Viewer and ExamDiff are checked to open a file without crashing.
 
 ---
 

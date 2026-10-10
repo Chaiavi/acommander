@@ -18,6 +18,7 @@ public enum BundledTool {
     EXAM_DIFF("apps/file_compare/ExamDiff.exe"),
     UPX("apps/exe_compress/upx.exe"),
     VIEWER("apps/view/UniversalViewer/Viewer.exe"),
+    FILE_LOCKSMITH("apps/delete/unlock_delete/FileLocksmithCLI.exe"),
     /** SHA-256 of every shipped file under apps/, written by the build's toolHashes task. */
     TOOL_HASHES("apps/tools.sha256");
 

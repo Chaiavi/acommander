@@ -36,7 +36,7 @@ import static org.junit.jupiter.api.Assertions.assertTimeoutPreemptively;
  * The tools under apps/ that open a window, run the way the app runs them. They flash windows, so `build` skips them;
  * the guiToolTest task runs them after a tool update. Tools that do their work from the command line (FastCopy,
  * 7-Zip GUI, Universal Extractor, Ant Renamer) are checked for the result; the ones that only show a file (Notepad4,
- * Universal Viewer, ExamDiff, ThisIsMyFile) are checked to start without crashing.
+ * Universal Viewer, ExamDiff) are checked to start without crashing.
  */
 @Tag("gui")
 class BundledGuiToolContractTest {
@@ -142,11 +142,6 @@ class BundledGuiToolContractTest {
     @Test
     void universalViewerOpensAFile() throws Exception {
         startsWithoutCrashing(actionCommand("view", Files.writeString(dir.resolve("notes.txt"), "text")));
-    }
-
-    @Test
-    void thisIsMyFileOpensAFile() throws Exception {
-        startsWithoutCrashing(actionCommand("unlockDelete", Files.writeString(dir.resolve("locked.txt"), "text")));
     }
 
     @Test

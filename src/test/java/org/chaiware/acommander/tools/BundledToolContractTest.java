@@ -17,6 +17,7 @@ import org.chaiware.acommander.services.ImageConversionService;
 import org.chaiware.acommander.services.ImageConversionService.ImageCompressionMode;
 import org.chaiware.acommander.services.ImageConversionService.ImageConversionRequest;
 import org.chaiware.acommander.services.ImageConversionService.ImageResizeMode;
+import org.chaiware.acommander.services.LockingPrograms;
 import org.chaiware.acommander.services.PdfExtractOptions;
 import org.chaiware.acommander.services.PdfOperations;
 import org.chaiware.acommander.tools.BundledToolCommands.ChecksumOptions;
@@ -69,6 +70,19 @@ class BundledToolContractTest {
 
         assertThat(BundledToolCommands.foundFiles(byName, folder)).containsExactly(dir.resolve("notes.txt").toString());
         assertThat(BundledToolCommands.foundFiles(byContent, folder)).containsExactly(dir.resolve("notes.txt").toString());
+    }
+
+    @Test
+    void fileLocksmithFindsTheProgramHoldingAFileOpen() throws Exception {
+        // A name outside the ANSI code page: the tool's --json output stops at such a name; the table has none.
+        Path file = Files.writeString(dir.resolve("ünï 文件.txt"), "x");
+        Path free = Files.writeString(dir.resolve("free.txt"), "x");
+
+        try (var open = Files.newByteChannel(file)) {
+            assertThat(LockingPrograms.find(List.of(file.toString(), free.toString())))
+                    .extracting(LockingPrograms.Locker::pid).contains(ProcessHandle.current().pid());
+        }
+        assertThat(LockingPrograms.find(List.of(free.toString()))).isEmpty();
     }
 
     @Test

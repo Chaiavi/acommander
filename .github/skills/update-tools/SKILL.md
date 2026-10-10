@@ -13,6 +13,11 @@ One tool at a time, so a bad update is held back alone and can be reverted alone
 3. For each candidate `<id>` (apps.json `tools` id):
    1. `.\gradlew.bat upgradeTools -Ptools=<id>`. It prints `UPGRADED`, `UP TO DATE` or `FAILED <id>: <why>`.
       - `no automatic download` (RHash: SourceForge blocks scripts): tell the user where to get it; skip.
+      - File Locksmith (PowerToys) has no automatic download either: its exe is inside the PowerToys installer.
+        Download `PowerToysUserSetup-<version>-x64.exe` to a temp folder, unpack it with
+        `apps/extract_all/UniExtract/bin/dark/dark.exe -nologo -x <tmp>\bundle setup.exe <tmp>\b.wxs`, then
+        `apps/extract_all/UniExtract/bin/lessmsi/lessmsi.exe x <tmp>\bundle\AttachedContainer\a2 <tmp>\msi\ FileLocksmithCLI.exe`.
+        Copy the exe over `apps/delete/unlock_delete/FileLocksmithCLI.exe`, set its version in apps.json, go on at step 2.
       - Any other failure: nothing changed; report it and go to the next tool.
    2. `.\gradlew.bat build guiToolTest`. `build` rewrites `apps/tools.sha256` and runs the command-line tool tests;
       `guiToolTest` runs the tools that open a window.

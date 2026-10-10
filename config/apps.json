@@ -17,15 +17,6 @@
       "selection": "multi"
     },
     {
-      "id": "unlockDelete",
-      "writes": "source",
-      "label": "ThisIsMyFile",
-      "type": "external",
-      "path": "apps/delete/unlock_delete/ThisIsMyFile.exe",
-      "args": ["${selectedFiles}"],
-      "refreshAfter": true
-    },
-    {
       "id": "wipeDelete",
       "writes": "source",
       "label": "SDelete",
@@ -1100,6 +1091,9 @@
       "release": "ffmpeg-9.0.2", "upstream": {"github": "GyanD/codexffmpeg", "asset": "essentials_build\\.zip$"}},
     {"id": "file", "name": "file (Windows build)", "version": "5.44", "link": "https://github.com/julian-r/file-windows", "paths": ["apps/file_analysis"],
       "upstream": {"github": "julian-r/file-windows", "asset": "vs2022-x64\\.zip$", "files": ["file.exe", "libmagic.dll", "magic.mgc"]}},
+    {"id": "fileLocksmith", "name": "File Locksmith (PowerToys)", "version": "0.101.2362.0",
+      "link": "https://learn.microsoft.com/windows/powertoys/file-locksmith", "paths": ["apps/delete/unlock_delete"],
+      "upstream": {"github": "microsoft/PowerToys"}},
     {"id": "notepad4", "name": "Notepad4", "version": "26.08r6282", "link": "https://github.com/zufuliu/notepad4", "paths": ["apps/edit/Notepad4.exe"],
       "upstream": {"github": "zufuliu/notepad4", "asset": "^Notepad4_en_x64_.*\\.zip$"}},
     {"id": "qpdf", "name": "qpdf", "version": "12.4.2", "link": "https://github.com/qpdf/qpdf", "paths": ["apps/pdf"],
@@ -1116,9 +1110,6 @@
     {"id": "sevenZipConsole", "name": "7-Zip Command Line (archive browsing, split, Universal Extractor)", "version": "26.04",
       "link": "https://www.7-zip.org/", "paths": ["apps/extract_all/UniExtract/bin/x64/7z.exe", "apps/extract_all/UniExtract/bin/x64/7z.dll"],
       "upstream": {"github": "ip7z/7zip", "asset": "-x64\\.exe$", "files": ["7z.exe", "7z.dll"]}},
-    {"id": "thisIsMyFile", "name": "ThisIsMyFile", "version": "4.51", "link": "https://www.softwareok.com/?seite=Freeware/ThisIsMyFile", "paths": ["apps/delete/unlock_delete"],
-      "upstream": {"page": "https://www.softwareok.com/?seite=Freeware/ThisIsMyFile", "pattern": "New in version (\\d+\\.\\d+)",
-        "url": "https://www.softwareok.com/Download/ThisIsMyFile.zip", "files": ["ThisIsMyFile.exe"]}},
     {"id": "uniExtract", "name": "Universal Extractor 2", "version": "2.0.0", "link": "https://github.com/Bioruebe/UniExtract2", "paths": ["apps/extract_all"]},
     {"id": "universalViewer", "name": "Universal Viewer", "version": "5.5", "link": "https://www.uvviewsoft.com/uviewer/", "paths": ["apps/view"]},
     {"id": "upx", "name": "UPX", "version": "5.2.1", "link": "https://github.com/upx/upx", "paths": ["apps/exe_compress"],

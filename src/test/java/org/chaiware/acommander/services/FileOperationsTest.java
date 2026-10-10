@@ -206,6 +206,21 @@ class FileOperationsTest {
     }
 
     @Test
+    void endLockersAndDeleteRetriesTheDeleteAndNamesWhatIsLeft() throws Exception {
+        Path file = write("gone.txt", "x");
+        LockingPrograms.Locker self = new LockingPrograms.Locker(ProcessHandle.current().pid(), "me", "java.exe");
+        ClipboardTransfer.Entry entry = capture(false, local, tempDir, file).entries().getFirst();
+
+        FileOperations.LockedDelete result = operations.endLockersAndDelete(local, List.of(entry), List.of(self));
+
+        assertThat(file).doesNotExist();
+        assertThat(result.failed()).isEmpty();
+        assertThat(result.stillRunning()).containsExactly(self);
+        assertThat(new FileOperations.LockedDelete(List.of(entry), List.of(self)).message())
+                .isEqualTo("Could not delete: gone.txt. Still running: java.exe (PID " + self.pid() + ").");
+    }
+
+    @Test
     void fastCopyGetsTheTargetFolderWithATrailingBackslash() {
         // Without it FastCopy copies or moves a single folder's contents instead of the folder
         assertThat(FileOperations.toolTarget("D:\\backup")).isEqualTo("D:\\backup\\");

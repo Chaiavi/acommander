@@ -71,7 +71,6 @@ terminal | ftp=no | writes=none | palette=++++++++++++++
 toggleDarkMode | ftp=yes | writes=none | palette=++++++++++++++
 trimMedia | ftp=no | writes=target | palette=-----+++------
 unlinkNavigation | ftp=yes | writes=none | palette=--------------
-unlockDelete | ftp=no | writes=source | palette=n/a
 unpack | ftp=no | writes=target | palette=---------+----
 unselectAll | ftp=yes | writes=none | palette=-+++++++++++++
 view | ftp=yes | writes=none | palette=-+++++++++++++
