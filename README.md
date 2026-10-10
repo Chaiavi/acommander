@@ -149,7 +149,7 @@ directories.
 
 ## 🎮 Games
 
-Two bundled games start from the Command Palette: **LBreakoutHD** (Breakout) and **Mines-Perfect** (Minesweeper with
+Two bundled games start from the Command Palette (type `game`): **Breakout/Arkanoid** (LBreakoutHD) and **MineSweeper** (Mines-Perfect, with
 extra board shapes).
 
 ---
