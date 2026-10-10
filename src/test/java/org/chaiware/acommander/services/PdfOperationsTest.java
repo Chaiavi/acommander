@@ -56,7 +56,7 @@ class PdfOperationsTest {
     }
 
     @Test
-    void mergeUsesAsciiInputCopiesAndReturnsOnlyAfterSavingAndCleaningUp() throws Exception {
+    void mergeUsesLocalInputCopiesAndReturnsOnlyAfterSavingAndCleaningUp() throws Exception {
         Path sourceDir = Files.createDirectory(tempDir.resolve("source"));
         Path targetDir = Files.createDirectory(tempDir.resolve("target"));
         Path first = Files.writeString(sourceDir.resolve("one.pdf"), "pdf-a");
