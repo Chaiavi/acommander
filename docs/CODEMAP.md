@@ -77,7 +77,7 @@ Adding or renaming an action id? Check each of these:
 | `splitLargeFile` (Alt+F11) | `splitLargeFile` | `dialog/SplitSizeDialog`, `tools/BundledToolCommands.parseSplitSize` | `extract_all/UniExtract/bin/x64/7z.exe` |
 | `unpack` (F12) | `unpackFile` | `ArchiveOperations.unpack` → `unpackWith` | `pack_unpack/7zG.exe` |
 | `extractAll` (Alt+F12) | `extractAll` | `ArchiveOperations.extractAll` → `unpackWith` | `extract_all/UniExtract/UniExtract.exe` |
-| `mergePdf` / `extractPdfPages` | `mergePDFFiles` / `extractPDFPages` | `dialog/PdfExtractDialog`, `services/PdfOperations.merge` / `extractPages` / `pageCount`, `PdfExtractOptions` | `pdf/pdftk.exe` |
+| `mergePdf` / `extractPdfPages` | `mergePDFFiles` / `extractPDFPages` | `dialog/PdfExtractDialog`, `services/PdfOperations.merge` / `extractPages` / `pageCount`, `PdfExtractOptions` | `pdf/qpdf.exe` |
 | `convertMediaFile` (Alt+F5) | `convertMediaFile` → image, audio or video below | `ImageConversionSupport`, `MediaFiles` | — |
 | `convertGraphicsFiles` | `convertGraphicsFiles` | `dialog/ImageConversionDialog`, `services/ImageConversionService` (command, output lookup), `ImageConversionSupport` | `image_convert/caesiumclt.exe` |
 | `convertAudioFiles` | `convertAudioFiles`, `mediaConverter`, `showConversionResult` | `dialog/AudioConversionDialog`, `services/MediaConversionService.convertAudio` | `media/ffmpeg.exe` |
@@ -282,7 +282,7 @@ Not actions, but often asked for:
 | `TransferConflicts` | Names of a copy/move already in the target: `find` (lists both folders via VFS; ignores case except FTP), `Policy` (Overwrite / Skip / Overwrite Older → FastCopy `force_copy` / `noexist_only` / `update`), `keep` (filters whole items for moves and VFS paths). |
 | `PaneDragDrop` | Drag and drop: `filesOnDisk` (local / archive items), `download` (FTP items to a temp folder at drag start), `allowsMoveOut`, `fromDroppedFiles` (other apps' files as a copy), `folderOf` (folder row → target folder), `isDraggedFolder`. |
 | `ArchiveOperations` | Pack (non-local items staged under their own names), Unpack and Extract All (`unpackWith`; remote sides through temp copies). |
-| `PdfOperations` | Merge, extract pages, page count with pdftk on ASCII temp copies; results saved to any pane type. Pages per PDF cuts each chunk with one `cat start-end`; other modes burst, falling back to page by page. `parsePageExpression`, `validateExtractRequest`. |
+| `PdfOperations` | Merge, extract pages, page count with qpdf on local temp copies; results saved to any pane type. Pages per PDF cuts each chunk with one `--pages . start-end`; other modes `--split-pages`. `parsePageExpression`, `validateExtractRequest`. |
 | `PdfExtractOptions` | Record: extract all / page expression / pages per PDF. |
 | `LinkedNavigation` | Linked panel navigation: `target` = where the other pane goes for a folder step (same-named subfolder or parent). |
 | `ToolUpdateService` | Tool Updates: `check` reads `config/apps.json` and `apps/tools.sha256` from raw `main` and compares them with this copy (`plan`: missing files, files main changed, files main dropped; a file main didn't change is never reset); `update` downloads to `AppTempDir`, checks each SHA-256, swaps the files (old ones moved aside, put back on failure) and rewrites the local `tools.sha256`. `https()` allows only this project's GitHub hosts; `resolve` refuses paths outside apps/. |

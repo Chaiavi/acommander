@@ -24,7 +24,7 @@ command palette. Free and open source.**
 - **Norton Commander at heart** — two panes, the classic F-key bar (`F3` view, `F5` copy, `F6` move, `F8` delete), and
   a Norton Commander theme, with dark and light themes too.
 - **Command Palette** — press `Ctrl+Shift+P` and type to find any action, like in VS Code. No menus to dig through.
-- **Tools included** — about 20 proven tools (7-Zip, FastCopy, ripgrep, Universal Viewer, PDFtk and more) work out of
+- **Tools included** — about 20 proven tools (7-Zip, FastCopy, ripgrep, Universal Viewer, qpdf and more) work out of
   the box. No setup.
 - **Archives and servers as folders** — browse zip and 7z files, and FTP / SFTP / FTPS servers, like local folders.
 - **Configurable without code** — every action, tool and shortcut lives in `config/apps.json`.
@@ -176,7 +176,7 @@ directories.
 | FastCopy               | `apps/copy`                              |
 | 7-Zip GUI              | `apps/pack_unpack/7zG.exe`               |
 | Universal Extractor    | `apps/extract_all/UniExtract`            |
-| PDFtk                  | `apps/pdf/pdftk.exe`                     |
+| qpdf                   | `apps/pdf/qpdf.exe`                      |
 | Ant Renamer            | `apps/multi_rename`                      |
 | ThisIsMyFile & SDelete | `apps/delete`                            |
 | ripgrep                | `apps/search_in_files/rg.exe`            |

@@ -571,8 +571,8 @@
       "contexts": ["commandPalette"],
       "selection": "multi",
       "type": "builtin",
-      "path": "apps/pdf/pdftk.exe",
-      "args": ["${selectedFiles}", "cat", "output", "${outputPdf}"],
+      "path": "apps/pdf/qpdf.exe",
+      "args": ["--warning-exit-0", "--empty", "--pages", "${selectedFiles}", "--", "${outputPdf}"],
       "refreshAfter": true,
       "priorityRules": [
         {
@@ -596,8 +596,8 @@
       "contexts": ["commandPalette"],
       "selection": "singleFile",
       "type": "builtin",
-      "path": "apps/pdf/pdftk.exe",
-      "args": ["${selectedFile}", "burst", "output", "${outputPattern}"],
+      "path": "apps/pdf/qpdf.exe",
+      "args": ["--warning-exit-0", "${selectedFile}", "--split-pages", "${outputPattern}"],
       "refreshAfter": true,
       "priorityRules": [
         {
@@ -1102,7 +1102,8 @@
       "upstream": {"github": "julian-r/file-windows", "asset": "vs2022-x64\\.zip$", "files": ["file.exe", "libmagic.dll", "magic.mgc"]}},
     {"id": "notepad4", "name": "Notepad4", "version": "26.08r6282", "link": "https://github.com/zufuliu/notepad4", "paths": ["apps/edit/Notepad4.exe"],
       "upstream": {"github": "zufuliu/notepad4", "asset": "^Notepad4_en_x64_.*\\.zip$"}},
-    {"id": "pdftk", "name": "PDFtk Server", "version": "2.02", "link": "https://www.pdflabs.com/tools/pdftk-server/", "paths": ["apps/pdf"]},
+    {"id": "qpdf", "name": "qpdf", "version": "12.4.2", "link": "https://github.com/qpdf/qpdf", "paths": ["apps/pdf"],
+      "upstream": {"github": "qpdf/qpdf", "asset": "msvc64\\.zip$", "files": ["qpdf.exe", "qpdf30.dll", "msvcp140.dll", "vcruntime140.dll", "vcruntime140_1.dll"]}},
     {"id": "rhash", "name": "RHash", "version": "1.4.6", "link": "https://github.com/rhash/RHash", "paths": ["apps/checksum"],
       "upstream": {"github": "rhash/RHash"}},
     {"id": "ripgrep", "name": "ripgrep", "version": "15.2.0", "link": "https://github.com/BurntSushi/ripgrep", "paths": ["apps/search_in_files"],

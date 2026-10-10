@@ -64,8 +64,8 @@ class PdfOperationsTest {
 
         ActionDefinition mergeAction = new ActionDefinition();
         mergeAction.setId("mergePdf");
-        mergeAction.setPath("apps/pdf/pdftk.exe");
-        mergeAction.setArgs(List.of("${selectedFiles}", "cat", "output", "${outputPdf}"));
+        mergeAction.setPath("apps/pdf/qpdf.exe");
+        mergeAction.setArgs(List.of("--empty", "--pages", "${selectedFiles}", "--", "${outputPdf}"));
         AppConfig config = new AppConfig();
         config.setActions(List.of(mergeAction));
         FakeRunner runner = new FakeRunner();
@@ -87,8 +87,8 @@ class PdfOperationsTest {
         Path book = Files.writeString(sourceDir.resolve("book.pdf"), "pdf");
         ActionDefinition extractAction = new ActionDefinition();
         extractAction.setId("extractPdfPages");
-        extractAction.setPath("apps/pdf/pdftk.exe");
-        extractAction.setArgs(List.of("${selectedFile}", "burst", "output", "${outputPattern}"));
+        extractAction.setPath("apps/pdf/qpdf.exe");
+        extractAction.setArgs(List.of("${selectedFile}", "--split-pages", "${outputPattern}"));
         AppConfig config = new AppConfig();
         config.setActions(List.of(extractAction));
         FakeRunner runner = new FakeRunner();
@@ -97,8 +97,8 @@ class PdfOperationsTest {
         new PdfOperations(new AppRegistry(config), runner).extractPages(local, new Entry("book.pdf", false, book.toString()),
                 local, targetDir.toString(), new PdfExtractOptions(PdfExtractOptions.Mode.PAGES_PER_PDF, null, 100, 250));
 
-        assertThat(runner.commands).as("no burst, no merge").allMatch(command -> command.contains("cat"));
-        assertThat(runner.commands).extracting(command -> command.get(command.indexOf("cat") + 1))
+        assertThat(runner.commands).as("no split, no merge").allMatch(command -> command.contains("--pages"));
+        assertThat(runner.commands).extracting(command -> command.get(command.indexOf(".") + 1))
                 .containsExactly("1-100", "101-200", "201-250");
         try (Stream<Path> files = Files.list(targetDir)) {
             assertThat(files.map(file -> file.getFileName().toString()).sorted())
@@ -106,7 +106,7 @@ class PdfOperationsTest {
         }
     }
 
-    /** Plays pdftk: records the inputs and writes the output file. */
+    /** Plays qpdf: records the inputs and writes the output file, its last argument. */
     private static final class FakeRunner extends ExternalToolRunner {
         private final List<List<String>> commands = new ArrayList<>();
         private List<String> inputNames = List.of();
@@ -122,7 +122,7 @@ class PdfOperationsTest {
             commands.add(command);
             inputNames = command.stream().filter(arg -> arg.matches(".*input_\\d\\.pdf"))
                     .map(arg -> Path.of(arg).getFileName().toString()).toList();
-            output = Path.of(command.get(command.indexOf("output") + 1));
+            output = Path.of(command.getLast());
             try {
                 Files.writeString(output, "merged");
             } catch (IOException e) {

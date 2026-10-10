@@ -11,8 +11,6 @@ import org.chaiware.acommander.services.ClipboardTransfer.Entry;
 import org.chaiware.acommander.tools.ToolCommandBuilder;
 import org.chaiware.acommander.vfs.LocalFileSystem;
 import org.chaiware.acommander.vfs.VFileSystem;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -24,12 +22,12 @@ import java.util.concurrent.CompletionException;
 import java.util.stream.Stream;
 
 /**
- * PDF merge, page extraction and page count with the apps.json pdftk actions, on the file systems and paths captured
- * when the user started ({@link ClipboardTransfer#capture}); results go to any pane type. pdftk here is not
- * Unicode-safe, so it only sees ASCII copies. Blocking: each method returns once its output is saved.
+ * PDF merge, page extraction and page count with the apps.json qpdf actions, on the file systems and paths captured
+ * when the user started ({@link ClipboardTransfer#capture}); results go to any pane type. qpdf works on local copies,
+ * since a source may be on FTP or in an archive. Blocking: each method returns once its output is saved.
  */
 public class PdfOperations {
-    private static final Logger log = LoggerFactory.getLogger(PdfOperations.class);
+    private static final String WARNINGS_OK = "--warning-exit-0";
 
     private final AppRegistry registry;
     private final ExternalToolRunner runner;
@@ -77,19 +75,13 @@ public class PdfOperations {
                     Operation.checkNotStopped();
                     int end = Math.min(start + options.pagesPerPdf() - 1, totalPages);
                     Path chunk = outDir.resolve(String.format("%s_%04d-%04d.pdf", prefix, start, end));
-                    run(action, List.of("${selectedFile}", "cat", start + "-" + end, "output", "${outputPdf}"),
+                    run(action, List.of(WARNINGS_OK, "${selectedFile}", "--pages", ".", start + "-" + end, "--", "${outputPdf}"),
                             Map.of("${outputPdf}", chunk.toString()), List.of(input.toString()));
                 }
             } else {
                 List<Integer> selectedPages = options.mode() == PdfExtractOptions.Mode.SPECIFIC_PAGES_SINGLE
                         ? parsePageExpression(options.pageExpression(), totalPages) : List.of();
-                try {
-                    run(action, null, Map.of("${outputPattern}", workDir.resolve("page_%04d.pdf").toString()), List.of(input.toString()));
-                } catch (CompletionException e) {
-                    Operation.rethrowIfStopped(e);
-                    log.warn("pdftk burst failed for '{}', extracting page by page", pdf.name(), e.getCause());
-                    extractPageByPage(action, input, workDir, totalPages);
-                }
+                run(action, null, Map.of("${outputPattern}", workDir.resolve("page_%d.pdf").toString()), List.of(input.toString()));
                 namePages(workDir, outDir, prefix, selectedPages);
             }
             saveAll(outDir, targetFs, destinationFolder);
@@ -110,7 +102,7 @@ public class PdfOperations {
         }
     }
 
-    /** Runs pdftk and waits; {@code args} replaces the action's arguments when given. Fails with the tool's error. */
+    /** Runs qpdf and waits; {@code args} replaces the action's arguments when given. Fails with the tool's error. */
     private List<String> run(ActionDefinition action, List<String> args, Map<String, String> values, List<String> files) {
         return runner.runExecutable(ToolCommandBuilder.buildCommand(action.getPath(),
                 args == null ? action.getArgs() : args, null, values, files), false).join();
@@ -190,11 +182,13 @@ public class PdfOperations {
         }
     }
 
-    /** Moves the burst pages into {@code outDir} as {@code prefix_0001.pdf}; only {@code selectedPages} when given. */
+    /** Moves the split pages into {@code outDir} as {@code prefix_0001.pdf}; only {@code selectedPages} when given. */
     private static void namePages(Path workDir, Path outDir, String prefix, List<Integer> selectedPages) throws IOException {
         List<Path> pages;
         try (Stream<Path> files = Files.list(workDir)) {
-            pages = files.filter(path -> path.getFileName().toString().matches("^page_\\d{4}\\.pdf$")).sorted().toList();
+            pages = files.filter(path -> path.getFileName().toString().matches("^page_\\d+\\.pdf$"))
+                    .sorted(Comparator.comparingInt(path -> Integer.parseInt(path.getFileName().toString().replaceAll("\\D", ""))))
+                    .toList();
         }
         if (pages.isEmpty()) {
             throw new IOException("PDF extraction produced no pages.");
@@ -231,31 +225,16 @@ public class PdfOperations {
         }
     }
 
-    private void extractPageByPage(ActionDefinition action, Path input, Path workDir, int totalPages) {
-        for (int page = 1; page <= totalPages; page++) {
-            Path output = workDir.resolve(String.format("page_%04d.pdf", page));
-            run(action, List.of("${selectedFile}", "cat", String.valueOf(page), "output", "${outputPdf}"),
-                    Map.of("${outputPdf}", output.toString()), List.of(input.toString()));
-        }
-    }
-
     private int readPageCount(ActionDefinition action, Path input) {
         List<String> output;
         try {
-            output = run(action, List.of("${selectedFile}", "dump_data"), Map.of(), List.of(input.toString()));
+            output = run(action, List.of(WARNINGS_OK, "--show-npages", "${selectedFile}"), Map.of(), List.of(input.toString()));
         } catch (CompletionException ex) {
             throw new IllegalArgumentException("Failed to read PDF page count.", ex.getCause() == null ? ex : ex.getCause());
         }
-        for (String line : output) {
-            String trimmed = line.trim();
-            if (trimmed.startsWith("NumberOfPages:")) {
-                try {
-                    return Integer.parseInt(trimmed.substring("NumberOfPages:".length()).trim());
-                } catch (NumberFormatException ex) {
-                    throw new IllegalArgumentException("Failed to parse PDF page count.", ex);
-                }
-            }
-        }
-        throw new IllegalArgumentException("Could not determine PDF page count.");
+        // stderr is merged in, so a damaged file's warnings come before the count
+        return output.stream().map(String::trim).filter(line -> line.matches("\\d{1,9}")).map(Integer::parseInt)
+                .reduce((first, last) -> last)
+                .orElseThrow(() -> new IllegalArgumentException("Could not determine PDF page count."));
     }
 }

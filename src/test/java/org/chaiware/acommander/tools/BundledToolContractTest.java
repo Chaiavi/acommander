@@ -139,20 +139,27 @@ class BundledToolContractTest {
     }
 
     @Test
-    void pdftkMergesCountsAndExtractsPages() throws Exception {
+    void qpdfMergesCountsAndExtractsPages() throws Exception {
         LocalFileSystem local = new LocalFileSystem("");
         PdfOperations pdfs = new PdfOperations(registry, new ExternalToolRunner(() -> {}));
-        Path first = pdf("first.pdf");
+        Path first = pdf("ראשון.pdf");
         Path second = pdf("second.pdf");
         Path pages = Files.createDirectory(dir.resolve("pages"));
+        Path chunks = Files.createDirectory(dir.resolve("chunks"));
 
-        pdfs.merge(local, List.of(entry(first), entry(second)), local, dir.toString(), "merged.pdf");
-        Path merged = dir.resolve("merged.pdf");
+        pdfs.merge(local, List.of(entry(first), entry(second)), local, dir.toString(), "מאוחד.pdf");
+        Path merged = dir.resolve("מאוחד.pdf");
         pdfs.extractPages(local, entry(merged), local, pages.toString(), PdfExtractOptions.extractAll());
+        pdfs.extractPages(local, entry(merged), local, chunks.toString(),
+                new PdfExtractOptions(PdfExtractOptions.Mode.PAGES_PER_PDF, null, 1, null));
 
         assertThat(pdfs.pageCount(local, entry(merged))).isEqualTo(2);
         try (var files = Files.list(pages)) {
-            assertThat(files.count()).isEqualTo(2);
+            assertThat(files.map(file -> file.getFileName().toString()).sorted()).containsExactly("מאוחד_0001.pdf", "מאוחד_0002.pdf");
+        }
+        try (var files = Files.list(chunks)) {
+            assertThat(files.map(file -> file.getFileName().toString()).sorted())
+                    .containsExactly("מאוחד_0001-0001.pdf", "מאוחד_0002-0002.pdf");
         }
     }
 
