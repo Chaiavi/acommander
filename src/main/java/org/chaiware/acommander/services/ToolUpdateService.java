@@ -394,7 +394,9 @@ public class ToolUpdateService {
             try {
                 requireAllowedHost(response.uri());
                 if (response.statusCode() != 200) {
-                    throw new IOException(uri + " answered HTTP " + response.statusCode());
+                    // A 404: the cached tool list still names a file main already dropped.
+                    throw new IOException(uri + " answered HTTP " + response.statusCode() + (response.statusCode() == 404
+                            ? ". GitHub can serve the old tool list for a few minutes after a change; try again later." : ""));
                 }
             } catch (IOException e) {
                 response.body().close();

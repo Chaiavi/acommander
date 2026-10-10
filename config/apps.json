@@ -1091,7 +1091,7 @@
       "release": "ffmpeg-9.0.2", "upstream": {"github": "GyanD/codexffmpeg", "asset": "essentials_build\\.zip$"}},
     {"id": "file", "name": "file (Windows build)", "version": "5.44", "link": "https://github.com/julian-r/file-windows", "paths": ["apps/file_analysis"],
       "upstream": {"github": "julian-r/file-windows", "asset": "vs2022-x64\\.zip$", "files": ["file.exe", "libmagic.dll", "magic.mgc"]}},
-    {"id": "fileLocksmith", "name": "File Locksmith (PowerToys)", "version": "0.101.2362.0",
+    {"id": "fileLocksmith", "name": "File Locksmith (PowerToys)", "version": "0.101.2362.0", "minAppVersion": "4.5.1",
       "link": "https://learn.microsoft.com/windows/powertoys/file-locksmith", "paths": ["apps/delete/unlock_delete"],
       "upstream": {"github": "microsoft/PowerToys"}},
     {"id": "notepad4", "name": "Notepad4", "version": "26.08r6282", "link": "https://github.com/zufuliu/notepad4", "paths": ["apps/edit/Notepad4.exe"],

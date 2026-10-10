@@ -162,6 +162,9 @@ All actions and external tools live in `config/apps.json`; shortcuts are declare
   runs each command-line tool the way the app does), commit the files and `apps/tools.sha256` together. Tools that
   open a window run in `guiToolTest` (`BundledGuiToolContractTest`, tag `gui`, kept out of `build`): run it too.
   Users' Tool Updates compare against `main`, so a binary pushed without its new hash list fails their download check.
+- A tool that only new app code runs, or that replaces another tool's files (File Locksmith took over ThisIsMyFile's
+  folder), gets `minAppVersion` above the released version (`"4.5.1"` after v4.5). Without it, older installs get it in
+  Tool Updates, which deletes the files their code still runs.
 - A tool built with MSVC imports `VCRUNTIME140.dll`, which a clean Windows lacks (it runs here only because a VC++
   redist is installed). List a new exe's DLLs with a strings scan (`[regex]::Matches(<ASCII bytes>, '[\w\-]+\.dll')`);
   if it needs it, copy `build/runtime/bin/vcruntime140.dll` beside the exe and leave it out of `upstream.files`
