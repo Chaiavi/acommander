@@ -29,8 +29,9 @@ One tool at a time, so a bad update is held back alone and can be reverted alone
       apps/tools.sha256` (plus `build.gradle` for ffmpeg), and `git clean -f <tool paths>` for a file the upgrade
       added. Report the failing test and its message.
 4. Summary for the user: updated (old → new), failed (why), skipped (why).
-5. Deploying: run `.\gradlew.bat dist` only after this loop. A tool with no automatic download (RHash) is listed for
-   the user; the deploy goes ahead with the version already committed.
+5. Deploying: after this loop, run the release checklist ([app-ui-test](../app-ui-test/SKILL.md)), then
+   `.\gradlew.bat dist`. A tool with no automatic download (RHash) is listed for the user; the deploy goes ahead with
+   the version already committed.
 
 ## Pitfalls
 

@@ -102,7 +102,8 @@ lessons about this repo in the files above, not in memory.
   or `build/libs/`; `verifyDistribution` fails it if per-user files get in. `dist/` is a mirror: each `dist` run
   deletes anything in it the build doesn't produce, so don't keep files or run the app there.
 - Asked to deploy (`dist`): first run [update-tools](.github/skills/update-tools/SKILL.md), so every tool that has a
-  tested newer version ships. `dist` also prints the tool report as a last check.
+  tested newer version ships, then the release checklist in [app-ui-test](.github/skills/app-ui-test/SKILL.md) on
+  that build. `dist` also prints the tool report as a last check.
 - After every fix or feature run `build` and fix failures. Add a JUnit 6 (Jupiter) + AssertJ + Mockito test for new business
   logic under the matching package in `src/test/java`. Tests don't start the JavaFX toolkit — don't test UI.
 
