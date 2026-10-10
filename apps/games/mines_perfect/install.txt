@@ -1,0 +1,19 @@
+
+             Mines-Perfect a minesweeper-clone
+
+
+Installation:
+
+  - make a new directory (e.g c:\programme\mines-perfect)
+  - copy all files in that directory
+  - run mineperf.exe
+
+
+Sound:
+
+  - create a directory 'sound' in the mines-perfect-directory
+    (e.g. c:\programme\mines-perfect\sound)
+  - copy the all or some *.wav-files in that directory
+
+
+!! old *.log-Files cannot load with this version !!

@@ -182,6 +182,7 @@ public class ActionExecutor {
         boolean refresh = action.getRefreshAfter() != null
                 ? action.getRefreshAfter()
                 : false;
-        commander.runExternalReported(command, refresh, action.getLabel());
+        // Games find their data and save settings relative to the working folder
+        commander.runExternalReported(command, refresh, action.getLabel(), new java.io.File(command.getFirst()).getParentFile());
     }
 }

@@ -147,6 +147,13 @@ directories.
 
 ---
 
+## 🎮 Games
+
+Two bundled games start from the Command Palette: **LBreakoutHD** (Breakout) and **Mines-Perfect** (Minesweeper with
+extra board shapes).
+
+---
+
 ## ⌨️ Default Shortcuts
 
 | Key               | Action           | | Key                      | Action             |
@@ -191,6 +198,8 @@ directories.
 | exiv2                  | `apps/image_metadata/exiv2.exe`          |
 | UPX                    | `apps/exe_compress/upx.exe`              |
 | curl                   | `apps/remote_connectivity/curl.exe`      |
+| LBreakoutHD (GPL)      | `apps/games/lbreakouthd`                 |
+| Mines-Perfect (GPL)    | `apps/games/mines_perfect`               |
 
 Each tool's full name, version and home page are in the F1 help ("Bundled Tools") and in `config/apps.json` (`tools`).
 

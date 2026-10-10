@@ -5,6 +5,7 @@ import org.chaiware.acommander.tools.ProcessRunner;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.File;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -40,6 +41,12 @@ public class ExternalToolRunner {
      */
     public CompletableFuture<List<String>> runExecutable(List<String> command, boolean changesFiles,
                                                          Set<Integer> acceptedNonZeroExitCodes) {
+        return runExecutable(command, changesFiles, acceptedNonZeroExitCodes, null);
+    }
+
+    /** Same, run in {@code directory}; null keeps the app's working folder. */
+    public CompletableFuture<List<String>> runExecutable(List<String> command, boolean changesFiles,
+                                                         Set<Integer> acceptedNonZeroExitCodes, File directory) {
         List<String> commandSnapshot = List.copyOf(command);
         Set<Integer> acceptedExitCodes = new HashSet<>(acceptedNonZeroExitCodes);
         acceptedExitCodes.add(0);
@@ -52,7 +59,7 @@ public class ExternalToolRunner {
             try {
                 return operation.run(() -> {
                     log.debug("Running: {}", String.join(" ", commandSnapshot));
-                    ProcessRunner.Result result = ProcessRunner.of(commandSnapshot).mergeStderr().trackIn(operation).run();
+                    ProcessRunner.Result result = ProcessRunner.of(commandSnapshot).directory(directory).mergeStderr().trackIn(operation).run();
                     exitCode[0] = result.exitCode();
                     log.debug("Process completed with exit code: {}", exitCode[0]);
                     operation.throwIfStopped();

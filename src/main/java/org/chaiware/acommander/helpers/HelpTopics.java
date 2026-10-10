@@ -18,7 +18,7 @@ public final class HelpTopics {
 
     /** The help's sections, in display order; an apps.json {@code category} outside this list goes last. */
     public static final List<String> CATEGORIES = List.of("Getting Around", "Selection", "File Operations",
-            "Search & Compare", "Archives & PDF", "Media", "Tools", "Display & Settings", "Bundled Tools");
+            "Search & Compare", "Archives & PDF", "Media", "Tools", "Display & Settings", "Games", "Bundled Tools");
 
     /** Keys handled in code, not in apps.json. */
     static final List<Entry> FIXED_KEYS = List.of(

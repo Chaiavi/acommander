@@ -3169,6 +3169,11 @@ public class Commander {
         toolRunner.reportFailure(toolRunner.runExecutable(command, refreshAfter), title);
     }
 
+    /** Same, run in {@code directory}. */
+    public void runExternalReported(List<String> command, boolean refreshAfter, String title, File directory) {
+        toolRunner.reportFailure(toolRunner.runExecutable(command, refreshAfter, Set.of(), directory), title);
+    }
+
     public CompletableFuture<List<String>> runExternal(
             List<String> command,
             boolean refreshAfter,

@@ -26,6 +26,30 @@
       "refreshAfter": true
     },
     {
+      "id": "lbreakoutHD",
+      "description": "Starts LBreakoutHD, a Breakout game: bounce the ball to clear the bricks.",
+      "category": "Games",
+      "ftp": true,
+      "label": "LBreakoutHD",
+      "type": "external",
+      "path": "apps/games/lbreakouthd/lbreakouthd.exe",
+      "aliases": ["game", "breakout", "arkanoid"],
+      "contexts": ["commandPalette"],
+      "selection": "none"
+    },
+    {
+      "id": "minesPerfect",
+      "description": "Starts Mines-Perfect, a Minesweeper game with extra board shapes.",
+      "category": "Games",
+      "ftp": true,
+      "label": "Mines-Perfect",
+      "type": "external",
+      "path": "apps/games/mines_perfect/mineperf.exe",
+      "aliases": ["game", "minesweeper", "mines"],
+      "contexts": ["commandPalette"],
+      "selection": "none"
+    },
+    {
       "id": "help",
       "description": "Shows this help: every shortcut and action.",
       "category": "Getting Around",
@@ -1094,6 +1118,12 @@
     {"id": "fileLocksmith", "name": "File Locksmith (PowerToys)", "version": "0.101.2362.0", "minAppVersion": "4.5.1",
       "link": "https://learn.microsoft.com/windows/powertoys/file-locksmith", "paths": ["apps/delete/unlock_delete"],
       "upstream": {"github": "microsoft/PowerToys"}},
+    {"id": "lbreakoutHD", "name": "LBreakoutHD", "version": "1.2", "minAppVersion": "4.5.1", "link": "https://lgames.sourceforge.io/LBreakoutHD/",
+      "paths": ["apps/games/lbreakouthd"],
+      "upstream": {"page": "https://lgames.sourceforge.io/LBreakoutHD/", "pattern": "lbreakouthd-(\\d+(?:\\.\\d+)+)-win64\\.zip",
+        "url": "https://downloads.sourceforge.net/project/lgames/lbreakouthd/lbreakouthd-{version}-win64.zip"}},
+    {"id": "minesPerfect", "name": "Mines-Perfect", "version": "1.4.0", "minAppVersion": "4.5.1", "link": "https://sourceforge.net/projects/mines-perfect/",
+      "paths": ["apps/games/mines_perfect"]},
     {"id": "notepad4", "name": "Notepad4", "version": "26.08r6282", "link": "https://github.com/zufuliu/notepad4", "paths": ["apps/edit/Notepad4.exe"],
       "upstream": {"github": "zufuliu/notepad4", "asset": "^Notepad4_en_x64_.*\\.zip$"}},
     {"id": "qpdf", "name": "qpdf", "version": "12.4.2", "link": "https://github.com/qpdf/qpdf", "paths": ["apps/pdf"],

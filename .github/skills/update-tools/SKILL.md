@@ -18,6 +18,10 @@ One tool at a time, so a bad update is held back alone and can be reverted alone
         `apps/extract_all/UniExtract/bin/dark/dark.exe -nologo -x <tmp>\bundle setup.exe <tmp>\b.wxs`, then
         `apps/extract_all/UniExtract/bin/lessmsi/lessmsi.exe x <tmp>\bundle\AttachedContainer\a2 <tmp>\msi\ FileLocksmithCLI.exe`.
         Copy the exe over `apps/delete/unlock_delete/FileLocksmithCLI.exe`, set its version in apps.json, go on at step 2.
+      - LBreakoutHD: don't run `upgradeTools` (it matches files by name, and the themes repeat names). Unpack the
+        new `lbreakouthd-<version>-win64.zip` over `apps/games/lbreakouthd`, but keep our `SDL2.dll` (2.32.10 from
+        libsdl-org/SDL): the zip's SDL 2.0.7 crashes (0xC0000005 in SDL2.dll) on every quit, and the app then shows
+        "LBreakoutHD Failed". Set its version, go on at step 2.
       - Any other failure: nothing changed; report it and go to the next tool.
    2. `.\gradlew.bat build guiToolTest`. `build` rewrites `apps/tools.sha256` and runs the command-line tool tests;
       `guiToolTest` runs the tools that open a window.

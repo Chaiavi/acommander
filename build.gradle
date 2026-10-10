@@ -201,6 +201,11 @@ def releaseAppsExcludes = [
         'edit/Notepad4.ini',
         'extract_all/UniExtract/batch.queue',
         'extract_all/UniExtract/log/**',
+        'games/lbreakouthd/lbreakouthd.conf',
+        'games/lbreakouthd/lbreakouthd.hscr',
+        'games/lbreakouthd/lbreakouthd.sav',
+        'games/mines_perfect/mineperf.ini',
+        'games/mines_perfect/logs/**',
         'media/source.sha256',
         // Left by Tool Updates while the replaced exe still runs
         '**/*.acommander-old',

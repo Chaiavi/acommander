@@ -36,10 +36,12 @@ gotoBookmark | ftp=yes | writes=none | palette=++++++++++++++
 help | ftp=yes | writes=none | palette=++++++++++++++
 invertSelection | ftp=yes | writes=none | palette=++++++++++++++
 joinMedia | ftp=no | writes=target | palette=--------------
+lbreakoutHD | ftp=yes | writes=none | palette=++++++++++++++
 leftPathCombo | ftp=yes | writes=none | palette=n/a
 linkNavigation | ftp=yes | writes=none | palette=++++++++++++++
 mediaInfo | ftp=no | writes=none | palette=-----+++------
 mergePdf | ftp=no | writes=target | palette=------------+-
+minesPerfect | ftp=yes | writes=none | palette=++++++++++++++
 mkdir | ftp=yes | writes=source | palette=++++++++++++++
 mkfile | ftp=yes | writes=source | palette=++++++++++++++
 move | ftp=yes | writes=both | palette=-+++++++++++++

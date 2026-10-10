@@ -153,6 +153,16 @@ class BundledGuiToolContractTest {
                 right.toString(), new CompareFilesOptions(false, WhiteSpaceCompareMode.NONE, false)));
     }
 
+    @Test
+    void lbreakoutHDStarts() throws Exception {
+        startsWithoutCrashing(gameCommand("lbreakoutHD"), gameFolder("lbreakoutHD"));
+    }
+
+    @Test
+    void minesPerfectStarts() throws Exception {
+        startsWithoutCrashing(gameCommand("minesPerfect"), gameFolder("minesPerfect"));
+    }
+
     private ClipboardTransfer.PasteResult transfer(List<FileItem> items, Path from, Path to, boolean cut) {
         LocalFileSystem local = new LocalFileSystem("");
         FileOperations operations = new FileOperations(registry, new ExternalToolRunner(() -> {}));
@@ -166,9 +176,23 @@ class BundledGuiToolContractTest {
         return ToolCommandBuilder.buildCommand(action.getPath(), action.getArgs(), null, Map.of(), List.of(file.toString()));
     }
 
+    private static List<String> gameCommand(String actionId) {
+        ActionDefinition action = registry.findAction(actionId).orElseThrow();
+        return ToolCommandBuilder.buildCommand(action.getPath(), action.getArgs(), null, Map.of(), null);
+    }
+
+    /** External actions run in the exe's folder; LBreakoutHD crashes anywhere else. */
+    private static java.io.File gameFolder(String actionId) {
+        return new java.io.File(gameCommand(actionId).getFirst()).getParentFile();
+    }
+
     /** Running after a few seconds, or handed the file to an open copy (exit 0), means the window came up. */
     private static void startsWithoutCrashing(List<String> command) throws Exception {
-        Process process = ProcessRunner.of(command).launch();
+        startsWithoutCrashing(command, null);
+    }
+
+    private static void startsWithoutCrashing(List<String> command, java.io.File directory) throws Exception {
+        Process process = ProcessRunner.of(command).directory(directory).launch();
         try {
             if (process.waitFor(4, TimeUnit.SECONDS)) {
                 assertThat(process.exitValue()).as(String.join(" ", command) + " exited").isZero();
