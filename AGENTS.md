@@ -245,6 +245,9 @@ All actions and external tools live in `config/apps.json`; shortcuts are declare
 - A `ContextMenu`/popup shown on a node takes CSS from that node: on a `.file-pane` it gets the dark pane background
   but Modena's dark text (unreadable). Style it under `.file-pane .context-menu` in `app-theme.css` with `-ac-*` colors.
 - `Desktop.open` throws "Unsupported URI content" for executables (`.bat`, `.exe`); use ShellExec_RunDLL (above).
+- A JavaFX `Label`/`Text` starting with a Hebrew letter is laid out RTL ("ראשון.pdf" shows as "pdf.ראשון"), even
+  with `setNodeOrientation(LEFT_TO_RIGHT)` (checked with a probe on `Text.caretShape`). Prefix the shown text with
+  U+200E (LRM), as the pane name cell does.
 - Drag and drop on Windows: JavaFX reports a plain drag and a Shift+drag the same way (both MOVE; only Ctrl = COPY,
   Alt or Ctrl+Shift = LINK; see openjfx `GlassDnD.cpp`), and a `DragEvent` carries no key state. Don't build on Shift.
   Accept only COPY from another app: a source told MOVE may delete its files while our background copy still runs.
