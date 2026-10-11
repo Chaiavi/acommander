@@ -1591,7 +1591,7 @@ public class Commander {
         String zipFilename = firstFilename.contains(".")
                 ? firstFilename.substring(0, firstFilename.lastIndexOf('.')) + ".zip"
                 : firstFilename + ".zip";
-        getUserFeedback(zipFilename, "Pack to zip", "Zip filename").ifPresent(archiveName -> {
+        getUserFeedback(zipFilename, "Pack to Zip", "Zip Filename").ifPresent(archiveName -> {
             FilesPanesHelper.FocusSide targetSide = otherSide(source.sourceSide());
             VFileSystem targetFs = filesPanesHelper.getFileSystem(targetSide);
             String targetFolder = filesPanesHelper.getPath(targetSide);

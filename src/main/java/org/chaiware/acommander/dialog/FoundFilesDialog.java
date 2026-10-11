@@ -13,7 +13,7 @@ import java.util.Optional;
 
 import static org.chaiware.acommander.dialog.OptionsDialog.tip;
 
-/** Lists the files Find in Files found; Enter or a double-click goes to the selected one. */
+/** Lists the files Search or Find in Files found; Enter or a double-click goes to the selected one. */
 public final class FoundFilesDialog {
     private FoundFilesDialog() {
     }
@@ -22,7 +22,7 @@ public final class FoundFilesDialog {
         OptionsDialog<FileItem> dialog = new OptionsDialog<>(owner, themeClass,
                 "Files Found", "Go to File", "Show the selected file in the focused pane.");
 
-        ListView<FileItem> fileList = tip(new ListView<>(), "Files that contain the text; double-click one to go to it.");
+        ListView<FileItem> fileList = tip(new ListView<>(), "Files the search found; double-click one to go to it.");
         fileList.getItems().setAll(files.stream().map(filename -> new FileItem(Path.of(filename))).toList());
         fileList.setCellFactory(list -> new ListCell<>() {
             @Override
