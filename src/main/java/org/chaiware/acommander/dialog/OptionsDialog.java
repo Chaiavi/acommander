@@ -50,10 +50,17 @@ public final class OptionsDialog<T> {
         content.setPadding(new Insets(12));
         dialog.getDialogPane().setContent(content);
 
+        // A filter, as a focused ListView consumes Escape before the Cancel button sees it
         dialog.getDialogPane().addEventFilter(KeyEvent.KEY_PRESSED, event -> {
-            if (event.getCode() != KeyCode.ENTER
-                    || event.getTarget() instanceof TextArea
-                    || (event.getTarget() instanceof ComboBoxBase<?> combo && combo.isShowing())) {
+            if (event.getTarget() instanceof ComboBoxBase<?> combo && combo.isShowing()) {
+                return;
+            }
+            if (event.getCode() == KeyCode.ESCAPE) {
+                cancelButton.fire();
+                event.consume();
+                return;
+            }
+            if (event.getCode() != KeyCode.ENTER || event.getTarget() instanceof TextArea) {
                 return;
             }
             if (!okButton.isDisabled()) {
