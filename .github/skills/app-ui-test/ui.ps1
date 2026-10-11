@@ -11,6 +11,10 @@ public static class UiProbe {
     [DllImport("user32.dll")] public static extern uint GetWindowThreadProcessId(IntPtr h, out uint pid);
     [DllImport("user32.dll")] public static extern bool SetCursorPos(int x, int y);
     [DllImport("user32.dll")] public static extern void mouse_event(uint f, int x, int y, uint d, IntPtr e);
+    public delegate bool EnumProc(IntPtr h, IntPtr l);
+    [DllImport("user32.dll")] public static extern bool EnumWindows(EnumProc f, IntPtr l);
+    [DllImport("user32.dll")] public static extern bool IsWindowVisible(IntPtr h);
+    [DllImport("user32.dll", CharSet = CharSet.Unicode)] public static extern int GetWindowText(IntPtr h, System.Text.StringBuilder s, int n);
     [StructLayout(LayoutKind.Sequential)] public struct RECT { public int Left, Top, Right, Bottom; }
 }
 "@
@@ -47,3 +51,11 @@ if ($shot) {
     $bmp.Save($shot, [System.Drawing.Imaging.ImageFormat]::Png)
     "foreground pid=$owner size=${w}x$h"
 }
+$titles = [System.Collections.Generic.List[string]]::new()
+[UiProbe]::EnumWindows({ param($h, $l)
+    $p = 0; [UiProbe]::GetWindowThreadProcessId($h, [ref]$p) | Out-Null
+    if ($p -eq $procId -and [UiProbe]::IsWindowVisible($h)) {
+        $sb = [System.Text.StringBuilder]::new(256); [UiProbe]::GetWindowText($h, $sb, 256) | Out-Null; $titles.Add($sb.ToString())
+    }
+    $true }, [IntPtr]::Zero) | Out-Null
+"app windows: $($titles -join ' | ')"

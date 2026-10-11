@@ -37,6 +37,12 @@ the PNG. Steps are joined by `||`: SendKeys codes (`{ENTER}`, `^a`, `^+p`, `{DOW
   rows are left.
 - Dialog radio buttons don't move with arrow keys (focus sits on the default button): `CLICK:` them.
 - `TEXT:` sends ASCII only; Hebrew arrives as `?`. The Hebrew names are in the test files for that reason.
+- Caps Lock on (`[Console]::CapsLock`) makes `TEXT:renamed.txt` arrive as `RENAMED.TXT`. Not an app bug.
+- `ui.ps1` ends with `app windows: ...`, the app's visible window titles: it tells whether a dialog is still open
+  without viewing a screenshot.
+- Some actions move focus to the pane they wrote to (Convert Graphics, Convert Audio Files); `{HOME}{DOWN N}` then
+  moves in `out\`. `CLICK:` a row to pick the pane: pane rows are 28 px apart, the first file row at y=139, the
+  right pane's names at x=1850 (3456 px wide window).
 - Typing in a pane starts its incremental filter; a stray key leaves a pane showing only `..`. `{ESC}` in that pane.
 - Cursor to the Nth row: `{HOME}{DOWN N}` (row 0 is `..`). Rows shift when a test adds or removes files in `in\`.
 - Judge a step by the disk and the log (`Select-String $t\logs\ALL.log ' ERROR | WARN ' -CaseSensitive`), not by
@@ -71,15 +77,15 @@ confirm with `{ENTER}` unless the row says otherwise. Palette actions: `^+p`, `T
 | 14 | View / Edit | `notes.txt`, `{F3}` (close `%{F4}` `-noActivate`), `{F4}` (close the same way) | Universal Viewer, then Notepad4 in front with the text |
 | 15 | Analyze File | `picture.png`, palette `Analyze File` | Log: "Analyze File response ... PNG image data, 64 x 48" |
 | 16 | Checksum File | `notes.txt`, palette `Checksum File` | rhash exit 0 in the log; value equals `Get-FileHash` |
-| 17 | Convert Graphics | `picture.png`, palette `Convert Graphics`, JPG | `picture.jpg` in the target |
-| 18 | Audio | `tone.wav`: Media Info (3 s), Convert Audio to MP3, Trim Media 0 to 1 s | Info shows 0:03; `tone.mp3`; a ~1 s file |
-| 19 | PDF | `{INSERT}` on both PDFs, Merge PDF Files; on the result Extract PDF Pages: All, `1, 3`, per 2 | 5 pages; 5 files; 2 files; `_0001-0002`, `_0003-0004`, `_0005-0005` |
-| 20 | Compare Files | `notes.txt` left, `out\notes.txt` right, palette `Compare Files` | ExamDiff opens on both |
-| 21 | Compare Folders | palette `Compare Folders` | Dialog lists the differences between `in\` and `out\` |
-| 22 | App | `{F1}`; palette `Toggle Dark Mode` twice; palette Bookmark this path, Goto Bookmark, Remove Bookmark | Help opens; colors flip and return; bookmark goes to the folder, then is gone |
-| 23 | Rename (F2) | `notes.txt`, `{F2}`, `TEXT:renamed.txt` | `in\renamed.txt`, no `notes.txt` |
-| 24 | Move (F6) | `שלום.txt`, `{F6}` | `out\שלום.txt`, gone from `in\` |
-| 25 | Delete (F8) / Wipe (Shift+F8) | `renamed.txt` `{F8}`; `big.bin` `+{F8}` | Both gone from `in\` |
+| 17 | Convert Graphics | `picture.png`, palette `Convert Graphics`, `{ENTER}` (JPEG is the default) | `out\picture_converted.jpg`. Focus moves to `out\` after: `{TAB}` back |
+| 18 | Audio | `tone.wav`: palette `Media Info` (`{ENTER}` closes); `Convert Audio Files` (MP3 default), `{ENTER}`, then `{TAB}` back; `Trim Media`, `CLICK:130,152` (End), `TEXT:0:01`, `{ENTER}` | Info shows 00:00:03; `out\tone_converted.mp3`; `out\tone_trimmed.wav` of 1 s (`ffmpeg -i`) |
+| 19 | PDF | `second.pdf`, `^{DOWN 2}`, `^ ` (Ctrl+Space adds `ראשון.pdf`; Insert marks nothing), Merge PDF Files, `{ENTER}`. `CLICK:` `out\second.pdf`, Extract PDF Pages: All; again with `CLICK:24,181` `CLICK:175,211` `TEXT:1, 3`; again with `CLICK:24,241` `CLICK:175,271` `^a` `TEXT:2` | `out\second.pdf` has 5 pages; `in\second_0001`..`_0005`; `_0001`, `_0003` rewritten (no prompt); `_0001-0002`, `_0003-0004`, `_0005-0005` |
+| 20 | Compare Files | `notes.txt` left, `out\notes.txt` right, palette `Compare Files`, `{ENTER}` | ExamDiff's command line has both files; for identical files it shows only a small message box |
+| 21 | Compare Folders | palette `Compare Folders`, `{ENTER}` | "Only left / Only right / Different" counts match `in\` vs `out\` (recursive) |
+| 22 | App | `{F1}` (Esc closes); palette `Toggle Dark Mode` twice; palette Bookmark this path, `{ENTER}`; enter `nested`; Goto Bookmark, `{ENTER}`; Remove Bookmark, `{ENTER}` | Window "A Commander <version> Help"; `theme_mode` in `config\acommander.properties` flips and returns; log lists `in\` again; no `bookmark.` line left |
+| 23 | Rename (F2) | `notes.txt`, `{F2}`, `^a`, `TEXT:renamed.txt`, `{ENTER}` | `in\renamed.txt`, no `notes.txt` |
+| 24 | Move (F6) | `{END}` (`שלום.txt` sorts last), `{F6}` | `out\שלום.txt`, gone from `in\` |
+| 25 | Delete (F8) / Wipe (Shift+F8) | `renamed.txt` `{F8}` (no prompt); `big.bin` `+{F8}` | Both gone from `in\`; sdelete64 in the log |
 
 ### Installer (after `dist`)
 
