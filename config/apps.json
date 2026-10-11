@@ -855,7 +855,6 @@
       "shortcut": "Ctrl+Shift+A",
       "aliases": ["clear selection", "deselect all", "none"],
       "contexts": ["filePane", "commandPalette"],
-      "selection": "any",
       "type": "builtin"
     },
     {
