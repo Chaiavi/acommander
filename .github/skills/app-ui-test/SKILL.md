@@ -36,6 +36,10 @@ the PNG. Steps are joined by `||`: SendKeys codes (`{ENTER}`, `^a`, `^+p`, `{DOW
 - Cursor to the Nth row: `{HOME}{DOWN N}` (row 0 is `..`). Rows shift when a test adds or removes files in `in\`.
 - Judge a step by the disk and the log (`Select-String $t\logs\ALL.log ' ERROR | WARN ' -CaseSensitive`), not by
   the screenshot alone. A screenshot shows where you are.
+- A chat holds at most 20 images; one more fails the whole request ("Too many images in request"). Every viewed
+  screenshot stays in the chat. Take screenshots freely (they go to disk) but VIEW one only when the disk, the log
+  and the front window's size (printed by `ui.ps1`) can't tell you what happened. Budget about 15 views per chat;
+  past that, hand the remaining rows to a new chat.
 - `ui.ps1` prints `foreground pid=0 size=0x0` and the Bitmap "Parameter is not valid": the Windows session is
   locked (`Get-Process LogonUI` exists). Keys go nowhere; stop and say which rows are left.
 
@@ -48,20 +52,20 @@ confirm with `{ENTER}` unless the row says otherwise. Palette actions: `^+p`, `T
 |---|---|---|---|
 | 1 | Start | screenshot | Both panes listed as above; no ERROR in the log |
 | 2 | Select All / Invert / Unselect | `^a`, palette `TEXT:merge` (Esc), `^i`, `^+a` | `^a` marks all rows but `..`; status bar counts them; Merge PDF Files is NOT offered (mixed types) |
-| 3 | Copy a file (F5) | cursor on `notes.txt`, `{F5}` | `out\notes.txt` |
+| 3 | Copy a file (F5) | cursor on `notes.txt`, `{F5}` (no dialog) | `out\notes.txt` |
 | 4 | Copy a folder (F5) | cursor on `nested`, `{F5}` | `out\nested\deep.txt` |
 | 5 | Clipboard copy | `picture.png`, `^c`, `{TAB}`, `^v`, `{TAB}` | `out\picture.png` |
-| 6 | Duplicate (Alt+F6) | `notes.txt`, `%{F6}` | A second copy of `notes.txt` in `in\` |
-| 7 | Create Directory / File | `{F7}` `TEXT:made`; `%{F7}` `TEXT:made.txt` | `in\made\`, `in\made.txt` |
-| 8 | Pack to Zip (F11) | `notes.txt`, `{F11}`, 7-Zip window: `{ENTER}` (`-noActivate`) | A zip holding `notes.txt` |
-| 9 | Unpack (F12) | `box.zip`, `{F12}`, 7-Zip window: `{ENTER}` | `notes.txt` from the zip in the target |
-| 10 | Browse a zip | `box.zip`, `{ENTER}`, `{DOWN}`, `{F5}`, `{BACKSPACE}` | Pane shows `notes.txt` inside; it is copied to `out\` |
-| 11 | Split (Alt+F11) | `big.bin`, `%{F11}`, 1 MB parts | `big.bin.001` ... parts in the target, sizes add up to 3 MB |
-| 12 | Search for Files (F10) | `{F10}`, `TEXT:*.txt` | `notes.txt`, `שלום.txt`, `deep.txt` found |
-| 13 | Find in Files (Alt+F10) | `%{F10}`, `TEXT:needle` | Only `notes.txt` found |
-| 14 | View / Edit | `notes.txt`, `{F3}` (close `%{F4}`), `{F4}` (close `%{F4}`) | Universal Viewer, then Notepad4 opens with the text |
-| 15 | Analyze File | `picture.png`, palette `Analyze File` | "PNG image data, 64 x 48", no `\012` |
-| 16 | Checksum File | `notes.txt`, palette `Checksum File` | SHA-256 equals `Get-FileHash` |
+| 6 | Duplicate (Alt+F6) | `notes.txt`, `%{F6}` | `in\notes_copy.txt` |
+| 7 | Create Directory / File | `{F7}` `TEXT:made` `{ENTER}`; `%{F7}` `TEXT:made.txt` `{ENTER}` (both `-noActivate`) | `in\made\`, `in\made.txt` |
+| 8 | Pack to Zip (F11) | `notes.txt`, `{F11}`, name dialog: `{ENTER}` (`-noActivate`) | `out\notes.zip` |
+| 9 | Unpack (F12) | `box.zip`, `{F12}`; 7-Zip asks to replace `out\notes.txt`: click Auto Rename | `out\notes_1.txt` |
+| 10 | Browse a zip | `box.zip`, `{ENTER}`, `{DOWN}`, `{F5}`; conflict dialog: Overwrite All, `{ENTER}`; `{BACKSPACE}` | Pane shows `notes.txt` inside; `out\notes.txt` overwritten |
+| 11 | Split (Alt+F11) | `big.bin`, `%{F11}`, size field `1m`, `{ENTER}` | `out\big.7z.001` to `.004`; three are 1 MB |
+| 12 | Search for Files (F10) | `{F10}`, `TEXT:*.txt`, `{ENTER}`; close with Cancel | `notes.txt`, `notes_copy.txt`, `made.txt`, `שלום.txt`, `deep.txt` listed |
+| 13 | Find in Files (Alt+F10) | `%{F10}`, `TEXT:needle`, `{ENTER}`; `{ENTER}` goes to the file | `notes.txt`, `notes_copy.txt` |
+| 14 | View / Edit | `notes.txt`, `{F3}` (close `%{F4}` `-noActivate`), `{F4}` (close the same way) | Universal Viewer, then Notepad4 in front with the text |
+| 15 | Analyze File | `picture.png`, palette `Analyze File` | Log: "Analyze File response ... PNG image data, 64 x 48" |
+| 16 | Checksum File | `notes.txt`, palette `Checksum File` | rhash exit 0 in the log; value equals `Get-FileHash` |
 | 17 | Convert Graphics | `picture.png`, palette `Convert Graphics`, JPG | `picture.jpg` in the target |
 | 18 | Audio | `tone.wav`: Media Info (3 s), Convert Audio to MP3, Trim Media 0 to 1 s | Info shows 0:03; `tone.mp3`; a ~1 s file |
 | 19 | PDF | `{INSERT}` on both PDFs, Merge PDF Files; on the result Extract PDF Pages: All, `1, 3`, per 2 | 5 pages; 5 files; 2 files; `_0001-0002`, `_0003-0004`, `_0005-0005` |
