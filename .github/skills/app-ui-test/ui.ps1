@@ -1,4 +1,4 @@
-param([int]$procId, [string]$keys = '', [string]$shot = '', [int]$wait = 1500, [switch]$noActivate)
+param([int]$procId, [string]$keys = '', [string]$shot = '', [int]$wait = 1500, [switch]$noActivate, [string]$title = '')
 # Steps are split by "||": SendKeys codes ({ENTER}, ^a, ^+p), TEXT:<ascii text>, CLICK:x,y (pixels from the front window's corner).
 Add-Type -AssemblyName System.Drawing
 Add-Type @"
@@ -16,7 +16,10 @@ public static class UiProbe {
 "@
 [UiProbe]::SetProcessDPIAware() | Out-Null
 $sh = New-Object -ComObject WScript.Shell
-if (-not $noActivate) {
+if ($title) {
+    $sh.SendKeys('%')
+    $sh.AppActivate($title) | Out-Null
+} elseif (-not $noActivate) {
     $sh.SendKeys('%')
     $sh.AppActivate($procId) | Out-Null
 }

@@ -29,7 +29,12 @@ the PNG. Steps are joined by `||`: SendKeys codes (`{ENTER}`, `^a`, `^+p`, `{DOW
 
 - One call per screen: send the keys that open a dialog, wait (`2500`), screenshot; act on it in the next call.
 - A dialog or tool window is in front: pass `-noActivate`. Activating the pid brings the main window forward and
-  later keys miss the dialog (it looked like the dialog closed itself).
+  later keys miss the dialog (it looked like the dialog closed itself). If another app took the front meanwhile,
+  pass `-title '<dialog title>'` instead: it activates that window. Never `-title 'A Commander'`: the user's own
+  app has that title too.
+- `foreground pid` is another app (Chrome) and the log shows no action for your keys: the user is at the machine
+  (`GetLastInputInfo` idle under a second). Your keys went into their window. Stop, `env.ps1 stop`, and say which
+  rows are left.
 - Dialog radio buttons don't move with arrow keys (focus sits on the default button): `CLICK:` them.
 - `TEXT:` sends ASCII only; Hebrew arrives as `?`. The Hebrew names are in the test files for that reason.
 - Typing in a pane starts its incremental filter; a stray key leaves a pane showing only `..`. `{ESC}` in that pane.
