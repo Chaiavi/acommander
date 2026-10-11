@@ -717,7 +717,8 @@ public class Commander {
                     FileIcons.Icon iconSpec = FileIcons.of(item);
                     iconLabel.setText(iconSpec.glyph());
                     iconLabel.setStyle("-fx-text-fill: " + iconSpec.textColor() + ";");
-                    nameLabel.setText(item.getPresentableFilename());
+                    // LRM: JavaFX takes a Hebrew first letter as RTL even in an LTR node, showing "pdf.name"
+                    nameLabel.setText("\u200E" + item.getPresentableFilename());
                     sizeLabel.setText(String.format("%s", item.getHumanReadableSize()));
                     dateLabel.setText(item.getDate());
 
