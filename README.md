@@ -310,6 +310,34 @@ Every action is **data-driven**. Add, remove, or reconfigure tools without touch
 Full notes and downloads for every version: [GitHub Releases](https://github.com/Chaiavi/acommander/releases).
 
 <details>
+<summary><b>v5.0</b> — the perfect dual-pane file explorer: installer, tool updates, drag and drop, safer operations</summary>
+
+**New Features & Enhancements**
+
+- **Installer** — per-user setup with Start Menu entry and uninstaller; no admin rights; upgrades keep your settings
+- **Check Tool Updates** — every bundled tool's name, link, installed and newest version; update from the app
+- **FFmpeg for all media work** — convert audio and video, Trim Media, Join Media, Media Info
+- **Remove Metadata** — strip tags from audio, video and image files
+- **Sort by Extension**, **Linked Navigation** of both panes, **Ctrl+R** refreshes the drive list
+- **Drag and Drop** — to other apps, between the panes and onto folder rows
+- **Ask before overwriting** on copy, move and paste; **Insert** marks files
+- **F1 help** in collapsible sections and an **About** popup
+- **qpdf** for PDF merge and page extraction; **File Locksmith** to delete locked files
+- **Games** — Minesweeper (Mines-Perfect), Puzzle Collection, Arkanoid clone
+
+**Bug Fixes** (more than 50)
+
+- Security: encrypted FTP passwords, FTPS/SFTP server checks, no hidden commands in file or folder names
+- Archives: Enter opens a zip as a folder, edits never lost when repacking fails, pack/unpack without 7-Zip installed
+- FTP and SFTP folder copy, create, delete and rename
+- Delete goes to the Recycle Bin, Wipe asks first, Stop stops the whole batch
+- Large or remote folders no longer freeze the window
+- Failed tool runs, PDF jobs and searches show what went wrong
+- Hebrew names show the right way round; Turkish and comma-decimal systems work
+
+</details>
+
+<details>
 <summary><b>v4.5</b> — quality update: small workflow features and day-to-day fixes</summary>
 
 **New Features & Enhancements**
