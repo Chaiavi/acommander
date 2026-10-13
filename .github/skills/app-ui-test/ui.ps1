@@ -16,10 +16,15 @@ public static class UiProbe {
     [DllImport("user32.dll")] public static extern bool IsWindowVisible(IntPtr h);
     [DllImport("user32.dll", CharSet = CharSet.Unicode)] public static extern int GetWindowText(IntPtr h, System.Text.StringBuilder s, int n);
     [StructLayout(LayoutKind.Sequential)] public struct RECT { public int Left, Top, Right, Bottom; }
+    [DllImport("user32.dll")] public static extern IntPtr GetKeyboardLayout(uint thread);
+    [DllImport("user32.dll")] public static extern IntPtr LoadKeyboardLayout(string id, uint flags);
+    [DllImport("user32.dll")] public static extern bool PostMessage(IntPtr h, uint msg, IntPtr w, IntPtr l);
 }
 "@
 [UiProbe]::SetProcessDPIAware() | Out-Null
 $sh = New-Object -ComObject WScript.Shell
+# TEXT: steps would arrive upper-case
+if ([Console]::CapsLock) { $sh.SendKeys('{CAPSLOCK}') }
 if ($title) {
     $sh.SendKeys('%')
     $sh.AppActivate($title) | Out-Null
@@ -28,6 +33,15 @@ if ($title) {
     $sh.AppActivate($procId) | Out-Null
 }
 Start-Sleep -Milliseconds 400
+# SendKeys can't type Latin letters under a Hebrew layout (Ctrl+Shift+P never arrives): use US English meanwhile
+$front = [UiProbe]::GetForegroundWindow()
+$frontPid = 0
+$layout = [UiProbe]::GetKeyboardLayout([UiProbe]::GetWindowThreadProcessId($front, [ref]$frontPid))
+$switched = $keys -and $frontPid -eq $procId -and ($layout.ToInt64() -band 0xFFFF) -ne 0x0409
+if ($switched) {
+    [UiProbe]::PostMessage($front, 0x50, [IntPtr]::Zero, [UiProbe]::LoadKeyboardLayout('00000409', 1)) | Out-Null
+    Start-Sleep -Milliseconds 200
+}
 foreach ($k in ($keys -split '\|\|' | Where-Object { $_ -ne '' })) {
     if ($k -like 'CLICK:*') {
         $xy = $k.Substring(6) -split ','
@@ -38,6 +52,9 @@ foreach ($k in ($keys -split '\|\|' | Where-Object { $_ -ne '' })) {
         foreach ($c in $k.Substring(5).ToCharArray()) { $sh.SendKeys(($c -replace '([+^%~(){}\[\]])', '{$1}')); Start-Sleep -Milliseconds 30 }
     } else { $sh.SendKeys($k) }
     Start-Sleep -Milliseconds 500
+}
+if ($switched) {
+    [UiProbe]::PostMessage([UiProbe]::GetForegroundWindow(), 0x50, [IntPtr]::Zero, $layout) | Out-Null
 }
 Start-Sleep -Milliseconds $wait
 if ($shot) {
