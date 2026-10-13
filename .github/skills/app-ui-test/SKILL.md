@@ -48,8 +48,15 @@ the PNG. Steps are joined by `||`: SendKeys codes (`{ENTER}`, `^a`, `^+p`, `{DOW
   marks (an F8 deleted two marked PDFs instead of the cursor row). `{ESC}` first; a finished action clears them.
 - Typing in a pane starts its incremental filter; a stray key leaves a pane showing only `..`. `{ESC}` in that pane.
 - Cursor to the Nth row: `{HOME}{DOWN N}` (row 0 is `..`). Rows shift when a test adds or removes files in `in\`.
-- Judge a step by the disk and the log (`Select-String $t\logs\ALL.log ' ERROR | WARN ' -CaseSensitive`), not by
-  the screenshot alone. A screenshot shows where you are.
+  Rows 3-6: `nested` 1, `box.zip` 3, `notes.txt` 4, `picture.png` 5. From row 8 on: `big.bin` 3, `box.zip` 4,
+  `notes.txt` 6, `picture.png` 8, `second.pdf` 9, `tone.wav` 10; after row 23 `renamed.txt` is 8. Right pane from
+  row 19: `notes.txt` at `CLICK:1850,279`, `second.pdf` at `CLICK:1850,419`.
+- Judge a step by the disk and the log (`Select-String -Path $t\logs\ALL.log -Pattern ' ERROR | WARN ' -CaseSensitive`;
+  without `-Path` the path is taken as the pattern and fails), not by the screenshot alone.
+- Shorthands for the session (`$t` = `%TEMP%\ac-apptest`, `$ap` = its pid):
+  `function U($k,$n,$w=2500,[switch]$na){ $a=@($ap,$k,"$t\$n.png",$w); if($na){$a+='-noActivate'}; pwsh -NoProfile -File .github\skills\app-ui-test\ui.ps1 @a }`
+  and `function L { Select-String -Path $t\logs\ALL.log -Pattern ' ERROR | WARN ' -CaseSensitive }`. Several `U`
+  calls fit in one terminal command; the printed window titles show each step's result.
 - A chat holds at most 20 images; one more fails the whole request ("Too many images in request"). Every viewed
   screenshot stays in the chat. Take screenshots freely (they go to disk) but VIEW one only when the disk, the log
   and the front window's size (printed by `ui.ps1`) can't tell you what happened. Budget about 15 views per chat;
@@ -72,19 +79,19 @@ confirm with `{ENTER}` unless the row says otherwise. Palette actions: `^+p`, `T
 | 6 | Duplicate (Alt+F6) | `notes.txt`, `%{F6}` | `in\notes_copy.txt` |
 | 7 | Create Directory / File | `{F7}` `TEXT:made` `{ENTER}`; `%{F7}` `TEXT:made.txt` `{ENTER}` (both `-noActivate`) | `in\made\`, `in\made.txt` |
 | 8 | Pack to Zip (F11) | `notes.txt`, `{F11}`, name dialog: `{ENTER}` (`-noActivate`) | `out\notes.zip` |
-| 9 | Unpack (F12) | `box.zip`, `{F12}`; 7-Zip asks to replace `out\notes.txt`: click Auto Rename | `out\notes_1.txt` |
-| 10 | Browse a zip | `box.zip`, `{ENTER}`, `{DOWN}`, `{F5}`; conflict dialog: Overwrite All, `{ENTER}`; `{BACKSPACE}` | Pane shows `notes.txt` inside; `out\notes.txt` overwritten |
-| 11 | Split (Alt+F11) | `big.bin`, `%{F11}`, size field `1m`, `{ENTER}` | `out\big.7z.001` to `.004`; three are 1 MB |
-| 12 | Search for Files (F10) | `{F10}`, `TEXT:*.txt`, `{ENTER}`; close with Cancel | `notes.txt`, `notes_copy.txt`, `made.txt`, `שלום.txt`, `deep.txt` listed |
+| 9 | Unpack (F12) | `box.zip`, `{F12}`; 7-Zip asks to replace `out\notes.txt`: Auto Rename `CLICK:446,311` | `out\notes_1.txt` |
+| 10 | Browse a zip | `box.zip`, `{ENTER}`, `{DOWN}`, `{F5}`; conflict dialog: Overwrite All `CLICK:30,344`, `{ENTER}`; `{BACKSPACE}` | Pane shows `notes.txt` inside; `out\notes.txt` overwritten (its time becomes the zip entry's) |
+| 11 | Split (Alt+F11) | `big.bin`, `%{F11}`, size field `CLICK:270,146` `^a` `TEXT:1m`, `{ENTER}` | `out\big.7z.001` to `.004`; three are 1 MB |
+| 12 | Search for Files (F10) | `{F10}`, `TEXT:*.txt`, `{ENTER}`; close with Cancel `CLICK:963,532` | `notes.txt`, `notes_copy.txt`, `made.txt`, `שלום.txt`, `deep.txt` listed |
 | 13 | Find in Files (Alt+F10) | `%{F10}`, `TEXT:needle`, `{ENTER}`; `{ENTER}` goes to the file | `notes.txt`, `notes_copy.txt` |
 | 14 | View / Edit | `notes.txt`, `{F3}` (close `%{F4}` `-noActivate`), `{F4}` (close the same way) | Universal Viewer, then Notepad4 in front with the text |
 | 15 | Analyze File | `picture.png`, palette `Analyze File` | Log: "Analyze File response ... PNG image data, 64 x 48" |
-| 16 | Checksum File | `notes.txt`, palette `Checksum File` | rhash exit 0 in the log; value equals `Get-FileHash` |
+| 16 | Checksum File | `notes.txt`, palette `Checksum File`, `{ENTER}` (SHA256 default) | rhash exit 0 in the log; value equals `Get-FileHash` |
 | 17 | Convert Graphics | `picture.png`, palette `Convert Graphics`, `{ENTER}` (JPEG is the default) | `out\picture_converted.jpg` selected in `out\`; focus stays in `in\` |
 | 18 | Audio | `tone.wav`: palette `Media Info` (`{ENTER}` closes); `Convert Audio Files` (MP3 default), `{ENTER}`; `Trim Media`, `CLICK:130,152` (End), `TEXT:0:01`, `{ENTER}` | Info shows 00:00:03; `out\tone_converted.mp3`; `out\tone_trimmed.wav` of 1 s (`ffmpeg -i`) |
 | 19 | PDF | `second.pdf`, `{INSERT}`, `{DOWN}`, `{INSERT}` (marks it and `ראשון.pdf`, cursor outline on `שלום.txt`), Merge PDF Files, `{ENTER}`. `CLICK:` `out\second.pdf`, Extract PDF Pages: All; again with `CLICK:24,181` `CLICK:175,211` `TEXT:1, 3`: Items Already Exist lists `_0001`, `_0003`, `{ENTER}` (Skip Existing); again with `CLICK:24,241` `CLICK:175,271` `^a` `TEXT:2` | `out\second.pdf` has 5 pages; `in\second_0001`..`_0005`, then unchanged; `_0001-0002`, `_0003-0004`, `_0005-0005` selected in `in\` |
 | 20 | Compare Files | `notes.txt` left, `out\notes.txt` right, palette `Compare Files`, `{ENTER}` | ExamDiff's command line has both files; for identical files it shows only a small message box |
-| 21 | Compare Folders | palette `Compare Folders`, `{ENTER}` | "Only left / Only right / Different" counts match `in\` vs `out\` (recursive) |
+| 21 | Compare Folders | palette `Compare Folders`, `{ENTER}` | "Only left / Only right / Different" counts match `in\` vs `out\` (recursive; the empty `made\` counts as one left-only item) |
 | 22 | App | `{F1}` (Esc closes); palette `Toggle Dark Mode` twice; palette Bookmark this path, `{ENTER}`; enter `nested`; Goto Bookmark, `{ENTER}`; Remove Bookmark, `{ENTER}` | Window "A Commander <version> Help"; `theme_mode` in `config\acommander.properties` flips and returns; log lists `in\` again; no `bookmark.` line left |
 | 23 | Rename (F2) | `notes.txt`, `{F2}`, `^a`, `TEXT:renamed.txt`, `{ENTER}` | `in\renamed.txt`, no `notes.txt` |
 | 24 | Move (F6) | `{END}` (`שלום.txt` sorts last), `{F6}` | `out\שלום.txt`, gone from `in\` |
@@ -92,8 +99,9 @@ confirm with `{ENTER}` unless the row says otherwise. Palette actions: `^+p`, `T
 
 ### Installer (after `dist`)
 
-Skip and say so if `HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\{1D54CF8C-10E1-4E2A-BD4D-5F4CFE658C1C}_is1`
-exists: that is the user's real install, and a test install would take it over. Always pass `/TASKS=""`: the desktop
+`pwsh -NoProfile -File .github\skills\app-ui-test\installer.ps1` runs the four steps below and prints PASS/FAIL for
+each. It skips if `HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\{1D54CF8C-10E1-4E2A-BD4D-5F4CFE658C1C}_is1`
+exists: that is the user's real install, and a test install would take it over. It passes `/TASKS=""`: the desktop
 task overwrites a desktop `ACommander.lnk` the user may have made for a portable copy, and uninstall then deletes it.
 
 1. `dist\acommander-setup-v<version>.exe /VERYSILENT /SUPPRESSMSGBOXES /NORESTART /TASKS="" "/DIR=$env:TEMP\ac-install"`

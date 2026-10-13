@@ -259,6 +259,12 @@ def publishFfmpeg = tasks.register('publishFfmpeg') {
     def ci = providers.environmentVariable('CI')
     onlyIf { !ci.present }
     doLast {
+        // Public page check first: gh is needed only to create the release, not on every dist
+        def page = (HttpURLConnection) URI.create("https://github.com/Chaiavi/acommander/releases/tag/${ffmpegRelease}").toURL().openConnection()
+        page.requestMethod = 'HEAD'
+        if (page.responseCode == 200) {
+            return
+        }
         def gh = { List<String> args ->
             try {
                 def command = (['gh'] + args + ['--repo', 'Chaiavi/acommander']).collect { it.toString() }
