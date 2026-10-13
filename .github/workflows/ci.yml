@@ -11,15 +11,15 @@ jobs:
     runs-on: windows-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
       - name: Set up JDK
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v6
         with:
           distribution: temurin
           java-version: "21"
       # ffmpeg.exe (~110 MB download); fetchFfmpeg skips the download when this holds the pinned build
       - name: Cache ffmpeg
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: apps/media
           key: ffmpeg-${{ hashFiles('build.gradle') }}
