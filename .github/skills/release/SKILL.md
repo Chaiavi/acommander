@@ -24,6 +24,7 @@ Two steps go out to every user and need the user's "yes" in chat first: pushing 
    2. Polish that file like the v4.5 release: an emoji and a short user-facing title per line, then ` — ` and one
       sentence on what changed for the user. Move a line to the right group if its label was wrong. Many issues:
       merge related ones into one line that lists all their links. Write a one-line summary under the date.
+      Then `notes.ps1 -Version $v -Verify $env:TEMP\notes-v$v.md` must exit 0 (every issue linked, no others).
    3. Add a `<details>` entry for `v$v` at the top of README "Release History", plain (no emoji), as the v4.5 one.
 5. `.\gradlew.bat build`, then the release checklist in [app-ui-test](../app-ui-test/SKILL.md) (rows 1-25).
    Fix failures first; a fix goes in its own commit with its issue.
