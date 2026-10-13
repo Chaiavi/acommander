@@ -79,6 +79,16 @@ public final class TransferConflicts {
                 .toList();
     }
 
+    /** The {@code names} an action is about to write that already exist in {@code folder}; no source side. Blocking. */
+    public static List<Conflict> findNames(List<String> names, VFileSystem fs, String folder) throws IOException {
+        Function<String, String> key = keyFor(fs);
+        Map<String, FileItem> existing = byName(fs.listContents(folder), key);
+        return names.stream()
+                .filter(name -> existing.containsKey(key.apply(name)))
+                .map(name -> new Conflict(name, null, existing.get(key.apply(name))))
+                .toList();
+    }
+
     /**
      * The entries to transfer under {@code policy}: SKIP drops every conflict, OVERWRITE_OLDER keeps only files whose
      * source is newer. ponytail: whole items only; a clashing folder can't be merged file by file here, so OLDER drops

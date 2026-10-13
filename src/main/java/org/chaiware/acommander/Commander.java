@@ -1607,11 +1607,39 @@ public class Commander {
             FilesPanesHelper.FocusSide targetSide = otherSide(source.sourceSide());
             VFileSystem targetFs = filesPanesHelper.getFileSystem(targetSide);
             String targetFolder = filesPanesHelper.getPath(targetSide);
-            runFileOperation("Pack", List.of(source.sourceFs(), targetFs), true, () -> {
-                archiveOps.pack(source.sourceFs(), source.entries(), targetFs, targetFolder, archiveName);
-                return null;
-            }, ignored -> filesPanesHelper.selectNames(targetSide, targetFolder, List.of(archiveName)));
+            confirmOverwrite("Pack", targetFs, targetFolder, () -> List.of(archiveName), skip -> {
+                if (!skip.isEmpty()) {
+                    return;
+                }
+                runFileOperation("Pack", List.of(source.sourceFs(), targetFs), true, () -> {
+                    // 7-Zip's "a" adds to an existing archive instead of replacing it
+                    if (!TransferConflicts.findNames(List.of(archiveName), targetFs, targetFolder).isEmpty()) {
+                        targetFs.delete(ClipboardTransfer.targetInternalPath(targetFs, targetFolder, archiveName, false));
+                    }
+                    archiveOps.pack(source.sourceFs(), source.entries(), targetFs, targetFolder, archiveName);
+                    return null;
+                }, ignored -> filesPanesHelper.selectNames(targetSide, targetFolder, List.of(archiveName)));
+            });
         });
+    }
+
+    /**
+     * Lists which of the {@code names} an action will write already exist in {@code folder} and asks about them.
+     * {@code proceed} gets the names to leave alone: none when nothing clashes or the user chose Overwrite All.
+     */
+    private void confirmOverwrite(String title, VFileSystem fs, String folder, Callable<List<String>> names,
+                                  Consumer<Set<String>> proceed) {
+        runFileOperation("Check Existing Files", List.of(fs), false,
+                () -> TransferConflicts.findNames(names.call(), fs, folder),
+                conflicts -> {
+                    if (conflicts.isEmpty()) {
+                        proceed.accept(Set.of());
+                        return;
+                    }
+                    OverwriteDialog.show(dialogOwner(), currentThemeMode.styleClass, title, folder, conflicts)
+                            .ifPresent(policy -> proceed.accept(policy == TransferConflicts.Policy.OVERWRITE ? Set.of()
+                                    : conflicts.stream().map(TransferConflicts.Conflict::name).collect(java.util.stream.Collectors.toSet())));
+                });
     }
 
     public void splitLargeFile() {
@@ -2276,10 +2304,15 @@ public class Commander {
             FilesPanesHelper.FocusSide targetSide = otherSide(source.sourceSide());
             VFileSystem targetFs = filesPanesHelper.getFileSystem(targetSide);
             String targetFolder = filesPanesHelper.getPath(targetSide);
-            runFileOperation("Merge PDF Files", List.of(source.sourceFs(), targetFs), true, () -> {
-                pdfOps.merge(source.sourceFs(), source.entries(), targetFs, targetFolder, fileName);
-                return null;
-            }, ignored -> filesPanesHelper.selectNames(targetSide, targetFolder, List.of(fileName)));
+            confirmOverwrite("Merge PDF Files", targetFs, targetFolder, () -> List.of(fileName), skip -> {
+                if (!skip.isEmpty()) {
+                    return;
+                }
+                runFileOperation("Merge PDF Files", List.of(source.sourceFs(), targetFs), true, () -> {
+                    pdfOps.merge(source.sourceFs(), source.entries(), targetFs, targetFolder, fileName);
+                    return null;
+                }, ignored -> filesPanesHelper.selectNames(targetSide, targetFolder, List.of(fileName)));
+            });
         });
     }
 
@@ -2296,12 +2329,16 @@ public class Commander {
         runFileOperation("Read PDF Page Count", List.of(source.sourceFs()), false,
                 () -> pdfOps.pageCount(source.sourceFs(), first),
                 totalPages -> PdfExtractDialog.show(dialogOwner(), currentThemeMode.styleClass, first.name(), totalPages)
-                        .ifPresent(options -> runFileOperation("Extract PDF Pages", List.of(source.sourceFs(), targetFs), true, () -> {
-                            for (ClipboardTransfer.Entry pdf : source.entries()) {
-                                pdfOps.extractPages(source.sourceFs(), pdf, targetFs, targetFolder, options.withKnownTotalPages(totalPages));
-                            }
-                            return null;
-                        }, ignored -> {})));
+                        .map(options -> options.withKnownTotalPages(totalPages))
+                        .ifPresent(options -> confirmOverwrite("Extract PDF Pages", targetFs, targetFolder,
+                                () -> source.entries().stream()
+                                        .flatMap(pdf -> PdfOperations.outputNames(pdf.name(), totalPages, options).stream()).toList(),
+                                skip -> runFileOperation("Extract PDF Pages", List.of(source.sourceFs(), targetFs), true, () -> {
+                                    for (ClipboardTransfer.Entry pdf : source.entries()) {
+                                        pdfOps.extractPages(source.sourceFs(), pdf, targetFs, targetFolder, options, skip);
+                                    }
+                                    return null;
+                                }, ignored -> {}))));
     }
 
     public boolean canCompareSelectedFiles() {

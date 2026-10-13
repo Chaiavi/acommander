@@ -19,6 +19,7 @@ import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.*;
 import java.util.concurrent.CompletionException;
+import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 /**
@@ -56,9 +57,9 @@ public class PdfOperations {
         }
     }
 
-    /** Page files of {@code pdf} into {@code destinationFolder}, as {@code options} say. */
+    /** Page files of {@code pdf} into {@code destinationFolder}, as {@code options} say; names in {@code skip} are not saved. */
     public void extractPages(VFileSystem sourceFs, Entry pdf, VFileSystem targetFs, String destinationFolder,
-                             PdfExtractOptions options) throws IOException {
+                             PdfExtractOptions options, Set<String> skip) throws IOException {
         requirePdf(pdf);
         Path workDir = AppTempDir.createTempDirectory("acommander_pdf_extract_work_");
         try {
@@ -68,13 +69,13 @@ public class PdfOperations {
             int totalPages = options.knownTotalPages() != null && options.knownTotalPages() > 0
                     ? options.knownTotalPages() : readPageCount(action, input);
             validateExtractRequest(pdf.name(), totalPages, options);
-            String prefix = pdf.name().replaceFirst("(?i)\\.pdf$", "");
+            String prefix = prefix(pdf.name());
             Path outDir = Files.createDirectories(workDir.resolve("out"));
             if (options.mode() == PdfExtractOptions.Mode.PAGES_PER_PDF) {
                 for (int start = 1; start <= totalPages; start += options.pagesPerPdf()) {
                     Operation.checkNotStopped();
                     int end = Math.min(start + options.pagesPerPdf() - 1, totalPages);
-                    Path chunk = outDir.resolve(String.format("%s_%04d-%04d.pdf", prefix, start, end));
+                    Path chunk = outDir.resolve(chunkName(prefix, start, end));
                     run(action, List.of(WARNINGS_OK, "${selectedFile}", "--pages", ".", start + "-" + end, "--", "${outputPdf}"),
                             Map.of("${outputPdf}", chunk.toString()), List.of(input.toString()));
                 }
@@ -84,10 +85,39 @@ public class PdfOperations {
                 run(action, null, Map.of("${outputPattern}", workDir.resolve("page_%d.pdf").toString()), List.of(input.toString()));
                 namePages(workDir, outDir, prefix, selectedPages);
             }
-            saveAll(outDir, targetFs, destinationFolder);
+            saveAll(outDir, targetFs, destinationFolder, skip);
         } finally {
             FileHelper.deleteQuietly(workDir);
         }
+    }
+
+    /** The file names {@link #extractPages} writes for {@code pdfName}, in page order. */
+    public static List<String> outputNames(String pdfName, int totalPages, PdfExtractOptions options) {
+        String prefix = prefix(pdfName);
+        List<String> names = new ArrayList<>();
+        if (options.mode() == PdfExtractOptions.Mode.PAGES_PER_PDF) {
+            for (int start = 1; start <= totalPages; start += options.pagesPerPdf()) {
+                names.add(chunkName(prefix, start, Math.min(start + options.pagesPerPdf() - 1, totalPages)));
+            }
+            return names;
+        }
+        List<Integer> pages = options.mode() == PdfExtractOptions.Mode.SPECIFIC_PAGES_SINGLE
+                ? parsePageExpression(options.pageExpression(), totalPages)
+                : IntStream.rangeClosed(1, totalPages).boxed().toList();
+        pages.forEach(page -> names.add(pageName(prefix, page)));
+        return names;
+    }
+
+    private static String prefix(String pdfName) {
+        return pdfName.replaceFirst("(?i)\\.pdf$", "");
+    }
+
+    private static String pageName(String prefix, int page) {
+        return String.format("%s_%04d.pdf", prefix, page);
+    }
+
+    private static String chunkName(String prefix, int start, int end) {
+        return String.format("%s_%04d-%04d.pdf", prefix, start, end);
     }
 
     public int pageCount(VFileSystem fs, Entry pdf) throws IOException {
@@ -195,14 +225,14 @@ public class PdfOperations {
         }
         if (selectedPages.isEmpty()) {
             for (int i = 0; i < pages.size(); i++) {
-                Files.move(pages.get(i), outDir.resolve(String.format("%s_%04d.pdf", prefix, i + 1)));
+                Files.move(pages.get(i), outDir.resolve(pageName(prefix, i + 1)));
             }
             return;
         }
         int saved = 0;
         for (int page : selectedPages) {
             if (page <= pages.size()) {
-                Files.move(pages.get(page - 1), outDir.resolve(String.format("%s_%04d.pdf", prefix, page)));
+                Files.move(pages.get(page - 1), outDir.resolve(pageName(prefix, page)));
                 saved++;
             }
         }
@@ -211,11 +241,14 @@ public class PdfOperations {
         }
     }
 
-    /** Saves every file in {@code outDir} to the target pane's folder. */
-    private static void saveAll(Path outDir, VFileSystem targetFs, String destinationPath) throws IOException {
+    /** Saves every file in {@code outDir} but the {@code skip} names to the target pane's folder. */
+    private static void saveAll(Path outDir, VFileSystem targetFs, String destinationPath, Set<String> skip) throws IOException {
         try (Stream<Path> files = Files.list(outDir)) {
             for (Path file : files.toList()) {
                 String name = file.getFileName().toString();
+                if (skip.contains(name)) {
+                    continue;
+                }
                 if (targetFs instanceof LocalFileSystem) {
                     Files.move(file, Paths.get(destinationPath, name), StandardCopyOption.REPLACE_EXISTING);
                 } else {

@@ -73,11 +73,11 @@ Adding or renaming an action id? Check each of these:
 | `terminal` (F9) / `explorer` (Alt+F9) | `terminalHere` / `explorerHere` | `FileOperations.openTerminal` / `openExplorer` | PowerShell `Start-Process` (folder = working directory), `explorer.exe` |
 | `search` (F10, Ctrl+F) | `search` → `pickFoundFile` | `tools/BundledToolCommands.findByName`, `foundFiles`; `FoundFilesDialog` | `search_in_files/rg.exe` |
 | `findInFiles` (Alt+F10) | `findInFiles` → `pickFoundFile` | `dialog/FindInFilesDialog`, `FoundFilesDialog`; `tools/BundledToolCommands.findInFiles`, `foundFiles` | `search_in_files/rg.exe` |
-| `pack` (F11) | `pack` | `ArchiveOperations.pack` | `pack_unpack/7zG.exe` |
+| `pack` (F11) | `pack` → `confirmOverwrite` | `TransferConflicts.findNames` → `OverwriteDialog` (overwrite deletes the old archive first), `ArchiveOperations.pack` | `pack_unpack/7zG.exe` |
 | `splitLargeFile` (Alt+F11) | `splitLargeFile` | `dialog/SplitSizeDialog`, `tools/BundledToolCommands.parseSplitSize` | `extract_all/UniExtract/bin/x64/7z.exe` |
 | `unpack` (F12) | `unpackFile` | `ArchiveOperations.unpack` → `unpackWith` | `pack_unpack/7zG.exe` |
 | `extractAll` (Alt+F12) | `extractAll` | `ArchiveOperations.extractAll` → `unpackWith` | `extract_all/UniExtract/UniExtract.exe` |
-| `mergePdf` / `extractPdfPages` | `mergePDFFiles` / `extractPDFPages` | `dialog/PdfExtractDialog`, `services/PdfOperations.merge` / `extractPages` / `pageCount`, `PdfExtractOptions` | `pdf/qpdf.exe` |
+| `mergePdf` / `extractPdfPages` | `mergePDFFiles` / `extractPDFPages` → `confirmOverwrite` | `dialog/PdfExtractDialog`, `TransferConflicts.findNames` → `OverwriteDialog`, `services/PdfOperations.merge` / `extractPages` / `pageCount` / `outputNames`, `PdfExtractOptions` | `pdf/qpdf.exe` |
 | `convertMediaFile` (Alt+F5) | `convertMediaFile` → image, audio or video below | `ImageConversionSupport`, `MediaFiles` | — |
 | `convertGraphicsFiles` | `convertGraphicsFiles` | `dialog/ImageConversionDialog`, `services/ImageConversionService` (command, output lookup), `ImageConversionSupport` | `image_convert/caesiumclt.exe` |
 | `convertAudioFiles` | `convertAudioFiles`, `mediaConverter`, `showConversionResult` | `dialog/AudioConversionDialog`, `services/MediaConversionService.convertAudio` | `media/ffmpeg.exe` |
@@ -201,7 +201,7 @@ Not actions, but often asked for:
 | `ConfirmDialog` | Yes/no question on `OptionsDialog` (delete, wipe). |
 | `CompareFoldersDialog` | Compare Folders options → `FolderComparer.Options`. |
 | `SplitSizeDialog` | Part size for Alt+F11 split → 7-Zip `-v` argument. |
-| `OverwriteDialog` | Names that already exist in the target (size/date each side) → `TransferConflicts.Policy` for the whole copy/move/paste. |
+| `OverwriteDialog` | Names that already exist in the target (size/date each side) → `TransferConflicts.Policy` for the whole copy/move/paste; for new outputs (no source side: `confirmOverwrite`) only Overwrite All / Skip Existing. |
 | `LockedItemsDialog` | Delete of locked local items: the programs holding them open (name, PID, user) → End Programs and Delete or Cancel. |
 | `ChecksumOptionsDialog` / `ChecksumResultDialog` | Hash type + output format; the result with Copy and Save. |
 | `CompareFilesDialog` | ExamDiff options → `CompareFilesOptions`. |
@@ -283,10 +283,10 @@ Not actions, but often asked for:
 | `FileOperations` | Takes the captured file system and paths, never the panes: `transfer` (F5, F6, Alt+F6, Ctrl+V; FastCopy local to local with `toolTarget` = target folder + `\`), rename, delete (local: Recycle Bin when asked) / wipe, `endLockersAndDelete` (ends the programs holding items open, deletes again → `LockedDelete`), new folder / file, view / edit (temp copy for archive/FTP, saved back), terminal, explorer; `filterValidItems` drops "..". `Commander.runFileOperation` runs it in the background and refreshes once. |
 | `DeleteConfirmation` | The question before delete / wipe (`deleteQuestion`, `wipeQuestion`); `recycles` (local, non-UNC, Desktop supports the Recycle Bin). |
 | `LockingPrograms` | Programs holding files open: `find` runs File Locksmith (`FileLocksmithCLI.exe`, its table output: the `--json` output stops at a name outside the ANSI code page) → `Locker` (PID, user, name); `end` kills them and waits, never ACommander itself or a PID that now belongs to another program. Sees only programs running as this user. |
-| `TransferConflicts` | Names of a copy/move already in the target: `find` (lists both folders via VFS; ignores case except FTP), `Policy` (Overwrite / Skip / Overwrite Older → FastCopy `force_copy` / `noexist_only` / `update`), `keep` (filters whole items for moves and VFS paths). |
+| `TransferConflicts` | Names of a copy/move already in the target: `find` (lists both folders via VFS; ignores case except FTP), `findNames` (outputs an action is about to write), `Policy` (Overwrite / Skip / Overwrite Older → FastCopy `force_copy` / `noexist_only` / `update`), `keep` (filters whole items for moves and VFS paths). |
 | `PaneDragDrop` | Drag and drop: `filesOnDisk` (local / archive items), `download` (FTP items to a temp folder at drag start), `allowsMoveOut`, `fromDroppedFiles` (other apps' files as a copy), `folderOf` (folder row → target folder), `isDraggedFolder`. |
 | `ArchiveOperations` | Pack (non-local items staged under their own names), Unpack and Extract All (`unpackWith`; remote sides through temp copies). |
-| `PdfOperations` | Merge, extract pages, page count with qpdf on local temp copies; results saved to any pane type. Pages per PDF cuts each chunk with one `--pages . start-end`; other modes `--split-pages`. `parsePageExpression`, `validateExtractRequest`. |
+| `PdfOperations` | Merge, extract pages, page count with qpdf on local temp copies; results saved to any pane type. Pages per PDF cuts each chunk with one `--pages . start-end`; other modes `--split-pages`. `parsePageExpression`, `validateExtractRequest`, `outputNames` (the files extract writes, for the overwrite check). |
 | `PdfExtractOptions` | Record: extract all / page expression / pages per PDF. |
 | `LinkedNavigation` | Linked panel navigation: `target` = where the other pane goes for a folder step (same-named subfolder or parent). |
 | `ToolUpdateService` | Tool Updates: `check` reads `config/apps.json` and `apps/tools.sha256` from raw `main` and compares them with this copy (`plan`: missing files, files main changed, files main dropped; a file main didn't change is never reset); `update` downloads to `AppTempDir`, checks each SHA-256, swaps the files (old ones moved aside, put back on failure) and rewrites the local `tools.sha256`. `https()` allows only this project's GitHub hosts; `resolve` refuses paths outside apps/. |

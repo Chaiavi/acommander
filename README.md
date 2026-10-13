@@ -139,7 +139,7 @@ directories.
 | Category     | Actions                                                                                                                                                           |
 |--------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | **Archive**  | Pack to zip (`F11`) via 7-Zip GUI · Unpack (`F12`) via 7-Zip GUI · Extract anything (`Alt+F12`) via Universal Extractor · Split large file (`Alt+F11`) via 7z CLI |
-| **PDF**      | Merge PDF files · Extract PDF pages (all pages, specific pages/ranges, pages-per-output chunking)                                                                 |
+| **PDF**      | Merge PDF files · Extract PDF pages (all pages, specific pages/ranges, pages-per-output chunking). Both, and Pack to zip, ask before replacing files that already exist |
 | **Convert**  | Media conversion (`Alt+F5`) auto-routes to image, audio or video · Graphics via `caesiumclt.exe` · Audio to MP3, M4A, FLAC, WAV, OGG or Opus via ffmpeg (quality, sample rate, loudness normalize) · Video to MP4 (H.264 / H.265, optional downsizing), or to MP4/MKV without re-encoding, or extract its audio (MP3, M4A or the original track) |
 | **Media**    | Trim Media (keep a start-to-end part, lossless by default) · Join Media (join files of one type without re-encoding) · Media Info (duration, bitrate, codecs, resolution, tags) · all via ffmpeg, from the Command Palette |
 | **Checksum** | Single file or recursive folder checksum via `rhash.exe`                                                                                                          |

@@ -95,15 +95,27 @@ class PdfOperationsTest {
         LocalFileSystem local = new LocalFileSystem("");
 
         new PdfOperations(new AppRegistry(config), runner).extractPages(local, new Entry("book.pdf", false, book.toString()),
-                local, targetDir.toString(), new PdfExtractOptions(PdfExtractOptions.Mode.PAGES_PER_PDF, null, 100, 250));
+                local, targetDir.toString(), new PdfExtractOptions(PdfExtractOptions.Mode.PAGES_PER_PDF, null, 100, 250),
+                Set.of("book_0101-0200.pdf"));
 
         assertThat(runner.commands).as("no split, no merge").allMatch(command -> command.contains("--pages"));
         assertThat(runner.commands).extracting(command -> command.get(command.indexOf(".") + 1))
                 .containsExactly("1-100", "101-200", "201-250");
         try (Stream<Path> files = Files.list(targetDir)) {
             assertThat(files.map(file -> file.getFileName().toString()).sorted())
-                    .containsExactly("book_0001-0100.pdf", "book_0101-0200.pdf", "book_0201-0250.pdf");
+                    .as("the skipped name is not saved")
+                    .containsExactly("book_0001-0100.pdf", "book_0201-0250.pdf");
         }
+    }
+
+    @Test
+    void outputNamesAreTheFilesExtractWrites() {
+        assertThat(PdfOperations.outputNames("Book.PDF", 3, PdfExtractOptions.extractAll()))
+                .containsExactly("Book_0001.pdf", "Book_0002.pdf", "Book_0003.pdf");
+        assertThat(PdfOperations.outputNames("b.pdf", 5, new PdfExtractOptions(PdfExtractOptions.Mode.SPECIFIC_PAGES_SINGLE, "1, 3", null, null)))
+                .containsExactly("b_0001.pdf", "b_0003.pdf");
+        assertThat(PdfOperations.outputNames("b.pdf", 5, new PdfExtractOptions(PdfExtractOptions.Mode.PAGES_PER_PDF, null, 2, null)))
+                .containsExactly("b_0001-0002.pdf", "b_0003-0004.pdf", "b_0005-0005.pdf");
     }
 
     /** Plays qpdf: records the inputs and writes the output file, its last argument. */

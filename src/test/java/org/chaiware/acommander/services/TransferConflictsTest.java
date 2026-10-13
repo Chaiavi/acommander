@@ -39,6 +39,17 @@ class TransferConflictsTest {
     }
 
     @Test
+    void findNamesListsTheOutputsThatAlreadyExist() throws Exception {
+        Files.writeString(tempDir.resolve("Book_0001.pdf"), "old");
+
+        List<Conflict> conflicts = TransferConflicts.findNames(List.of("book_0001.pdf", "book_0002.pdf"),
+                new LocalFileSystem(""), tempDir.toString());
+
+        assertThat(conflicts).extracting(Conflict::name).containsExactly("book_0001.pdf");
+        assertThat(conflicts.getFirst().source()).isNull();
+    }
+
+    @Test
     void keepAppliesThePolicyToWholeItems() {
         Entry newerFile = new Entry("newer.txt", false, "/s/newer.txt");
         Entry olderFile = new Entry("older.txt", false, "/s/older.txt");

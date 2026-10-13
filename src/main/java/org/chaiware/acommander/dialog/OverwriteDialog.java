@@ -29,10 +29,13 @@ public final class OverwriteDialog {
         Label subtitle = new Label(conflicts.size() + " item(s) already exist in " + targetFolder);
         subtitle.setWrapText(true);
 
-        TableView<Conflict> table = tip(new TableView<>(), "The items that are in both folders, with their size and date.");
+        boolean hasSources = conflicts.stream().anyMatch(conflict -> conflict.source() != null);
+        TableView<Conflict> table = tip(new TableView<>(), "The items that already exist, with their size and date.");
         table.getColumns().add(column("Name", 220, Conflict::name));
-        table.getColumns().add(column("Source", 200, c -> Conflict.describe(c.source(), c.sourceIsNewer())));
-        table.getColumns().add(column("Target", 200, c -> Conflict.describe(c.target(), c.targetIsNewer())));
+        if (hasSources) {
+            table.getColumns().add(column("Source", 200, c -> Conflict.describe(c.source(), c.sourceIsNewer())));
+        }
+        table.getColumns().add(column(hasSources ? "Target" : "Existing", 200, c -> Conflict.describe(c.target(), c.targetIsNewer())));
         table.getItems().setAll(conflicts);
         table.setPrefHeight(220);
 
@@ -40,12 +43,14 @@ public final class OverwriteDialog {
         RadioButton overwrite = radio(group, "Overwrite All", Policy.OVERWRITE,
                 "Replace every existing item, including the files inside existing folders.");
         RadioButton skip = radio(group, "Skip Existing", Policy.SKIP,
-                "Leave the existing items as they are and transfer only the new ones.");
-        RadioButton older = radio(group, "Overwrite Older", Policy.OVERWRITE_OLDER,
-                "Replace an existing file only when the one you transfer is newer.");
+                "Leave the existing items as they are and write only the new ones.");
         skip.setSelected(true);
+        dialog.add(subtitle, table, overwrite, skip);
+        if (hasSources) {
+            dialog.add(radio(group, "Overwrite Older", Policy.OVERWRITE_OLDER,
+                    "Replace an existing file only when the one you transfer is newer."));
+        }
 
-        dialog.add(subtitle, table, overwrite, skip, older);
         dialog.dialog().getDialogPane().setPrefWidth(680);
         return dialog.showAndWait(() -> (Policy) group.getSelectedToggle().getUserData());
     }

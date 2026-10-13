@@ -37,6 +37,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
@@ -163,9 +164,9 @@ class BundledToolContractTest {
 
         pdfs.merge(local, List.of(entry(first), entry(second)), local, dir.toString(), "מאוחד.pdf");
         Path merged = dir.resolve("מאוחד.pdf");
-        pdfs.extractPages(local, entry(merged), local, pages.toString(), PdfExtractOptions.extractAll());
+        pdfs.extractPages(local, entry(merged), local, pages.toString(), PdfExtractOptions.extractAll(), Set.of());
         pdfs.extractPages(local, entry(merged), local, chunks.toString(),
-                new PdfExtractOptions(PdfExtractOptions.Mode.PAGES_PER_PDF, null, 1, null));
+                new PdfExtractOptions(PdfExtractOptions.Mode.PAGES_PER_PDF, null, 1, null), Set.of());
 
         assertThat(pdfs.pageCount(local, entry(merged))).isEqualTo(2);
         try (var files = Files.list(pages)) {
