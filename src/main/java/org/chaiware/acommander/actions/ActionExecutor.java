@@ -133,6 +133,7 @@ public class ActionExecutor {
             case OPEN_HOSTS_FILE -> commander::openHostsFile;
             case SELECT_ALL -> commander::selectAll;
             case UNSELECT_ALL -> commander::unselectAll;
+            case TOGGLE_MARK -> commander::toggleMark;
             case INVERT_SELECTION -> commander::invertSelection;
             case SELECT_BY_PATTERN -> commander::selectByPattern;
             case COPY_SELECTION -> commander::copySelectionToClipboard;

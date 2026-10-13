@@ -68,6 +68,7 @@ public enum BuiltinAction {
     OPEN_HOSTS_FILE("openHostsFile"),
     SELECT_ALL("selectAll"),
     UNSELECT_ALL("unselectAll"),
+    TOGGLE_MARK("toggleMark"),
     INVERT_SELECTION("invertSelection"),
     SELECT_BY_PATTERN("selectByPattern"),
     COPY_SELECTION("copySelection"),

@@ -174,8 +174,9 @@ Bundled games start from the Command Palette (type `game`): **MineSweeper**
 | `Ctrl+C`          | Copy to Clipboard | | `Ctrl+X`                | Cut to Clipboard   |
 | `Ctrl+V`          | Paste            | | `Ctrl+A`                 | Select All         |
 | `Ctrl+Shift+A`    | Unselect All     | | `Ctrl+I`                 | Invert Selection   |
+| `Insert`          | Mark Item        | | `Esc`                    | Clear Marks        |
 
-> **Quick tips:** `Tab` switches active pane · `Enter` opens folder/file · `Backspace` goes to parent · `F3` on a folder calculates its size.
+> **Quick tips:** `Tab` switches active pane · `Enter` opens folder/file · `Backspace` goes to parent · `F3` on a folder calculates its size · `Insert` marks files one by one: the arrows then move only the cursor and keep the marks until `Esc`.
 
 ---
 

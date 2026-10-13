@@ -39,6 +39,27 @@ class FilesPanesHelperTest {
     }
 
     @Test
+    void insertMarksTheCursorRowThenTogglesItButNeverTheParent() {
+        List<FileItem> pane = items("..", "a.txt", "b.txt", "c.txt");
+
+        assertThat(FilesPanesHelper.marksAfterInsert(pane, List.of(1), 1, false)).as("first Insert keeps the cursor row").containsExactly(1);
+        assertThat(FilesPanesHelper.marksAfterInsert(pane, List.of(1), 3, true)).containsExactly(1, 3);
+        assertThat(FilesPanesHelper.marksAfterInsert(pane, List.of(1, 3), 1, true)).as("unmarks").containsExactly(3);
+        assertThat(FilesPanesHelper.marksAfterInsert(pane, List.of(0), 0, false)).as("Insert on ..").isEmpty();
+        assertThat(FilesPanesHelper.marksAfterInsert(pane, List.of(0, 2), 3, true)).containsExactly(2, 3);
+    }
+
+    @Test
+    void theCursorStaysInsideTheList() {
+        assertThat(FilesPanesHelper.cursorTarget(javafx.scene.input.KeyCode.DOWN, 4, 5, 10)).isEqualTo(4);
+        assertThat(FilesPanesHelper.cursorTarget(javafx.scene.input.KeyCode.UP, 0, 5, 10)).isZero();
+        assertThat(FilesPanesHelper.cursorTarget(javafx.scene.input.KeyCode.PAGE_DOWN, 1, 50, 10)).isEqualTo(11);
+        assertThat(FilesPanesHelper.cursorTarget(javafx.scene.input.KeyCode.PAGE_UP, 5, 50, 10)).isZero();
+        assertThat(FilesPanesHelper.cursorTarget(javafx.scene.input.KeyCode.END, 1, 50, 10)).isEqualTo(49);
+        assertThat(FilesPanesHelper.cursorTarget(javafx.scene.input.KeyCode.HOME, 30, 50, 10)).isZero();
+    }
+
+    @Test
     void invertWalksTheListOnceWithoutSearchingIt() {
         List<FileItem> pane = new ArrayList<>(items(IntStream.range(0, 20_000).mapToObj(i -> "f" + i).toArray(String[]::new))) {
             @Override

@@ -72,6 +72,7 @@ splitLargeFile | ftp=no | writes=target | palette=-+++++++++++++
 syncToOtherPane | ftp=no | writes=none | palette=++++++++++++++
 terminal | ftp=no | writes=none | palette=++++++++++++++
 toggleDarkMode | ftp=yes | writes=none | palette=++++++++++++++
+toggleMark | ftp=yes | writes=none | palette=n/a
 trimMedia | ftp=no | writes=target | palette=-----+++------
 unlinkNavigation | ftp=yes | writes=none | palette=--------------
 unpack | ftp=no | writes=target | palette=---------+----

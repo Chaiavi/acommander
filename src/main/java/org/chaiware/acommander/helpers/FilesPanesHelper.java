@@ -4,6 +4,8 @@ import javafx.application.Platform;
 import javafx.collections.ObservableList;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.ListView;
+import javafx.scene.control.skin.VirtualFlow;
+import javafx.scene.input.KeyCode;
 import lombok.Data;
 import org.chaiware.acommander.commands.ExternalCommandListener;
 import org.chaiware.acommander.helpers.PaneSorter.SortColumn;
@@ -34,6 +36,7 @@ public class FilesPanesHelper {
     private final Map<FocusSide, VFileSystem> fileSystems = new EnumMap<>(FocusSide.class);
     private final Map<FocusSide, String> currentInternalPaths = new EnumMap<>(FocusSide.class);
     private final Map<FocusSide, Loads> loads = new EnumMap<>(FocusSide.class);
+    private final Set<FocusSide> markingSides = EnumSet.noneOf(FocusSide.class);
     private FocusSide focusedSide = LEFT;
     private ExternalCommandListener externalCommandListener;
 
@@ -435,6 +438,8 @@ public class FilesPanesHelper {
             }
             FileItem previouslySelected = listView.getSelectionModel().getSelectedItem();
             listView.getItems().setAll(shown);
+            // Only one row stays selected, so the marks are gone
+            markingSides.remove(focusSide);
             if (previouslySelected != null) {
                 listView.getSelectionModel().select(previouslySelected);
             }
@@ -653,6 +658,100 @@ public class FilesPanesHelper {
         }
         ListView<FileItem> listView = getFileList(true);
         listView.getSelectionModel().clearSelection();
+        markingSides.remove(focusedSide);
+    }
+
+    /** True while the arrows must keep the focused pane's marks: after Insert, or with several items selected. */
+    public boolean isMarking() {
+        return markingSides.contains(focusedSide) || getFileList(true).getSelectionModel().getSelectedIndices().size() > 1;
+    }
+
+    /** A plain click or a new folder ends marking: the arrows select again. */
+    public void stopMarking(FocusSide side) {
+        markingSides.remove(side);
+    }
+
+    /** Insert: marks or unmarks the cursor row (never "..") and moves the cursor down. */
+    public void toggleMark() {
+        ListView<FileItem> listView = getFileList(true);
+        int cursor = listView.getFocusModel().getFocusedIndex();
+        if (cursor < 0) {
+            return;
+        }
+        Set<Integer> marks = marksAfterInsert(listView.getItems(), listView.getSelectionModel().getSelectedIndices(),
+                cursor, isMarking());
+        markingSides.add(focusedSide);
+        listView.getSelectionModel().clearSelection();
+        if (!marks.isEmpty()) {
+            listView.getSelectionModel().selectIndices(-1, marks.stream().mapToInt(Integer::intValue).toArray());
+        }
+        focusRow(listView, Math.min(cursor + 1, listView.getItems().size() - 1));
+    }
+
+    /**
+     * The rows marked after Insert at {@code cursor}. Not yet marking, the selected row is only the cursor, so the
+     * marks start empty and Insert marks the cursor row; marking, it toggles that row. ".." is never marked.
+     */
+    static Set<Integer> marksAfterInsert(List<FileItem> items, Collection<Integer> selected, int cursor, boolean marking) {
+        Set<Integer> marks = new TreeSet<>(marking ? selected : List.of());
+        marks.removeIf(index -> "..".equals(items.get(index).getPresentableFilename()));
+        if (!"..".equals(items.get(cursor).getPresentableFilename()) && !marks.remove(cursor)) {
+            marks.add(cursor);
+        }
+        return marks;
+    }
+
+    /** Arrow, Home, End, PgUp, PgDn while marking: moves only the cursor. */
+    public void moveCursor(KeyCode key) {
+        ListView<FileItem> listView = getFileList(true);
+        if (!listView.getItems().isEmpty()) {
+            focusRow(listView, cursorTarget(key, listView.getFocusModel().getFocusedIndex(), listView.getItems().size(),
+                    visibleRows(listView)));
+        }
+    }
+
+    static int cursorTarget(KeyCode key, int cursor, int size, int page) {
+        int from = Math.max(cursor, 0);
+        int target = switch (key) {
+            case UP -> from - 1;
+            case DOWN -> from + 1;
+            case PAGE_UP -> from - page;
+            case PAGE_DOWN -> from + page;
+            case HOME -> 0;
+            case END -> size - 1;
+            default -> from;
+        };
+        return Math.clamp(target, 0, size - 1);
+    }
+
+    /** Esc while marking: only the cursor row stays selected. False when nothing was marked. */
+    public boolean clearMarks() {
+        if (!isMarking()) {
+            return false;
+        }
+        markingSides.remove(focusedSide);
+        ListView<FileItem> listView = getFileList(true);
+        int cursor = listView.getFocusModel().getFocusedIndex();
+        listView.getSelectionModel().clearSelection();
+        if (cursor >= 0) {
+            listView.getSelectionModel().select(cursor);
+        }
+        return true;
+    }
+
+    private static void focusRow(ListView<FileItem> listView, int index) {
+        listView.getFocusModel().focus(index);
+        if (listView.lookup(".virtual-flow") instanceof VirtualFlow<?> flow) {
+            flow.scrollTo(index);
+        }
+    }
+
+    private static int visibleRows(ListView<FileItem> listView) {
+        if (listView.lookup(".virtual-flow") instanceof VirtualFlow<?> flow
+                && flow.getFirstVisibleCell() != null && flow.getLastVisibleCell() != null) {
+            return Math.max(1, flow.getLastVisibleCell().getIndex() - flow.getFirstVisibleCell().getIndex());
+        }
+        return 10;
     }
 
     /** Inverts the current selection in the focused file pane */

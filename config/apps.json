@@ -858,6 +858,18 @@
       "type": "builtin"
     },
     {
+      "id": "toggleMark",
+      "description": "Marks or unmarks the item under the cursor and moves down; arrows then keep the marks until Esc.",
+      "category": "Selection",
+      "ftp": true,
+      "label": "Mark Item",
+      "shortcut": "Insert",
+      "aliases": ["mark", "toggle mark"],
+      "contexts": ["filePane"],
+      "selection": "none",
+      "type": "builtin"
+    },
+    {
       "id": "invertSelection",
       "description": "Selects what is not selected and unselects the rest.",
       "category": "Selection",

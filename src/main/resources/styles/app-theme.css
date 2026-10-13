@@ -152,6 +152,11 @@
     -fx-text-fill: -ac-select-active-text;
 }
 
+.file-pane:focused .list-cell:focused {
+    -fx-border-color: -ac-text-primary;
+    -fx-border-width: 1;
+}
+
 .file-pane .list-cell:filled:hover {
     -fx-background-color: -ac-hover;
 }

@@ -55,7 +55,23 @@ public class FilePaneKeyHandlerImpl implements IKeyHandler {
         }
 
         return switch (event.getCode()) {
-            case UP, DOWN, LEFT, RIGHT, PAGE_UP, PAGE_DOWN, HOME, END -> false;
+            case UP, DOWN, PAGE_UP, PAGE_DOWN, HOME, END -> {
+                if (!commander.isMarking()) {
+                    yield false;
+                }
+                commander.moveCursor(event.getCode());
+                event.consume();
+                yield true;
+            }
+            case LEFT, RIGHT -> false;
+            case ESCAPE -> {
+                commander.clearCharFilter();
+                if (!commander.clearMarks()) {
+                    yield false;
+                }
+                event.consume();
+                yield true;
+            }
             case BACK_SPACE -> {
                 if (commander.backspaceCharFilter()) {
                     yield true;

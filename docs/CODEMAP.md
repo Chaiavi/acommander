@@ -96,6 +96,7 @@ Adding or renaming an action id? Check each of these:
 | `compressExecutable` | `compressExecutable` | `dialog/ExecutableCompressionDialog`, `helpers/ExecutableCompressionSupport` (`UpxAction`, `upxCommand`, `percentChange`) | `exe_compress/upx.exe` |
 | `refresh` (Ctrl+R) | `refreshPanesAndDrives` | `FilesPanesHelper.refreshFileListViews`, `ComboBoxSetup.refreshDrives` | — |
 | `selectAll` / `unselectAll` / `invertSelection` / `selectByPattern` | same names | `dialog/SelectByPatternDialog`, `FilesPanesHelper.selectAllItems` … `selectByPattern` | — |
+| `toggleMark` (Insert) | `toggleMark`; `isMarking` / `moveCursor` / `clearMarks` from `FilePaneKeyHandlerImpl` | `FilesPanesHelper.toggleMark` (`marksAfterInsert`), `isMarking` (after Insert or 2+ selected: arrows move only the cursor, `cursorTarget`), `clearMarks` (Esc), `stopMarking` (plain click, new folder) | — |
 | `sortByName` / `sortBySize` / `sortByDate` | same names, `onSortHeaderClicked` | `FilesPanesHelper.toggleSort` → `helpers/PaneSorter` | — |
 | `toggleDarkMode` | same name, `applyTheme` | `dialog/DialogTheme` (`ThemeMode`, `apply(scene)`) | `styles/app-theme.css` |
 | `bookmarkThisPath` / `gotoBookmark` / `removeBookmark` | `bookmarkCurrentPath` / `gotoBookmark` / `removeBookmark`, `pickBookmark` | `dialog/BookmarkPickerDialog`; stored as `bookmark.*` properties | — |
@@ -257,7 +258,7 @@ Not actions, but often asked for:
 | `KeyBindingManager` | `KeyContext` enum; routes to the context handler, and to the global one only if that returns false. |
 | `IKeyHandler` | `boolean handle(KeyEvent)`. |
 | `GlobalKeyHandlerImpl` | Global shortcuts, Tab between panes, modifier tracking. |
-| `FilePaneKeyHandlerImpl` | File-pane shortcuts, Enter, Backspace, numpad selection, type-to-filter. |
+| `FilePaneKeyHandlerImpl` | File-pane shortcuts, Enter, Backspace, numpad selection, type-to-filter; while marking, arrows / Home / End / PgUp / PgDn move only the cursor and Esc clears the marks. |
 | `ComboxKeyHandlerImpl`, `CommandPaletteKeyHandlerImpl` | Keys inside the path combo / palette. |
 
 ### `model/`

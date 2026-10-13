@@ -16,6 +16,7 @@ import javafx.scene.input.DragEvent;
 import javafx.scene.input.Dragboard;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
+import javafx.scene.input.MouseEvent;
 import javafx.scene.input.TransferMode;
 import javafx.scene.layout.*;
 import javafx.stage.Popup;
@@ -641,6 +642,11 @@ public class Commander {
     private void configListViewLookAndBehavior(FilesPanesHelper.FocusSide side, ListView<FileItem> listView) {
         logger.debug("Configuring the ListViews look and experience");
         listView.getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE);
+        listView.addEventFilter(MouseEvent.MOUSE_PRESSED, event -> {
+            if (!event.isControlDown() && !event.isShiftDown()) {
+                filesPanesHelper.stopMarking(side);
+            }
+        });
         listView.setCellFactory(lv -> new ListCell<>() {
             final Label iconLabel = new Label();
             final Label nameLabel = new Label();
@@ -2884,6 +2890,28 @@ public class Commander {
     public void unselectAll() {
         filesPanesHelper.unselectAllItems();
         updatePaneSummary(filesPanesHelper.getFocusedSide());
+    }
+
+    public void toggleMark() {
+        filesPanesHelper.toggleMark();
+        updatePaneSummary(filesPanesHelper.getFocusedSide());
+    }
+
+    public boolean isMarking() {
+        return filesPanesHelper.isMarking();
+    }
+
+    public void moveCursor(KeyCode key) {
+        filesPanesHelper.moveCursor(key);
+    }
+
+    /** Esc: drops the marks, keeping the cursor row selected; false when there were none. */
+    public boolean clearMarks() {
+        if (!filesPanesHelper.clearMarks()) {
+            return false;
+        }
+        updatePaneSummary(filesPanesHelper.getFocusedSide());
+        return true;
     }
 
     public void invertSelection() {
