@@ -648,6 +648,7 @@ public class FilesPanesHelper {
         if (indices.length > 0) {
             listView.getSelectionModel().selectIndices(-1, indices);
         }
+        markingSides.add(focusedSide);
     }
 
     /** Clears selection in the focused file pane */
@@ -661,14 +662,21 @@ public class FilesPanesHelper {
         markingSides.remove(focusedSide);
     }
 
-    /** True while the arrows must keep the focused pane's marks: after Insert, or with several items selected. */
+    /**
+     * True while the arrows must keep the focused pane's marks: after Insert, Ctrl/Shift+click, Select All, Invert or
+     * Select by Pattern. Not after an action selected its outputs: the next arrow key moves on from those.
+     */
     public boolean isMarking() {
-        return markingSides.contains(focusedSide) || getFileList(true).getSelectionModel().getSelectedIndices().size() > 1;
+        return markingSides.contains(focusedSide);
     }
 
-    /** A plain click or a new folder ends marking: the arrows select again. */
-    public void stopMarking(FocusSide side) {
-        markingSides.remove(side);
+    /** A Ctrl/Shift+click starts marking; a plain click or a new listing ends it (the arrows select again). */
+    public void setMarking(FocusSide side, boolean marking) {
+        if (marking) {
+            markingSides.add(side);
+        } else {
+            markingSides.remove(side);
+        }
     }
 
     /** Insert: marks or unmarks the cursor row (never "..") and moves the cursor down. */
@@ -766,6 +774,7 @@ public class FilesPanesHelper {
         if (indices.length > 0) {
             listView.getSelectionModel().selectIndices(-1, indices);
         }
+        markingSides.add(focusedSide);
     }
 
     /** Indices of {@code items} not in {@code selected}, skipping ".."; one pass over the list. */
@@ -813,6 +822,7 @@ public class FilesPanesHelper {
 
         listView.getSelectionModel().clearSelection();
         if (!matchingIndices.isEmpty()) {
+            markingSides.add(focusedSide);
             int[] indices = matchingIndices.stream().mapToInt(Integer::intValue).toArray();
             listView.getSelectionModel().selectIndices(-1, indices);
             int firstMatchIndex = matchingIndices.getFirst();

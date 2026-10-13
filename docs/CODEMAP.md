@@ -96,7 +96,7 @@ Adding or renaming an action id? Check each of these:
 | `compressExecutable` | `compressExecutable` | `dialog/ExecutableCompressionDialog`, `helpers/ExecutableCompressionSupport` (`UpxAction`, `upxCommand`, `percentChange`) | `exe_compress/upx.exe` |
 | `refresh` (Ctrl+R) | `refreshPanesAndDrives` | `FilesPanesHelper.refreshFileListViews`, `ComboBoxSetup.refreshDrives` | — |
 | `selectAll` / `unselectAll` / `invertSelection` / `selectByPattern` | same names | `dialog/SelectByPatternDialog`, `FilesPanesHelper.selectAllItems` … `selectByPattern` | — |
-| `toggleMark` (Insert) | `toggleMark`; `isMarking` / `moveCursor` / `clearMarks` from `FilePaneKeyHandlerImpl` | `FilesPanesHelper.toggleMark` (`marksAfterInsert`), `isMarking` (after Insert or 2+ selected: arrows move only the cursor, `cursorTarget`), `clearMarks` (Esc), `stopMarking` (plain click, new folder) | — |
+| `toggleMark` (Insert) | `toggleMark`; `isMarking` / `moveCursor` / `clearMarks` from `FilePaneKeyHandlerImpl` | `FilesPanesHelper.toggleMark` (`marksAfterInsert`), `isMarking` (after Insert, Ctrl/Shift+click, Select All, Invert, Select by Pattern; not after an action selects its outputs: arrows move only the cursor, `cursorTarget`), `clearMarks` (Esc), `setMarking` (click; a new listing ends it) | — |
 | `sortByName` / `sortBySize` / `sortByDate` | same names, `onSortHeaderClicked` | `FilesPanesHelper.toggleSort` → `helpers/PaneSorter` | — |
 | `toggleDarkMode` | same name, `applyTheme` | `dialog/DialogTheme` (`ThemeMode`, `apply(scene)`) | `styles/app-theme.css` |
 | `bookmarkThisPath` / `gotoBookmark` / `removeBookmark` | `bookmarkCurrentPath` / `gotoBookmark` / `removeBookmark`, `pickBookmark` | `dialog/BookmarkPickerDialog`; stored as `bookmark.*` properties | — |

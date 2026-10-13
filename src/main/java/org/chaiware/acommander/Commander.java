@@ -642,11 +642,8 @@ public class Commander {
     private void configListViewLookAndBehavior(FilesPanesHelper.FocusSide side, ListView<FileItem> listView) {
         logger.debug("Configuring the ListViews look and experience");
         listView.getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE);
-        listView.addEventFilter(MouseEvent.MOUSE_PRESSED, event -> {
-            if (!event.isControlDown() && !event.isShiftDown()) {
-                filesPanesHelper.stopMarking(side);
-            }
-        });
+        listView.addEventFilter(MouseEvent.MOUSE_PRESSED,
+                event -> filesPanesHelper.setMarking(side, event.isControlDown() || event.isShiftDown()));
         listView.setCellFactory(lv -> new ListCell<>() {
             final Label iconLabel = new Label();
             final Label nameLabel = new Label();
