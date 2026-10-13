@@ -1682,8 +1682,9 @@ public class Commander {
                     "-v" + splitArg.get()
             );
 
-            runExternalReported(command, true, "Split File");
-            filesPanesHelper.selectFileItem(false, targetFolder, outputFilename);
+            CompletableFuture<List<String>> split = runExternal(command, true);
+            toolRunner.reportFailure(split, "Split File");
+            split.thenRun(() -> Platform.runLater(() -> filesPanesHelper.selectFileItem(false, targetFolder, outputFilename + ".001")));
         } catch (Exception ex) {
             error("Failed splitting large file", ex);
         }
@@ -1735,7 +1736,7 @@ public class Commander {
                     if (!failures.isEmpty()) {
                         showError("Convert Graphics Files", "Some images were not converted:\n" + String.join("\n", failures));
                     }
-                    focusConvertedFileInOtherPane(selectedItems, outputFolder, options);
+                    selectConvertedFileInOtherPane(selectedItems, outputFolder, options);
                 }))
                 .exceptionally(throwable -> {
                     Platform.runLater(() -> {
@@ -1746,7 +1747,7 @@ public class Commander {
                 });
     }
 
-    private void focusConvertedFileInOtherPane(
+    private void selectConvertedFileInOtherPane(
             List<FileItem> selectedItems,
             String outputFolder,
             ImageConversionRequest options
@@ -1756,7 +1757,7 @@ public class Commander {
         if (firstFound != null) {
             filesPanesHelper.selectFileItem(false, new FileItem(firstFound));
         }
-        requestUnfocusedFileListFocus();
+        requestFocusedFileListFocus();
     }
 
     public void convertMediaFile() {
@@ -1822,7 +1823,7 @@ public class Commander {
                     if (firstConverted != null) {
                         filesPanesHelper.selectFileItem(false, new FileItem(firstConverted));
                     }
-                    requestUnfocusedFileListFocus();
+                    requestFocusedFileListFocus();
                 }))
                 .exceptionally(throwable -> {
                     Platform.runLater(() -> {
@@ -2334,11 +2335,14 @@ public class Commander {
                                 () -> source.entries().stream()
                                         .flatMap(pdf -> PdfOperations.outputNames(pdf.name(), totalPages, options).stream()).toList(),
                                 skip -> runFileOperation("Extract PDF Pages", List.of(source.sourceFs(), targetFs), true, () -> {
+                                    List<String> written = new ArrayList<>();
                                     for (ClipboardTransfer.Entry pdf : source.entries()) {
                                         pdfOps.extractPages(source.sourceFs(), pdf, targetFs, targetFolder, options, skip);
+                                        PdfOperations.outputNames(pdf.name(), totalPages, options).stream()
+                                                .filter(name -> !skip.contains(name)).forEach(written::add);
                                     }
-                                    return null;
-                                }, ignored -> {}))));
+                                    return written;
+                                }, written -> filesPanesHelper.selectNames(targetSide, targetFolder, written)))));
     }
 
     public boolean canCompareSelectedFiles() {
@@ -3155,16 +3159,6 @@ public class Commander {
                 leftFileList.requestFocus();
             } else {
                 rightFileList.requestFocus();
-            }
-        });
-    }
-
-    private void requestUnfocusedFileListFocus() {
-        Platform.runLater(() -> {
-            if (filesPanesHelper.getFocusedSide() == LEFT) {
-                rightFileList.requestFocus();
-            } else {
-                leftFileList.requestFocus();
             }
         });
     }

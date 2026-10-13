@@ -193,6 +193,8 @@ All actions and external tools live in `config/apps.json`; shortcuts are declare
 - New storage types implement `VFileSystem` and are wired through `VfsManager`.
 - To select an item after an operation, call `FilesPanesHelper.selectFileItem(focused, folder, name)`. Never build
   the probe with `Path.of`: FTP names and bad-media names hold `:*?` and throw `InvalidPathException`.
+- An action that writes into the other pane keeps focus in the source pane and selects its outputs over there
+  (`selectNames` / `selectFileItem(false, …)`), as Copy does. Don't move focus to the other list.
 - To show a local folder in a pane, call `Commander.showLocalFolder`. `setFileListPath` keeps the pane's file system,
   so on a pane in an archive or on FTP it lists the local path through that VFS (#141).
 - Metadata editing: `*MetadataSupport` runs the external tool, `*MetadataDialog` collects input; refresh the pane after.
