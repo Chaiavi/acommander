@@ -47,6 +47,7 @@ import org.chaiware.acommander.services.ImageConversionService;
 import org.chaiware.acommander.services.ImageConversionService.ImageConversionRequest;
 import org.chaiware.acommander.helpers.PaneSorter.SortColumn;
 import org.chaiware.acommander.services.ArchiveOperations;
+import org.chaiware.acommander.services.DeleteConfirmation;
 import org.chaiware.acommander.services.FileOperations;
 import org.chaiware.acommander.services.LinkedNavigation;
 import org.chaiware.acommander.services.LockingPrograms;
@@ -1450,21 +1451,27 @@ public class Commander {
 
     @FXML
     public void deleteFile() {
-        logger.info("Delete (F8/DEL)");
+        logger.info("Delete (F8/Del)");
         ClipboardTransfer.State source = captureSelection(false);
         if (source.entries().isEmpty()) {
             return;
         }
+        boolean recycle = DeleteConfirmation.recycles(source.sourceFs(), source.sourceFolder());
+        if (!ConfirmDialog.show(dialogOwner(), currentThemeMode.styleClass, "Delete",
+                DeleteConfirmation.deleteQuestion(source.entries().stream().map(ClipboardTransfer.Entry::name).toList(), recycle),
+                "Delete", recycle ? "Move the items to the Recycle Bin." : "Delete the items for good.")) {
+            return;
+        }
         int previousIndex = filesPanesHelper.getFileList(true).getSelectionModel().getSelectedIndex();
         runFileOperation("Delete", List.of(source.sourceFs()), true,
-                () -> fileOps.delete(source.sourceFs(), source.entries()),
+                () -> fileOps.delete(source.sourceFs(), source.entries(), recycle),
                 failed -> {
                     filesPanesHelper.selectIndex(source.sourceSide(), source.sourceFolder(), previousIndex - 1);
                     if (failed.isEmpty()) {
                         return;
                     }
                     if (source.sourceFs() instanceof LocalFileSystem) {
-                        deleteLocked(source.sourceFs(), failed);
+                        deleteLocked(source.sourceFs(), failed, recycle);
                     } else {
                         showError("Delete", "Could not delete: " + failed.stream()
                                 .map(ClipboardTransfer.Entry::name).collect(java.util.stream.Collectors.joining(", ")));
@@ -1473,7 +1480,7 @@ public class Commander {
     }
 
     /** Local items a delete left: finds the programs holding them open and, if the user agrees, ends them and retries. */
-    private void deleteLocked(VFileSystem fs, List<ClipboardTransfer.Entry> locked) {
+    private void deleteLocked(VFileSystem fs, List<ClipboardTransfer.Entry> locked, boolean recycle) {
         runFileOperation("Find Programs Using the Items", List.of(), false,
                 () -> LockingPrograms.find(locked.stream().map(ClipboardTransfer.Entry::sourceInternalPath).toList()),
                 lockers -> {
@@ -1485,7 +1492,7 @@ public class Commander {
                     if (LockedItemsDialog.show(dialogOwner(), currentThemeMode.styleClass, names, lockers).isEmpty()) {
                         return;
                     }
-                    runFileOperation("Delete", List.of(fs), true, () -> fileOps.endLockersAndDelete(fs, locked, lockers),
+                    runFileOperation("Delete", List.of(fs), true, () -> fileOps.endLockersAndDelete(fs, locked, lockers, recycle),
                             result -> {
                                 if (!result.failed().isEmpty()) {
                                     showError("Delete", result.message());
@@ -1495,9 +1502,14 @@ public class Commander {
     }
 
     public void deleteWipe() {
-        logger.info("Delete & Wipe (Shift+F8/DEL)");
+        logger.info("Delete & Wipe (Shift+F8/Shift+Del)");
         List<FileItem> selectedItems = fileOps.filterValidItems(new ArrayList<>(filesPanesHelper.getSelectedItems()));
         if (selectedItems.isEmpty()) {
+            return;
+        }
+        if (!ConfirmDialog.show(dialogOwner(), currentThemeMode.styleClass, "Delete & Wipe",
+                DeleteConfirmation.wipeQuestion(selectedItems.stream().map(FileItem::getName).toList()),
+                "Wipe", "Overwrite and delete the items so they can't be recovered.")) {
             return;
         }
         int previousIndex = filesPanesHelper.getFileList(true).getSelectionModel().getSelectedIndex();

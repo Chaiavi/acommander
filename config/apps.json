@@ -270,7 +270,7 @@
     },
     {
       "id": "delete",
-      "description": "Deletes the selected items; offers to unlock files that are in use.",
+      "description": "Moves the selected items to the Recycle Bin after asking; offers to unlock files that are in use.",
       "category": "File Operations",
       "ftp": true,
       "writes": "source",
@@ -294,7 +294,7 @@
     },
     {
       "id": "deleteWipe",
-      "description": "Overwrites and deletes the selected items so they can't be recovered.",
+      "description": "Overwrites and deletes the selected items so they can't be recovered, after asking.",
       "category": "File Operations",
       "writes": "source",
       "label": "Delete & Wipe",

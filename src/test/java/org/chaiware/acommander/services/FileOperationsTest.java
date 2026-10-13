@@ -195,14 +195,14 @@ class FileOperationsTest {
         ClipboardTransfer.State selection = ClipboardTransfer.capture(
                 List.of(new FileItem(tempDir, ".."), new FileItem(file)), false, FilesPanesHelper.FocusSide.LEFT, local, tempDir.toString());
 
-        assertThat(operations.delete(local, selection.entries())).isEmpty();
+        assertThat(operations.delete(local, selection.entries(), false)).isEmpty();
         assertThat(file).doesNotExist();
         assertThat(tempDir).exists();
 
         VFileSystem failing = mock(VFileSystem.class);
         doThrow(new java.io.IOException("denied")).when(failing).delete("/locked.txt");
         ClipboardTransfer.Entry locked = new ClipboardTransfer.Entry("locked.txt", false, "/locked.txt");
-        assertThat(operations.delete(failing, List.of(locked))).containsExactly(locked);
+        assertThat(operations.delete(failing, List.of(locked), false)).containsExactly(locked);
     }
 
     @Test
@@ -211,7 +211,7 @@ class FileOperationsTest {
         LockingPrograms.Locker self = new LockingPrograms.Locker(ProcessHandle.current().pid(), "me", "java.exe");
         ClipboardTransfer.Entry entry = capture(false, local, tempDir, file).entries().getFirst();
 
-        FileOperations.LockedDelete result = operations.endLockersAndDelete(local, List.of(entry), List.of(self));
+        FileOperations.LockedDelete result = operations.endLockersAndDelete(local, List.of(entry), List.of(self), false);
 
         assertThat(file).doesNotExist();
         assertThat(result.failed()).isEmpty();

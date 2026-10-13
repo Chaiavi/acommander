@@ -83,8 +83,8 @@ command palette. Free and open source.**
 | **Drag and Drop**       | Drag files into other apps (web uploads, Explorer, mail), between panes, onto a folder row (into that folder) or from Explorer into a pane. A drag copies; a right-button drag between panes asks Copy Here or Move Here. FTP files download at drag start |
 | **Duplicate**           | Clone a file in the same directory           |
 | **Create**              | New directory or new file                    |
-| **Delete**              | A locked local file or folder: lists the programs holding it open (File Locksmith) and, if you agree, ends them and deletes it |
-| **Secure Wipe**         | Via SDelete                                  |
+| **Delete**              | Asks first, then moves local items to the Recycle Bin (FTP, archives and network shares: deleted for good). A locked local file or folder: lists the programs holding it open (File Locksmith) and, if you agree, ends them and deletes it |
+| **Secure Wipe**         | Via SDelete, after asking                    |
 | **Attributes**          | Change file/folder attributes                |
 | **Properties**          | View detailed file/folder properties         |
 | **Compare Files**       | Diff two files side by side via ExamDiff     |

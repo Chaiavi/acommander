@@ -200,14 +200,24 @@ public class FileOperations {
         }
     }
 
-    /** Deletes the entries through the VFS. Blocking. Returns the ones that failed (on a local disk: often locked). */
-    public List<Entry> delete(VFileSystem fs, List<Entry> entries) {
+    /**
+     * Deletes the entries through the VFS, or moves local ones to the Recycle Bin when {@code recycle}. Blocking.
+     * Returns the ones that failed (on a local disk: often locked).
+     */
+    public List<Entry> delete(VFileSystem fs, List<Entry> entries, boolean recycle) {
         List<Entry> failed = new ArrayList<>();
         for (Entry entry : entries) {
             Operation.checkNotStopped();
             try {
-                fs.delete(entry.sourceInternalPath());
-                log.info("Deleted: {}", entry.sourceInternalPath());
+                if (recycle) {
+                    if (!java.awt.Desktop.getDesktop().moveToTrash(new File(entry.sourceInternalPath()))) {
+                        throw new IOException("Could not move to the Recycle Bin");
+                    }
+                    log.info("Moved to the Recycle Bin: {}", entry.sourceInternalPath());
+                } else {
+                    fs.delete(entry.sourceInternalPath());
+                    log.info("Deleted: {}", entry.sourceInternalPath());
+                }
             } catch (Exception e) {
                 Operation.rethrowIfStopped(e);
                 log.error("Failed deleting: {}", entry.sourceInternalPath(), e);
@@ -218,10 +228,11 @@ public class FileOperations {
     }
 
     /** Ends the programs holding {@code entries} open, then deletes them again. Blocking. */
-    public LockedDelete endLockersAndDelete(VFileSystem fs, List<Entry> entries, List<LockingPrograms.Locker> lockers) {
+    public LockedDelete endLockersAndDelete(VFileSystem fs, List<Entry> entries, List<LockingPrograms.Locker> lockers,
+                                            boolean recycle) {
         List<LockingPrograms.Locker> stillRunning = LockingPrograms.end(lockers);
         log.info("Ended {} of {} programs holding files open", lockers.size() - stillRunning.size(), lockers.size());
-        return new LockedDelete(delete(fs, entries), stillRunning);
+        return new LockedDelete(delete(fs, entries, recycle), stillRunning);
     }
 
     /** Shown when a delete failed but no program of this user holds the items open. */

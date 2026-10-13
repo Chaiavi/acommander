@@ -67,8 +67,8 @@ Adding or renaming an action id? Check each of these:
 | `duplicate` (Alt+F6) | `duplicateFile` | `ClipboardTransfer.duplicateName`, VFS `copy` | — |
 | `copySelection` / `cutSelection` / `pasteSelection` | `copySelectionToClipboard`, `cutSelectionToClipboard`, `pasteClipboardSelection` | `services/ClipboardTransfer` (state, paste loop, duplicate names, target paths) | — |
 | `mkdir` (F7) / `mkfile` (Alt+F7) | `makeDirectory` / `makeFile` | `FileOperations.mkdir` / `mkFile` (VFS) | — |
-| `delete` (F8, Del) | `deleteFile` → `deleteLocked` | `FileOperations.delete` (VFS); local items left → `LockingPrograms.find` → `LockedItemsDialog` → `FileOperations.endLockersAndDelete` | `delete/unlock_delete/FileLocksmithCLI.exe` |
-| `deleteWipe` (Shift+F8) | `deleteWipe` | `FileOperations.wipeDelete` | `delete/wipe/sdelete64.exe` |
+| `delete` (F8, Del) | `deleteFile` → `deleteLocked` | `ConfirmDialog` with `DeleteConfirmation` (question; `recycles`: local, non-UNC), `FileOperations.delete` (Recycle Bin via `Desktop.moveToTrash`, else VFS); local items left → `LockingPrograms.find` → `LockedItemsDialog` → `FileOperations.endLockersAndDelete` | `delete/unlock_delete/FileLocksmithCLI.exe` |
+| `deleteWipe` (Shift+F8, Shift+Del) | `deleteWipe` | `ConfirmDialog` with `DeleteConfirmation.wipeQuestion`, `FileOperations.wipeDelete` | `delete/wipe/sdelete64.exe` |
 | `wipeDelete`, `multiRename`, `minesPerfect`, `puzzleCollection`, `arkanoidClone` | — (type `external`) | `ActionExecutor.executeExternal` (runs in the exe's folder) | `sdelete64.exe`, `Renamer.exe`, the games under `games/` |
 | `terminal` (F9) / `explorer` (Alt+F9) | `terminalHere` / `explorerHere` | `FileOperations.openTerminal` / `openExplorer` | PowerShell `Start-Process` (folder = working directory), `explorer.exe` |
 | `search` (F10, Ctrl+F) | `search` → `pickFoundFile` | `tools/BundledToolCommands.findByName`, `foundFiles`; `FoundFilesDialog` | `search_in_files/rg.exe` |
@@ -198,6 +198,7 @@ Not actions, but often asked for:
 | File | Role |
 |---|---|
 | `OptionsDialog` | Shared options-dialog shell: heading, rows, OK (Enter) / Cancel (Escape), theme, owner; `tip(control, text)` sets a tooltip inline. |
+| `ConfirmDialog` | Yes/no question on `OptionsDialog` (delete, wipe). |
 | `CompareFoldersDialog` | Compare Folders options → `FolderComparer.Options`. |
 | `SplitSizeDialog` | Part size for Alt+F11 split → 7-Zip `-v` argument. |
 | `OverwriteDialog` | Names that already exist in the target (size/date each side) → `TransferConflicts.Policy` for the whole copy/move/paste. |
@@ -279,7 +280,8 @@ Not actions, but often asked for:
 | `ImageConversionService` | caesiumclt commands from an `ImageConversionRequest` (`buildCommands`: files already in the target format get a second run with `--format original`); `failures` reads its error lines (it exits 0 anyway); finds the first output file to select. |
 | `MediaConversionService` | ffmpeg work through an injected runner: `convertAudio`, `convertVideo`, `trim` (one file at a time via `convertAll`), `join` (concat demuxer), `probe` + `mediaInfo`; output naming, collision policy (never the source itself), deletes a failed run's partial output. |
 | `ClipboardTransfer` | Copy/cut/paste between panes on any VFS: `capture` (the selection with full paths, read on the FX thread), clipboard `State`, `paste` (move or copy, per-item failures), `duplicateName` (`_copy`, `_copy_2`, …), `isSameFolder`, `targetInternalPath`. |
-| `FileOperations` | Takes the captured file system and paths, never the panes: `transfer` (F5, F6, Alt+F6, Ctrl+V; FastCopy local to local with `toolTarget` = target folder + `\`), rename, delete / wipe, `endLockersAndDelete` (ends the programs holding items open, deletes again → `LockedDelete`), new folder / file, view / edit (temp copy for archive/FTP, saved back), terminal, explorer; `filterValidItems` drops "..". `Commander.runFileOperation` runs it in the background and refreshes once. |
+| `FileOperations` | Takes the captured file system and paths, never the panes: `transfer` (F5, F6, Alt+F6, Ctrl+V; FastCopy local to local with `toolTarget` = target folder + `\`), rename, delete (local: Recycle Bin when asked) / wipe, `endLockersAndDelete` (ends the programs holding items open, deletes again → `LockedDelete`), new folder / file, view / edit (temp copy for archive/FTP, saved back), terminal, explorer; `filterValidItems` drops "..". `Commander.runFileOperation` runs it in the background and refreshes once. |
+| `DeleteConfirmation` | The question before delete / wipe (`deleteQuestion`, `wipeQuestion`); `recycles` (local, non-UNC, Desktop supports the Recycle Bin). |
 | `LockingPrograms` | Programs holding files open: `find` runs File Locksmith (`FileLocksmithCLI.exe`, its table output: the `--json` output stops at a name outside the ANSI code page) → `Locker` (PID, user, name); `end` kills them and waits, never ACommander itself or a PID that now belongs to another program. Sees only programs running as this user. |
 | `TransferConflicts` | Names of a copy/move already in the target: `find` (lists both folders via VFS; ignores case except FTP), `Policy` (Overwrite / Skip / Overwrite Older → FastCopy `force_copy` / `noexist_only` / `update`), `keep` (filters whole items for moves and VFS paths). |
 | `PaneDragDrop` | Drag and drop: `filesOnDisk` (local / archive items), `download` (FTP items to a temp folder at drag start), `allowsMoveOut`, `fromDroppedFiles` (other apps' files as a copy), `folderOf` (folder row → target folder), `isDraggedFolder`. |
