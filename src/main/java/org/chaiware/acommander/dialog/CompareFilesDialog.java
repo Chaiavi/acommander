@@ -25,9 +25,9 @@ public final class CompareFilesDialog {
 
         Label subtitle = new Label("Left: " + leftFile.getName() + " | Right: " + rightFile.getName());
         subtitle.setWrapText(true);
-        Label leftPath = new Label("Left file: " + leftFile.getFullPath());
+        Label leftPath = new Label("Left File: " + leftFile.getFullPath());
         leftPath.setWrapText(true);
-        Label rightPath = new Label("Right file: " + rightFile.getFullPath());
+        Label rightPath = new Label("Right File: " + rightFile.getFullPath());
         rightPath.setWrapText(true);
 
         CheckBox ignoreCase = tip(new CheckBox("Ignore Case"), "Treat upper and lower case letters as the same.");

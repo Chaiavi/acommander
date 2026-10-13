@@ -14,6 +14,8 @@ applyTo: "src/main/java/org/chaiware/acommander/Commander.java, src/main/java/or
 ## Titles and labels are Title Case; sentences are not
 
 - Title Case: window/dialog titles, button text, field labels, column headers, tab and menu text, `apps.json` `label`.
-  Example: `Split a Large File`, `Open Terminal Here`.
-- Keep minor words lowercase (a, an, the, of, to, in, on, for, and, or) unless first or last.
+  Example: `Split a Large File`, `Open Terminal Here`. The label beside a text box (`getUserFeedback`'s third
+  argument, shown by `TextPromptDialog`) is a field label: `New File Name`.
+- Keep minor words lowercase (a, an, the, of, to, in, on, for, and, or, as, at, by, from) unless first or last.
+  `HelpTopicsTest.everyAppsJsonLabelIsTitleCase` checks `apps.json`.
 - Sentence case: tooltips, descriptions, status and error messages, prompts. Example: `Running external command...`.

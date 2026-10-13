@@ -1328,7 +1328,7 @@ public class Commander {
                 Optional<String> result = getUserFeedback(
                         selectedItem.getName(),
                         "File Rename",
-                        "New name",
+                        "New Name",
                         getRenameSelectionEnd(selectedItem)
                 );
                 if (result.isPresent()) { // if user dismisses the dialog it won't rename...
@@ -1548,7 +1548,7 @@ public class Commander {
     public void search() {
         logger.info("Search Files (F10)");
 
-        Optional<String> result = getUserFeedback("", "Search for File/s", "Enter (partial/wildcard) filename");
+        Optional<String> result = getUserFeedback("", "Search for File/s", "Name or Wildcard Pattern");
         if (result.isPresent()) {
             String searchFromPath = filesPanesHelper.getFocusedPath();
             String pattern = result.get().contains("*") ? result.get() : "*" + result.get() + "*";
@@ -1609,7 +1609,7 @@ public class Commander {
         String zipFilename = firstFilename.contains(".")
                 ? firstFilename.substring(0, firstFilename.lastIndexOf('.')) + ".zip"
                 : firstFilename + ".zip";
-        getUserFeedback(zipFilename, "Pack to Zip", "Zip Filename").ifPresent(archiveName -> {
+        getUserFeedback(zipFilename, "Pack to Zip", "Zip File Name").ifPresent(archiveName -> {
             FilesPanesHelper.FocusSide targetSide = otherSide(source.sourceSide());
             VFileSystem targetFs = filesPanesHelper.getFileSystem(targetSide);
             String targetFolder = filesPanesHelper.getPath(targetSide);
@@ -1901,7 +1901,7 @@ public class Commander {
         String extension = first.extension();
         String name = first.getName();
         String suggested = name.substring(0, name.length() - extension.length() - 1) + "_joined." + extension;
-        Optional<String> entered = getUserFeedback(suggested, "Join Media", "Joined file name",
+        Optional<String> entered = getUserFeedback(suggested, "Join Media", "Joined File Name",
                 suggested.length() - extension.length() - 1);
         if (entered.isEmpty() || entered.get().isBlank()) {
             requestFocusedFileListFocus();
@@ -2305,7 +2305,7 @@ public class Commander {
         String suggested = firstFilename.contains(".")
                 ? firstFilename.substring(0, firstFilename.lastIndexOf('.')) + ".pdf"
                 : firstFilename + ".pdf";
-        getUserFeedback(suggested, "Merge PDF Files", "PDF filename").ifPresent(entered -> {
+        getUserFeedback(suggested, "Merge PDF Files", "PDF File Name").ifPresent(entered -> {
             String fileName = entered.isBlank() ? "merged.pdf"
                     : entered.toLowerCase(Locale.ROOT).endsWith(".pdf") ? entered : entered + ".pdf";
             FilesPanesHelper.FocusSide targetSide = otherSide(source.sourceSide());
@@ -2828,19 +2828,19 @@ public class Commander {
     public void bookmarkCurrentPath() {
         String focusedPath = filesPanesHelper.getFocusedPath();
         if (focusedPath == null || focusedPath.isBlank()) {
-            showError("Bookmark this path", "Current path is empty.");
+            showError("Bookmark This Path", "Current path is empty.");
             return;
         }
 
         String suggestedName = suggestBookmarkName(focusedPath);
-        Optional<String> input = getUserFeedback(suggestedName, "Bookmark this path", "Bookmark name");
+        Optional<String> input = getUserFeedback(suggestedName, "Bookmark This Path", "Bookmark Name");
         if (input.isEmpty()) {
             return;
         }
 
         String name = input.get().trim();
         if (name.isBlank()) {
-            showError("Bookmark this path", "Bookmark name cannot be empty.");
+            showError("Bookmark This Path", "Bookmark name cannot be empty.");
             return;
         }
 
@@ -3510,7 +3510,7 @@ public class Commander {
             btnF9.setText("F9 Terminal");
             btnF10.setText("F10 Search for Files");
             btnF11.setText("F11 Pack");
-            btnF12.setText("F12 UnPack");
+            btnF12.setText("F12 Unpack");
         }
 
     }

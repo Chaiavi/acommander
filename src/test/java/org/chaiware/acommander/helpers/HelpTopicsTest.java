@@ -67,6 +67,32 @@ class HelpTopicsTest {
     }
 
     @Test
+    void everyAppsJsonLabelIsTitleCase() throws IOException {
+        List<String> labels = new AppConfigLoader().load(Path.of("config", "apps.json")).getActions().stream()
+                .map(ActionDefinition::getLabel).filter(java.util.Objects::nonNull).toList();
+
+        assertThat(labels).filteredOn(label -> !isTitleCase(label))
+                .as("apps.json labels not in Title Case (see .github/instructions/ui-text.instructions.md)")
+                .isEmpty();
+    }
+
+    private static boolean isTitleCase(String label) {
+        java.util.Set<String> minor = java.util.Set.of("a", "an", "the", "of", "to", "in", "on", "for", "and", "or", "as", "at", "by", "from");
+        String[] words = label.trim().split("\\s+");
+        for (int i = 0; i < words.length; i++) {
+            String word = words[i];
+            if (i > 0 && i < words.length - 1 && minor.contains(word.toLowerCase(java.util.Locale.ROOT))) {
+                if (!word.equals(word.toLowerCase(java.util.Locale.ROOT))) {
+                    return false;
+                }
+            } else if (Character.isLowerCase(word.codePointAt(0))) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    @Test
     void groupsByCategoryInSectionOrderKeepingRowOrder() {
         List<Entry> entries = List.of(
                 new Entry("Media", "Command Palette", "Convert Audio Files", "", List.of()),

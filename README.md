@@ -149,7 +149,7 @@ directories.
 
 ## 🎮 Games
 
-Bundled games start from the Command Palette (type `game`): **MineSweeper**
+Bundled games start from the Command Palette (type `game`): **Minesweeper**
 (Mines-Perfect, with extra board shapes), **Puzzle Collection** (Simon Tatham's 40 logic puzzles: Solo, Loopy, Net
 ...) and **Arkanoid Clone**.
 

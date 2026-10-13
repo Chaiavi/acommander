@@ -24,7 +24,7 @@ public final class ChecksumResultDialog {
     private ChecksumResultDialog() {
     }
 
-    /** @param savePath where "Save Value As File" writes */
+    /** @param savePath where "Save Value as File" writes */
     public static void show(Window owner, String themeClass, String title, String targetName, String algorithmLabel,
                             String checksumValue, Path savePath) {
         Dialog<Void> dialog = new Dialog<>();
@@ -53,7 +53,7 @@ public final class ChecksumResultDialog {
             Clipboard.getSystemClipboard().setContent(content);
             status.setText("Copied to the clipboard.");
         });
-        Button saveAsButton = tip(new Button("Save Value As File"), "Save the checksum next to the item as " + savePath.getFileName() + ".");
+        Button saveAsButton = tip(new Button("Save Value as File"), "Save the checksum next to the item as " + savePath.getFileName() + ".");
         saveAsButton.setOnAction(event -> {
             try {
                 Files.createDirectories(savePath.getParent());

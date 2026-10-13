@@ -31,7 +31,7 @@ public final class FindInFilesDialog {
         CheckBox includeHiddenAndIgnored = tip(new CheckBox("Search Including Hidden & Ignored Files"),
                 "Also search hidden files and files that .gitignore excludes.");
 
-        dialog.add(new Label("Find text in: " + folder), queryField, caseInsensitive, findInSpecificExtension,
+        dialog.add(new Label("Find Text In: " + folder), queryField, caseInsensitive, findInSpecificExtension,
                 extensionField, includeHiddenAndIgnored);
 
         Runnable validate = () -> {

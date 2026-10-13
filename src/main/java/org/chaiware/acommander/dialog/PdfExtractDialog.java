@@ -27,7 +27,7 @@ public final class PdfExtractDialog {
 
         Label details = new Label("File: " + fileName);
         details.setWrapText(true);
-        Label totalPagesLabel = new Label("Total pages: " + totalPages);
+        Label totalPagesLabel = new Label("Total Pages: " + totalPages);
         totalPagesLabel.setStyle("-fx-font-weight: bold;");
 
         ToggleGroup modeGroup = new ToggleGroup();

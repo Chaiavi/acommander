@@ -127,7 +127,7 @@ public final class BundledToolCommands {
         return String.join(System.lineSeparator(), outputLines).trim();
     }
 
-    /** Where "Save Value As File" writes: {@code a.txt.sha256} for a file, {@code photos.SHA256SUMS} for a folder. */
+    /** Where "Save Value as File" writes: {@code a.txt.sha256} for a file, {@code photos.SHA256SUMS} for a folder. */
     public static Path checksumOutputPath(Path outputDirectory, String targetName, String algorithmLabel, boolean folderMode) {
         return outputDirectory.resolve(folderMode
                 ? targetName + "." + algorithmLabel.toUpperCase(Locale.ROOT) + "SUMS"
