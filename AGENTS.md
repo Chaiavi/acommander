@@ -56,8 +56,9 @@ When a task changed files, finish by committing and pushing to `origin/main` wit
 5. Never commit gitignored or runtime files (`config/acommander.properties`, `UniExtract.ini`, Eclipse files).
 6. If the push is rejected, `git pull --rebase` then push again. Never `--force`.
 7. Bug fix or user-visible feature → link a GitHub issue (`gh`, repo `Chaiavi/acommander`). Search first:
-   `gh issue list --search "<words>"`. No match → `gh issue create --label bug|enhancement --milestone
-   "v5.0 Perfect Dual Pane File Explorer"`, title = the symptom or feature, body = root cause and fix. Put `(fixes #n)` in the
+   `gh issue list --search "<words>"`. No match → `gh issue create --label bug|enhancement --milestone "<m>"`,
+   `<m>` = the oldest open milestone (`gh api "repos/Chaiavi/acommander/milestones?state=open" --jq
+   'sort_by(.title)[0].title'`), title = the symptom or feature, body = root cause and fix. Put `(fixes #n)` in the
    commit subject so the push to `main` closes it. Refactors, docs-only and agent-file changes get no issue.
 8. Report the commit hash (and issue number) in the final reply.
 
@@ -102,9 +103,9 @@ lessons about this repo in the files above, not in memory.
   from `releaseResources` in `build.gradle` (public config files only, no tool logs or settings), never from `dist/`
   or `build/libs/`; `verifyDistribution` fails it if per-user files get in. `dist/` is a mirror: each `dist` run
   deletes anything in it the build doesn't produce, so don't keep files or run the app there.
-- Asked to deploy (`dist`): first run [update-tools](.github/skills/update-tools/SKILL.md), so every tool that has a
-  tested newer version ships, then the release checklist in [app-ui-test](.github/skills/app-ui-test/SKILL.md) on
-  that build. `dist` also prints the tool report as a last check.
+- Asked to release or deploy: follow [release](.github/skills/release/SKILL.md). It runs
+  [update-tools](.github/skills/update-tools/SKILL.md) and the [app-ui-test](.github/skills/app-ui-test/SKILL.md)
+  checklist; a tag push makes `.github/workflows/release.yml` build the draft release.
 - After every fix or feature run `build` and fix failures. Add a JUnit 6 (Jupiter) + AssertJ + Mockito test for new business
   logic under the matching package in `src/test/java`. Tests don't start the JavaFX toolkit — don't test UI.
 
@@ -165,7 +166,7 @@ All actions and external tools live in `config/apps.json`; shortcuts are declare
   open a window run in `guiToolTest` (`BundledGuiToolContractTest`, tag `gui`, kept out of `build`): run it too.
   Users' Tool Updates compare against `main`, so a binary pushed without its new hash list fails their download check.
 - A tool that only new app code runs, or that replaces another tool's files (File Locksmith took over ThisIsMyFile's
-  folder), gets `minAppVersion` above the released version (`"4.5.1"` after v4.5). Without it, older installs get it in
+  folder), gets `minAppVersion` above the released version (the latest tag + `.1`: `"4.5.1"` after v4.5). Without it, older installs get it in
   Tool Updates, which deletes the files their code still runs.
 - A tool built with MSVC imports `VCRUNTIME140.dll`, which a clean Windows lacks (it runs here only because a VC++
   redist is installed). List a new exe's DLLs with a strings scan (`[regex]::Matches(<ASCII bytes>, '[\w\-]+\.dll')`);

@@ -1,0 +1,47 @@
+name: Release
+
+# Pushing a tag v<version> builds the setup and the ZIP on a clean machine and creates a DRAFT release with them.
+# Publishing the draft is a separate, manual step (see .github/skills/release/SKILL.md).
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+  issues: read
+
+jobs:
+  release:
+    runs-on: windows-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+      - name: Cache ffmpeg
+        uses: actions/cache@v4
+        with:
+          path: apps/media
+          key: ffmpeg-${{ hashFiles('build.gradle') }}
+          restore-keys: ffmpeg-
+      - name: Check the tag matches app-version.properties
+        id: version
+        run: |
+          $version = (Select-String -Path src/main/resources/app-version.properties -Pattern '^version=(.+)$').Matches[0].Groups[1].Value.Trim()
+          if ("${{ github.ref_name }}" -ne "v$version") { throw "Tag ${{ github.ref_name }} does not match version=$version" }
+          "version=$version" >> $env:GITHUB_OUTPUT
+      - name: Build, test and package
+        run: ./gradlew build dist
+      - name: Create the draft release
+        run: |
+          $version = '${{ steps.version.outputs.version }}'
+          ./.github/skills/release/notes.ps1 -Version $version -OutFile notes.md
+          $title = ./.github/skills/release/notes.ps1 -Version $version -Title
+          gh release create "v$version" "dist/acommander-setup-v$version.exe" "dist/acommander-v$version.zip" `
+            --draft --verify-tag --title $title --notes-file notes.md

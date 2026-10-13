@@ -1,10 +1,11 @@
-# Release checklist "Installer": installs dist\acommander-setup-v*.exe into a temp folder, starts it, reinstalls over
-# the running app, uninstalls. Prints PASS/FAIL per step; exit 1 on any failure. Never touches a real install.
+# Release checklist "Installer": installs a setup (default dist\acommander-setup-v*.exe) into a temp folder, starts it,
+# reinstalls over the running app, uninstalls. Prints PASS/FAIL per step; exit 1 on any failure. Never touches a real install.
+param([string]$SetupPath)
 $ErrorActionPreference = 'Stop'
 $key = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\{1D54CF8C-10E1-4E2A-BD4D-5F4CFE658C1C}_is1'
 if (Test-Path $key) { Write-Output 'SKIP: the user has a real install; a test install would take it over'; exit 0 }
 $root = Split-Path (Split-Path (Split-Path $PSScriptRoot))
-$setup = Get-ChildItem "$root\dist\acommander-setup-v*.exe" | Select-Object -First 1
+$setup = if ($SetupPath) { Get-Item $SetupPath } else { Get-ChildItem "$root\dist\acommander-setup-v*.exe" | Select-Object -First 1 }
 $dir = "$env:TEMP\ac-install"
 $setupLog = "$env:TEMP\ac-setup.log"
 $failed = $false

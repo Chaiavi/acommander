@@ -99,7 +99,8 @@ confirm with `{ENTER}` unless the row says otherwise. Palette actions: `^+p`, `T
 
 ### Installer (after `dist`)
 
-`pwsh -NoProfile -File .github\skills\app-ui-test\installer.ps1` runs the four steps below and prints PASS/FAIL for
+`pwsh -NoProfile -File .github\skills\app-ui-test\installer.ps1 [-SetupPath <setup.exe>]` (default: the one in `dist\`)
+runs the four steps below and prints PASS/FAIL for
 each. It skips if `HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\{1D54CF8C-10E1-4E2A-BD4D-5F4CFE658C1C}_is1`
 exists: that is the user's real install, and a test install would take it over. It passes `/TASKS=""`: the desktop
 task overwrites a desktop `ACommander.lnk` the user may have made for a portable copy, and uninstall then deletes it.
