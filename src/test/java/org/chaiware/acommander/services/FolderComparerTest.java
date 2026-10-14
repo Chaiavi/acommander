@@ -88,6 +88,27 @@ class FolderComparerTest {
     }
 
     @Test
+    void chunkedContentComparisonFindsADifferenceInAnyChunk() throws IOException {
+        byte[] data = new byte[250_000];
+        for (int i = 0; i < data.length; i++) {
+            data[i] = (byte) (i * 31);
+        }
+        Path a = Files.write(left.resolve("a.bin"), data);
+        Path b = right.resolve("b.bin");
+        for (boolean parallel : new boolean[]{false, true}) {
+            for (int position : new int[]{0, 65_535, 65_536, 200_000, data.length - 1}) {
+                byte[] changed = data.clone();
+                changed[position]++;
+                Files.write(b, changed);
+                assertThat(FolderComparer.contentsDiffer(a, b, parallel, 65_536))
+                        .as("byte %d, parallel %s", position, parallel).isTrue();
+            }
+            Files.write(b, data);
+            assertThat(FolderComparer.contentsDiffer(a, b, parallel, 65_536)).as("parallel %s", parallel).isFalse();
+        }
+    }
+
+    @Test
     void contentComparisonTreatsEmptyFilesAsEqual() throws IOException {
         Files.createFile(left.resolve("empty.txt"));
         Files.createFile(right.resolve("empty.txt"));

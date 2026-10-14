@@ -277,7 +277,7 @@ Not actions, but often asked for:
 ### `services/` — feature logic moved out of `Commander` (no JavaFX)
 | File | Role |
 |---|---|
-| `FolderComparer` | Compare Folders: only-left / only-right / different (size, date, contents via `Files.mismatch`) marks per top-level item; `key(path)` looks a pane item up. |
+| `FolderComparer` | Compare Folders: only-left / only-right / different (size, date, contents in 32 MB chunks, both files read at once when on different drives) marks per top-level item; `key(path)` looks a pane item up. |
 | `ImageConversionService` | caesiumclt commands from an `ImageConversionRequest` (`buildCommands`: files already in the target format get a second run with `--format original`); `failures` reads its error lines (it exits 0 anyway); finds the first output file to select. |
 | `MediaConversionService` | ffmpeg work through an injected runner: `convertAudio`, `convertVideo`, `trim` (one file at a time via `convertAll`), `join` (concat demuxer), `probe` + `mediaInfo`; output naming, collision policy (never the source itself), deletes a failed run's partial output. |
 | `ClipboardTransfer` | Copy/cut/paste between panes on any VFS: `capture` (the selection with full paths, read on the FX thread), clipboard `State`, `paste` (move or copy, per-item failures), `duplicateName` (`_copy`, `_copy_2`, …), `isSameFolder`, `targetInternalPath`. |
