@@ -110,7 +110,7 @@ public class Commander {
     @FXML
     Button btnF1, btnF2, btnF3, btnF4, btnF5, btnF6, btnDup, btnF7, btnF8, btnF9, btnF10, btnF11, btnF12;
     @FXML
-    HBox externalProgressBox;
+    VBox externalProgressBox;
     @FXML
     ProgressBar externalProgressBar;
     @FXML

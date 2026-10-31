@@ -258,32 +258,53 @@
     -fx-background-color: -ac-subtle-bg;
 }
 
-.external-progress-row {
-    -fx-background-color: -ac-subtle-bg;
-    -fx-padding: 0 8 0 8;
+/* The running-task card over the panes: accent stripe on the left, shadow to lift it off the list */
+.progress-card {
+    -fx-background-color: -ac-accent, -ac-button-bg;
+    -fx-background-insets: 0, 0 0 0 5;
+    -fx-background-radius: 8, 0 8 8 0;
+    -fx-border-color: -ac-accent;
+    -fx-border-radius: 8;
+    -fx-padding: 12 14 14 19;
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.6), 22, 0.25, 0, 5);
 }
 
-.external-progress-label {
+.progress-card-label {
     -fx-text-fill: -ac-button-text;
-    -fx-font-size: 11px;
+    -fx-font-size: 14px;
     -fx-font-weight: bold;
 }
 
-.external-progress-bar {
-    -fx-accent: -ac-accent;
+.progress-card-bar {
+    -fx-indeterminate-bar-length: 140;
+    -fx-indeterminate-bar-animation-time: 1.4;
 }
 
-.external-stop-button {
-    -fx-background-color: -ac-button-bg;
-    -fx-text-fill: -ac-button-text;
-    -fx-border-color: -ac-button-border;
-    -fx-border-width: 1;
-    -fx-font-size: 11px;
+.progress-card-bar > .track {
+    -fx-background-color: derive(-ac-button-bg, -30%);
+    -fx-background-insets: 0;
+    -fx-background-radius: 5;
+}
+
+.progress-card-bar > .bar {
+    -fx-background-color: linear-gradient(to right, derive(-ac-accent, -15%), derive(-ac-accent, 45%));
+    -fx-background-insets: 0;
+    -fx-background-radius: 5;
+    -fx-padding: 5;
+}
+
+.progress-card-stop {
+    -fx-background-color: #c62828;
+    -fx-background-radius: 5;
+    -fx-text-fill: #ffffff;
+    -fx-font-size: 12px;
     -fx-font-weight: bold;
+    -fx-padding: 5 16 5 16;
+    -fx-cursor: hand;
 }
 
-.external-stop-button:hover {
-    -fx-background-color: -ac-hover;
+.progress-card-stop:hover {
+    -fx-background-color: #e53935;
 }
 
 /* Shown while pane navigation is linked */

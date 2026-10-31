@@ -249,7 +249,7 @@ Not actions, but often asked for:
 | `BugReportUrl` | Report Bug: prefilled GitHub new-issue URL with title prefix and label per report type; cuts the body to keep the URL under 8,000 chars. |
 | `FileIcons` | Glyph + colour per pane item (folder, archive, PDF, text, image, audio, video, executable, other). |
 | `IncrementalFilter` | Type-to-filter state of one pane: typed prefix, the unfiltered list, the matching items; starts over when the pane changed. |
-| `ExternalProgressController` | Progress bar + Stop button: one running count over tool runs (listener) and background work (`run`); `toolName`, `isFailedExit` (ExamDiff 27 and Explorer 1 are not failures). |
+| `ExternalProgressController` | Progress card + Stop button over the panes: one running count over tool runs (listener) and background work (`run`); `toolName`, `isFailedExit` (ExamDiff 27 and Explorer 1 are not failures). |
 | `ComboBoxSetup`, `FolderComboBoxCell` | Path combo: drives (with type/free space), Desktop/Documents/Downloads. `refreshDrives` re-reads them each time the dropdown opens and on Ctrl+R. |
 
 ### `keybinding/`
@@ -318,7 +318,7 @@ Not actions, but often asked for:
 
 | File | Role |
 |---|---|
-| `src/main/resources/Commander.fxml` | Main window: path combos, two `ListView`s, headers, footers, progress box, F-key buttons, palette include. |
+| `src/main/resources/Commander.fxml` | Main window: path combos, two `ListView`s, headers, footers, progress card (floats over the panes), F-key buttons, palette include. |
 | `src/main/resources/CommandPalette.fxml` | Palette overlay. |
 | `src/main/resources/styles/app-theme.css` | All styling; dark/light via `theme-dark` / `theme-light` root classes. |
 | `src/main/resources/logback.xml` | Logs to `logs/`. |

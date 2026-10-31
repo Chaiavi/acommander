@@ -5,7 +5,7 @@ import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.ProgressBar;
 import javafx.scene.control.ProgressIndicator;
-import javafx.scene.layout.HBox;
+import javafx.scene.layout.Region;
 import org.chaiware.acommander.commands.Operation;
 
 import java.nio.file.InvalidPathException;
@@ -17,14 +17,14 @@ import java.util.concurrent.CompletionException;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 
-/** The progress bar and Stop button under the panes: one count over running tools and background work. */
+/** The progress card and Stop button over the panes: one count over running tools and background work. */
 public final class ExternalProgressController {
-    private final HBox box;
+    private final Region box;
     private final Label label;
     private final Button stopButton;
     private final AtomicInteger running = new AtomicInteger();
 
-    public ExternalProgressController(HBox box, ProgressBar bar, Label label, Button stopButton) {
+    public ExternalProgressController(Region box, ProgressBar bar, Label label, Button stopButton) {
         this.box = box;
         this.label = label;
         this.stopButton = stopButton;
