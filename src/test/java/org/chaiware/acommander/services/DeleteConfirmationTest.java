@@ -13,8 +13,8 @@ class DeleteConfirmationTest {
 
     @Test
     void namesOneItemAndCountsSeveral() {
-        assertThat(DeleteConfirmation.deleteQuestion(List.of("a.txt"), true)).isEqualTo("Move \"a.txt\" to the Recycle Bin?");
-        assertThat(DeleteConfirmation.deleteQuestion(List.of("a.txt", "b"), false))
+        assertThat(DeleteConfirmation.deleteQuestion(List.of("a.txt"))).isEqualTo("Permanently delete \"a.txt\"? This can't be undone.");
+        assertThat(DeleteConfirmation.deleteQuestion(List.of("a.txt", "b")))
                 .isEqualTo("Permanently delete 2 items? This can't be undone.");
         assertThat(DeleteConfirmation.wipeQuestion(List.of("a.txt"))).isEqualTo("Wipe \"a.txt\"? It is overwritten and can't be recovered.");
         assertThat(DeleteConfirmation.wipeQuestion(List.of("a", "b", "c"))).isEqualTo("Wipe 3 items? They are overwritten and can't be recovered.");

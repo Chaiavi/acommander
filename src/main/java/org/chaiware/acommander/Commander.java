@@ -1460,9 +1460,10 @@ public class Commander {
             return;
         }
         boolean recycle = DeleteConfirmation.recycles(source.sourceFs(), source.sourceFolder());
-        if (!ConfirmDialog.show(dialogOwner(), currentThemeMode.styleClass, "Delete",
-                DeleteConfirmation.deleteQuestion(source.entries().stream().map(ClipboardTransfer.Entry::name).toList(), recycle),
-                "Delete", recycle ? "Move the items to the Recycle Bin." : "Delete the items for good.")) {
+        // The Recycle Bin can undo a delete, so only a permanent one asks first
+        if (!recycle && !ConfirmDialog.show(dialogOwner(), currentThemeMode.styleClass, "Delete",
+                DeleteConfirmation.deleteQuestion(source.entries().stream().map(ClipboardTransfer.Entry::name).toList()),
+                "Delete", "Delete the items for good.")) {
             return;
         }
         int previousIndex = filesPanesHelper.getFileList(true).getSelectionModel().getSelectedIndex();

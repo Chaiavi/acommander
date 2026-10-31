@@ -95,7 +95,7 @@ confirm with `{ENTER}` unless the row says otherwise. Palette actions: `^+p`, `T
 | 22 | App | `{F1}` (Esc closes); palette `Toggle Dark Mode` twice; palette Bookmark this path, `{ENTER}`; enter `nested`; Goto Bookmark, `{ENTER}`; Remove Bookmark, `{ENTER}` | Window "A Commander <version> Help"; `theme_mode` in `config\acommander.properties` flips and returns; log lists `in\` again; no `bookmark.` line left |
 | 23 | Rename (F2) | `notes.txt`, `{F2}`, `^a`, `TEXT:renamed.txt`, `{ENTER}` | `in\renamed.txt`, no `notes.txt` |
 | 24 | Move (F6) | `{END}` (`שלום.txt` sorts last), `{F6}` | `out\שלום.txt`, gone from `in\` |
-| 25 | Delete (F8) / Wipe (Shift+F8) | `renamed.txt` `{F8}`: "Move "renamed.txt" to the Recycle Bin?" `{ENTER}`; `big.bin` `+{F8}`: "Wipe "big.bin"? ..." `{ENTER}`. Esc on either question keeps the file | Both gone from `in\` (`renamed.txt` in the Recycle Bin); sdelete64 in the log |
+| 25 | Delete (F8) / Wipe (Shift+F8) | `renamed.txt` `{F8}` (no question); `big.bin` `+{F8}`: "Wipe "big.bin"? ..." `{ENTER}`. Esc on the question keeps the file | Both gone from `in\` (`renamed.txt` in the Recycle Bin); sdelete64 in the log |
 
 ### Installer (after `dist`)
 
