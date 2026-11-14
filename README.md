@@ -310,6 +310,18 @@ Every action is **data-driven**. Add, remove, or reconfigure tools without touch
 Full notes and downloads for every version: [GitHub Releases](https://github.com/Chaiavi/acommander/releases).
 
 <details>
+<summary><b>v5.1</b> — faster folder comparison, a clearer progress display and quicker deletes</summary>
+
+**New Features & Enhancements**
+
+- **Faster Compare Folders** — large files are compared in chunks, reading both drives at the same time
+- **Floating Progress Card** — running tasks show over the panes without shifting the file lists
+- **Delete without asking** — local files go straight to the Recycle Bin; FTP, archives and network shares still ask
+- **Updated tools** — 7-Zip 26.06, curl 8.23.0, File Locksmith 0.102.3101, Notepad4 26.10r6392, UPX 5.3.0
+
+</details>
+
+<details>
 <summary><b>v5.0</b> — the perfect dual-pane file explorer: installer, tool updates, drag and drop, safer operations</summary>
 
 **New Features & Enhancements**
