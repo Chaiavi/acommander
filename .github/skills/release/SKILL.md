@@ -44,6 +44,12 @@ Two steps go out to every user and need the user's "yes" in chat first: pushing 
     names (`gh api repos/Chaiavi/acommander/milestones -f title="v<next> <name>"`). New issues go to the oldest open
     milestone (AGENTS.md), so nothing else changes.
 12. Remove `$env:TEMP\ac-rel` and the notes file. Report the release link.
+13. Blog post on https://chaiware.org (WordPress; the user shares a logged-in browser tab). In `/wp-admin/`,
+    `page.evaluate` with `fetch('/wp-json/wp/v2/posts…', {headers: {'X-WP-Nonce': wpApiSettings.nonce}})`: read the
+    previous release post (`?context=edit`, its `content.raw` is one `wp:html` block plus a download button), build
+    the new one with the same `<head>`/CSS and a card per notes line, and create it as a draft titled
+    `aCommander v$v Released` with the same category, tags and `featured_media`. Check the preview's DOM (a
+    background tab never finishes the fade-in, so screenshots time out), then publish it.
 
 ## When something fails
 
