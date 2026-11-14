@@ -1161,7 +1161,7 @@
     {"id": "sdelete", "name": "SDelete", "version": "2.06", "link": "https://learn.microsoft.com/sysinternals/downloads/sdelete", "paths": ["apps/delete/wipe"],
       "upstream": {"page": "https://learn.microsoft.com/en-us/sysinternals/downloads/sdelete", "pattern": "SDelete v(\\d+\\.\\d+)",
         "url": "https://download.sysinternals.com/files/SDelete.zip"}},
-    {"id": "sevenZip", "name": "7-Zip", "version": "26.04", "link": "https://www.7-zip.org/", "paths": ["apps/pack_unpack"],
+    {"id": "sevenZip", "name": "7-Zip", "version": "26.06", "link": "https://www.7-zip.org/", "paths": ["apps/pack_unpack"],
       "upstream": {"github": "ip7z/7zip", "asset": "-x64\\.exe$", "files": ["7zG.exe", "7z.dll"]}},
     {"id": "sevenZipConsole", "name": "7-Zip Command Line (archive browsing, split, Universal Extractor)", "version": "26.04",
       "link": "https://www.7-zip.org/", "paths": ["apps/extract_all/UniExtract/bin/x64/7z.exe", "apps/extract_all/UniExtract/bin/x64/7z.dll"],
