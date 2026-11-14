@@ -34,7 +34,8 @@ Two steps go out to every user and need the user's "yes" in chat first: pushing 
    Follow the release run: `gh run list --workflow release.yml --limit 1`, `gh run watch <id> --exit-status`.
 8. Test what users get: `gh release download v$v --pattern "*setup*" --dir $env:TEMP\ac-rel --clobber`, then
    `pwsh -NoProfile -File .github\skills\app-ui-test\installer.ps1 -SetupPath $env:TEMP\ac-rel\acommander-setup-v$v.exe`.
-   All four PASS.
+   All four PASS. On a PC with the user's real install it prints `SKIP` (by design): report it as not run, and
+   say whether `installer/` or `build.gradle` changed since the last tag (`git diff v<prev> v$v --stat -- installer/ build.gradle`).
 9. `gh release edit v$v --notes-file $env:TEMP\notes-v$v.md`.
 10. **Ask the user**, then `gh release edit v$v --draft=false --latest`. Check
     `gh release view --json tagName` shows `v$v`.
