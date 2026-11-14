@@ -1150,7 +1150,7 @@
         "pattern": "PuzzleCollectionPortable_(\\d{4}\\.\\d{2}\\.\\d{2})_English"}},
     {"id": "arkanoidClone", "name": "Arkanoid clone (Dreamwebspace)", "version": "0.3", "minAppVersion": "4.5.1",
       "link": "https://dreamwebspace.itch.io/arkanoid", "paths": ["apps/games/arkanoid_clone"]},
-    {"id": "notepad4", "name": "Notepad4", "version": "26.08r6282", "link": "https://github.com/zufuliu/notepad4", "paths": ["apps/edit/Notepad4.exe"],
+    {"id": "notepad4", "name": "Notepad4", "version": "26.10r6392", "link": "https://github.com/zufuliu/notepad4", "paths": ["apps/edit/Notepad4.exe"],
       "upstream": {"github": "zufuliu/notepad4", "asset": "^Notepad4_en_x64_.*\\.zip$"}},
     {"id": "qpdf", "name": "qpdf", "version": "12.4.2", "link": "https://github.com/qpdf/qpdf", "paths": ["apps/pdf"],
       "upstream": {"github": "qpdf/qpdf", "asset": "msvc64\\.zip$", "files": ["qpdf.exe", "qpdf30.dll", "msvcp140.dll", "vcruntime140.dll", "vcruntime140_1.dll"]}},
