@@ -20,6 +20,8 @@ command palette. Free and open source.**
    settings included.
 3. **Portable** (`acommander-v<version>.zip`): unzip anywhere and run `acommander.exe`. Nothing is installed.
 4. Both are about 300 MB because they bundle about 20 tools and their own Java runtime.
+5. Signing: see the [Code signing policy](#-code-signing-policy). Windows may warn about an unsigned download: choose
+   **More info › Run anyway**. For the ZIP, right-click it, **Properties**, tick **Unblock** before unzipping.
 
 ![A Commander out of the box](https://github.com/user-attachments/assets/5880e5c6-c1f4-4450-b169-b8bf8079a350)
 
@@ -53,6 +55,7 @@ command palette. Free and open source.**
 - [Release History](#-release-history)
 - [Build from Source](#-build-from-source)
 - [Project Layout](#-project-layout)
+- [Code Signing Policy](#-code-signing-policy)
 - [License](#-license)
 
 ---
@@ -466,6 +469,25 @@ acommander/
 ├── build.gradle             Build, packaging, launch4j, dist tasks
 └── LICENSE
 ```
+
+---
+
+## 🔏 Code signing policy
+
+Free code signing provided by [SignPath.io](https://about.signpath.io), certificate by
+[SignPath Foundation](https://signpath.org). The application is pending; until it is approved, releases are unsigned.
+
+- Committers and reviewers: [Chaiavi](https://github.com/Chaiavi)
+- Approvers: [Chaiavi](https://github.com/Chaiavi)
+
+Only the setup built by this repository's [release workflow](.github/workflows/release.yml) is signed. The bundled
+third-party tools under `apps/` keep their own authors' signatures, if any.
+
+**Privacy:** This program will not transfer any information to other networked systems unless specifically requested
+by the user or the person installing or operating it. One exception: with **Check at Start** on (the default),
+it downloads the bundled-tool list from this GitHub repository once a day to look for tool updates. It sends no
+personal data; turn **Check at Start** off in Check Tool Updates to stop it. FTP, SFTP and FTPS connections,
+tool downloads and Report Bug go only where you send them.
 
 ---
 
